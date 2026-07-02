@@ -385,8 +385,6 @@ export const dict = {
   last90Days: { ar: "آخر ٩٠ يوم", en: "Last 90 days" },
   allTime: { ar: "كل الوقت", en: "All time" },
   customRange: { ar: "نطاق مخصص", en: "Custom" },
-  fromDate: { ar: "من", en: "From" },
-  toDate: { ar: "إلى", en: "To" },
   allProjects: { ar: "كل المشاريع", en: "All projects" },
   allStatuses: { ar: "كل الحالات", en: "All statuses" },
   filtersActive: { ar: "فلاتر مفعّلة", en: "filters active" },
