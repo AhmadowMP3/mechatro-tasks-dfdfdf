@@ -68,9 +68,8 @@ export function TaskCard({ task, project, assignee, onClick }: {
             {task.due_date ? formatDate(task.due_date, lang) : t("na")}
           </span>
         </div>
-
-        </div>
       </div>
+
     </button>
   );
 }
