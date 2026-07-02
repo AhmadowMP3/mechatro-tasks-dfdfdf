@@ -28,7 +28,7 @@ function LayoutComponent() {
   const { user } = useApp();
   // In share mode we allow anonymous browsing; suspension screen is skipped.
   if (!isShareMode() && user?.status === "suspended") return <SuspendedScreen />;
-  useEffect(() => { /* no-op: kept for future guards */ }, []);
+  
   return (
     <AppShell>
       <Outlet />
