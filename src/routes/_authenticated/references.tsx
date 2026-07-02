@@ -592,3 +592,169 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+
+const CHIP_PALETTE = [
+  { fg: "#189FD1", bg: "rgba(24,159,209,0.14)", ring: "rgba(24,159,209,0.45)" },
+  { fg: "#C8A24B", bg: "rgba(200,162,75,0.16)", ring: "rgba(200,162,75,0.5)" },
+  { fg: "#A78BFA", bg: "rgba(167,139,250,0.16)", ring: "rgba(167,139,250,0.5)" },
+  { fg: "#22C55E", bg: "rgba(34,197,94,0.14)", ring: "rgba(34,197,94,0.45)" },
+  { fg: "#F0676A", bg: "rgba(240,103,106,0.14)", ring: "rgba(240,103,106,0.45)" },
+  { fg: "#FF8A3D", bg: "rgba(255,138,61,0.14)", ring: "rgba(255,138,61,0.45)" },
+];
+function accentFor(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return CHIP_PALETTE[h % CHIP_PALETTE.length];
+}
+
+function CategoryCombobox({
+  value, onChange, options, placeholder, hint, createLabel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder: string;
+  hint: string;
+  createLabel: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
+  const norm = (s: string) => s.trim().toLowerCase();
+  const q = norm(query);
+  const filtered = useMemo(
+    () => options.filter((o) => !value || o !== value).filter((o) => !q || norm(o).includes(q)).slice(0, 24),
+    [options, q, value],
+  );
+  const exactExists = options.some((o) => norm(o) === q);
+  const canCreate = q.length > 0 && !exactExists;
+  const selected = value.trim();
+  const selectedFromList = options.some((o) => o === selected);
+
+  const commit = (v: string) => {
+    const t = v.trim().slice(0, 60);
+    if (!t) return;
+    onChange(t);
+    setQuery("");
+  };
+  const clear = () => { onChange(""); setQuery(""); };
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${focused ? "var(--brand-blue)" : "var(--border)"}`,
+        background: "var(--surface-2)",
+        borderRadius: 14,
+        padding: 10,
+        display: "flex", flexDirection: "column", gap: 10,
+        boxShadow: focused ? "0 0 0 3px color-mix(in oklab, var(--brand-blue) 22%, transparent)" : "none",
+        transition: "border-color .15s, box-shadow .15s",
+      }}
+    >
+      {/* Row 1: selected pill + input */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {selected && (
+          <span
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "6px 10px 6px 8px", borderRadius: 999,
+              background: selectedFromList ? "var(--grad-blue)" : "var(--grad-gold)",
+              color: selectedFromList ? "#fff" : "#0A1626",
+              fontSize: 13, fontWeight: 800, letterSpacing: 0.2,
+              boxShadow: "0 4px 14px -6px rgba(0,0,0,.35)",
+            }}
+          >
+            <TagIcon size={13} />
+            {selected}
+            <button
+              type="button"
+              onClick={clear}
+              aria-label="clear category"
+              style={{
+                display: "grid", placeItems: "center",
+                width: 18, height: 18, borderRadius: 999,
+                background: "rgba(0,0,0,.18)", border: "none",
+                color: "inherit", cursor: "pointer", padding: 0,
+              }}
+            >
+              <X size={11} />
+            </button>
+          </span>
+        )}
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 120)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (canCreate) commit(query);
+              else if (filtered[0]) commit(filtered[0]);
+            } else if (e.key === "Backspace" && !query && selected) {
+              e.preventDefault(); clear();
+            } else if (e.key === "Escape") {
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
+          placeholder={selected ? "" : placeholder}
+          maxLength={60}
+          style={{
+            flex: 1, minWidth: 140, height: 32,
+            background: "transparent", border: "none", outline: "none",
+            color: "var(--foreground)", fontSize: 14, padding: "0 4px",
+          }}
+        />
+      </div>
+
+      {/* Row 2: chip cloud */}
+      {(filtered.length > 0 || canCreate) && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+          {canCreate && (
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); commit(query); }}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "5px 10px", borderRadius: 999,
+                background: "var(--grad-gold)", color: "#0A1626",
+                border: "none", cursor: "pointer",
+                fontSize: 12, fontWeight: 800, letterSpacing: 0.2,
+                boxShadow: "0 4px 14px -6px rgba(200,162,75,.6)",
+              }}
+            >
+              <Plus size={12} />
+              {createLabel} "{query.trim()}"
+            </button>
+          )}
+          {filtered.map((c) => {
+            const a = accentFor(c);
+            return (
+              <button
+                key={c}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); commit(c); }}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "4px 10px", borderRadius: 999,
+                  background: a.bg, color: a.fg,
+                  border: `1px solid ${a.ring}`,
+                  fontSize: 11.5, fontWeight: 800, letterSpacing: 0.2,
+                  cursor: "pointer",
+                  transition: "transform .12s ease, background .12s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-1px)")}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
+              >
+                <TagIcon size={10} />
+                {c}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ fontSize: 11, color: "var(--muted)", opacity: 0.8 }}>{hint}</div>
+    </div>
+  );
+}
+
