@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { dict, type DictKey, type Lang } from "@/i18n/dict";
 import { logActivity } from "@/lib/activity";
@@ -63,6 +64,7 @@ const LEGACY_PERMS: Record<Role, Permission[]> = {
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [lang, setLangState] = useState<Lang>("ar");
   const [theme, setThemeState] = useState<"dark" | "light">("dark");
   const [users, setUsers] = useState<Profile[]>([]);
@@ -81,11 +83,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loadUser = async (uid: string) => {
     const { data: prof } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
     if (prof) setUser(prof as Profile);
-    // Load effective permissions via join
-    const { data: perms } = await supabase
-      .from("user_roles")
-      .select("role_permissions:role_id(permission:role_permissions(permission))");
-    // Simpler: two queries
     const { data: userRoles } = await supabase.from("user_roles").select("role_id").eq("user_id", uid);
     const roleIds = (userRoles ?? []).map((r) => r.role_id);
     if (roleIds.length) {
@@ -97,13 +94,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } else {
       setPermissions([]);
     }
-    void perms; // silence unused
   };
 
   const signOut = async () => {
+    try { await queryClient.cancelQueries(); queryClient.clear(); } catch { /* noop */ }
     await supabase.auth.signOut();
     setUser(null); setSession(null); setUsers([]); setPermissions([]);
   };
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;
