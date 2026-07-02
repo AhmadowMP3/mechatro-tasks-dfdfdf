@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, FileText } from "lucide-react";
+import { GenerateReportDialog } from "@/components/team/GenerateReportDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
@@ -17,6 +18,8 @@ function TeamPage() {
   const [add, setAdd] = useState(false);
   const [edit, setEdit] = useState<Profile | null>(null);
   const [record, setRecord] = useState<Profile | null>(null);
+  const [report, setReport] = useState<Profile | null>(null);
+  const canAdmin = can("manage_users");
 
   const { data: aggregates } = useQuery({
     queryKey: ["team-agg"],
@@ -66,9 +69,16 @@ function TeamPage() {
                 <MiniStat label={t("doneTasks")} value={toLocalDigits(s.done, lang)} />
                 <MiniStat label={t("hoursLogged")} value={toLocalDigits(Math.round(s.minutes / 60), lang)} />
               </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                <button onClick={() => setRecord(u)} className="brand-btn-sm" style={{ flex: 1, background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("record")}</button>
-                {can("manage_users") && <button onClick={() => setEdit(u)} className="brand-btn-sm" style={{ flex: 1, background: "var(--grad-blue)", color: "#fff" }}>{t("editMember")}</button>}
+              <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                <button onClick={() => setRecord(u)} className="brand-btn-sm" style={{ flex: 1, minWidth: 90, background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("record")}</button>
+                {canAdmin && <button onClick={() => setEdit(u)} className="brand-btn-sm" style={{ flex: 1, minWidth: 90, background: "var(--grad-blue)", color: "#fff" }}>{t("editMember")}</button>}
+                {canAdmin && (
+                  <button onClick={() => setReport(u)} className="brand-btn-sm"
+                    title={t("generateReport")}
+                    style={{ flex: "0 0 auto", background: "linear-gradient(135deg,#FF8A3D,#F0676A)", color: "#fff", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <FileText size={14} /> PDF
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -78,6 +88,7 @@ function TeamPage() {
       {add && <MemberModal onClose={() => setAdd(false)} onSaved={() => { setAdd(false); refreshUsers(); }} />}
       {edit && <MemberModal member={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); refreshUsers(); }} />}
       {record && <RecordModal member={record} onClose={() => setRecord(null)} />}
+      {report && <GenerateReportDialog member={report} onClose={() => setReport(null)} />}
     </div>
   );
 }

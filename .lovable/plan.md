@@ -1,74 +1,57 @@
-## Activity Log (Admin Only)
+## Member PDF Report — "Branded Dashboard"
 
-Build a dedicated **Activity Log** page that shows every action performed in the app, admin-only, with rich filters. Also fix the current silent-fail: `logActivity()` inserts are blocked by RLS because there's no INSERT policy — so nothing has been logging since the security lockdown.
+Add a **Generate Report** button on every team member card (visible only to admins / master admin). Clicking opens a small dialog to pick:
 
-### 1. Database migration
+- **Language**: Arabic (RTL) · English (LTR) · Bilingual (both in one PDF)
+- **Range**: All time · Last 7 days · Last 30 days · Last 90 days · Custom (from/to)
 
-- Replace `activity_log` policies:
-  - **SELECT**: admins only (`has_role(auth.uid(), 'admin')` or `is_master_admin`).
-  - **INSERT**: any authenticated user, with `actor_id = auth.uid()` (or null) — so client-side `logActivity()` calls succeed.
-  - No UPDATE/DELETE (immutable log; service_role bypasses for pruning if ever needed).
-- Add indexes: `(actor_id)`, `(entity_type, entity_id)` for filter performance.
+Then it renders and downloads `Mechatro-Report-{Member}-{Date}.pdf`.
 
-### 2. Standardize logging
+### What the PDF contains
 
-- Audit existing `logActivity` call sites (dashboard, projects, NewTaskModal, TaskDetailModal, KanbanView) and normalize `action` values to a small vocabulary: `created`, `updated`, `status_changed`, `deleted`, `archived`, `commented`, `file_added`, `assigned`, `signed_in`.
-- Add logging to sites currently missing it: task edits, task delete, project edit/archive, comment add, file add, user invite/role change (via admin edge functions — service_role writes).
-- Add `signed_in` log on successful auth in `app-context`.
+Everything we have about the member, organized into sections:
 
-### 3. Activity Log page — `/activity` (admin only)
+1. **Cover page** — dark Mechatro gradient hero, logo, member avatar (circle), full name (large), role pill, status, email, join date, report range, generated-at timestamp.
+2. **Profile & role** — role, permissions inherited from their role, active/suspended, master-admin flag, last sign-in.
+3. **Performance KPIs** — big-number cards: Total tasks, Completed, In progress, Paused, Overdue, On-time %, Completion %, Avg. task duration, League points, Rank.
+4. **Charts** — Status donut (todo/in_progress/paused/done), Priority bars, Tasks-per-project bars, 12-week completion sparkline. Drawn as vector shapes in the PDF (no external chart images).
+5. **Projects** — table of projects the member is on: project name, color chip, their task count, completion %, last activity.
+6. **Tasks breakdown** — grouped by status: title, project, priority, start date, due date, overdue flag, completion date. Paginated cleanly across pages.
+7. **Work sessions** — total tracked time, sessions count, avg session length, last 20 sessions table.
+8. **Comments & files** — counts + last 10 comments (truncated) and last 10 Drive links added.
+9. **Activity timeline** — last 50 activity_log entries for the member with icons and relative dates.
+10. **Footer on every page** — Mechatro logo mark, page X/Y, member name, report range.
 
-Route file `src/routes/_authenticated/activity.tsx`, gated with a `beforeLoad` that redirects non-admins to `/`.
+### Visual style — "Branded Dashboard"
 
-**Layout:**
-```text
-┌ Filters bar ─────────────────────────────────────────┐
-│ [Search]  [User ▾] [Action ▾] [Entity ▾] [Date range]│
-│                                       [Reset] [Export]│
-├──────────────────────────────────────────────────────┤
-│ Timeline grouped by day                              │
-│  ── Today ──                                         │
-│   ● 14:32  Ahmed  created task  "Fix pump"           │
-│   ● 14:20  Sara   status → done  "Weld frame"        │
-│  ── Yesterday ──                                     │
-│   ...                                                │
-│                              [Load more]             │
-└──────────────────────────────────────────────────────┘
-```
+- Dark cover + section dividers using the existing brand gradient (blue → green → orange).
+- Light content pages (white/near-white) for readability + printing.
+- KPI cards with rounded corners, thin brand-color top border, huge number, small label.
+- Charts use the Mechatro palette (`#189FD1`, `#22C55E`, `#FF8A3D`, `#F0676A`, muted grid).
+- Section headers: brand blue with a small colored square accent, no cheesy divider lines.
+- Consistent 40pt page margins, 8pt grid.
 
-**Filters** (all combinable, URL-synced via search params so filtered views are shareable):
-- Free-text search over action + entity_id + meta.
-- User (multi-select of profiles).
-- Action type (multi-select from vocabulary).
-- Entity type (task / project / profile / role / comment / file / session / auth).
-- Date range (last 24h / 7d / 30d / custom).
+### Bilingual handling
 
-**Row rendering:**
-- Avatar + name of actor, colored action pill, human sentence ("changed status of *Fix pump* from *todo* to *in_progress*"), relative time + absolute tooltip.
-- Click a row → deep link to the related entity (task modal, project page, user in Access Control).
-- Icon per action (created=plus, updated=pencil, deleted=trash, status_changed=arrow, commented=bubble, file_added=paperclip, assigned=user, signed_in=login).
+- **English** PDF: Montserrat, LTR.
+- **Arabic** PDF: uses the Arabic Montserrat font already in the project, RTL layout (labels right-aligned, tables mirrored, page numbering flipped).
+- **Bilingual** PDF: each section renders Arabic block first (RTL) then English block (LTR), separated by a thin rule; cover page shows both titles stacked.
 
-**Extras:**
-- Sticky day headers.
-- Infinite scroll (page size 50) using keyset pagination on `created_at`.
-- **Export CSV** button — downloads currently filtered rows.
-- Empty state illustration + "No activity matches these filters".
-- Fully bilingual (AR/EN) with RTL mirroring; add i18n keys.
+### Technical details
 
-### 4. Navigation & discoverability
+- **Library**: `pdfmake` — supports embedded TTF fonts (needed for Arabic), vector shapes for charts, tables, page headers/footers, and works fully client-side (no server round-trip, no Node-only deps). Register Montserrat + Montserrat Arabic from the fonts already bundled in `src/assets/fonts/` as base64 VFS entries at first use.
+- **New files**:
+  - `src/lib/report/fonts.ts` — lazy-load font TTFs, base64 encode, register with pdfmake.
+  - `src/lib/report/data.ts` — one function `loadMemberReportData(memberId, range)` batching supabase reads (profile, role+permissions, projects via tasks, tasks, work_sessions, task_comments, task_files, activity_log, league rank calc).
+  - `src/lib/report/charts.ts` — pure functions that return pdfmake `canvas` node arrays (donut, bar, sparkline).
+  - `src/lib/report/build-pdf.ts` — `buildMemberReport({ member, data, lang, range })` returning a pdfmake docDefinition; handles LTR/RTL/bilingual.
+  - `src/components/team/GenerateReportDialog.tsx` — the language + range picker modal.
+- **Team page** (`src/routes/_authenticated/team.tsx`): add a `FileText` icon button per member card, gated by `isMasterAdmin || user.role === 'admin'`. Opens the dialog. On confirm, calls `buildMemberReport(...)` → `pdfMake.createPdf(doc).download(filename)`.
+- **i18n**: add keys (`generateReport`, `reportLanguage`, `reportRange`, `bilingual`, `custom`, `from`, `to`, all KPI labels, section titles) to `src/i18n/dict.ts`.
+- **No DB migration needed** — `activity_log` already permits admins to select, and all other tables are readable by admins under existing RLS.
+- **No new dependency for charts** — pdfmake's `canvas` primitive draws lines/rects/ellipses natively, keeping the bundle lean.
+- **Bundle impact**: pdfmake + fonts are dynamically imported inside the click handler so the /team route stays light.
 
-- Add sidebar entry **Activity Log** (scroll-text icon), visible only when `is_master_admin || has_role('admin')`.
-- On the dashboard's "Recent activity" card, add a "View all →" link to `/activity` for admins.
+### Deliverable
 
-### 5. Verification
-
-- Typecheck.
-- Playwright: sign in as master admin, open `/activity`, apply a filter, verify rows.
-- Confirm a fresh action (create a task) appears in the log within seconds.
-
-### Technical notes
-
-- Query shape: single `.select("*, actor:profiles!actor_id(full_name, avatar_url)")` with `.order("created_at", { ascending: false }).range(...)`.
-- Entity name resolution: batch-fetch task/project titles for the currently displayed page (Map keyed by `entity_id`) — avoids N+1.
-- Search params validated with zod + `fallback()`.
-- Non-admin hitting `/activity` directly → `redirect({ to: "/" })` in `beforeLoad`.
+After approval I'll implement in one pass: dialog + data loader + font registration + PDF builder (all three language modes) + Team page button, then verify by generating a sample report for an existing member.
