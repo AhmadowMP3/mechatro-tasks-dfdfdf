@@ -20,18 +20,16 @@ const RANGES = ["all","24h","7d","30d"] as const;
 type Range = typeof RANGES[number];
 
 const searchSchema = z.object({
-  q:      fallback(z.string(), "").default(""),
-  user:   fallback(z.string(), "").default(""),
-  action: fallback(z.enum(["", ...ACTIONS]), "").default(""),
-  entity: fallback(z.enum(["", ...ENTITIES]), "").default(""),
-  range:  fallback(z.enum(RANGES), "7d").default("7d"),
+  q:      z.string().catch("").default(""),
+  user:   z.string().catch("").default(""),
+  action: z.enum(["", ...ACTIONS]).catch("").default(""),
+  entity: z.enum(["", ...ENTITIES]).catch("").default(""),
+  range:  z.enum(RANGES).catch("7d").default("7d"),
 });
+type Search = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/_authenticated/activity")({
-  validateSearch: zodValidator(searchSchema),
-  beforeLoad: () => {
-    // Client-side redirect for non-admins happens in component (context not in router).
-  },
+  validateSearch: (s: Record<string, unknown>) => searchSchema.parse(s),
   component: ActivityPage,
 });
 
