@@ -38,19 +38,6 @@ function AuthPage() {
 
   const l = lang === "ar";
 
-  async function handleGoogle() {
-    setBusy(true);
-    const res = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (res.error) {
-      toast.error(res.error.message || "Google sign-in failed");
-      setBusy(false);
-      return;
-    }
-    if (res.redirected) return; // browser redirects
-    navigate({ to: "/" });
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
