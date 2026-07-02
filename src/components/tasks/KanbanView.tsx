@@ -5,7 +5,7 @@ import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { Avatar } from "@/components/Avatar";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
-import { logActivity } from "@/lib/activity";
+
 import type { TaskRow } from "@/components/TaskCard";
 
 type Project = { id: string; name_ar: string; name_en: string; color: string };
@@ -46,7 +46,7 @@ export function KanbanView({
     if (task.status === "done" && status !== "done") patch.completed_at = null;
     const { error } = await supabase.from("tasks").update(patch).eq("id", id);
     if (error) { toast.error(error.message); return; }
-    await logActivity(user?.id ?? null, "status", "task", id, { from: task.status, to: status });
+    
     if (status === "in_review") toast.success(t("awaitingReview"));
     onChanged();
   }

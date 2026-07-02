@@ -6,7 +6,7 @@ import { StatusPill, PriorityPill, OverduePill } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
 import { formatDate, formatMinutes, isOverdue, relativeTime, toLocalDigits } from "@/lib/format";
 import { driveFileType, isDriveUrl, PROJECT_COLORS } from "@/lib/ui-tokens";
-import { logActivity, notify } from "@/lib/activity";
+import { notify } from "@/lib/activity";
 import { toast } from "sonner";
 
 type Task = {
@@ -77,7 +77,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     const { error } = await supabase.from("tasks").update(patch as never).eq("id", taskId);
     if (error) { toast.error(error.message); return; }
     toast.success(t("saved"));
-    await logActivity(user?.id ?? null, dirty.status ? "act_status" : "act_update", "task", taskId, { title: task.title });
+
     if (dirty.assignee_id && dirty.assignee_id !== task.assignee_id) {
       await notify(dirty.assignee_id as string, "task_assigned", `تم تكليفك بمهمة: ${task.title}`, `Assigned to task: ${task.title}`, undefined, taskId);
     }
@@ -111,7 +111,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     if (task.assignee_id && task.assignee_id !== user.id) {
       await notify(task.assignee_id, "task_comment", `تعليق جديد على: ${task.title}`, `New comment on: ${task.title}`, newComment.trim(), taskId);
     }
-    await logActivity(user.id, "act_comment", "task", taskId, { title: task.title });
+    
     setNewComment("");
     load();
   };
@@ -123,7 +123,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
       task_id: taskId, file_name: linkName.trim(), drive_url: linkUrl.trim(),
       file_type: driveFileType(linkUrl), added_by: user?.id ?? null,
     });
-    await logActivity(user?.id ?? null, "file_added", "task", taskId, { title: task?.title ?? "", file_name: linkName.trim() });
+    
     setLinkName(""); setLinkUrl("");
     load();
   };

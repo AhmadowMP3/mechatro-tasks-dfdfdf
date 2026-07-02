@@ -8,7 +8,7 @@ import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { Avatar } from "@/components/Avatar";
 import { formatDate, toLocalDigits } from "@/lib/format";
 import { toast } from "sonner";
-import { logActivity } from "@/lib/activity";
+
 import {
   FilterDrawer, FilterSection, ChipMultiSelect, FilterSelect,
   DateRangeControl, resolveDateRange, ActiveFilterChips,
@@ -132,9 +132,9 @@ function ProjectsPage() {
   const toggleArchive = async (p: P) => {
     await supabase.from("projects").update({ archived: !p.archived }).eq("id", p.id);
     toast.success(t("saved"));
-    await logActivity(user?.id ?? null, "act_update", "project", p.id, { title: lang === "ar" ? p.name_ar : p.name_en });
     refetch();
   };
+
 
   const doExport = async () => {
     try {
@@ -333,7 +333,7 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
       created_by: user?.id ?? null,
     }).select().single();
     if (error) { toast.error(error.message); return; }
-    if (data) await logActivity(user?.id ?? null, "act_create", "project", data.id, { title: form.name_ar });
+    void data;
     toast.success(t("created"));
     onCreated();
   };

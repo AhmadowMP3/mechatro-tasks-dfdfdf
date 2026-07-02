@@ -2,7 +2,7 @@ import type { ReportData } from "./data";
 import { buildReportHtml, buildBilingualHtml } from "./report-html";
 import type { Lang } from "@/i18n/dict";
 import { supabase } from "@/integrations/supabase/client";
-import { logActivity } from "@/lib/activity";
+
 import { buildKpiSnapshot } from "./snapshot";
 
 // Lazy-load html2pdf.js only when generating
@@ -146,13 +146,8 @@ export async function generateMemberReportPdf(data: ReportData, choice: ReportLa
       .select("id")
       .single();
     if (insErr) throw insErr;
-
-    await logActivity(authUser.user?.id ?? null, "report.generated", "report", row.id, {
-      member_id: data.member.id,
-      language: choice,
-      range: data.range.label,
-    });
     return { id: row.id, path };
+
   } catch (e) {
     console.warn("Report history save failed:", e);
     return { id: null, path: null };
@@ -208,11 +203,8 @@ export async function persistComparisonPdf(opts: {
       .select("id")
       .single();
     if (insErr) throw insErr;
-
-    await logActivity(authUser.user?.id ?? null, "report.compared", "report", row.id, {
-      a: opts.reportAId, b: opts.reportBId,
-    });
     return { id: row.id, path };
+
   } catch (e) {
     console.warn("Comparison save failed:", e);
     return { id: null, path: null };
