@@ -238,51 +238,101 @@ function ActivityPage() {
     return null;
   };
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const datePreset: Preset = search.range === "24h" ? "today" : search.range === "7d" ? "7d" : search.range === "30d" ? "30d" : "all";
+  const setDatePreset = (p: Preset) => {
+    const map: Record<Preset, Range> = { all: "all", today: "24h", "7d": "7d", "30d": "30d", custom: "all" };
+    patchSearch({ range: map[p] });
+  };
+  void resolveDateRange;
+
+  const chips = useMemo(() => {
+    const c: { key: string; label: string; onRemove: () => void }[] = [];
+    if (search.q) c.push({ key: "q", label: `"${search.q}"`, onRemove: () => patchSearch({ q: "" }) });
+    if (search.user) {
+      const u = users.find((x) => x.id === search.user);
+      c.push({ key: "u", label: u?.full_name ?? search.user, onRemove: () => patchSearch({ user: "" }) });
+    }
+    if (search.action) c.push({ key: "a", label: t(`act_${search.action}` as DictKey), onRemove: () => patchSearch({ action: "" }) });
+    if (search.entity) c.push({ key: "e", label: t(`entity_${search.entity}` as DictKey), onRemove: () => patchSearch({ entity: "" }) });
+    if (search.range !== "all") c.push({ key: "r", label: search.range === "24h" ? t("dateLast24h") : search.range === "7d" ? t("dateLast7d") : t("dateLast30d"), onRemove: () => patchSearch({ range: "all" }) });
+    return c;
+  }, [search, users, t]);
+
+  const activeCount = chips.length;
+
+  const doExport = async () => {
+    try {
+      const cols: XlsxColumn<ActivityRow>[] = [
+        { key: "when", header: lang === "ar" ? "التاريخ" : "When", width: 22, kind: "datetime", get: (r) => r.created_at },
+        { key: "actor", header: lang === "ar" ? "المستخدم" : "Actor", width: 24, get: (r) => actors[r.actor_id ?? ""]?.full_name ?? "" },
+        { key: "action", header: t("filterAction"), width: 18, get: (r) => t(`act_${normalizeAction(r.action)}` as DictKey) || r.action },
+        { key: "entity_type", header: t("filterEntity"), width: 14, get: (r) => t(`entity_${r.entity_type}` as DictKey) || r.entity_type },
+        { key: "entity_name", header: lang === "ar" ? "الاسم" : "Entity", width: 32, get: (r) => (r.entity_id && entityNames[r.entity_id]) || (typeof r.meta?.title === "string" ? r.meta.title : "") || "" },
+        { key: "meta", header: lang === "ar" ? "تفاصيل" : "Details", width: 40, get: (r) => r.meta ? JSON.stringify(r.meta) : "" },
+      ];
+      await exportToBrandedXlsx({
+        sheetName: t("activityLog"),
+        title: `${t("reportTitle")} · ${t("activityLog")}`,
+        filtersSummary: chips.map((c) => c.label).join(" · ") || (lang === "ar" ? "بدون فلاتر" : "No filters"),
+        generatedBy: user?.full_name,
+        lang, columns: cols, rows,
+      });
+      toast.success(t("exported"));
+    } catch (e) {
+      toast.error(t("exportFailed"));
+      console.error(e);
+    }
+  };
+
   if (!isAdmin) return null;
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
         <ScrollText size={26} />
         <div style={{ flex: 1 }}>
           <h1 style={{ fontSize: 26, margin: 0 }}>{t("activityLog")}</h1>
           <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>{t("activityLogSubtitle")}</div>
         </div>
-        <button onClick={exportCsv} className="brand-btn"
-          style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
-          <Download size={16} /> {t("exportCsv")}
-        </button>
       </div>
 
-      {/* Filters */}
-      <div className="brand-card" style={{ padding: 14, display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 16 }}>
-        <div style={{ position: "relative", flex: "1 1 220px", minWidth: 200 }}>
-          <Search size={16} style={{ position: "absolute", top: "50%", insetInlineStart: 10, transform: "translateY(-50%)", color: "var(--muted)" }} />
-          <input
-            value={search.q}
-            onChange={(e) => patchSearch({ q: e.target.value })}
-            placeholder={t("searchPlaceholder")}
-            style={{ ...inp, paddingInlineStart: 34 }}
-          />
-        </div>
-        <Select value={search.user} onChange={(v) => patchSearch({ user: v })} placeholder={t("allUsers")}
-          options={users.map((u) => ({ value: u.id, label: u.full_name }))} />
-        <Select value={search.action} onChange={(v) => patchSearch({ action: v as typeof search.action })} placeholder={t("allActions")}
-          options={ACTIONS.map((a) => ({ value: a, label: t(`act_${a}` as DictKey) }))} />
-        <Select value={search.entity} onChange={(v) => patchSearch({ entity: v as typeof search.entity })} placeholder={t("allEntities")}
-          options={ENTITIES.map((e) => ({ value: e, label: t(`entity_${e}` as DictKey) }))} />
-        <Select value={search.range} onChange={(v) => patchSearch({ range: v as Range })}
-          options={[
-            { value: "24h", label: t("dateLast24h") },
-            { value: "7d",  label: t("dateLast7d") },
-            { value: "30d", label: t("dateLast30d") },
-            { value: "all", label: t("dateAll") },
-          ]} />
-        <button onClick={resetFilters} className="brand-btn-sm"
-          style={{ background: "transparent", color: "var(--muted)", border: "1px solid var(--border)" }}>
-          <RotateCcw size={14} /> {t("reset")}
-        </button>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+        <SearchField value={search.q} onChange={(v) => patchSearch({ q: v })} />
+        <FilterBarCluster
+          activeCount={activeCount}
+          onOpen={() => setDrawerOpen(true)}
+          onReset={resetFilters}
+          onExport={doExport}
+          exportDisabled={!rows.length}
+        />
       </div>
+
+      <ActiveFilterChips chips={chips} onClearAll={resetFilters} />
+
+      <FilterDrawer open={drawerOpen} onOpenChange={setDrawerOpen} activeCount={activeCount} onReset={resetFilters}>
+        <FilterSection label={t("filterUser")}>
+          <FilterSelect value={search.user} onChange={(v) => patchSearch({ user: v })}
+            options={users.map((u) => ({ value: u.id, label: u.full_name }))} placeholder={t("allUsers")} />
+        </FilterSection>
+        <FilterSection label={t("filterAction")}>
+          <ChipMultiSelect
+            value={search.action ? [search.action] : []}
+            onChange={(v) => patchSearch({ action: (v[v.length - 1] ?? "") as typeof search.action })}
+            options={ACTIONS.map((a) => ({ value: a, label: t(`act_${a}` as DictKey) }))}
+          />
+        </FilterSection>
+        <FilterSection label={t("filterEntity")}>
+          <ChipMultiSelect
+            value={search.entity ? [search.entity] : []}
+            onChange={(v) => patchSearch({ entity: (v[v.length - 1] ?? "") as typeof search.entity })}
+            options={ENTITIES.map((e) => ({ value: e, label: t(`entity_${e}` as DictKey) }))}
+          />
+        </FilterSection>
+        <FilterSection label={t("dateRange")}>
+          <DateRangeControl preset={datePreset} from="" to="" onChange={({ preset }) => setDatePreset(preset)} />
+        </FilterSection>
+      </FilterDrawer>
 
       {/* Timeline */}
       <div className="brand-card" style={{ padding: 0, overflow: "hidden" }}>
@@ -373,24 +423,3 @@ function ActivityPage() {
   );
 }
 
-const inp: React.CSSProperties = {
-  width: "100%", height: 40, borderRadius: 10, padding: "0 12px",
-  background: "var(--surface-2)", color: "var(--foreground)",
-  border: "1px solid var(--border)", outline: "none", fontSize: 14,
-};
-
-function Select({ value, onChange, options, placeholder }: {
-  value: string; onChange: (v: string) => void;
-  options: { value: string; label: string }[]; placeholder?: string;
-}) {
-  return (
-    <div style={{ position: "relative" }}>
-      <select value={value} onChange={(e) => onChange(e.target.value)}
-        style={{ ...inp, minWidth: 160, appearance: "none", paddingInlineEnd: 28 }}>
-        {placeholder !== undefined && <option value="">{placeholder}</option>}
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-      <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 8, transform: "translateY(-50%)", color: "var(--muted)", pointerEvents: "none" }} />
-    </div>
-  );
-}
