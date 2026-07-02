@@ -2,8 +2,10 @@ import type { ReportData } from "./data";
 import { buildReportHtml, buildBilingualHtml } from "./report-html";
 import type { Lang } from "@/i18n/dict";
 import { supabase } from "@/integrations/supabase/client";
+import montArabic from "@/assets/MontserratArabic-Regular.ttf.asset.json";
 
 import { buildKpiSnapshot } from "./snapshot";
+
 
 export type ReportLangChoice = "ar" | "en" | "bilingual";
 
@@ -23,14 +25,17 @@ async function waitForImages(root: Document | HTMLElement) {
 }
 
 const PDF_STYLE = `
-  html,body{margin:0;padding:0;background:#ffffff;color:#0F1B2D;font-family:'Montserrat','Cairo','Segoe UI',Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  *{box-sizing:border-box}
+  @font-face{font-family:'Montserrat Arabic';src:url('${montArabic.url}') format('truetype');font-weight:100 900;font-style:normal;font-display:block}
+  html,body{margin:0;padding:0;background:#ffffff;color:#0F1B2D;font-family:'Montserrat Arabic','Montserrat','Cairo','Segoe UI',Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  *{box-sizing:border-box;font-family:inherit}
+  [dir="rtl"],[lang="ar"]{font-family:'Montserrat Arabic','Cairo',Tahoma,Arial,sans-serif}
   .pdf-page{width:794px;min-height:1123px;box-sizing:border-box;overflow:hidden;display:block;background:#ffffff;page-break-after:always}
   .pdf-page:last-child{page-break-after:auto}
   table{border-collapse:collapse;font-family:inherit}
   svg{display:block;max-width:100%}
   img{max-width:100%;display:block}
 `;
+
 
 async function renderHtmlToPdfBlob(
   html: string,
