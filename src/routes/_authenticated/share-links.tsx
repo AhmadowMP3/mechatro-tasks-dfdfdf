@@ -35,13 +35,12 @@ function SharePage() {
 
   if (!isMasterAdmin) {
     return (
-      <AppShell>
-        <div style={{ padding: 40, textAlign: "center", color: "var(--muted-foreground)" }}>
-          {ar ? "متاح فقط لمدير النظام الرئيسي" : "Master admin only"}
-        </div>
-      </AppShell>
+      <div style={{ padding: 40, textAlign: "center", color: "var(--muted-foreground)" }}>
+        {ar ? "متاح فقط لمدير النظام الرئيسي" : "Master admin only"}
+      </div>
     );
   }
+
 
   return (
     <AppShell>
