@@ -1,12 +1,19 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { RoleBadge } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
 import logo from "@/assets/mechatro-logo.png";
 import type { DictKey } from "@/i18n/dict";
 
-const NAV: { to: string; icon: React.ComponentType<{ size?: number }>; key: DictKey }[] = [
+type NavItem = {
+  to: string;
+  icon: React.ComponentType<{ size?: number }>;
+  key: DictKey | null;
+  label?: { ar: string; en: string };
+};
+
+const NAV: NavItem[] = [
   { to: "/",              icon: LayoutDashboard, key: "dashboard" },
   { to: "/projects",      icon: FolderKanban,    key: "projects" },
   { to: "/tasks",         icon: CheckSquare,     key: "tasks" },
@@ -19,9 +26,14 @@ const NAV: { to: string; icon: React.ComponentType<{ size?: number }>; key: Dict
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const { t, user, lang, signOut, isMasterAdmin } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const nav = isMasterAdmin
-    ? [...NAV, { to: "/access-control", icon: ShieldCheck, key: null, label: { ar: "التحكم بالصلاحيات", en: "Access Control" } }]
-    : NAV;
+  const isAdmin = isMasterAdmin || user?.role === "admin";
+  const nav: NavItem[] = [...NAV];
+  if (isAdmin) {
+    nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });
+  }
+  if (isMasterAdmin) {
+    nav.push({ to: "/access-control", icon: ShieldCheck, key: null, label: { ar: "التحكم بالصلاحيات", en: "Access Control" } });
+  }
 
   return (
     <aside
