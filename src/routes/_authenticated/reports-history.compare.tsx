@@ -50,7 +50,7 @@ function CompareReportsPage() {
       if (!a || !b) { setLoading(false); return; }
       const { data, error } = await supabase.from("member_reports").select("*").in("id", [a, b]);
       if (error) { toast.error(error.message); setLoading(false); return; }
-      const map = new Map(((data ?? []) as ReportRow[]).map((r) => [r.id, r]));
+      const map = new Map(((data ?? []) as unknown as ReportRow[]).map((r) => [r.id, r]));
       setRows({ A: map.get(a) ?? null, B: map.get(b) ?? null });
       setLoading(false);
     })();
