@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { logActivity, notify } from "@/lib/activity";
-import { ModalShell, Field, inp } from "@/routes/projects";
+import { ModalShell, Field, inp } from "@/routes/_authenticated/projects";
 import { useQuery } from "@tanstack/react-query";
 
 export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose: () => void; onCreated: () => void; defaultProjectId?: string }) {
