@@ -144,40 +144,81 @@ function donutColor(key: string) {
   return { todo: "#86A1B7", in_progress: "#42C2EE", paused: "#FF9255", done: "#73C94E" }[key] ?? "#86A1B7";
 }
 
-function Donut({ segments, total, lang }: { segments: { label: string; value: number; color: string }[]; total: number; lang: "ar" | "en" }) {
-  if (total === 0) return <p style={{ color: "var(--muted)" }}>—</p>;
-  const size = 180, r = 70, cx = size / 2, cy = size / 2;
-  let acc = 0;
+function TaskFlowCard({ title, segments, total, lang }: { title: string; segments: { key: string; label: string; value: number; color: string }[]; total: number; lang: "ar" | "en" }) {
+  const done = segments.find((s) => s.key === "done")?.value ?? 0;
+  const inProgress = segments.find((s) => s.key === "in_progress")?.value ?? 0;
+  const paused = segments.find((s) => s.key === "paused")?.value ?? 0;
+  const completionPct = total ? Math.round((done / total) * 100) : 0;
+  const activityPct = total ? Math.round(((inProgress + done) / total) * 100) : 0;
+  const max = Math.max(1, ...segments.map((s) => s.value));
+  const icons: Record<string, string> = { todo: "○", in_progress: "◐", paused: "❚❚", done: "✓" };
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-      <svg width={size} height={size}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--surface-3)" strokeWidth={22} />
-        {segments.filter((s) => s.value > 0).map((s, i) => {
-          const frac = s.value / total;
-          const circ = 2 * Math.PI * r;
-          const dash = frac * circ;
-          const el = (
-            <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth={22}
-              strokeDasharray={`${dash} ${circ - dash}`}
-              strokeDashoffset={-acc * circ}
-              transform={`rotate(-90 ${cx} ${cy})`}
-            />
-          );
-          acc += frac;
-          return el;
-        })}
-        <text x={cx} y={cy - 4} textAnchor="middle" fontSize={26} fontWeight={800} fill="var(--foreground)">{toLocalDigits(total, lang)}</text>
-        <text x={cx} y={cy + 20} textAnchor="middle" fontSize={12} fill="var(--muted)">{lang === "ar" ? "المهام" : "tasks"}</text>
-      </svg>
-      <div style={{ flex: 1, minWidth: 140 }}>
-        {segments.map((s) => (
-          <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, background: s.color }} />
-            <span style={{ flex: 1, fontSize: 13 }}>{s.label}</span>
-            <b>{toLocalDigits(s.value, lang)}</b>
-          </div>
+    <div className="brand-card" style={{ padding: 20, position: "relative", overflow: "hidden" }}>
+      {/* ambient glow */}
+      <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(600px 200px at 100% 0%, rgba(66,194,238,.10), transparent 60%), radial-gradient(500px 220px at 0% 100%, rgba(115,201,78,.08), transparent 60%)", pointerEvents: "none" }} />
+
+      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+        <h2 style={{ fontSize: 17, margin: 0 }}>{title}</h2>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+          <span style={{ fontSize: 28, fontWeight: 800, background: "var(--grad-blue)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>{toLocalDigits(total, lang)}</span>
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>{lang === "ar" ? "المهام" : "tasks"}</span>
+        </div>
+      </div>
+
+      {/* Flow bar — full pipeline in one gradient stripe */}
+      <div style={{ position: "relative", height: 14, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden", display: "flex" }}>
+        {total > 0 && segments.filter((s) => s.value > 0).map((s) => (
+          <div key={s.key} title={`${s.label} — ${s.value}`} style={{ width: `${(s.value / total) * 100}%`, background: `linear-gradient(180deg, ${s.color}, ${s.color}CC)`, boxShadow: `inset 0 0 12px ${s.color}66` }} />
         ))}
+      </div>
+
+      {/* Column bars — creative status cells */}
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${segments.length}, 1fr)`, gap: 10, marginTop: 18 }}>
+        {segments.map((s) => {
+          const h = 90 * (s.value / max);
+          return (
+            <div key={s.key} style={{ position: "relative", padding: 12, borderRadius: 14, background: "linear-gradient(180deg, color-mix(in oklab, " + s.color + " 8%, transparent), transparent)", border: `1px solid color-mix(in oklab, ${s.color} 22%, var(--border))`, minHeight: 148, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span aria-hidden style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", background: `${s.color}22`, color: s.color, fontSize: 13, fontWeight: 800 }}>{icons[s.key] ?? "•"}</span>
+                <b style={{ fontSize: 22, color: s.color, lineHeight: 1 }}>{toLocalDigits(s.value, lang)}</b>
+              </div>
+              <div style={{ height: 90, display: "flex", alignItems: "flex-end" }}>
+                <div style={{ width: "100%", height: Math.max(4, h), borderRadius: 8, background: `linear-gradient(180deg, ${s.color}, ${s.color}66)`, boxShadow: `0 0 24px ${s.color}55`, transition: "height .6s ease" }} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.6 }}>{s.label}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* KPI strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 }}>
+        <MiniGauge label={lang === "ar" ? "نسبة الإنجاز" : "Completion"} pct={completionPct} color="#73C94E" lang={lang} />
+        <MiniGauge label={lang === "ar" ? "نسبة النشاط" : "In motion"} pct={activityPct} color="#42C2EE" lang={lang} />
+      </div>
+
+      {paused > 0 && (
+        <div style={{ marginTop: 10, fontSize: 12, color: "var(--muted)", display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: "#FF9255" }} />
+          {toLocalDigits(paused, lang)} {lang === "ar" ? "مهمة متوقفة تحتاج انتباه" : "paused — needs attention"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniGauge({ label, pct, color, lang }: { label: string; pct: number; color: string; lang: "ar" | "en" }) {
+  return (
+    <div style={{ padding: "10px 12px", borderRadius: 12, background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+        <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</span>
+        <b style={{ fontSize: 14, color }}>{toLocalDigits(pct, lang)}%</b>
+      </div>
+      <div style={{ height: 6, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: `linear-gradient(90deg, ${color}, ${color}88)`, boxShadow: `0 0 10px ${color}88`, transition: "width .6s ease" }} />
       </div>
     </div>
   );
 }
+
