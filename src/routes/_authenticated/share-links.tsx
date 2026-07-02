@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Copy, Trash2, Ban, Pencil, Plus, Link2, Eye, RefreshCw, Lock, Calendar, Users2, X } from "lucide-react";
-import { AppShell } from "@/components/layout/AppShell";
+
 import { useApp } from "@/lib/app-context";
 import { shareApi, SHARE_PAGES, type ShareLinkRow } from "@/lib/share-links";
 
@@ -35,16 +35,15 @@ function SharePage() {
 
   if (!isMasterAdmin) {
     return (
-      <AppShell>
-        <div style={{ padding: 40, textAlign: "center", color: "var(--muted-foreground)" }}>
-          {ar ? "متاح فقط لمدير النظام الرئيسي" : "Master admin only"}
-        </div>
-      </AppShell>
+      <div style={{ padding: 40, textAlign: "center", color: "var(--muted-foreground)" }}>
+        {ar ? "متاح فقط لمدير النظام الرئيسي" : "Master admin only"}
+      </div>
     );
   }
 
+
   return (
-    <AppShell>
+    <>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
@@ -102,9 +101,10 @@ function SharePage() {
           onSaved={() => { setEditing(null); load(); }}
         />
       )}
-    </AppShell>
+    </>
   );
 }
+
 
 function LinkCard({ link, onEdit, onChanged }: { link: ShareLinkRow; onEdit: () => void; onChanged: () => void }) {
   const { lang } = useApp();
