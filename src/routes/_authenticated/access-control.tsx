@@ -52,13 +52,21 @@ function AccessControlPage() {
 
   async function load() {
     try {
-      const res = await call({ action: "list" }) as { users: UserRow[] };
-      setUsers(res.users);
+      const res = await call({ action: "list" }) as { users?: UserRow[] };
+      const list = Array.isArray(res?.users) ? res.users : [];
+      setUsers(list.map((u) => ({
+        ...u,
+        full_name: u.full_name ?? (u.email?.split("@")[0] ?? "User"),
+        status: (u.status ?? "active") as UserRow["status"],
+        role: (u.role ?? "member") as UserRow["role"],
+      })));
     } catch (e) {
+      setUsers([]);
       toast.error(e instanceof Error ? e.message : String(e));
     }
   }
   useEffect(() => { load(); }, []);
+
 
   async function act(action: string, user_id: string, extra?: Record<string, unknown>) {
     setBusyId(user_id);
@@ -195,18 +203,20 @@ function AccessControlPage() {
 
 function StatusPill({ status, lang }: { status: UserRow["status"]; lang: "ar" | "en" }) {
   const l = lang === "ar";
-  const map = {
+  const map: Record<string, { bg: string; text: string; label: string }> = {
     pending:   { bg: "rgba(240,180,41,.16)",  text: "#F0B429", label: l ? "بانتظار الموافقة" : "Pending" },
     active:    { bg: "rgba(20,168,110,.16)",  text: "#14A86E", label: l ? "مفعّل"           : "Active" },
     suspended: { bg: "rgba(240,103,106,.16)", text: "#F0676A", label: l ? "معلّق"           : "Suspended" },
-  }[status];
+  };
+  const m = map[status] ?? { bg: "rgba(159,183,201,.16)", text: "#9FB7C9", label: String(status ?? "—") };
   return (
     <span style={{
       padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
-      background: map.bg, color: map.text,
-    }}>{map.label}</span>
+      background: m.bg, color: m.text,
+    }}>{m.label}</span>
   );
 }
+
 
 function UserMenu({ user, lang, busy, onAction }: {
   user: UserRow; lang: "ar" | "en"; busy: boolean;
