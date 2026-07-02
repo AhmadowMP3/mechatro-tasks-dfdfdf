@@ -81,7 +81,7 @@ export function KanbanView({
               if (dropAllowed) moveTask(dragId!, col);
               setDragId(null); setOverCol(null);
             }}
-            className="brand-card"
+            className="brand-card kanban-col"
             style={{
               padding: 12,
               minHeight: 200,
