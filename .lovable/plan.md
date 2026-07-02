@@ -1,35 +1,74 @@
-## Goal
+## Activity Log (Admin Only)
 
-When an admin creates a task, the **start date is captured automatically in real time** (the moment of creation) and the admin only picks the **due date**. Make the creation experience feel polished and "alive."
+Build a dedicated **Activity Log** page that shows every action performed in the app, admin-only, with rich filters. Also fix the current silent-fail: `logActivity()` inserts are blocked by RLS because there's no INSERT policy — so nothing has been logging since the security lockdown.
 
-## Changes
+### 1. Database migration
 
-### 1. Auto start date on creation
-- In `NewTaskModal.tsx`, drop the start-date input entirely and set `start_date: new Date().toISOString()` in the insert payload.
-- Add a small live "clock chip" at the top of the modal showing the current date + time (updates every second) with a label like "Starts now / يبدأ الآن" — visual cue that the task begins the instant it's created.
+- Replace `activity_log` policies:
+  - **SELECT**: admins only (`has_role(auth.uid(), 'admin')` or `is_master_admin`).
+  - **INSERT**: any authenticated user, with `actor_id = auth.uid()` (or null) — so client-side `logActivity()` calls succeed.
+  - No UPDATE/DELETE (immutable log; service_role bypasses for pruning if ever needed).
+- Add indexes: `(actor_id)`, `(entity_type, entity_id)` for filter performance.
 
-### 2. Due-date experience (the "cool" part)
-Replace the plain `<input type="date">` with a richer picker block:
-- **Quick-pick chips** above the date field: Today, +1 day, +3 days, +1 week, +2 weeks, End of month. One click fills the due date.
-- **Live duration readout** below the field: "Duration: 5 days • ends Sat, Jul 12" (bilingual, uses existing `formatDate`).
-- **Color-coded urgency ring** around the date field: green (>7d), amber (3–7d), orange (1–2d), red (same day/overdue) — matches existing `PRIORITY_STYLES` gradients.
-- Validation: due date must be ≥ today; disallow past dates in the picker (`min` attr).
+### 2. Standardize logging
 
-### 3. Task detail modal
-- Show `start_date` prominently as "Started: <relative time> ago" using existing `relativeTime` helper, alongside due date.
+- Audit existing `logActivity` call sites (dashboard, projects, NewTaskModal, TaskDetailModal, KanbanView) and normalize `action` values to a small vocabulary: `created`, `updated`, `status_changed`, `deleted`, `archived`, `commented`, `file_added`, `assigned`, `signed_in`.
+- Add logging to sites currently missing it: task edits, task delete, project edit/archive, comment add, file add, user invite/role change (via admin edge functions — service_role writes).
+- Add `signed_in` log on successful auth in `app-context`.
 
-### 4. Timeline visual on task cards (small touch)
-- On `TaskCard`, add a thin gradient progress bar underneath the title showing elapsed time between `start_date` and `due_date` (percent through the window). Purely visual, uses brand gradient tokens.
+### 3. Activity Log page — `/activity` (admin only)
 
-### 5. i18n
-- Add keys to `src/i18n/dict.ts`: `startsNow`, `quickPick`, `today`, `plusDays`, `plusWeek`, `plusTwoWeeks`, `endOfMonth`, `duration`, `endsOn`, `startedAgo`.
+Route file `src/routes/_authenticated/activity.tsx`, gated with a `beforeLoad` that redirects non-admins to `/`.
 
-## Out of scope
-- No schema changes (`start_date` column already exists).
-- No changes to Kanban/Table/Calendar views' business logic — they'll simply benefit from `start_date` being always populated.
-- Edit-task flow unchanged (start_date stays immutable after creation).
+**Layout:**
+```text
+┌ Filters bar ─────────────────────────────────────────┐
+│ [Search]  [User ▾] [Action ▾] [Entity ▾] [Date range]│
+│                                       [Reset] [Export]│
+├──────────────────────────────────────────────────────┤
+│ Timeline grouped by day                              │
+│  ── Today ──                                         │
+│   ● 14:32  Ahmed  created task  "Fix pump"           │
+│   ● 14:20  Sara   status → done  "Weld frame"        │
+│  ── Yesterday ──                                     │
+│   ...                                                │
+│                              [Load more]             │
+└──────────────────────────────────────────────────────┘
+```
 
-## Technical notes
-- All new UI uses existing design tokens (`var(--grad-*)`, `PRIORITY_STYLES`, `Field`, `inp`) — no new dependencies.
-- Live clock uses a single `useEffect` + `setInterval(1000)` cleaned up on unmount.
-- Duration math done client-side with plain `Date` diffs; formatted via existing `formatDate` / `toLocalDigits`.
+**Filters** (all combinable, URL-synced via search params so filtered views are shareable):
+- Free-text search over action + entity_id + meta.
+- User (multi-select of profiles).
+- Action type (multi-select from vocabulary).
+- Entity type (task / project / profile / role / comment / file / session / auth).
+- Date range (last 24h / 7d / 30d / custom).
+
+**Row rendering:**
+- Avatar + name of actor, colored action pill, human sentence ("changed status of *Fix pump* from *todo* to *in_progress*"), relative time + absolute tooltip.
+- Click a row → deep link to the related entity (task modal, project page, user in Access Control).
+- Icon per action (created=plus, updated=pencil, deleted=trash, status_changed=arrow, commented=bubble, file_added=paperclip, assigned=user, signed_in=login).
+
+**Extras:**
+- Sticky day headers.
+- Infinite scroll (page size 50) using keyset pagination on `created_at`.
+- **Export CSV** button — downloads currently filtered rows.
+- Empty state illustration + "No activity matches these filters".
+- Fully bilingual (AR/EN) with RTL mirroring; add i18n keys.
+
+### 4. Navigation & discoverability
+
+- Add sidebar entry **Activity Log** (scroll-text icon), visible only when `is_master_admin || has_role('admin')`.
+- On the dashboard's "Recent activity" card, add a "View all →" link to `/activity` for admins.
+
+### 5. Verification
+
+- Typecheck.
+- Playwright: sign in as master admin, open `/activity`, apply a filter, verify rows.
+- Confirm a fresh action (create a task) appears in the log within seconds.
+
+### Technical notes
+
+- Query shape: single `.select("*, actor:profiles!actor_id(full_name, avatar_url)")` with `.order("created_at", { ascending: false }).range(...)`.
+- Entity name resolution: batch-fetch task/project titles for the currently displayed page (Map keyed by `entity_id`) — avoids N+1.
+- Search params validated with zod + `fallback()`.
+- Non-admin hitting `/activity` directly → `redirect({ to: "/" })` in `beforeLoad`.
