@@ -118,7 +118,7 @@ async function renderHtmlToPdfBlob(
 }
 
 
-function triggerDownload(blob: Blob, filename: string) {
+export function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = filename;
@@ -126,17 +126,35 @@ function triggerDownload(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function generateMemberReportPdf(data: ReportData, choice: ReportLangChoice): Promise<{ id: string | null; path: string | null }> {
+export type PreparedMemberReport = {
+  blob: Blob;
+  filename: string;
+  pageCount: number;
+  data: ReportData;
+  choice: ReportLangChoice;
+};
+
+/** Build the branded PDF blob without downloading or persisting — for preview. */
+export async function buildMemberReportPdf(
+  data: ReportData,
+  choice: ReportLangChoice
+): Promise<PreparedMemberReport> {
   const html = choice === "bilingual" ? buildBilingualHtml(data) : buildReportHtml(data, choice as Lang);
   const safeName = data.member.full_name.replace(/[^\w\-\u0600-\u06FF]+/g, "_");
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const filename = `Mechatro_Report_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`;
   const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename);
+  return { blob, filename, pageCount, data, choice };
+}
 
+/** Download + persist a previously-prepared member report to storage & history. */
+export async function persistMemberReportPdf(
+  prepared: PreparedMemberReport
+): Promise<{ id: string | null; path: string | null }> {
+  const { blob, filename, pageCount, data, choice } = prepared;
   triggerDownload(blob, filename);
 
-  // Persist to history — best-effort (does not block the download)
   try {
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const path = `${data.member.id}/${stamp}-${choice}.pdf`;
     const { error: upErr } = await supabase.storage.from("member-reports").upload(path, blob, {
       contentType: "application/pdf",
@@ -171,12 +189,21 @@ export async function generateMemberReportPdf(data: ReportData, choice: ReportLa
       .single();
     if (insErr) throw insErr;
     return { id: row.id, path };
-
   } catch (e) {
     console.warn("Report history save failed:", e);
     return { id: null, path: null };
   }
 }
+
+/** Legacy one-shot: build + download + persist. Kept for callers that skip preview. */
+export async function generateMemberReportPdf(
+  data: ReportData,
+  choice: ReportLangChoice
+): Promise<{ id: string | null; path: string | null }> {
+  const prepared = await buildMemberReportPdf(data, choice);
+  return persistMemberReportPdf(prepared);
+}
+
 
 /** Render a pre-built HTML doc, download it, and upload to history as a `comparison` row. */
 export async function persistComparisonPdf(opts: {

@@ -1,10 +1,15 @@
-import { useState } from "react";
-import { FileText, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Download, Eye, FileText, Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { ModalShell } from "@/routes/_authenticated/projects";
 import { useApp, type Profile } from "@/lib/app-context";
 import { loadMemberReportData, type ReportRange } from "@/lib/report/data";
-import { generateMemberReportPdf, type ReportLangChoice } from "@/lib/report/generator";
+import {
+  buildMemberReportPdf,
+  persistMemberReportPdf,
+  type PreparedMemberReport,
+  type ReportLangChoice,
+} from "@/lib/report/generator";
 
 type RangeKey = "all" | "7d" | "30d" | "90d" | "custom";
 
@@ -17,6 +22,8 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
   const [from, setFrom] = useState(monthAgo);
   const [to, setTo] = useState(today);
   const [busy, setBusy] = useState(false);
+  const [prepared, setPrepared] = useState<PreparedMemberReport | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const build = async () => {
     setBusy(true);
@@ -26,14 +33,28 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
         rangeKey === "all" ? { kind: "all" } :
         { kind: rangeKey };
       const data = await loadMemberReportData(member.id, range);
-      await generateMemberReportPdf(data, langChoice);
+      const p = await buildMemberReportPdf(data, langChoice);
+      setPrepared(p);
+    } catch (e: unknown) {
+      console.error(e);
+      toast.error((e as Error).message || t("reportError"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirm = async () => {
+    if (!prepared) return;
+    setConfirming(true);
+    try {
+      await persistMemberReportPdf(prepared);
       toast.success(t("reportGenerated"));
       onClose();
     } catch (e: unknown) {
       console.error(e);
       toast.error((e as Error).message || t("reportError"));
     } finally {
-      setBusy(false);
+      setConfirming(false);
     }
   };
 
@@ -44,6 +65,18 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
     color: active ? "#fff" : "var(--foreground)",
     minHeight: 40, display: "inline-flex", alignItems: "center", gap: 6,
   });
+
+  if (prepared) {
+    return (
+      <PreviewModal
+        prepared={prepared}
+        confirming={confirming}
+        onConfirm={confirm}
+        onRegenerate={() => setPrepared(null)}
+        onClose={onClose}
+      />
+    );
+  }
 
   return (
     <ModalShell title={`${t("generateReport")} · ${member.full_name}`} onClose={onClose}>
@@ -97,7 +130,7 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={build} disabled={busy} className="brand-btn"
           style={{ background: "var(--grad-blue)", color: "#fff", flex: 1, opacity: busy ? 0.7 : 1 }}>
-          {busy ? <><Loader2 size={16} className="spin" /> {t("buildingPdf")}</> : <><FileText size={16} /> {t("buildPdf")}</>}
+          {busy ? <><Loader2 size={16} className="spin" /> {t("buildingPdf")}</> : <><Eye size={16} /> {t("previewPdf")}</>}
         </button>
         <button onClick={onClose} disabled={busy} className="brand-btn"
           style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
@@ -108,3 +141,89 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
     </ModalShell>
   );
 }
+
+function PreviewModal({
+  prepared, confirming, onConfirm, onRegenerate, onClose,
+}: {
+  prepared: PreparedMemberReport;
+  confirming: boolean;
+  onConfirm: () => void;
+  onRegenerate: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useApp();
+  const previewUrl = useMemo(() => URL.createObjectURL(prepared.blob), [prepared.blob]);
+  useEffect(() => () => URL.revokeObjectURL(previewUrl), [previewUrl]);
+  const sizeKb = Math.max(1, Math.round(prepared.blob.size / 1024));
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(4,10,22,0.72)", backdropFilter: "blur(6px)",
+        zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "min(1100px, 100%)", height: "min(92vh, 900px)", display: "flex", flexDirection: "column",
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden",
+          boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
+        }}
+      >
+        <div style={{
+          padding: "14px 18px", borderBottom: "1px solid var(--border)",
+          display: "flex", alignItems: "center", gap: 12, background: "var(--surface-2)",
+        }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, background: "var(--grad-blue)",
+            display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
+          }}>
+            <Eye size={20} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: "var(--foreground)" }}>{t("reportPreview")}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {prepared.filename} · {t("pageCountLabel")}: {prepared.pageCount} · {sizeKb} KB
+            </div>
+          </div>
+          <button onClick={onClose} className="brand-btn"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)", padding: 8 }}
+            aria-label={t("cancel")}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div style={{ flex: 1, background: "#1a1f2e", position: "relative" }}>
+          <iframe
+            src={previewUrl}
+            title={t("reportPreview")}
+            style={{ width: "100%", height: "100%", border: 0, background: "#ffffff" }}
+          />
+        </div>
+
+        <div style={{
+          padding: 14, borderTop: "1px solid var(--border)", display: "flex", gap: 8, flexWrap: "wrap",
+          background: "var(--surface-2)",
+        }}>
+          <button onClick={onRegenerate} disabled={confirming} className="brand-btn"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
+            <RefreshCw size={16} /> {t("regenerate")}
+          </button>
+          <div style={{ flex: 1 }} />
+          <button onClick={onClose} disabled={confirming} className="brand-btn"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
+            {t("cancel")}
+          </button>
+          <button onClick={onConfirm} disabled={confirming} className="brand-btn"
+            style={{ background: "var(--grad-blue)", color: "#fff", opacity: confirming ? 0.7 : 1 }}>
+            {confirming ? <><Loader2 size={16} className="spin" /> {t("buildingPdf")}</> : <><Download size={16} /> {t("confirmDownload")}</>}
+          </button>
+        </div>
+        <style>{`.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    </div>
+  );
+}
+
