@@ -263,8 +263,14 @@ export const dict = {
   toDate: { ar: "إلى", en: "To" },
   buildPdf: { ar: "إنشاء PDF", en: "Build PDF" },
   buildingPdf: { ar: "جاري الإنشاء…", en: "Building…" },
+  previewPdf: { ar: "معاينة قبل التحميل", en: "Preview before download" },
+  reportPreview: { ar: "معاينة التقرير", en: "Report preview" },
+  confirmDownload: { ar: "تأكيد وتحميل", en: "Confirm & download" },
+  regenerate: { ar: "إعادة الإنشاء", en: "Regenerate" },
+  pageCountLabel: { ar: "الصفحات", en: "Pages" },
   reportGenerated: { ar: "تم إنشاء التقرير", en: "Report generated" },
   reportError: { ar: "تعذّر إنشاء التقرير", en: "Could not generate report" },
+
   // PDF sections
   sec_overview: { ar: "نظرة عامة", en: "Overview" },
   sec_profile: { ar: "بيانات العضو", en: "Profile & Role" },
