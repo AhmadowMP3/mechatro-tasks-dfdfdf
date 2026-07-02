@@ -36,7 +36,7 @@ export function resolveRange(f: DashboardFilters): { start: Date | null; end: Da
   return { start: s, end: e };
 }
 
-const STATUS_OPTIONS = ["todo", "in_progress", "paused", "done"] as const;
+const STATUS_OPTIONS = ["todo", "in_progress", "paused", "in_review", "done"] as const;
 const RANGE_OPTIONS: DashboardFilters["range"][] = ["today", "7d", "30d", "90d", "all", "custom"];
 
 export function FilterBar({
