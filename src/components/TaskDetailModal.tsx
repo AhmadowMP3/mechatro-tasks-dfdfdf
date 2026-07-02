@@ -122,6 +122,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
       task_id: taskId, file_name: linkName.trim(), drive_url: linkUrl.trim(),
       file_type: driveFileType(linkUrl), added_by: user?.id ?? null,
     });
+    await logActivity(user?.id ?? null, "file_added", "task", taskId, { title: task?.title ?? "", file_name: linkName.trim() });
     setLinkName(""); setLinkUrl("");
     load();
   };
