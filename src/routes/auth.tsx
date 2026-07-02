@@ -185,29 +185,6 @@ function AuthPage() {
           >{busy ? "…" : label[mode][lang]}</button>
         </form>
 
-        {mode !== "forgot" && (
-          <>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0", color: "#7E97AB", fontSize: 12 }}>
-              <div style={{ flex: 1, height: 1, background: "#1E364D" }} />
-              {l ? "أو" : "or"}
-              <div style={{ flex: 1, height: 1, background: "#1E364D" }} />
-            </div>
-
-            <button
-              type="button" onClick={handleGoogle} disabled={busy}
-              style={{
-                width: "100%", minHeight: 48, borderRadius: 12,
-                background: "#fff", color: "#1A1A1A", fontWeight: 700, fontSize: 14,
-                border: "none", cursor: busy ? "wait" : "pointer",
-                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-                opacity: busy ? 0.6 : 1,
-              }}
-            >
-              <GoogleIcon />
-              {l ? "متابعة عبر Google" : "Continue with Google"}
-            </button>
-          </>
-        )}
       </div>
     </div>
   );
