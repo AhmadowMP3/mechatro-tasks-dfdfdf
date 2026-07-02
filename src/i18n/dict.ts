@@ -47,11 +47,9 @@ export const dict = {
   liveNow: { ar: "متصل الآن", en: "Live now" },
   focusToday: { ar: "تركيز اليوم", en: "Today's focus" },
   workloadByOwner: { ar: "توزيع الحمل على الفريق", en: "Workload by teammate" },
-  points: { ar: "نقاط", en: "pts" },
   ofTotal: { ar: "من الإجمالي", en: "of total" },
   hoursTracked: { ar: "ساعات مسجّلة اليوم", en: "Hours tracked today" },
   streak: { ar: "أيام متتابعة", en: "day streak" },
-  unassigned: { ar: "غير مُسنَد", en: "Unassigned" },
   // Projects
   newProject: { ar: "مشروع جديد", en: "New project" },
   showArchived: { ar: "عرض المؤرشفة", en: "Show archived" },
