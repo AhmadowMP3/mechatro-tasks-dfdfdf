@@ -27,7 +27,7 @@ export function KanbanView({
   async function moveTask(id: string, status: string) {
     const task = tasks.find((x) => x.id === id);
     if (!task || task.status === status) return;
-    const { error } = await supabase.from("tasks").update({ status }).eq("id", id);
+    const { error } = await supabase.from("tasks").update({ status: status as TaskRow["status"] }).eq("id", id);
     if (!error) {
       await logActivity(user?.id ?? null, "status", "task", id, { from: task.status, to: status });
       onChanged();
