@@ -534,11 +534,9 @@ function RefModal({ initial, onClose, onSaved, userId, t, categories }: {
         </Field>
 
         <Field label={tt("category")}>
-          <input list="ref-categories" value={category} onChange={(e) => setCategory(e.target.value)} placeholder={tt("categoryPlaceholder")} maxLength={60} style={inputStyle} />
-          <datalist id="ref-categories">
-            {categories.map((c) => <option key={c} value={c} />)}
-          </datalist>
+          <CategoryCombobox value={category} onChange={setCategory} options={categories} placeholder={tt("categoryPlaceholder")} hint={tt("categoryHint")} createLabel={tt("createCategory")} />
         </Field>
+
 
         <Field label={tt("tagsLabel")}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", padding: 6, border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface-2)", minHeight: 44 }}>
