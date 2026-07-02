@@ -180,7 +180,7 @@ function ActivityPage() {
   };
 
   const patchSearch = (partial: Partial<z.infer<typeof searchSchema>>) => {
-    navigate({ search: (prev) => ({ ...prev, ...partial }) });
+    navigate({ search: (prev: Search) => ({ ...prev, ...partial }) });
   };
   const resetFilters = () => navigate({ search: { q: "", user: "", action: "", entity: "", range: "7d" } });
 
