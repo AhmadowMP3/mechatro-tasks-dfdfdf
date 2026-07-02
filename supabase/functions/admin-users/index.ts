@@ -1,6 +1,5 @@
 // Master-admin API for user management.
-// Verifies caller is the master admin via SSR-forwarded JWT.
-// Actions: list | invite | assign_role | suspend | activate | delete | resend_invite
+// Actions: list | invite | set_role | approve | suspend | activate | delete | resend_invite | toggle_master
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const CORS = {
@@ -11,8 +10,7 @@ const CORS = {
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "content-type": "application/json" },
+    status, headers: { ...CORS, "content-type": "application/json" },
   });
 }
 
@@ -24,7 +22,6 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-  // Identify caller
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
   if (!token) return json(401, { error: "missing token" });
@@ -39,7 +36,7 @@ Deno.serve(async (req) => {
 
   const { data: me } = await admin
     .from("profiles")
-    .select("id, is_master_admin")
+    .select("id, is_master_admin, role")
     .eq("id", userRes.user.id)
     .maybeSingle();
   if (!me?.is_master_admin) return json(403, { error: "master admin only" });
@@ -61,21 +58,10 @@ Deno.serve(async (req) => {
           if (u.email) emailMap.set(u.id, u.email);
           lastMap.set(u.id, u.last_sign_in_at ?? null);
         }
-        const { data: userRoles } = await admin
-          .from("user_roles")
-          .select("user_id, role_id, roles(name, slug)");
-        const rolesByUser = new Map<string, Array<{ id: string; name: string; slug: string }>>();
-        for (const r of userRoles ?? []) {
-          const list = rolesByUser.get(r.user_id) ?? [];
-          const meta = (r as { roles: { name: string; slug: string } | null }).roles;
-          if (meta) list.push({ id: r.role_id, name: meta.name, slug: meta.slug });
-          rolesByUser.set(r.user_id, list);
-        }
         const users = (profiles ?? []).map((p) => ({
           ...p,
-          email: emailMap.get(p.id) ?? null,
+          email: emailMap.get(p.id) ?? p.email ?? null,
           last_sign_in_at: lastMap.get(p.id) ?? null,
-          roles: rolesByUser.get(p.id) ?? [],
         }));
         return json(200, { users });
       }
@@ -83,28 +69,20 @@ Deno.serve(async (req) => {
       case "invite": {
         const email = String(body.email ?? "").trim().toLowerCase();
         const full_name = String(body.full_name ?? "").trim() || email.split("@")[0];
-        const role_id = body.role_id ? String(body.role_id) : null;
+        const role = (String(body.role ?? "member") === "admin") ? "admin" : "member";
         if (!email) return json(400, { error: "email required" });
-
         const redirect = String(body.redirect_to ?? "") || undefined;
         const { data: inv, error: invErr } = await admin.auth.admin.inviteUserByEmail(email, {
-          data: { full_name, invited_by: me.id, invited_role_id: role_id },
+          data: { full_name, invited_by: me.id },
           redirectTo: redirect,
         });
         if (invErr) throw invErr;
         const newId = inv.user?.id;
         if (newId) {
           await admin.from("profiles").update({
-            full_name,
-            status: "pending",
-            invited_by: me.id,
-            invited_at: new Date().toISOString(),
+            full_name, role, status: "active",
+            invited_by: me.id, invited_at: new Date().toISOString(),
           }).eq("id", newId);
-          if (role_id) {
-            await admin.from("user_roles").upsert({
-              user_id: newId, role_id, assigned_by: me.id,
-            }, { onConflict: "user_id,role_id" });
-          }
         }
         return json(200, { ok: true, user_id: newId });
       }
@@ -119,15 +97,26 @@ Deno.serve(async (req) => {
         return json(200, { ok: true });
       }
 
-      case "assign_role": {
+      case "set_role": {
         const user_id = String(body.user_id ?? "");
-        const role_id = String(body.role_id ?? "");
-        if (!user_id || !role_id) return json(400, { error: "user_id + role_id required" });
-        // Single role model: replace existing
-        await admin.from("user_roles").delete().eq("user_id", user_id);
-        const { error } = await admin.from("user_roles").insert({
-          user_id, role_id, assigned_by: me.id,
-        });
+        const role = String(body.role ?? "");
+        if (!user_id || !["admin", "member"].includes(role)) {
+          return json(400, { error: "user_id + role (admin|member) required" });
+        }
+        const { data: t } = await admin.from("profiles").select("is_master_admin").eq("id", user_id).maybeSingle();
+        if (t?.is_master_admin) return json(400, { error: "cannot change master admin role" });
+        const { error } = await admin.from("profiles").update({ role }).eq("id", user_id);
+        if (error) throw error;
+        return json(200, { ok: true });
+      }
+
+      case "approve": {
+        const user_id = String(body.user_id ?? "");
+        const role = String(body.role ?? "member") === "admin" ? "admin" : "member";
+        if (!user_id) return json(400, { error: "user_id required" });
+        const { error } = await admin.from("profiles").update({
+          status: "active", active: true, role,
+        }).eq("id", user_id);
         if (error) throw error;
         return json(200, { ok: true });
       }
@@ -138,7 +127,6 @@ Deno.serve(async (req) => {
         if (!user_id) return json(400, { error: "user_id required" });
         const status = action === "suspend" ? "suspended" : "active";
         await admin.from("profiles").update({ status, active: status === "active" }).eq("id", user_id);
-        // Also ban / unban in auth
         await admin.auth.admin.updateUserById(user_id, {
           ban_duration: action === "suspend" ? "876000h" : "none",
         });
@@ -149,7 +137,6 @@ Deno.serve(async (req) => {
         const user_id = String(body.user_id ?? "");
         if (!user_id) return json(400, { error: "user_id required" });
         if (user_id === me.id) return json(400, { error: "cannot delete yourself" });
-        // Check target isn't master admin
         const { data: t } = await admin.from("profiles").select("is_master_admin").eq("id", user_id).maybeSingle();
         if (t?.is_master_admin) return json(400, { error: "cannot delete master admin" });
         const { error } = await admin.auth.admin.deleteUser(user_id);

@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/projects/$id")({ component
 
 function ProjectDetail() {
   const { id } = Route.useParams();
-  const { t, lang, users, can } = useApp();
+  const { t, lang, users, isAdmin } = useApp();
   const [selected, setSelected] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
 
@@ -56,7 +56,7 @@ function ProjectDetail() {
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
         <h2 style={{ margin: 0, flex: 1, fontSize: 20 }}>{t("tasks")}</h2>
-        {can("manage_tasks") && (
+        {isAdmin && (
           <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
             <Plus size={18} /> {t("addTaskHere")}
           </button>

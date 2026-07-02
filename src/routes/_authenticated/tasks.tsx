@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/tasks")({ component: Tasks
 const VIEW_KEY = "tasks.view";
 
 function TasksPage() {
-  const { t, lang, users, can } = useApp();
+  const { t, lang, users, directory, isAdmin, user } = useApp();
   const [selected, setSelected] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const [view, setView] = useState<TaskView>(() => {
@@ -30,11 +30,19 @@ function TasksPage() {
 
   const [filters, setFilters] = useState({ project: "", assignee: "", status: "", priority: "", overdue: false, q: "" });
 
+  // Members see only their assigned tasks (RLS enforces server-side; extra client filter is defense in depth)
+  const memberScope = !isAdmin && user ? user.id : null;
+  const peopleForFilters = isAdmin
+    ? users.map((u) => ({ id: u.id, full_name: u.full_name }))
+    : directory.map((u) => ({ id: u.id, full_name: u.full_name }));
+
   const { data, refetch } = useQuery({
-    queryKey: ["tasks-list"],
+    queryKey: ["tasks-list", memberScope],
     queryFn: async () => {
+      const tasksQ = supabase.from("tasks").select("*").order("created_at", { ascending: false });
+      if (memberScope) tasksQ.eq("assignee_id", memberScope);
       const [tasks, projects] = await Promise.all([
-        supabase.from("tasks").select("*").order("created_at", { ascending: false }),
+        tasksQ,
         supabase.from("projects").select("id,name_ar,name_en,color"),
       ]);
       return { tasks: tasks.data ?? [], projects: projects.data ?? [] };
@@ -58,9 +66,9 @@ function TasksPage() {
   return (
     <div>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 28, margin: 0, flex: 1 }}>{t("tasks")}</h1>
+        <h1 style={{ fontSize: 28, margin: 0, flex: 1 }}>{isAdmin ? t("tasks") : (lang === "ar" ? "مهامي" : "My Tasks")}</h1>
         <ViewSwitcher value={view} onChange={setView} />
-        {can("manage_tasks") && (
+        {isAdmin && (
           <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
             <Plus size={18} /> {t("newTask")}
           </button>
@@ -80,7 +88,7 @@ function TasksPage() {
         </select>
         <select value={filters.assignee} onChange={(e) => setFilters({ ...filters, assignee: e.target.value })} style={filterInp}>
           <option value="">{t("filterAssignee")}: {t("all")}</option>
-          {users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+          {peopleForFilters.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
         </select>
         {view !== "kanban" && (
           <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} style={filterInp}>
@@ -98,24 +106,31 @@ function TasksPage() {
         </label>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noTasks")}</div>
-      ) : view === "cards" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))", gap: 14 }}>
-          {filtered.map((tk) => (
-            <TaskCard key={tk.id} task={tk}
-              project={projects.find((p) => p.id === tk.project_id) ?? null}
-              assignee={users.find((u) => u.id === tk.assignee_id) ?? null}
-              onClick={() => setSelected(tk.id)} />
-          ))}
-        </div>
-      ) : view === "kanban" ? (
-        <KanbanView tasks={filtered} projects={projects} users={users} onOpen={setSelected} onChanged={refetch} />
-      ) : view === "table" ? (
-        <TableView tasks={filtered} projects={projects} users={users} onOpen={setSelected} />
-      ) : (
-        <CalendarView tasks={filtered} projects={projects} users={users} onOpen={setSelected} />
-      )}
+      {(() => {
+        const displayUsers = (isAdmin ? users : directory.map((d) => ({
+          id: d.id, full_name: d.full_name, avatar_url: d.avatar_url,
+          role: "member" as const, job_title: null, phone: null, active: true,
+          language_pref: "ar", theme_pref: "dark",
+        }))) as typeof users;
+        return filtered.length === 0 ? (
+          <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noTasks")}</div>
+        ) : view === "cards" ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))", gap: 14 }}>
+            {filtered.map((tk) => (
+              <TaskCard key={tk.id} task={tk}
+                project={projects.find((p) => p.id === tk.project_id) ?? null}
+                assignee={displayUsers.find((u) => u.id === tk.assignee_id) ?? null}
+                onClick={() => setSelected(tk.id)} />
+            ))}
+          </div>
+        ) : view === "kanban" ? (
+          <KanbanView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} onChanged={refetch} />
+        ) : view === "table" ? (
+          <TableView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} />
+        ) : (
+          <CalendarView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} />
+        );
+      })()}
 
       {selected && <TaskDetailModal taskId={selected} onClose={() => setSelected(null)} onChanged={refetch} />}
       {newOpen && <NewTaskModal onClose={() => setNewOpen(false)} onCreated={() => { setNewOpen(false); refetch(); }} />}
