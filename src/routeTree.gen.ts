@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedShareLinksRouteImport } from './routes/_authenticated/share-links'
@@ -53,6 +54,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
   id: '/team',
@@ -113,14 +119,14 @@ const AuthenticatedAccessControlRoute =
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const ShareTokenIndexRoute = ShareTokenIndexRouteImport.update({
-  id: '/share/$token/',
-  path: '/share/$token/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => ShareTokenRoute,
 } as any)
 const ShareTokenPageRoute = ShareTokenPageRouteImport.update({
-  id: '/share/$token/$page',
-  path: '/share/$token/$page',
-  getParentRoute: () => rootRouteImport,
+  id: '/$page',
+  path: '/$page',
+  getParentRoute: () => ShareTokenRoute,
 } as any)
 const AuthenticatedReportsHistoryCompareRoute =
   AuthenticatedReportsHistoryCompareRouteImport.update({
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
+  '/share/$token': typeof ShareTokenRouteWithChildren
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
@@ -193,6 +200,7 @@ export interface FileRoutesById {
   '/_authenticated/share-links': typeof AuthenticatedShareLinksRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
+  '/share/$token': typeof ShareTokenRouteWithChildren
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
@@ -217,6 +225,7 @@ export interface FileRouteTypes {
     | '/share-links'
     | '/tasks'
     | '/team'
+    | '/share/$token'
     | '/projects/$id'
     | '/reports-history/compare'
     | '/share/$token/$page'
@@ -259,6 +268,7 @@ export interface FileRouteTypes {
     | '/_authenticated/share-links'
     | '/_authenticated/tasks'
     | '/_authenticated/team'
+    | '/share/$token'
     | '/_authenticated/'
     | '/_authenticated/projects/$id'
     | '/_authenticated/reports-history/compare'
@@ -271,8 +281,7 @@ export interface RootRouteChildren {
   AcceptInviteRoute: typeof AcceptInviteRoute
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  ShareTokenPageRoute: typeof ShareTokenPageRoute
-  ShareTokenIndexRoute: typeof ShareTokenIndexRoute
+  ShareTokenRoute: typeof ShareTokenRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -311,6 +320,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/team': {
       id: '/_authenticated/team'
@@ -391,17 +407,17 @@ declare module '@tanstack/react-router' {
     }
     '/share/$token/': {
       id: '/share/$token/'
-      path: '/share/$token'
+      path: '/'
       fullPath: '/share/$token/'
       preLoaderRoute: typeof ShareTokenIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ShareTokenRoute
     }
     '/share/$token/$page': {
       id: '/share/$token/$page'
-      path: '/share/$token/$page'
+      path: '/$page'
       fullPath: '/share/$token/$page'
       preLoaderRoute: typeof ShareTokenPageRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ShareTokenRoute
     }
     '/_authenticated/reports-history/compare': {
       id: '/_authenticated/reports-history/compare'
@@ -482,14 +498,37 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface ShareTokenRouteChildren {
+  ShareTokenPageRoute: typeof ShareTokenPageRoute
+  ShareTokenIndexRoute: typeof ShareTokenIndexRoute
+}
+
+const ShareTokenRouteChildren: ShareTokenRouteChildren = {
+  ShareTokenPageRoute: ShareTokenPageRoute,
+  ShareTokenIndexRoute: ShareTokenIndexRoute,
+}
+
+const ShareTokenRouteWithChildren = ShareTokenRoute._addFileChildren(
+  ShareTokenRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AcceptInviteRoute: AcceptInviteRoute,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  ShareTokenPageRoute: ShareTokenPageRoute,
-  ShareTokenIndexRoute: ShareTokenIndexRoute,
+  ShareTokenRoute: ShareTokenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
