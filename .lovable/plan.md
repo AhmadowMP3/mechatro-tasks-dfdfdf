@@ -1,21 +1,27 @@
-## Goal
-Replace `public/mechatro-dashboard-demo.html` with a standalone HTML file that visually matches the **real** Mechatro Tasks dashboard, dashboard content only (no sidebar/topbar).
+## Problem
 
-## Approach
-1. Log into the live preview via Playwright with the seeded tester account, open the dashboard in AR/dark and EN/light, and capture full screenshots + the rendered DOM/CSS of the dashboard region.
-2. Read the source of the dashboard route and its child components (hero, filter bar, KPI cards, Task Flow, momentum chart, distribution donuts, overdue list, projects panel, team pulse) to get exact copy, tokens, gradients, and structure.
-3. Rebuild `public/mechatro-dashboard-demo.html` as ONE self-contained file that mirrors the real layout section-for-section, using the same:
-   - Brand tokens (bg, surface, gold gradient, text hierarchy) pulled from `src/styles.css`.
-   - Montserrat / Montserrat Arabic fonts.
-   - Section order, headings, icons, chip styles, card shapes, and spacing seen in the screenshots.
-   - Mock data that looks realistic (same shape as what's on screen).
-4. Keep the existing AR/EN + Dark/Light toggles (persisted in localStorage), RTL flip, and no external JS deps beyond Google Fonts.
-5. Verify by opening the new file in Playwright in all 4 combinations (AR-dark, AR-light, EN-dark, EN-light) and comparing side-by-side with the live dashboard screenshots.
+`Recent activity` shows a new `signed_in` row every time the page is refreshed. Cause: in `src/lib/app-context.tsx`, `onAuthStateChange` calls `logActivity(..., "signed_in", ...)` whenever Supabase fires a `SIGNED_IN` event — but Supabase also emits `SIGNED_IN` on session restore (page reload, tab focus, token refresh in some SDK versions), not just on real logins.
 
-## Out of scope
-- Sidebar, top user chip, and app shell (user chose "dashboard content only").
-- Any behavior beyond the two toggles (no real filtering, no live data).
-- Changes to the real app.
+## Fix
 
-## Deliverable
-Updated `public/mechatro-dashboard-demo.html` — one file, opens offline, pixel-close to the live dashboard, still served at `/mechatro-dashboard-demo.html`.
+1. **Stop logging `signed_in` from `onAuthStateChange`** in `src/lib/app-context.tsx`. Keep the state-sync logic (loadUser / refreshUsers), just remove the `logActivity` call for `SIGNED_IN`.
+
+2. **Log `signed_in` explicitly at real login points**, right after a successful credential exchange:
+   - `src/routes/auth.tsx` — after `supabase.auth.signInWithPassword` resolves without error.
+   - `src/routes/accept-invite.tsx` — after the invite acceptance completes and the user is signed in for the first time.
+
+3. **Log `signed_out` at real logout points** (already done in `app-context.signOut`; verify `Sidebar` / `SuspendedScreen` route through the context's `signOut` so no duplication).
+
+4. **One-time cleanup** (optional, run once via migration): delete the accumulated bogus rows so the log looks clean.
+   ```sql
+   -- keep only 1 signed_in per actor per 10-minute bucket
+   DELETE FROM public.activity_log a
+   USING public.activity_log b
+   WHERE a.action = 'signed_in' AND b.action = 'signed_in'
+     AND a.actor_id = b.actor_id
+     AND a.id <> b.id
+     AND a.created_at < b.created_at
+     AND b.created_at - a.created_at < interval '10 minutes';
+   ```
+
+After this, only genuine credential-based sign-ins produce a `signed_in` entry; refreshes and token refreshes stay silent.
