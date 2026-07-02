@@ -85,6 +85,26 @@
   --grad-green: linear-gradient(135deg, #3F782A 0%, #67BD42 100%);
 }
 
+/* Branded scrollbars — apply to every scrollable surface */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--grad-blue);
+  border-radius: 999px;
+  border: 2px solid var(--background);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--grad-orange);
+  background-clip: padding-box;
+  border: 2px solid var(--background);
+}
+*::-webkit-scrollbar-corner { background: transparent;
+
 .light {
   --background: #F0F4F8;
   --card: #FFFFFF;
