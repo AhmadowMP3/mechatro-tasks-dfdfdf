@@ -119,8 +119,9 @@ function RestoreDialog({ backup, onClose, onDone }: { backup: Backup; onClose: (
     onDone();
   };
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)", zIndex: 400, display: "flex", justifyContent: "center", alignItems: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} className="brand-card" style={{ maxWidth: 480, padding: 24, borderColor: "rgba(232,115,46,.5)" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)", zIndex: 400, display: "flex", justifyContent: "center", alignItems: "center", padding: 12 }}>
+      <div onClick={(e) => e.stopPropagation()} className="brand-card" style={{ maxWidth: 480, width: "100%", padding: "clamp(16px, 3vw, 24px)", borderColor: "rgba(232,115,46,.5)", maxHeight: "calc(100dvh - 24px)", overflowY: "auto" }}>
+
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, color: "#FF9255" }}>
           <AlertTriangle size={24} />
           <h2 style={{ margin: 0 }}>{t("restore")}</h2>
