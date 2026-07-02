@@ -4,7 +4,7 @@ import { Lock, ShieldAlert, Loader2 } from "lucide-react";
 import logo from "@/assets/mechatro-logo.png";
 import { shareApi, SHARE_PAGES } from "@/lib/share-links";
 
-export const Route = createFileRoute("/share/$token")({
+export const Route = createFileRoute("/share/$token/")({
   component: ShareEntry,
 });
 
