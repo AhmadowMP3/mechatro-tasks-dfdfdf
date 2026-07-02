@@ -239,7 +239,7 @@ function Dashboard() {
       {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 16 }}>
         <StatCard label={t("activeTasks")} value={active.length} color="var(--grad-blue)" lang={lang} accent="#42C2EE" />
-        <StatCard label={t("doneThisWeek")} value={doneWeek.length} color="var(--grad-green)" lang={lang} accent="#73C94E" trend={dayBuckets.slice(-7).map((b) => b.count)} />
+        <StatCard label={t("doneThisWeek")} value={doneInRange.length} color="var(--grad-green)" lang={lang} accent="#73C94E" trend={dayBuckets.slice(-7).map((b) => b.count)} />
         <StatCard label={t("overdueTasks")} value={overdueTasks.length} color="linear-gradient(135deg,#D9484B,#F0676A)" lang={lang} accent="#F0676A" highlight={overdueTasks.length > 0} />
         <StatCard label={t("activeProjects")} value={activeProjects.length} color="var(--grad-orange)" lang={lang} accent="#FF9255" />
       </div>
