@@ -18,6 +18,8 @@ function TeamPage() {
   const [add, setAdd] = useState(false);
   const [edit, setEdit] = useState<Profile | null>(null);
   const [record, setRecord] = useState<Profile | null>(null);
+  const [report, setReport] = useState<Profile | null>(null);
+  const canAdmin = can("manage_users");
 
   const { data: aggregates } = useQuery({
     queryKey: ["team-agg"],
