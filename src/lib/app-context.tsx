@@ -85,10 +85,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    try {
+      const uid = session?.user?.id ?? user?.id ?? null;
+      if (uid) await logActivity(uid, "signed_out", "auth", uid, {});
+    } catch { /* noop */ }
     try { await queryClient.cancelQueries(); queryClient.clear(); } catch { /* noop */ }
     await supabase.auth.signOut();
     setUser(null); setSession(null); setUsers([]); setDirectory([]);
   };
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;

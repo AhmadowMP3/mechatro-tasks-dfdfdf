@@ -10,7 +10,9 @@ export type ActivityAction =
   | "commented"
   | "file_added"
   | "assigned"
-  | "signed_in";
+  | "signed_in"
+  | "signed_out";
+
 
 // Legacy strings still exist in a few call sites; map them to canonical names
 // so the Activity Log filters and i18n keys stay consistent.
