@@ -8,7 +8,9 @@ import type { Profile } from "@/lib/app-context";
 export type TaskRow = {
   id: string; title: string; project_id: string; status: string; priority: string;
   progress: number; due_date: string | null; assignee_id: string | null;
+  start_date?: string | null;
 };
+
 
 export function TaskCard({ task, project, assignee, onClick }: {
   task: TaskRow;
@@ -19,6 +21,23 @@ export function TaskCard({ task, project, assignee, onClick }: {
   const { lang, t } = useApp();
   const overdue = isOverdue(task.due_date, task.status);
   const projectName = project ? (lang === "ar" ? project.name_ar : project.name_en) : "";
+
+  // Elapsed timeline: percent of window between start_date and due_date consumed.
+  let elapsedPct: number | null = null;
+  if (task.start_date && task.due_date) {
+    const start = new Date(task.start_date).getTime();
+    const end = new Date(task.due_date).getTime() + 86400000; // include due day
+    const now = Date.now();
+    if (end > start) {
+      elapsedPct = Math.max(0, Math.min(100, ((now - start) / (end - start)) * 100));
+    }
+  }
+  const timelineColor = overdue
+    ? "linear-gradient(90deg,#F0676A,#D94F52)"
+    : elapsedPct != null && elapsedPct > 75
+      ? "linear-gradient(90deg,#F5A623,#E88E0A)"
+      : "var(--grad-blue)";
+
   return (
     <button onClick={onClick} className="brand-card" style={{
       padding: 16, textAlign: lang === "ar" ? "right" : "left",
@@ -37,6 +56,11 @@ export function TaskCard({ task, project, assignee, onClick }: {
         {overdue && <OverduePill />}
       </div>
       <h3 style={{ fontSize: 16, fontWeight: 800, margin: "6px 0" }}>{task.title}</h3>
+      {elapsedPct != null && (
+        <div title={`${Math.round(elapsedPct)}%`} style={{ height: 3, background: "var(--surface-3)", borderRadius: 2, overflow: "hidden", margin: "6px 0 4px" }}>
+          <div style={{ width: `${elapsedPct}%`, height: "100%", background: timelineColor, transition: "width .4s" }} />
+        </div>
+      )}
       <div style={{ marginTop: 10 }}>
         <div style={{ height: 6, background: "var(--surface-3)", borderRadius: 4, overflow: "hidden" }}>
           <div style={{ width: `${task.progress}%`, height: "100%", background: "var(--grad-blue)" }} />
@@ -54,3 +78,4 @@ export function TaskCard({ task, project, assignee, onClick }: {
     </button>
   );
 }
+

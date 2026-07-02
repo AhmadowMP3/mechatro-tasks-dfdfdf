@@ -13,7 +13,9 @@ type Task = {
   id: string; project_id: string; title: string; description: string | null;
   assignee_id: string | null; priority: string; status: string; progress: number;
   due_date: string | null; completed_at: string | null; created_at: string;
+  start_date: string | null;
 };
+
 
 const STATUS_LIST = ["todo", "in_progress", "paused", "done"] as const;
 const PRIORITY_LIST = ["low", "normal", "high", "urgent"] as const;
@@ -161,8 +163,14 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
               <StatusPill status={merged.status} />
               <PriorityPill priority={merged.priority} />
               {overdue && <OverduePill />}
-              <span style={{ color: "var(--muted)", fontSize: 13 }}>{t("dueDate")}: {formatDate(merged.due_date, lang)}</span>
+              {merged.start_date && (
+                <span style={{ color: "var(--muted)", fontSize: 13 }}>
+                  {t("startedAgo")} {relativeTime(merged.start_date, lang)}
+                </span>
+              )}
+              <span style={{ color: "var(--muted)", fontSize: 13 }}>· {t("dueDate")}: {formatDate(merged.due_date, lang)}</span>
             </div>
+
           </div>
           <button onClick={onClose} aria-label="close" style={{ width: 44, height: 44, borderRadius: 10, background: "var(--surface-2)", color: "var(--foreground)", cursor: "pointer", border: "1px solid var(--border)" }}><X size={20} style={{ margin: "auto" }} /></button>
         </div>

@@ -175,6 +175,21 @@ export const dict = {
   thu: { ar: "خميس", en: "Thu" },
   fri: { ar: "جمعة", en: "Fri" },
   sat: { ar: "سبت", en: "Sat" },
+  // Task creation extras
+  startsNow: { ar: "يبدأ الآن", en: "Starts now" },
+  quickPick: { ar: "اختيار سريع", en: "Quick pick" },
+  plus1Day: { ar: "+ يوم", en: "+1 day" },
+  plus3Days: { ar: "+ ٣ أيام", en: "+3 days" },
+  plus1Week: { ar: "+ أسبوع", en: "+1 week" },
+  plus2Weeks: { ar: "+ أسبوعان", en: "+2 weeks" },
+  endOfMonth: { ar: "نهاية الشهر", en: "End of month" },
+  duration: { ar: "المدة", en: "Duration" },
+  endsOn: { ar: "تنتهي", en: "Ends" },
+  days: { ar: "يوم", en: "days" },
+  sameDay: { ar: "نفس اليوم", en: "Same day" },
+  startedAgo: { ar: "بدأت", en: "Started" },
+  liveClock: { ar: "الوقت الآن", en: "Live time" },
 } as const;
 
 export type DictKey = keyof typeof dict;
+
