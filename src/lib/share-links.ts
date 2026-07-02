@@ -57,7 +57,14 @@ export const shareApi = {
     ),
   data: <T = unknown>(token: string, resource: string) =>
     call<T>({ action: "data", token, resource }, false),
+  bootstrap: (token: string, password?: string) =>
+    call<{
+      link: { label: string; allowed_pages: string[]; expires_at: string | null };
+      bootstrap: import("./share-mode").ShareBootstrap;
+    }>({ action: "bootstrap", token, password: password ?? null }, false),
 };
+
+export const SHARE_FUNCTION_URL = FUNCTION_URL;
 
 export const SHARE_PAGES: { key: string; ar: string; en: string }[] = [
   { key: "dashboard", ar: "لوحة التحكم", en: "Dashboard" },

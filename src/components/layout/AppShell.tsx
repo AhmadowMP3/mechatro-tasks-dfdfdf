@@ -1,13 +1,20 @@
 import { useState, useEffect } from "react";
-import { Menu, Moon, Sun } from "lucide-react";
+import { Menu, Moon, Sun, Eye, RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useApp } from "@/lib/app-context";
 import { Sidebar } from "./Sidebar";
 import logo from "@/assets/mechatro-logo.png";
+import { isShareMode, getShareLink } from "@/lib/share-mode";
+
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { lang, setLang, theme, setTheme } = useApp();
+  const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const shareMode = isShareMode();
+  const shareLink = getShareLink();
+
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 1024);
@@ -65,7 +72,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <img src={logo} alt="Mechatro" style={{ height: 26 }} />
             </>
           )}
+          {shareMode && (
+            <div style={{
+              padding: "6px 12px", borderRadius: 999, fontSize: 11.5, fontWeight: 800,
+              background: "linear-gradient(135deg,rgba(212,175,55,.15),rgba(212,175,55,.05))",
+              color: "#D4AF37", border: "1px solid rgba(212,175,55,.3)",
+              display: "inline-flex", alignItems: "center", gap: 6,
+            }} title={shareLink?.label ?? ""}>
+              <Eye size={13} /> {lang === "ar" ? "عرض للقراءة فقط" : "Read-only preview"}
+              {shareLink?.label ? <span style={{ opacity: .8, fontWeight: 700 }}>· {shareLink.label}</span> : null}
+            </div>
+          )}
           <div style={{ flex: 1, minWidth: 8 }} />
+
+          {shareMode && (
+            <button
+              onClick={() => { queryClient.invalidateQueries(); }}
+              aria-label="refresh"
+              title={lang === "ar" ? "تحديث" : "Refresh"}
+              style={{ width: 44, height: 44, borderRadius: 999, background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--foreground)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+            ><RefreshCw size={18} /></button>
+          )}
+
 
           <div style={{ display: "inline-flex", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 999, padding: 3 }}>
             <button onClick={() => setLang("ar")} style={langBtnStyle(lang === "ar")}>عربي</button>
