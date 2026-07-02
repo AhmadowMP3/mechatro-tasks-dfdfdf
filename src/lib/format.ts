@@ -1,20 +1,19 @@
 import type { Lang } from "@/i18n/dict";
 
-const AR_DIGITS = ["٠","١","٢","٣","٤","٥","٦","٧","٨","٩"];
-
-export function toLocalDigits(s: string | number, lang: Lang): string {
-  const str = String(s);
-  if (lang !== "ar") return str;
-  return str.replace(/\d/g, (d) => AR_DIGITS[+d]);
+// Numbers are always rendered in Latin/English digits across the app,
+// regardless of the active language.
+export function toLocalDigits(s: string | number, _lang: Lang): string {
+  return String(s).replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660));
 }
 
 export function formatDate(iso: string | null | undefined, lang: Lang): string {
   if (!iso) return "—";
   const d = new Date(iso);
-  const formatted = d.toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB", {
+  // `-u-nu-latn` forces Latin digits while keeping Arabic month names in AR.
+  const locale = lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB";
+  return d.toLocaleDateString(locale, {
     day: "2-digit", month: "short", year: "numeric",
   });
-  return formatted;
 }
 
 export function isOverdue(due: string | null | undefined, status?: string): boolean {
@@ -27,7 +26,9 @@ export function isOverdue(due: string | null | undefined, status?: string): bool
 
 export function relativeTime(iso: string, lang: Lang): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  const rtf = new Intl.RelativeTimeFormat(lang === "ar" ? "ar" : "en", { numeric: "auto" });
+  // Force Latin digits inside Arabic relative-time output as well.
+  const locale = lang === "ar" ? "ar-EG-u-nu-latn" : "en";
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
   const units: [Intl.RelativeTimeFormatUnit, number][] = [
     ["year", 31536000], ["month", 2592000], ["day", 86400],
     ["hour", 3600], ["minute", 60], ["second", 1],
