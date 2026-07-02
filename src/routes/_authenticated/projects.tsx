@@ -143,7 +143,6 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
           <option value="blue">Blue</option><option value="orange">Orange</option><option value="green">Green</option><option value="red">Red</option>
         </select>
       </Field>
-      <Field label={t("startDate")}><input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} style={inp} /></Field>
       <Field label={t("dueDate")}><input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} style={inp} /></Field>
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
         <button onClick={submit} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", flex: 1 }}>{t("create")}</button>
