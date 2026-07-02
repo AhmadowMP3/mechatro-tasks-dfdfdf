@@ -52,8 +52,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "مهام ميكاترو · Mechatro Tasks" },
       { name: "twitter:description", content: "Mechatro internal project & task management. Bilingual Arabic/English." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8e73a035-4da6-4dfd-b466-4e948483a0ac/id-preview-8a71f385--70935899-f801-4b02-9f3a-e174fc26093c.lovable.app-1783010802933.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8e73a035-4da6-4dfd-b466-4e948483a0ac/id-preview-8a71f385--70935899-f801-4b02-9f3a-e174fc26093c.lovable.app-1783010802933.png" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bdec7a61-37da-419b-ab75-379d2f942f61/id-preview-69a61040--70935899-f801-4b02-9f3a-e174fc26093c.lovable.app-1783024909755.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bdec7a61-37da-419b-ab75-379d2f942f61/id-preview-69a61040--70935899-f801-4b02-9f3a-e174fc26093c.lovable.app-1783024909755.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
