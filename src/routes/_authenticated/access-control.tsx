@@ -315,8 +315,10 @@ function InviteModal({ lang, onClose, onInvited }: {
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         background: "#0F2033", border: "1px solid #1E364D",
-        borderRadius: 16, padding: 22, width: "100%", maxWidth: 440,
+        borderRadius: 16, padding: "clamp(16px, 3vw, 22px)", width: "100%", maxWidth: 440,
+        maxHeight: "calc(100dvh - 32px)", overflowY: "auto",
       }}>
+
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{l ? "دعوة مستخدم جديد" : "Invite a new user"}</h2>
           <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#9FB7C9", cursor: "pointer" }}>
