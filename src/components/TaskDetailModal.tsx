@@ -209,9 +209,27 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
           <Field label={t("status")}>
             {canEdit ? (
               <select value={merged.status} onChange={(e) => setField("status", e.target.value)} style={selectStyle}>
-                {STATUS_LIST.map((s) => <option key={s} value={s}>{t(s)}</option>)}
+                {(canEditAll ? STATUS_LIST : MEMBER_STATUS_LIST).map((s) => <option key={s} value={s}>{t(s)}</option>)}
               </select>
             ) : <StatusPill status={merged.status} />}
+            {readOnlyForMember && merged.status !== "in_review" && merged.status !== "done" && (
+              <button
+                type="button"
+                onClick={() => setField("status", "in_review")}
+                style={{ marginTop: 8, width: "100%", padding: "8px 12px", borderRadius: 10, background: "linear-gradient(135deg,#A855F7,#C084FC)", color: "#fff", border: "none", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+              >
+                ✓ {t("submitForReview")}
+              </button>
+            )}
+            {canEditAll && merged.status === "in_review" && (
+              <button
+                type="button"
+                onClick={() => setField("status", "done")}
+                style={{ marginTop: 8, width: "100%", padding: "8px 12px", borderRadius: 10, background: "var(--grad-green)", color: "#fff", border: "none", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+              >
+                ✓ {t("approveDone")}
+              </button>
+            )}
           </Field>
         </div>
 
