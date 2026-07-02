@@ -26,7 +26,9 @@ export function isOverdue(due: string | null | undefined, status?: string): bool
 
 export function relativeTime(iso: string, lang: Lang): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  const rtf = new Intl.RelativeTimeFormat(lang === "ar" ? "ar" : "en", { numeric: "auto" });
+  // Force Latin digits inside Arabic relative-time output as well.
+  const locale = lang === "ar" ? "ar-EG-u-nu-latn" : "en";
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
   const units: [Intl.RelativeTimeFormatUnit, number][] = [
     ["year", 31536000], ["month", 2592000], ["day", 86400],
     ["hour", 3600], ["minute", 60], ["second", 1],
