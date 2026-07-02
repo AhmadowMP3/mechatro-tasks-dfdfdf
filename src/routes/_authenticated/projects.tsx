@@ -177,6 +177,30 @@ function ProjectsPage() {
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+        <div role="tablist" aria-label={lang === "ar" ? "عرض" : "View"} style={{ display: "inline-flex", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 999, padding: 4 }}>
+          {([false, true] as const).map((val) => {
+            const active = f.archived === val;
+            const label = val ? (lang === "ar" ? "مؤرشفة" : "Archived") : (lang === "ar" ? "نشطة" : "Active");
+            return (
+              <button
+                key={String(val)}
+                role="tab"
+                aria-selected={active}
+                onClick={() => patch({ archived: val })}
+                style={{
+                  minHeight: 36, padding: "6px 16px", borderRadius: 999, border: "none",
+                  cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit",
+                  background: active ? "var(--grad-blue)" : "transparent",
+                  color: active ? "#0B0F14" : "var(--muted)",
+                  boxShadow: active ? "0 6px 18px rgba(66,194,238,.35)" : "none",
+                  transition: "all .2s",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
         <SearchField value={f.q} onChange={(v) => patch({ q: v })} />
         <FilterBarCluster
           activeCount={activeCount}
