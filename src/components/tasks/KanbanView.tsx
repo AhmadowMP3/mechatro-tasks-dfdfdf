@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
@@ -8,7 +9,8 @@ import { logActivity } from "@/lib/activity";
 import type { TaskRow } from "@/components/TaskCard";
 
 type Project = { id: string; name_ar: string; name_en: string; color: string };
-const COLUMNS = ["todo", "in_progress", "paused", "done"] as const;
+const COLUMNS = ["todo", "in_progress", "paused", "in_review", "done"] as const;
+type ColStatus = (typeof COLUMNS)[number];
 
 export function KanbanView({
   tasks, projects, users, onOpen, onChanged,
@@ -19,19 +21,34 @@ export function KanbanView({
   onOpen: (id: string) => void;
   onChanged: () => void;
 }) {
-  const { t, lang, can, user } = useApp();
-  const editable = can("manage_tasks");
+  const { t, lang, isAdmin, user } = useApp();
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
 
-  async function moveTask(id: string, status: string) {
+  function canMove(task: TaskRow | undefined, target: ColStatus): boolean {
+    if (!task) return false;
+    if (isAdmin) return true;
+    // Members can only drag their own tasks, and never to 'done'
+    if (task.assignee_id !== user?.id) return false;
+    if (target === "done") return false;
+    return true;
+  }
+
+  async function moveTask(id: string, status: ColStatus) {
     const task = tasks.find((x) => x.id === id);
     if (!task || task.status === status) return;
-    const { error } = await supabase.from("tasks").update({ status: status as "todo" | "in_progress" | "paused" | "done" }).eq("id", id);
-    if (!error) {
-      await logActivity(user?.id ?? null, "status", "task", id, { from: task.status, to: status });
-      onChanged();
+    if (!canMove(task, status)) {
+      toast.error(t("onlyAdminCanComplete"));
+      return;
     }
+    const patch: { status: ColStatus; completed_at?: string | null } = { status };
+    if (status === "done") patch.completed_at = new Date().toISOString();
+    if (task.status === "done" && status !== "done") patch.completed_at = null;
+    const { error } = await supabase.from("tasks").update(patch).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    await logActivity(user?.id ?? null, "status", "task", id, { from: task.status, to: status });
+    if (status === "in_review") toast.success(t("awaitingReview"));
+    onChanged();
   }
 
   return (
