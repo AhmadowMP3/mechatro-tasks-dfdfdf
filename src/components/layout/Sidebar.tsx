@@ -45,6 +45,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         display: "flex", flexDirection: "column",
         borderInlineEnd: "1px solid #1E364D",
         height: "100dvh",
+        position: "sticky",
+        top: 0,
+        alignSelf: "flex-start",
+        flexShrink: 0,
       }}
     >
       <div style={{ padding: "22px 18px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
