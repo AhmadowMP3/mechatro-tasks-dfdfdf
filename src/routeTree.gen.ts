@@ -23,7 +23,6 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedLeagueRouteImport } from './routes/_authenticated/league'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
-import { Route as ApiPublicProvisionTestUserRouteImport } from './routes/api/public/provision-test-user'
 import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history.compare'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 
@@ -99,12 +98,6 @@ const AuthenticatedAccessControlRoute =
     path: '/access-control',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicProvisionTestUserRoute =
-  ApiPublicProvisionTestUserRouteImport.update({
-    id: '/api/public/provision-test-user',
-    path: '/api/public/provision-test-user',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AuthenticatedReportsHistoryCompareRoute =
   AuthenticatedReportsHistoryCompareRouteImport.update({
     id: '/compare',
@@ -133,7 +126,6 @@ export interface FileRoutesByFullPath {
   '/team': typeof AuthenticatedTeamRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
-  '/api/public/provision-test-user': typeof ApiPublicProvisionTestUserRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -151,7 +143,6 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
-  '/api/public/provision-test-user': typeof ApiPublicProvisionTestUserRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -171,7 +162,6 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
-  '/api/public/provision-test-user': typeof ApiPublicProvisionTestUserRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,7 +181,6 @@ export interface FileRouteTypes {
     | '/team'
     | '/projects/$id'
     | '/reports-history/compare'
-    | '/api/public/provision-test-user'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -209,7 +198,6 @@ export interface FileRouteTypes {
     | '/'
     | '/projects/$id'
     | '/reports-history/compare'
-    | '/api/public/provision-test-user'
   id:
     | '__root__'
     | '/_authenticated'
@@ -228,14 +216,12 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/projects/$id'
     | '/_authenticated/reports-history/compare'
-    | '/api/public/provision-test-user'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  ApiPublicProvisionTestUserRoute: typeof ApiPublicProvisionTestUserRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -338,13 +324,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccessControlRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/provision-test-user': {
-      id: '/api/public/provision-test-user'
-      path: '/api/public/provision-test-user'
-      fullPath: '/api/public/provision-test-user'
-      preLoaderRoute: typeof ApiPublicProvisionTestUserRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/reports-history/compare': {
       id: '/_authenticated/reports-history/compare'
       path: '/compare'
@@ -426,7 +405,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  ApiPublicProvisionTestUserRoute: ApiPublicProvisionTestUserRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
