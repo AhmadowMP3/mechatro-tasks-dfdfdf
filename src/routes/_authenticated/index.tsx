@@ -1,14 +1,34 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { formatDate, isOverdue, relativeTime, toLocalDigits } from "@/lib/format";
 import { OverduePill } from "@/components/Pills";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import type { DictKey } from "@/i18n/dict";
+import { FilterBar, DEFAULT_FILTERS, resolveRange, type DashboardFilters } from "@/components/dashboard/FilterBar";
+
+type SearchParams = Partial<DashboardFilters>;
 
 export const Route = createFileRoute("/_authenticated/")({
+  validateSearch: (raw: Record<string, unknown>): SearchParams => {
+    const allowedRanges = ["today", "7d", "30d", "90d", "all", "custom"] as const;
+    const range = allowedRanges.includes(raw.range as never) ? (raw.range as DashboardFilters["range"]) : undefined;
+    const arr = (v: unknown): string[] | undefined => {
+      if (Array.isArray(v)) return v.filter((x): x is string => typeof x === "string");
+      if (typeof v === "string" && v.length > 0) return v.split(",");
+      return undefined;
+    };
+    const dateStr = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
+    return {
+      range,
+      from: dateStr(raw.from),
+      to: dateStr(raw.to),
+      projects: arr(raw.projects),
+      statuses: arr(raw.statuses),
+    };
+  },
   component: Dashboard,
 });
 
