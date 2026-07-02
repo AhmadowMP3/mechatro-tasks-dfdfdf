@@ -43,7 +43,7 @@ function SharePage() {
 
 
   return (
-    <AppShell>
+    <>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
@@ -101,9 +101,10 @@ function SharePage() {
           onSaved={() => { setEditing(null); load(); }}
         />
       )}
-    </AppShell>
+    </>
   );
 }
+
 
 function LinkCard({ link, onEdit, onChanged }: { link: ShareLinkRow; onEdit: () => void; onChanged: () => void }) {
   const { lang } = useApp();
