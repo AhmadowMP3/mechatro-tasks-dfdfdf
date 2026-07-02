@@ -124,7 +124,7 @@ function ProjectsPage() {
       const b = BUCKETS.find((x) => x.key === k);
       c.push({ key: `b-${k}`, label: b?.label ?? k, onRemove: () => patch({ buckets: f.buckets.filter((x) => x !== k) }) });
     });
-    if (f.archived) c.push({ key: "ar", label: t("archivedOnly"), onRemove: () => patch({ archived: false }) });
+    // archived toggle is a top-level tab, not a removable chip
     if (f.datePreset !== "all") c.push({ key: "dr", label: `${t(f.dateField === "due_date" ? "dueSoon" : "createdAt")}`, onRemove: () => patch({ datePreset: "all", dateFrom: "", dateTo: "" }) });
     return c;
   }, [f, users, t]);
