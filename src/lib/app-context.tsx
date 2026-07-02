@@ -64,6 +64,7 @@ const LEGACY_PERMS: Record<Role, Permission[]> = {
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [lang, setLangState] = useState<Lang>("ar");
   const [theme, setThemeState] = useState<"dark" | "light">("dark");
   const [users, setUsers] = useState<Profile[]>([]);
