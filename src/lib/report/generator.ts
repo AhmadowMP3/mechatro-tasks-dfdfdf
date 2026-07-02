@@ -13,17 +13,56 @@ async function loadHtml2Pdf(): Promise<any> {
 
 export type ReportLangChoice = "ar" | "en" | "bilingual";
 
+async function waitForImages(root: HTMLElement) {
+  const imgs = Array.from(root.querySelectorAll("img"));
+  await Promise.all(
+    imgs.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete && img.naturalWidth > 0) return resolve();
+          img.addEventListener("load", () => resolve(), { once: true });
+          img.addEventListener("error", () => resolve(), { once: true });
+          // safety timeout
+          setTimeout(() => resolve(), 2500);
+        })
+    )
+  );
+}
+
 async function renderHtmlToPdfBlob(html: string, filename: string): Promise<{ blob: Blob; pageCount: number }> {
+  // Render on-screen but visually hidden. html2canvas is unreliable with
+  // `position:fixed;left:-99999px` — using absolute + opacity:0 forces a real layout.
   const container = document.createElement("div");
-  container.style.cssText = `position:fixed;left:-99999px;top:0;width:794px;background:#fff;font-family:'Montserrat','Segoe UI',Tahoma,Arial,sans-serif;color:#0F1B2D;`;
+  container.setAttribute("data-pdf-render", "true");
+  container.style.cssText = [
+    "position:absolute",
+    "top:0",
+    "left:0",
+    "width:794px",
+    "opacity:0",
+    "pointer-events:none",
+    "z-index:-1",
+    "background:#ffffff",
+    "color:#0F1B2D",
+    "font-family:'Montserrat','Segoe UI',Tahoma,Arial,sans-serif",
+  ].join(";");
   container.innerHTML = `<style>
-    .pdf-page{width:794px;height:1123px;box-sizing:border-box;overflow:hidden;page-break-after:always;break-after:page}
-    .pdf-page:last-child{page-break-after:auto}
-    .pdf-page *{box-sizing:border-box}
-    table{font-family:inherit}
+    [data-pdf-render]{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    [data-pdf-render] .pdf-page{width:794px;min-height:1123px;box-sizing:border-box;overflow:hidden;page-break-after:always;break-after:page;display:block;background:#ffffff}
+    [data-pdf-render] .pdf-page:last-child{page-break-after:auto}
+    [data-pdf-render] .pdf-page *{box-sizing:border-box}
+    [data-pdf-render] table{font-family:inherit;border-collapse:collapse}
+    [data-pdf-render] svg{display:block;max-width:100%}
+    [data-pdf-render] img{max-width:100%;display:block}
   </style>${html}`;
   document.body.appendChild(container);
-  await new Promise((r) => setTimeout(r, 60));
+
+  // Give layout + fonts + images a chance
+  await waitForImages(container);
+  if ((document as unknown as { fonts?: { ready: Promise<unknown> } }).fonts?.ready) {
+    try { await (document as unknown as { fonts: { ready: Promise<unknown> } }).fonts.ready; } catch { /* noop */ }
+  }
+  await new Promise((r) => setTimeout(r, 120));
 
   try {
     const html2pdf = await loadHtml2Pdf();
@@ -32,13 +71,22 @@ async function renderHtmlToPdfBlob(html: string, filename: string): Promise<{ bl
         margin: 0,
         filename,
         image: { type: "jpeg", quality: 0.96 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+          width: 794,
+          windowWidth: 794,
+          scrollX: 0,
+          scrollY: 0,
+        },
         jsPDF: { unit: "pt", format: "a4", orientation: "portrait", compress: true },
         pagebreak: { mode: ["css", "legacy"], before: ".html2pdf__page-break" },
       })
       .from(container);
     const blob: Blob = await worker.outputPdf("blob");
-    // Approximate page count from container height
     const pageCount = Math.max(1, container.querySelectorAll(".pdf-page").length);
     return { blob, pageCount };
   } finally {
