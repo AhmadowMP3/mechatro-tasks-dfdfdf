@@ -526,7 +526,7 @@ function TaskFlowCard({ title, segments, total, lang }: { title: string; segment
           <div key={s.key} title={`${s.label} — ${s.value}`} style={{ width: `${(s.value / total) * 100}%`, background: `linear-gradient(180deg, ${s.color}, ${s.color}CC)`, boxShadow: `inset 0 0 12px ${s.color}66` }} />
         ))}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${segments.length}, 1fr)`, gap: 10, marginTop: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(110px, 1fr))`, gap: 10, marginTop: 18 }}>
         {segments.map((s) => {
           const h = 90 * (s.value / max);
           return (
