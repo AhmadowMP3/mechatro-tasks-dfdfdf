@@ -31,19 +31,15 @@ Deno.serve(async (req) => {
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
   if (!token) return json(401, { error: "missing token" });
 
-  const asUser = createClient(url, anonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
-  const { data: userRes, error: userErr } = await asUser.auth.getUser();
+  const admin = createClient(url, serviceKey);
+  const { data: userRes, error: userErr } = await admin.auth.getUser(token);
   if (userErr || !userRes.user) return json(401, { error: "invalid token" });
 
-  const admin = createClient(url, serviceKey);
 
   const { data: me } = await admin
     .from("profiles")
