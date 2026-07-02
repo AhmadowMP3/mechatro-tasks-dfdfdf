@@ -118,14 +118,14 @@ function MembersList({ ids }: { ids: string[] }) {
 
 function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const { t, user } = useApp();
-  const [form, setForm] = useState({ name_ar: "", name_en: "", description: "", color: "blue", due_date: "", start_date: "" });
+  const [form, setForm] = useState({ name_ar: "", name_en: "", description: "", color: "blue", due_date: "" });
   const submit = async () => {
     if (!form.name_ar || !form.name_en) { toast.error(t("fullName")); return; }
     const { data, error } = await supabase.from("projects").insert({
       name_ar: form.name_ar, name_en: form.name_en,
       description: form.description || null,
       color: form.color, due_date: form.due_date || null,
-      start_date: form.start_date || null,
+      start_date: new Date().toISOString(),
       created_by: user?.id ?? null,
     }).select().single();
     if (error) { toast.error(error.message); return; }
@@ -143,7 +143,6 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
           <option value="blue">Blue</option><option value="orange">Orange</option><option value="green">Green</option><option value="red">Red</option>
         </select>
       </Field>
-      <Field label={t("startDate")}><input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} style={inp} /></Field>
       <Field label={t("dueDate")}><input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} style={inp} /></Field>
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
         <button onClick={submit} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", flex: 1 }}>{t("create")}</button>
