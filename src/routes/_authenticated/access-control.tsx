@@ -333,7 +333,7 @@ function InviteModal({ lang, onClose, onInvited }: {
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputCss} dir="ltr" />
           </Field>
           <Field label={l ? "الدور" : "Role"}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
               {[
                 { v: "member", icon: UserIcon, ar: "عضو", en: "Member", desc: l ? "وصول محدود" : "Limited access" },
                 { v: "admin",  icon: ShieldCheck, ar: "نائب مدير", en: "Admin", desc: l ? "وصول كامل" : "Full access" },
