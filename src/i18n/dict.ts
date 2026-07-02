@@ -192,6 +192,8 @@ export const dict = {
   // Task creation extras
   startsNow: { ar: "يبدأ الآن", en: "Starts now" },
   quickPick: { ar: "اختيار سريع", en: "Quick pick" },
+  pickDate: { ar: "اختر التاريخ", en: "Pick a date" },
+
   plus1Day: { ar: "+ يوم", en: "+1 day" },
   plus3Days: { ar: "+ ٣ أيام", en: "+3 days" },
   plus1Week: { ar: "+ أسبوع", en: "+1 week" },
