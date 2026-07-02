@@ -226,6 +226,48 @@ export type Database = {
           },
         ]
       }
+      references: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          pinned: boolean
+          tags: string[]
+          title: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          pinned?: boolean
+          tags?: string[]
+          title: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          pinned?: boolean
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           permission: Database["public"]["Enums"]["permission_key"]

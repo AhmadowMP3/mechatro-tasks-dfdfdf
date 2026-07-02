@@ -1,57 +1,62 @@
-## Member PDF Report — "Branded Dashboard"
+## References Page
 
-Add a **Generate Report** button on every team member card (visible only to admins / master admin). Clicking opens a small dialog to pick:
+A shared, company-wide library of important external links (Drive, Docs, Figma, sites, videos). Admins and managers curate; everyone views.
 
-- **Language**: Arabic (RTL) · English (LTR) · Bilingual (both in one PDF)
-- **Range**: All time · Last 7 days · Last 30 days · Last 90 days · Custom (from/to)
+### Database (new migration)
 
-Then it renders and downloads `Mechatro-Report-{Member}-{Date}.pdf`.
+Table `public.references`:
+- `title`, `description`, `url`, `category` (text, admin-defined free tag), `tags` (text[]), `pinned` (bool), `icon` (text — auto-detected: drive/figma/youtube/notion/generic), `color` (accent hint), `created_by`, `created_at`, `updated_at`.
 
-### What the PDF contains
+RLS + GRANTs:
+- SELECT: any authenticated user.
+- INSERT / UPDATE / DELETE: users where `role in ('admin','manager')` and `active`, via `is_admin_or_manager(auth.uid())`.
+- service_role: ALL.
 
-Everything we have about the member, organized into sections:
+Activity logging: insert/update/delete writes into `activity_log` with entity `reference`.
 
-1. **Cover page** — dark Mechatro gradient hero, logo, member avatar (circle), full name (large), role pill, status, email, join date, report range, generated-at timestamp.
-2. **Profile & role** — role, permissions inherited from their role, active/suspended, master-admin flag, last sign-in.
-3. **Performance KPIs** — big-number cards: Total tasks, Completed, In progress, Paused, Overdue, On-time %, Completion %, Avg. task duration, League points, Rank.
-4. **Charts** — Status donut (todo/in_progress/paused/done), Priority bars, Tasks-per-project bars, 12-week completion sparkline. Drawn as vector shapes in the PDF (no external chart images).
-5. **Projects** — table of projects the member is on: project name, color chip, their task count, completion %, last activity.
-6. **Tasks breakdown** — grouped by status: title, project, priority, start date, due date, overdue flag, completion date. Paginated cleanly across pages.
-7. **Work sessions** — total tracked time, sessions count, avg session length, last 20 sessions table.
-8. **Comments & files** — counts + last 10 comments (truncated) and last 10 Drive links added.
-9. **Activity timeline** — last 50 activity_log entries for the member with icons and relative dates.
-10. **Footer on every page** — Mechatro logo mark, page X/Y, member name, report range.
+### Route
 
-### Visual style — "Branded Dashboard"
+`src/routes/_authenticated/references.tsx` — added to sidebar with a Library icon, visible to all authenticated users.
 
-- Dark cover + section dividers using the existing brand gradient (blue → green → orange).
-- Light content pages (white/near-white) for readability + printing.
-- KPI cards with rounded corners, thin brand-color top border, huge number, small label.
-- Charts use the Mechatro palette (`#189FD1`, `#22C55E`, `#FF8A3D`, `#F0676A`, muted grid).
-- Section headers: brand blue with a small colored square accent, no cheesy divider lines.
-- Consistent 40pt page margins, 8pt grid.
+### Page layout (bento grid)
 
-### Bilingual handling
+Top bar:
+- Big page title + subtitle ("Company knowledge base / مركز المراجع").
+- Search input (title, description, url, tags).
+- Filter row combining everything the user asked for:
+  - **Pinned** toggle chip
+  - **Category** dropdown (dynamic from existing rows)
+  - **Tag** multi-select chips
+  - **Sort**: newest / most-used-category / A→Z
+- All filter state lives in URL search params (zodValidator + fallback) so views are shareable.
 
-- **English** PDF: Montserrat, LTR.
-- **Arabic** PDF: uses the Arabic Montserrat font already in the project, RTL layout (labels right-aligned, tables mirrored, page numbering flipped).
-- **Bilingual** PDF: each section renders Arabic block first (RTL) then English block (LTR), separated by a thin rule; cover page shows both titles stacked.
+Bento grid:
+- Asymmetric tile sizes — pinned items span 2 cols, others 1. Responsive: 1 / 2 / 4 columns.
+- Each tile: gradient header strip using brand blue/gold, source icon (Figma, Drive, YouTube, Notion, generic link) auto-detected from the URL host, title, 2-line description, category chip, tag chips, "Open ↗" primary action, small "copy link" secondary.
+- Hover: subtle lift + glow using existing brand tokens. RTL-aware (icon flips side).
+- Admin/manager tiles show a compact menu (edit / pin / delete).
 
-### Technical details
+Empty state: illustrated card with "Add your first reference" (admin/manager only) or "No references yet" for members.
 
-- **Library**: `pdfmake` — supports embedded TTF fonts (needed for Arabic), vector shapes for charts, tables, page headers/footers, and works fully client-side (no server round-trip, no Node-only deps). Register Montserrat + Montserrat Arabic from the fonts already bundled in `src/assets/fonts/` as base64 VFS entries at first use.
-- **New files**:
-  - `src/lib/report/fonts.ts` — lazy-load font TTFs, base64 encode, register with pdfmake.
-  - `src/lib/report/data.ts` — one function `loadMemberReportData(memberId, range)` batching supabase reads (profile, role+permissions, projects via tasks, tasks, work_sessions, task_comments, task_files, activity_log, league rank calc).
-  - `src/lib/report/charts.ts` — pure functions that return pdfmake `canvas` node arrays (donut, bar, sparkline).
-  - `src/lib/report/build-pdf.ts` — `buildMemberReport({ member, data, lang, range })` returning a pdfmake docDefinition; handles LTR/RTL/bilingual.
-  - `src/components/team/GenerateReportDialog.tsx` — the language + range picker modal.
-- **Team page** (`src/routes/_authenticated/team.tsx`): add a `FileText` icon button per member card, gated by `isMasterAdmin || user.role === 'admin'`. Opens the dialog. On confirm, calls `buildMemberReport(...)` → `pdfMake.createPdf(doc).download(filename)`.
-- **i18n**: add keys (`generateReport`, `reportLanguage`, `reportRange`, `bilingual`, `custom`, `from`, `to`, all KPI labels, section titles) to `src/i18n/dict.ts`.
-- **No DB migration needed** — `activity_log` already permits admins to select, and all other tables are readable by admins under existing RLS.
-- **No new dependency for charts** — pdfmake's `canvas` primitive draws lines/rects/ellipses natively, keeping the bundle lean.
-- **Bundle impact**: pdfmake + fonts are dynamically imported inside the click handler so the /team route stays light.
+### Admin/manager actions
 
-### Deliverable
+- Header button "Add reference" (visible only when `is_admin_or_manager`).
+- `AddReferenceModal` — title, url (validated), description, category (combobox that suggests existing + allows new), tags (chip input), pin toggle.
+- Edit modal reuses the same form.
+- Delete with confirm.
+- URL host is parsed to set `icon` automatically (figma.com → Figma, drive.google/docs.google → Drive, youtube/youtu.be → YouTube, notion.so → Notion, github.com → GitHub, else generic).
 
-After approval I'll implement in one pass: dialog + data loader + font registration + PDF builder (all three language modes) + Team page button, then verify by generating a sample report for an existing member.
+### Bilingual + theming
+
+- All strings added to `src/i18n/dict.ts` (EN + AR). RTL respected — bento grid, chips, and modals mirror.
+- Uses existing design tokens (brand blue/gold gradients, dark default).
+
+### Files
+
+- New migration (table + RLS + grants).
+- `src/routes/_authenticated/references.tsx`
+- `src/components/references/ReferenceCard.tsx`
+- `src/components/references/AddReferenceModal.tsx`
+- `src/components/references/ReferenceFilters.tsx`
+- `src/lib/references.ts` (host → icon/color helpers, query helpers)
+- Sidebar entry + dict keys.
