@@ -276,9 +276,11 @@ function StatusPill({ status, lang }: { status: UserRow["status"]; lang: "ar" | 
 
 function UserMenu({ user, lang, busy, onAction }: {
   user: UserRow; lang: "ar" | "en"; busy: boolean;
-  onAction: (a: "suspend" | "activate" | "delete") => void;
+  onAction: (a: "suspend" | "activate" | "delete", extra?: Record<string, unknown>) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [showReason, setShowReason] = useState(false);
+  const [reason, setReason] = useState("");
   const l = lang === "ar";
   return (
     <div style={{ position: "relative" }}>
@@ -298,7 +300,7 @@ function UserMenu({ user, lang, busy, onAction }: {
           }}>
             {user.status !== "suspended" && (
               <MenuItem icon={Pause} label={l ? "تعليق الحساب" : "Suspend"}
-                onClick={() => { setOpen(false); onAction("suspend"); }} />
+                onClick={() => { setOpen(false); setReason(""); setShowReason(true); }} />
             )}
             {user.status === "suspended" && (
               <MenuItem icon={Play} label={l ? "تفعيل" : "Activate"}
@@ -312,6 +314,63 @@ function UserMenu({ user, lang, busy, onAction }: {
               }} />
           </div>
         </>
+      )}
+
+      {showReason && (
+        <div onClick={() => setShowReason(false)} style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 300,
+          display: "grid", placeItems: "center", padding: 20,
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: "100%", maxWidth: 460, background: "#0F2033",
+            border: "1px solid rgba(240,103,106,.35)", borderRadius: 18,
+            padding: 22, color: "#EAF2F9",
+            boxShadow: "0 24px 60px rgba(0,0,0,.55)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: "linear-gradient(135deg,#F0676A,#B83338)",
+                display: "grid", placeItems: "center",
+              }}><Pause size={18} color="#fff" /></div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 16 }}>
+                  {l ? "تعليق حساب" : "Suspend account"}
+                </div>
+                <div style={{ fontSize: 12.5, color: "#9FB7C9" }}>
+                  {user.full_name}
+                </div>
+              </div>
+            </div>
+            <label style={{ display: "block", fontSize: 12.5, color: "#9FB7C9", margin: "12px 0 6px" }}>
+              {l ? "السبب (اختياري) — سيظهر للمستخدم" : "Reason (optional) — shown to the user"}
+            </label>
+            <textarea
+              value={reason} onChange={(e) => setReason(e.target.value)}
+              rows={3} autoFocus
+              placeholder={l ? "مثال: مخالفة سياسة الاستخدام" : "e.g. Policy violation"}
+              style={{
+                width: "100%", padding: 10, borderRadius: 10,
+                background: "#0A1826", color: "#EAF2F9",
+                border: "1px solid #1E364D", fontSize: 14, resize: "vertical",
+                fontFamily: "inherit",
+              }}
+            />
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
+              <button onClick={() => setShowReason(false)} style={{
+                padding: "10px 16px", borderRadius: 10, background: "transparent",
+                color: "#EAF2F9", border: "1px solid #1E364D", cursor: "pointer", fontWeight: 600,
+              }}>{l ? "إلغاء" : "Cancel"}</button>
+              <button onClick={() => { setShowReason(false); onAction("suspend", { reason: reason.trim() }); }}
+                style={{
+                  padding: "10px 16px", borderRadius: 10,
+                  background: "linear-gradient(135deg,#F0676A,#B83338)",
+                  color: "#fff", border: "none", cursor: "pointer", fontWeight: 700,
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                }}><Pause size={14} />{l ? "تعليق الآن" : "Suspend now"}</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
