@@ -251,12 +251,6 @@ function ProjectsPage() {
           <DateRangeControl preset={f.datePreset} from={f.dateFrom} to={f.dateTo}
             onChange={({ preset, from, to }) => patch({ datePreset: preset, dateFrom: from, dateTo: to })} />
         </FilterSection>
-        <FilterSection label={lang === "ar" ? "خيارات" : "Options"}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 40, cursor: "pointer" }}>
-            <input type="checkbox" checked={f.archived} onChange={(e) => patch({ archived: e.target.checked })} style={{ width: 18, height: 18 }} />
-            <span style={{ fontSize: 14 }}>{t("archivedOnly")}</span>
-          </label>
-        </FilterSection>
         <FilterSection label={t("sortBy")}>
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
