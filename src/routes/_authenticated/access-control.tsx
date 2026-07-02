@@ -128,7 +128,7 @@ function AccessControlPage() {
           display: "grid", placeItems: "center", color: "#fff",
           boxShadow: "0 8px 24px rgba(29,155,240,.35)",
         }}><ShieldCheck size={26} /></div>
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>
             {l ? "التحكم بالصلاحيات" : "Access Control"}
           </h1>
@@ -136,6 +136,21 @@ function AccessControlPage() {
             {l ? "الموافقة على الطلبات وإدارة الأدوار" : "Approve access requests and assign roles"}
           </div>
         </div>
+        <span title={live ? "Realtime connected" : "Realtime connecting…"} style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "6px 10px", borderRadius: 999, fontSize: 11.5, fontWeight: 800,
+          background: live ? "rgba(20,168,110,.14)" : "rgba(159,183,201,.12)",
+          color: live ? "#14A86E" : "#9FB7C9",
+          border: `1px solid ${live ? "rgba(20,168,110,.35)" : "#1E364D"}`,
+        }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: "50%",
+            background: live ? "#14A86E" : "#9FB7C9",
+            boxShadow: live ? "0 0 0 4px rgba(20,168,110,.18)" : "none",
+            animation: live ? "pulse 1.6s ease-in-out infinite" : undefined,
+          }} />
+          {l ? (live ? "مباشر" : "…") : (live ? "Live" : "…")}
+        </span>
       </header>
 
       <div style={{ display: "flex", gap: 10, marginTop: 22, marginBottom: 20, alignItems: "center", flexWrap: "wrap" }}>
