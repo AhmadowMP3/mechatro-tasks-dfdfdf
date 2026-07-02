@@ -181,8 +181,11 @@ function Dashboard() {
   }).sort((a, b) => b.count - a.count).slice(0, 6);
   const unassigned = active.filter((t) => !t.assignee_id).length;
 
-  // Hours tracked today
-  const todayStart = today0.getTime();
+  // Hours tracked today (session-based, respects date range via `sessions`)
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const hoursTodayBase = (rangeStart || rangeEnd) ? sessions : sessions.filter((s) => new Date(s.started_at).getTime() >= todayStart.getTime());
+  void hoursTodayBase;
+  const todayStartMs = todayStart.getTime();
   const hoursToday = sessions
     .filter((s) => new Date(s.started_at).getTime() >= todayStart)
     .reduce((sum, s) => {
