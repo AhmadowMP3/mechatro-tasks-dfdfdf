@@ -16,6 +16,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedReferencesRouteImport } from './routes/_authenticated/references'
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedLeagueRouteImport } from './routes/_authenticated/league'
@@ -56,6 +57,11 @@ const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReferencesRoute = AuthenticatedReferencesRouteImport.update({
+  id: '/references',
+  path: '/references',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/league': typeof AuthenticatedLeagueRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
+  '/references': typeof AuthenticatedReferencesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/league': typeof AuthenticatedLeagueRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
+  '/references': typeof AuthenticatedReferencesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/_authenticated/league': typeof AuthenticatedLeagueRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
+  '/_authenticated/references': typeof AuthenticatedReferencesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/league'
     | '/notifications'
     | '/projects'
+    | '/references'
     | '/settings'
     | '/tasks'
     | '/team'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/league'
     | '/notifications'
     | '/projects'
+    | '/references'
     | '/settings'
     | '/tasks'
     | '/team'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/_authenticated/league'
     | '/_authenticated/notifications'
     | '/_authenticated/projects'
+    | '/_authenticated/references'
     | '/_authenticated/settings'
     | '/_authenticated/tasks'
     | '/_authenticated/team'
@@ -249,6 +261,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/references': {
+      id: '/_authenticated/references'
+      path: '/references'
+      fullPath: '/references'
+      preLoaderRoute: typeof AuthenticatedReferencesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/projects': {
@@ -322,6 +341,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLeagueRoute: typeof AuthenticatedLeagueRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
+  AuthenticatedReferencesRoute: typeof AuthenticatedReferencesRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
@@ -334,6 +354,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLeagueRoute: AuthenticatedLeagueRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,
+  AuthenticatedReferencesRoute: AuthenticatedReferencesRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,

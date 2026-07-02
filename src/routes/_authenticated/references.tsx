@@ -43,7 +43,7 @@ function ReferencesPage() {
   const { data, refetch, isLoading } = useQuery({
     queryKey: ["references"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("references" as never).select("*").order("pinned", { ascending: false }).order("created_at", { ascending: false });
+      const { data, error } = await (supabase.from as unknown as (t: string) => any)("references").select("*").order("pinned", { ascending: false }).order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as RefRow[];
     },
@@ -82,14 +82,14 @@ function ReferencesPage() {
   }, [rows, search, onlyPinned, selectedCategory, selectedTags, sort]);
 
   const togglePin = async (r: RefRow) => {
-    await supabase.from("references" as never).update({ pinned: !r.pinned }).eq("id", r.id);
+    await (supabase.from as unknown as (t: string) => any)("references").update({ pinned: !r.pinned }).eq("id", r.id);
     await logActivity(user?.id ?? null, "updated", "reference", r.id, { pinned: !r.pinned });
     refetch();
   };
 
   const remove = async (r: RefRow) => {
     if (!confirm(t("confirmDeleteRef"))) return;
-    await supabase.from("references" as never).delete().eq("id", r.id);
+    await (supabase.from as unknown as (t: string) => any)("references").delete().eq("id", r.id);
     await logActivity(user?.id ?? null, "deleted", "reference", r.id, { title: r.title });
     toast.success(t("deleteReference"));
     refetch();
@@ -478,11 +478,11 @@ function RefModal({ initial, onClose, onSaved, userId, t, categories }: {
     };
 
     if (initial) {
-      const { error } = await supabase.from("references" as never).update(payload).eq("id", initial.id);
+      const { error } = await (supabase.from as unknown as (t: string) => any)("references").update(payload).eq("id", initial.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
       await logActivity(userId, "updated", "reference", initial.id, { title: payload.title });
     } else {
-      const { data, error } = await supabase.from("references" as never).insert({ ...payload, created_by: userId }).select("id").single();
+      const { data, error } = await (supabase.from as unknown as (t: string) => any)("references").insert({ ...payload, created_by: userId }).select("id").single();
       if (error) { toast.error(error.message); setSaving(false); return; }
       const newId = (data as { id: string } | null)?.id ?? null;
       await logActivity(userId, "created", "reference", newId, { title: payload.title });
