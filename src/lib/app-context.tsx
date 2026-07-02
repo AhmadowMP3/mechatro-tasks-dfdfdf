@@ -127,6 +127,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => { sub.subscription.unsubscribe(); };
   }, []);
 
+  // Realtime: react to changes on the signed-in user's own profile row
+  // (suspension, role change, etc.) so the UI updates instantly.
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid) return;
+    const ch = supabase
+      .channel(`self-profile-${uid}`)
+      .on("postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${uid}` },
+        (payload) => { setUser((prev) => ({ ...(prev ?? {} as Profile), ...(payload.new as Profile) })); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [session?.user?.id]);
+
   useEffect(() => {
     if (typeof document === "undefined") return;
     const html = document.documentElement;
