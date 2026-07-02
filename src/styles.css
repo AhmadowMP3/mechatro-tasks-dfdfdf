@@ -192,3 +192,30 @@
 @media (max-width: 768px) {
   .hide-md { display: none !important; }
 }
+
+/* Global mobile hygiene */
+html { -webkit-text-size-adjust: 100%; }
+body { overflow-x: hidden; }
+img, svg, video { max-width: 100%; }
+
+/* Any element used as a modal panel via .brand-card that sits inside a
+   fixed overlay should scroll internally on small screens */
+@media (max-width: 640px) {
+  h1 { font-size: clamp(20px, 5vw, 28px) !important; }
+  h2 { font-size: clamp(18px, 4.5vw, 24px) !important; }
+  .brand-btn { min-height: 48px; padding: 12px 20px; font-size: 15px; }
+}
+
+/* Modal helper class — apply to the panel inside a fullscreen overlay */
+.brand-modal {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  width: min(560px, calc(100vw - 24px));
+  margin: 16px;
+}
+
+/* Kanban horizontal scroll snap on touch devices */
+@media (max-width: 900px) {
+  .kanban-col { scroll-snap-align: start; }
+}
+
