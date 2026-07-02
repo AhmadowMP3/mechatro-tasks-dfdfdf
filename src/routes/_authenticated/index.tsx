@@ -30,7 +30,7 @@ function Dashboard() {
         supabase.from("projects").select("*"),
         supabase.from("activity_log").select("*").order("created_at", { ascending: false }).limit(12),
         supabase.from("profiles").select("id, full_name, avatar_url, role").eq("active", true),
-        supabase.from("work_sessions").select("id, user_id, task_id, started_at, ended_at, duration_seconds").order("started_at", { ascending: false }).limit(200),
+        supabase.from("work_sessions").select("id, user_id, task_id, started_at, ended_at, duration_minutes").order("started_at", { ascending: false }).limit(200),
       ]);
       return {
         tasks: tasksRes.data ?? [],
