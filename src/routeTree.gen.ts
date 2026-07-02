@@ -16,6 +16,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedReportsHistoryRouteImport } from './routes/_authenticated/reports-history'
 import { Route as AuthenticatedReferencesRouteImport } from './routes/_authenticated/references'
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
@@ -59,6 +60,12 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedReportsHistoryRoute =
+  AuthenticatedReportsHistoryRouteImport.update({
+    id: '/reports-history',
+    path: '/reports-history',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedReferencesRoute = AuthenticatedReferencesRouteImport.update({
   id: '/references',
   path: '/references',
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/references': typeof AuthenticatedReferencesRoute
+  '/reports-history': typeof AuthenticatedReportsHistoryRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
@@ -128,6 +136,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/references': typeof AuthenticatedReferencesRoute
+  '/reports-history': typeof AuthenticatedReportsHistoryRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
@@ -146,6 +155,7 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/_authenticated/references': typeof AuthenticatedReferencesRoute
+  '/_authenticated/reports-history': typeof AuthenticatedReportsHistoryRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/projects'
     | '/references'
+    | '/reports-history'
     | '/settings'
     | '/tasks'
     | '/team'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/projects'
     | '/references'
+    | '/reports-history'
     | '/settings'
     | '/tasks'
     | '/team'
@@ -197,6 +209,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/projects'
     | '/_authenticated/references'
+    | '/_authenticated/reports-history'
     | '/_authenticated/settings'
     | '/_authenticated/tasks'
     | '/_authenticated/team'
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reports-history': {
+      id: '/_authenticated/reports-history'
+      path: '/reports-history'
+      fullPath: '/reports-history'
+      preLoaderRoute: typeof AuthenticatedReportsHistoryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/references': {
@@ -342,6 +362,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
   AuthenticatedReferencesRoute: typeof AuthenticatedReferencesRoute
+  AuthenticatedReportsHistoryRoute: typeof AuthenticatedReportsHistoryRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
@@ -355,6 +376,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,
   AuthenticatedReferencesRoute: AuthenticatedReferencesRoute,
+  AuthenticatedReportsHistoryRoute: AuthenticatedReportsHistoryRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,
