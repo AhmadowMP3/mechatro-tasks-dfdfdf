@@ -10,7 +10,7 @@ import { NewTaskModal } from "@/components/NewTaskModal";
 import { ViewSwitcher, type TaskView } from "@/components/tasks/ViewSwitcher";
 import { KanbanView } from "@/components/tasks/KanbanView";
 import { TableView } from "@/components/tasks/TableView";
-import { CalendarView } from "@/components/tasks/CalendarView";
+
 import { isOverdue, formatDate } from "@/lib/format";
 import {
   FilterDrawer, FilterSection, ChipMultiSelect, FilterSelect,
