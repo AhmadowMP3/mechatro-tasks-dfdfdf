@@ -39,9 +39,20 @@ function AuthPage() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       if (data.user) {
-        void supabase.from("activity_log").insert({
-          actor_id: data.user.id, action: "signed_in", entity_type: "auth", entity_id: data.user.id, meta: {},
-        });
+        const recentWindow = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        const { data: recentLogin } = await supabase
+          .from("activity_log")
+          .select("id")
+          .eq("actor_id", data.user.id)
+          .eq("action", "signed_in")
+          .gte("created_at", recentWindow)
+          .maybeSingle();
+
+        if (!recentLogin) {
+          void supabase.from("activity_log").insert({
+            actor_id: data.user.id, action: "signed_in", entity_type: "auth", entity_id: data.user.id, meta: { source: "password_login" },
+          });
+        }
       }
       toast.success(l ? "تم تسجيل الدخول" : "Signed in");
       navigate({ to: "/" });
