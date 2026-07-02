@@ -14,7 +14,8 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 function Dashboard() {
-  const { t, lang, user } = useApp();
+  const { t, lang, user, isMasterAdmin } = useApp();
+  const isAdmin = isMasterAdmin || user?.role === "admin";
   const [selected, setSelected] = useState<string | null>(null);
   const { data, refetch } = useQuery({
     queryKey: ["dashboard"],
