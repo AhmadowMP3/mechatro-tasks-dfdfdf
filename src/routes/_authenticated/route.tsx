@@ -1,10 +1,10 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { SuspendedScreen } from "@/components/SuspendedScreen";
 import { useApp } from "@/lib/app-context";
 import { isShareMode, isPathAllowed, firstAllowedPath } from "@/lib/share-mode";
+
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
