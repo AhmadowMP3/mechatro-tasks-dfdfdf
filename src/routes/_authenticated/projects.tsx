@@ -255,7 +255,7 @@ function ProjectsPage() {
       {filtered.length === 0 ? (
         <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noProjects")}</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px), 1fr))", gap: 16 }}>
           {filtered.map(({ p, progress, memberIds }) => (
             <div key={p.id} className="brand-card" style={{ overflow: "hidden" }}>
               <div style={{ height: 6, background: PROJECT_COLORS[p.color] ?? PROJECT_COLORS.blue }} />
@@ -358,14 +358,15 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
 export function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 300, display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 20, overflow: "auto" }}>
-      <div onClick={(e) => e.stopPropagation()} className="brand-card" style={{ maxWidth: 520, width: "100%", padding: 24, marginTop: 40 }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 300, display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 12, overflow: "auto" }}>
+      <div onClick={(e) => e.stopPropagation()} className="brand-card" style={{ maxWidth: 520, width: "100%", padding: "clamp(16px, 3vw, 24px)", marginTop: "max(12px, 4vh)", maxHeight: "calc(100dvh - 24px)", overflowY: "auto" }}>
         <h2 style={{ margin: 0, marginBottom: 16 }}>{title}</h2>
         {children}
       </div>
     </div>
   );
 }
+
 
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

@@ -66,7 +66,7 @@ function ProjectDetail() {
       {data.tasks.length === 0 ? (
         <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noTasks")}</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))", gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 300px), 1fr))", gap: 14 }}>
           {data.tasks.map((tk) => (
             <TaskCard key={tk.id} task={tk} project={p}
               assignee={users.find((u) => u.id === tk.assignee_id) ?? null}

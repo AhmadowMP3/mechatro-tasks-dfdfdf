@@ -10,11 +10,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 900);
+    const handler = () => setIsMobile(window.innerWidth < 1024);
     handler();
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
+
 
   const langBtnStyle = (active: boolean): React.CSSProperties => ({
     padding: "8px 14px", minHeight: 44, borderRadius: 999,
@@ -47,35 +48,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Top bar */}
         <header
           style={{
-            display: "flex", alignItems: "center", gap: 12,
-            padding: "12px 18px",
+            display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+            padding: "10px 14px",
             borderBottom: "1px solid var(--border)",
             background: "var(--card)",
             position: "sticky", top: 0, zIndex: 50,
-            minHeight: 64,
+            minHeight: 60,
           }}
         >
           {isMobile && (
             <>
               <button
                 onClick={() => setMobileOpen(true)} aria-label="menu"
-                style={{ width: 48, height: 48, borderRadius: 12, background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)", cursor: "pointer" }}
-              ><Menu size={22} style={{ margin: "auto" }} /></button>
-              <img src={logo} alt="Mechatro" style={{ height: 30 }} />
+                style={{ width: 44, height: 44, borderRadius: 12, background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+              ><Menu size={22} /></button>
+              <img src={logo} alt="Mechatro" style={{ height: 26 }} />
             </>
           )}
-          <div style={{ flex: 1 }} />
+          <div style={{ flex: 1, minWidth: 8 }} />
 
           <div style={{ display: "inline-flex", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 999, padding: 3 }}>
             <button onClick={() => setLang("ar")} style={langBtnStyle(lang === "ar")}>عربي</button>
-            <button onClick={() => setLang("en")} style={langBtnStyle(lang === "en")}>English</button>
+            <button onClick={() => setLang("en")} style={langBtnStyle(lang === "en")}>EN</button>
           </div>
 
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             aria-label="theme"
             style={{
-              width: 48, height: 48, borderRadius: 999,
+              width: 44, height: 44, borderRadius: 999,
               background: "var(--surface-2)", border: "1px solid var(--border)",
               color: "var(--foreground)", cursor: "pointer",
               display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -85,10 +86,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </header>
 
-        <main style={{ flex: 1, padding: isMobile ? "16px" : "28px 32px", overflow: "auto" }}>
+        <main style={{ flex: 1, padding: isMobile ? "14px" : "28px 32px", overflow: "auto", minWidth: 0 }}>
           {children}
         </main>
       </div>
+
     </div>
   );
 }

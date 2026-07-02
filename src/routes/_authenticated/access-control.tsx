@@ -315,8 +315,10 @@ function InviteModal({ lang, onClose, onInvited }: {
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         background: "#0F2033", border: "1px solid #1E364D",
-        borderRadius: 16, padding: 22, width: "100%", maxWidth: 440,
+        borderRadius: 16, padding: "clamp(16px, 3vw, 22px)", width: "100%", maxWidth: 440,
+        maxHeight: "calc(100dvh - 32px)", overflowY: "auto",
       }}>
+
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{l ? "دعوة مستخدم جديد" : "Invite a new user"}</h2>
           <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#9FB7C9", cursor: "pointer" }}>
@@ -331,7 +333,7 @@ function InviteModal({ lang, onClose, onInvited }: {
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputCss} dir="ltr" />
           </Field>
           <Field label={l ? "الدور" : "Role"}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
               {[
                 { v: "member", icon: UserIcon, ar: "عضو", en: "Member", desc: l ? "وصول محدود" : "Limited access" },
                 { v: "admin",  icon: ShieldCheck, ar: "نائب مدير", en: "Admin", desc: l ? "وصول كامل" : "Full access" },
@@ -373,9 +375,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const rowCard: React.CSSProperties = {
-  display: "flex", alignItems: "center", gap: 14, padding: 14,
+  display: "flex", alignItems: "center", gap: 14, padding: 14, flexWrap: "wrap",
   background: "#0F2033", border: "1px solid #1E364D", borderRadius: 12,
 };
+
 const primaryBtn: React.CSSProperties = {
   padding: "10px 16px", borderRadius: 10,
   background: "linear-gradient(135deg,#1D9BF0,#0F6BB8)", color: "#fff",
