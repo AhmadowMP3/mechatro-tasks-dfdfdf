@@ -9,10 +9,18 @@ import { relativeTime, formatDate } from "@/lib/format";
 import { normalizeAction } from "@/lib/activity";
 import type { DictKey } from "@/i18n/dict";
 import {
-  ScrollText, Search, Filter, Download, RotateCcw, ChevronDown,
+  ScrollText, Filter,
   Plus, Pencil, Trash2, ArrowRightLeft, MessageSquare, Paperclip,
   UserPlus, Archive as ArchiveIcon, LogIn, Activity as ActivityIcon,
 } from "lucide-react";
+import {
+  FilterDrawer, FilterSection, ChipMultiSelect, FilterSelect,
+  DateRangeControl, resolveDateRange, ActiveFilterChips,
+  SearchField, FilterBarCluster, type Preset,
+} from "@/components/filters/FilterDrawer";
+import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
+import { toast } from "sonner";
+
 
 const ACTIONS = ["created","updated","status_changed","deleted","archived","commented","file_added","assigned","signed_in"] as const;
 const ENTITIES = ["task","project","profile","role","comment","file","session","auth"] as const;
