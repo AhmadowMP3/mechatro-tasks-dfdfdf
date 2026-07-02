@@ -81,11 +81,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loadUser = async (uid: string) => {
     const { data: prof } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
     if (prof) setUser(prof as Profile);
-    // Load effective permissions via join
-    const { data: perms } = await supabase
-      .from("user_roles")
-      .select("role_permissions:role_id(permission:role_permissions(permission))");
-    // Simpler: two queries
     const { data: userRoles } = await supabase.from("user_roles").select("role_id").eq("user_id", uid);
     const roleIds = (userRoles ?? []).map((r) => r.role_id);
     if (roleIds.length) {
@@ -97,7 +92,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } else {
       setPermissions([]);
     }
-    void perms; // silence unused
   };
 
   const signOut = async () => {
