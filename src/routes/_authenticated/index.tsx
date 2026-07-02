@@ -181,17 +181,12 @@ function Dashboard() {
   }).sort((a, b) => b.count - a.count).slice(0, 6);
   const unassigned = active.filter((t) => !t.assignee_id).length;
 
-  // Hours tracked today (session-based, respects date range via `sessions`)
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const hoursTodayBase = (rangeStart || rangeEnd) ? sessions : sessions.filter((s) => new Date(s.started_at).getTime() >= todayStart.getTime());
-  void hoursTodayBase;
-  const todayStartMs = todayStart.getTime();
-  const hoursToday = sessions
-    .filter((s) => new Date(s.started_at).getTime() >= todayStart)
-    .reduce((sum, s) => {
-      const mins = s.duration_minutes ?? (s.ended_at ? (new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60000 : 0);
-      return sum + mins;
-    }, 0) / 60;
+  // Hours tracked within the current scope (sessions are already range/project-filtered)
+  const hoursToday = sessions.reduce((sum, s) => {
+    const mins = s.duration_minutes ?? (s.ended_at ? (new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60000 : 0);
+    return sum + mins;
+  }, 0) / 60;
+
 
   // Live now: sessions with no end
   const liveNow = sessions.filter((s) => !s.ended_at).length;
