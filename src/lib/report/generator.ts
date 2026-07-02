@@ -5,15 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { buildKpiSnapshot } from "./snapshot";
 
-// Lazy-load html2pdf.js only when generating
-async function loadHtml2Pdf(): Promise<any> {
-  const mod: any = await import("html2pdf.js");
-  return mod.default ?? mod;
-}
-
 export type ReportLangChoice = "ar" | "en" | "bilingual";
 
-async function waitForImages(root: HTMLElement) {
+async function waitForImages(root: Document | HTMLElement) {
   const imgs = Array.from(root.querySelectorAll("img"));
   await Promise.all(
     imgs.map(
@@ -22,77 +16,102 @@ async function waitForImages(root: HTMLElement) {
           if (img.complete && img.naturalWidth > 0) return resolve();
           img.addEventListener("load", () => resolve(), { once: true });
           img.addEventListener("error", () => resolve(), { once: true });
-          // safety timeout
-          setTimeout(() => resolve(), 2500);
+          setTimeout(() => resolve(), 3000);
         })
     )
   );
 }
 
-async function renderHtmlToPdfBlob(html: string, filename: string): Promise<{ blob: Blob; pageCount: number }> {
-  // Render on-screen but visually hidden. html2canvas is unreliable with
-  // `position:fixed;left:-99999px` — using absolute + opacity:0 forces a real layout.
-  const container = document.createElement("div");
-  container.setAttribute("data-pdf-render", "true");
-  container.style.cssText = [
-    "position:absolute",
-    "top:0",
-    "left:0",
-    "width:794px",
-    "opacity:0",
-    "pointer-events:none",
-    "z-index:-1",
-    "background:#ffffff",
-    "color:#0F1B2D",
-    "font-family:'Montserrat','Segoe UI',Tahoma,Arial,sans-serif",
-  ].join(";");
-  container.innerHTML = `<style>
-    [data-pdf-render]{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    [data-pdf-render] .pdf-page{width:794px;min-height:1123px;box-sizing:border-box;overflow:hidden;page-break-after:always;break-after:page;display:block;background:#ffffff}
-    [data-pdf-render] .pdf-page:last-child{page-break-after:auto}
-    [data-pdf-render] .pdf-page *{box-sizing:border-box}
-    [data-pdf-render] table{font-family:inherit;border-collapse:collapse}
-    [data-pdf-render] svg{display:block;max-width:100%}
-    [data-pdf-render] img{max-width:100%;display:block}
-  </style>${html}`;
-  document.body.appendChild(container);
+const PDF_STYLE = `
+  html,body{margin:0;padding:0;background:#ffffff;color:#0F1B2D;font-family:'Montserrat','Cairo','Segoe UI',Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  *{box-sizing:border-box}
+  .pdf-page{width:794px;min-height:1123px;box-sizing:border-box;overflow:hidden;display:block;background:#ffffff;page-break-after:always}
+  .pdf-page:last-child{page-break-after:auto}
+  table{border-collapse:collapse;font-family:inherit}
+  svg{display:block;max-width:100%}
+  img{max-width:100%;display:block}
+`;
 
-  // Give layout + fonts + images a chance
-  await waitForImages(container);
-  if ((document as unknown as { fonts?: { ready: Promise<unknown> } }).fonts?.ready) {
-    try { await (document as unknown as { fonts: { ready: Promise<unknown> } }).fonts.ready; } catch { /* noop */ }
-  }
-  await new Promise((r) => setTimeout(r, 120));
+async function renderHtmlToPdfBlob(
+  html: string,
+  filename: string
+): Promise<{ blob: Blob; pageCount: number }> {
+  const [{ default: html2canvas }, jspdfMod] = await Promise.all([
+    import("html2canvas"),
+    import("jspdf"),
+  ]);
+  const JsPDF = (jspdfMod as unknown as { jsPDF: typeof import("jspdf").jsPDF }).jsPDF;
+
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.cssText = [
+    "position:fixed",
+    "left:-10000px",
+    "top:0",
+    "width:794px",
+    "height:1123px",
+    "border:0",
+    "opacity:1",
+    "pointer-events:none",
+    "background:#ffffff",
+  ].join(";");
+  document.body.appendChild(iframe);
 
   try {
-    const html2pdf = await loadHtml2Pdf();
-    const worker = html2pdf()
-      .set({
-        margin: 0,
-        filename,
-        image: { type: "jpeg", quality: 0.96 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: "#ffffff",
-          logging: false,
-          width: 794,
-          windowWidth: 794,
-          scrollX: 0,
-          scrollY: 0,
-        },
-        jsPDF: { unit: "pt", format: "a4", orientation: "portrait", compress: true },
-        pagebreak: { mode: ["css", "legacy"], before: ".html2pdf__page-break" },
-      })
-      .from(container);
-    const blob: Blob = await worker.outputPdf("blob");
-    const pageCount = Math.max(1, container.querySelectorAll(".pdf-page").length);
-    return { blob, pageCount };
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+      <style>${PDF_STYLE}</style>
+      </head><body>${html}</body></html>`);
+    doc.close();
+
+    // Size iframe to full content so html2canvas has room
+    const pages = Array.from(doc.querySelectorAll<HTMLElement>(".pdf-page"));
+    const pageCount = Math.max(1, pages.length);
+    iframe.style.height = `${pageCount * 1123}px`;
+
+    // Wait for fonts + images + a settle frame
+    await waitForImages(doc);
+    const fonts = (doc as unknown as { fonts?: { ready: Promise<unknown> } }).fonts;
+    if (fonts?.ready) { try { await fonts.ready; } catch { /* noop */ } }
+    await new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 200)));
+
+    const pdf = new JsPDF({ unit: "pt", format: "a4", orientation: "portrait", compress: true });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+
+    const targets: HTMLElement[] = pages.length ? pages : [doc.body];
+
+    for (let i = 0; i < targets.length; i++) {
+      const canvas = await html2canvas(targets[i], {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        windowWidth: 794,
+        windowHeight: 1123,
+      });
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      if (i > 0) pdf.addPage();
+      // Fit width, preserve aspect
+      const imgH = (canvas.height * pageW) / canvas.width;
+      const drawH = Math.min(imgH, pageH);
+      pdf.addImage(imgData, "JPEG", 0, 0, pageW, drawH, undefined, "FAST");
+    }
+
+    const blob = pdf.output("blob");
+    return { blob, pageCount: targets.length };
   } finally {
-    container.remove();
+    iframe.remove();
   }
+  // filename retained by caller for download
+  void filename;
 }
+
 
 function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
