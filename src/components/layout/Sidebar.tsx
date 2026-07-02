@@ -65,8 +65,12 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       )}
 
       <nav style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
-        {NAV.map(({ to, icon: Icon, key }) => {
+        {nav.map((item) => {
+          const { to, icon: Icon } = item;
           const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
+          const label = "label" in item && item.label
+            ? item.label[lang]
+            : t(item.key as DictKey);
           return (
             <Link
               key={to}
@@ -85,7 +89,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                 justifyContent: "flex-end",
               }}
             >
-              <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>{t(key)}</span>
+              <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>{label}</span>
               <Icon size={20} />
             </Link>
           );
