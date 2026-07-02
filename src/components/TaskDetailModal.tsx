@@ -163,8 +163,14 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
               <StatusPill status={merged.status} />
               <PriorityPill priority={merged.priority} />
               {overdue && <OverduePill />}
-              <span style={{ color: "var(--muted)", fontSize: 13 }}>{t("dueDate")}: {formatDate(merged.due_date, lang)}</span>
+              {merged.start_date && (
+                <span style={{ color: "var(--muted)", fontSize: 13 }}>
+                  {t("startedAgo")} {relativeTime(merged.start_date, lang)}
+                </span>
+              )}
+              <span style={{ color: "var(--muted)", fontSize: 13 }}>· {t("dueDate")}: {formatDate(merged.due_date, lang)}</span>
             </div>
+
           </div>
           <button onClick={onClose} aria-label="close" style={{ width: 44, height: 44, borderRadius: 10, background: "var(--surface-2)", color: "var(--foreground)", cursor: "pointer", border: "1px solid var(--border)" }}><X size={20} style={{ margin: "auto" }} /></button>
         </div>
