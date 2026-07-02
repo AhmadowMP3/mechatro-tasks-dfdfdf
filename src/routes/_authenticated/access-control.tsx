@@ -301,21 +301,28 @@ function InviteModal({ lang, onClose, onInvited }: {
     e.preventDefault();
     setBusy(true);
     try {
-      const res = await call({
-        action: "create",
-        role,
-        expiry,
-        email: mode === "locked" ? email.trim().toLowerCase() : null,
-        full_name: mode === "locked" ? fullName.trim() : null,
-      }) as { token?: string; expires_at?: string | null };
-      if (!res?.token) throw new Error("No token returned");
-      const url = `${window.location.origin}/accept-invite?token=${res.token}`;
-      setGenerated({ url, expires_at: res.expires_at ?? null });
+      const { data, error } = await supabase.functions.invoke("admin-invites", {
+        body: {
+          action: "create",
+          role,
+          expires_in: expiry,
+          email: mode === "locked" ? email.trim().toLowerCase() : null,
+          full_name: mode === "locked" ? fullName.trim() : null,
+        },
+      });
+      if (error) throw new Error(error.message);
+      const res = (data ?? {}) as { invite?: { token: string; expires_at: string | null }; error?: string };
+      if (res.error) throw new Error(res.error);
+      const invite = res.invite;
+      if (!invite?.token) throw new Error("No token returned");
+      const url = `${window.location.origin}/accept-invite?token=${invite.token}`;
+      setGenerated({ url, expires_at: invite.expires_at ?? null });
       onInvited();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally { setBusy(false); }
   }
+
 
   async function copyLink() {
     if (!generated) return;

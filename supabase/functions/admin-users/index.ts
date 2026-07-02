@@ -118,10 +118,12 @@ Deno.serve(async (req) => {
         if (user_id === me.id) return json(400, { error: "cannot delete yourself" });
         const { data: t } = await admin.from("profiles").select("is_master_admin").eq("id", user_id).maybeSingle();
         if (t?.is_master_admin) return json(400, { error: "cannot delete master admin" });
+        await admin.from("profiles").delete().eq("id", user_id);
         const { error } = await admin.auth.admin.deleteUser(user_id);
         if (error) throw error;
         return json(200, { ok: true });
       }
+
 
       default:
         return json(400, { error: `unknown action: ${action}` });
