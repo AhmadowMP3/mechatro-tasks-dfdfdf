@@ -33,7 +33,56 @@ async function sha256hex(s: string): Promise<string> {
 const ALLOWED = new Set([
   "dashboard", "projects", "tasks", "team", "league", "references", "activity",
 ]);
-const PUBLIC_ACTIONS = new Set(["resolve", "data"]);
+const PUBLIC_ACTIONS = new Set(["resolve", "data", "bootstrap", "query"]);
+
+// Tables allowed per page for the generic query action. Only reads are
+// permitted and only the columns baked into the base queries below are exposed.
+const TABLE_ACCESS: Record<string, { pages: string[]; select: string }> = {
+  tasks:         { pages: ["dashboard","tasks","projects","team","league"],
+                   select: "id,title,description,status,priority,due_date,start_date,project_id,assignee_id,created_at,completed_at,tags,created_by" },
+  projects:      { pages: ["dashboard","tasks","projects","team"],
+                   select: "id,name_ar,name_en,description,status,color,created_at,due_date,start_date,archived,created_by" },
+  profiles:      { pages: ["dashboard","tasks","projects","team","league","references","activity"],
+                   select: "id,full_name,avatar_url,role,is_master_admin,status,active,job_title,created_at" },
+  team_directory:{ pages: ["dashboard","tasks","projects","team","league","references","activity"],
+                   select: "id,full_name,avatar_url" },
+  activity_log:  { pages: ["dashboard","activity"],
+                   select: "id,action,entity_type,entity_id,meta,created_at,actor_id" },
+  work_sessions: { pages: ["dashboard","team"],
+                   select: "id,user_id,task_id,started_at,ended_at,duration_minutes" },
+  task_files:    { pages: ["tasks","dashboard"],
+                   select: "id,task_id,file_name,file_path,file_size,mime_type,uploaded_by,created_at" },
+  task_comments: { pages: ["tasks","dashboard"],
+                   select: "id,task_id,author_id,body,created_at" },
+  references:    { pages: ["references"],
+                   select: "id,title,url,description,category,created_at" },
+  notifications: { pages: [], select: "id" }, // Never surfaced to share viewers.
+};
+
+function isFilterCol(col: string): boolean {
+  return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(col);
+}
+function baseSelect(table: string): string {
+  return TABLE_ACCESS[table]?.select ?? "id";
+}
+function safeSelect(_table: string): string {
+  // Force the whitelisted column set — we ignore whatever the client requested.
+  return baseSelect(_table);
+}
+
+async function resolveLink(admin: ReturnType<typeof createClient>, token: string, password: string | null) {
+  const { data: link } = await admin.from("share_links").select("*").eq("token", token).maybeSingle();
+  if (!link) return { error: "not_found", status: 404 as const };
+  if (link.revoked) return { error: "revoked", status: 403 as const };
+  if (link.expires_at && new Date(link.expires_at).getTime() < Date.now()) return { error: "expired", status: 403 as const };
+  if (link.max_uses != null && link.use_count >= link.max_uses) return { error: "exhausted", status: 403 as const };
+  if (link.password_hash) {
+    if (!password) return { error: "password_required", status: 401 as const };
+    const h = await sha256hex(password);
+    if (h !== link.password_hash) return { error: "wrong_password", status: 401 as const };
+  }
+  return { link };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -77,6 +126,86 @@ Deno.serve(async (req) => {
         expires_at: link.expires_at,
       },
     });
+  }
+
+  // Bootstrap the share viewer with everything AppProvider needs (users +
+  // directory + a synthetic viewer id) so the real pages can render.
+  if (action === "bootstrap") {
+    const token = String(body.token ?? "");
+    const password = body.password != null ? String(body.password) : null;
+    if (!token) return json(400, { error: "missing token" });
+    const r = await resolveLink(admin, token, password);
+    if ("error" in r) return json(r.status, { error: r.error });
+
+    const [{ data: profiles }, { data: dir }] = await Promise.all([
+      admin.from("profiles")
+        .select("id,full_name,avatar_url,role,is_master_admin,status,active,job_title")
+        .eq("active", true),
+      admin.from("team_directory").select("id,full_name,avatar_url").order("full_name"),
+    ]);
+    return json(200, {
+      link: { label: r.link.label, allowed_pages: r.link.allowed_pages, expires_at: r.link.expires_at },
+      bootstrap: {
+        viewerId: `00000000-0000-0000-0000-${r.link.id.replace(/-/g, "").slice(0, 12).padStart(12, "0")}`,
+        fullName: r.link.label || "Share Viewer",
+        profiles: profiles ?? [],
+        directory: dir ?? [],
+      },
+    });
+  }
+
+  // Generic read query — mirrors a PostgREST filter chain but only against
+  // whitelisted tables/columns. Writes are never accepted here.
+  if (action === "query") {
+    const token = String(body.token ?? "");
+    const password = body.password != null ? String(body.password) : null;
+    const plan = body.plan as {
+      table: string;
+      select?: string;
+      filters?: { kind: string; col: string; op?: string; val: unknown }[];
+      order?: { column: string; ascending: boolean }[];
+      range?: [number, number] | null;
+      limit?: number | null;
+      mode?: "array" | "single" | "maybeSingle";
+    } | undefined;
+    if (!token || !plan?.table) return json(400, { error: "missing params" });
+    const r = await resolveLink(admin, token, password);
+    if ("error" in r) return json(r.status, { error: r.error });
+
+    const tbl = String(plan.table);
+    const access = TABLE_ACCESS[tbl];
+    if (!access) return json(200, { data: plan.mode === "array" ? [] : null });
+    const pagesOk = access.pages.some((p) => (r.link.allowed_pages as string[]).includes(p));
+    if (!pagesOk) return json(200, { data: plan.mode === "array" ? [] : null });
+
+    let q = admin.from(tbl).select(safeSelect(tbl));
+    for (const f of plan.filters ?? []) {
+      if (!isFilterCol(f.col)) continue;
+      const val = f.val;
+      switch (f.kind) {
+        case "eq":   q = q.eq(f.col, val as never); break;
+        case "neq":  q = q.neq(f.col, val as never); break;
+        case "gte":  q = q.gte(f.col, val as never); break;
+        case "gt":   q = q.gt(f.col, val as never); break;
+        case "lte":  q = q.lte(f.col, val as never); break;
+        case "lt":   q = q.lt(f.col, val as never); break;
+        case "like": q = q.like(f.col, String(val)); break;
+        case "ilike":q = q.ilike(f.col, String(val)); break;
+        case "is":   q = q.is(f.col, val as never); break;
+        case "in":   q = q.in(f.col, (Array.isArray(val) ? val : []) as never); break;
+        case "not":  if (isFilterCol(f.op ?? "")) q = q.not(f.col, f.op as never, val as never); break;
+      }
+    }
+    for (const o of plan.order ?? []) {
+      if (isFilterCol(o.column)) q = q.order(o.column, { ascending: !!o.ascending });
+    }
+    if (plan.range) q = q.range(plan.range[0], plan.range[1]);
+    if (plan.limit) q = q.limit(plan.limit);
+    if (plan.mode === "single") q = q.single();
+    else if (plan.mode === "maybeSingle") q = q.maybeSingle();
+    const { data, error } = await q;
+    if (error) return json(200, { data: plan.mode === "array" ? [] : null, error: error.message });
+    return json(200, { data });
   }
 
   if (action === "data") {

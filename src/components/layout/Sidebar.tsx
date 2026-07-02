@@ -1,10 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2 } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2, Eye } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { RoleBadge } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
 import logo from "@/assets/mechatro-logo.png";
 import type { DictKey } from "@/i18n/dict";
+import { isShareMode, getShareLink } from "@/lib/share-mode";
+
 
 type NavItem = {
   to: string;
@@ -27,15 +29,34 @@ const NAV: NavItem[] = [
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const { t, user, lang, signOut, isMasterAdmin, isAdmin } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const nav: NavItem[] = [...NAV];
-  if (isAdmin) {
-    nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });
-    nav.push({ to: "/reports-history", icon: FileText, key: "reportHistory" });
+  const shareMode = isShareMode();
+  const shareLink = getShareLink();
+
+  const PAGE_TO_KEY: Record<string, string> = {
+    "/": "dashboard", "/projects": "projects", "/tasks": "tasks",
+    "/team": "team", "/league": "league", "/references": "references",
+    "/activity": "activity",
+  };
+
+  let nav: NavItem[] = [...NAV];
+  if (!shareMode) {
+    if (isAdmin) {
+      nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });
+      nav.push({ to: "/reports-history", icon: FileText, key: "reportHistory" });
+    }
+    if (isMasterAdmin) {
+      nav.push({ to: "/access-control", icon: ShieldCheck, key: null, label: { ar: "التحكم بالصلاحيات", en: "Access Control" } });
+      nav.push({ to: "/share-links", icon: Share2, key: null, label: { ar: "روابط المشاركة", en: "Share Links" } });
+    }
+  } else if (shareLink) {
+    // Share viewers see only the pages included in the link. Dashboard is
+    // added first; activity is added if whitelisted.
+    if (shareLink.allowed_pages.includes("activity")) {
+      nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });
+    }
+    nav = nav.filter((n) => shareLink.allowed_pages.includes(PAGE_TO_KEY[n.to]));
   }
-  if (isMasterAdmin) {
-    nav.push({ to: "/access-control", icon: ShieldCheck, key: null, label: { ar: "التحكم بالصلاحيات", en: "Access Control" } });
-    nav.push({ to: "/share-links", icon: Share2, key: null, label: { ar: "روابط المشاركة", en: "Share Links" } });
-  }
+
 
   return (
     <aside
@@ -117,19 +138,32 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       </nav>
 
       <div style={{ padding: 12, borderTop: "1px solid #1E364D" }}>
-        <button
-          onClick={async () => { await signOut(); window.location.href = "/auth"; }}
-          style={{
-            width: "100%", minHeight: 48, borderRadius: 12,
-            background: "rgba(240,103,106,.12)", color: "#F0676A",
-            border: "1px solid rgba(240,103,106,.3)", fontWeight: 700,
-            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-            cursor: "pointer",
-          }}
-        >
-          <LogOut size={18} /> {t("logout")}
-        </button>
+        {shareMode ? (
+          <div style={{
+            width: "100%", minHeight: 48, borderRadius: 12, padding: "8px 12px",
+            background: "linear-gradient(135deg,rgba(212,175,55,.15),rgba(212,175,55,.05))",
+            border: "1px solid rgba(212,175,55,.35)",
+            color: "#D4AF37", fontWeight: 800,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 12.5,
+          }}>
+            <Eye size={16} /> {lang === "ar" ? "عرض للقراءة فقط" : "READ-ONLY PREVIEW"}
+          </div>
+        ) : (
+          <button
+            onClick={async () => { await signOut(); window.location.href = "/auth"; }}
+            style={{
+              width: "100%", minHeight: 48, borderRadius: 12,
+              background: "rgba(240,103,106,.12)", color: "#F0676A",
+              border: "1px solid rgba(240,103,106,.3)", fontWeight: 700,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+              cursor: "pointer",
+            }}
+          >
+            <LogOut size={18} /> {t("logout")}
+          </button>
+        )}
       </div>
+
     </aside>
   );
 }

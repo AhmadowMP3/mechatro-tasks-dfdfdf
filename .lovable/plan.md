@@ -1,51 +1,78 @@
+## Cause
 
-## Problem
+The share viewer at `src/routes/share.$token.$page.tsx` is a **parallel rebuild** of every page (Dashboard, Tasks, Projects, Team, League, References, Activity) using its own JSX, its own layout, and its own reduced datasets from the `share-access` edge function. It will always drift from the real app because none of the real page components are actually rendered — only lookalikes are.
 
-The public share link (`/share/{token}/{page}`) renders a hand-coded, simplified UI (4 KPI cards + a flat "task distribution" list) that looks nothing like the real Dashboard, Tasks, Projects, Team, League, References, or Activity pages inside the app. Same for the other views — each is a minimal placeholder, not a read-only mirror of the real page.
+The real pages under `src/routes/_authenticated/*.tsx` (`index.tsx`, `tasks.tsx`, `projects.tsx`, `team.tsx`, `league.tsx`, `references.tsx`, `activity.tsx`) all call `supabase.from(...)` directly and rely on the logged-in RLS session, so they can't just be dropped into an unauthenticated `/share/$token` context.
 
-Root cause: `src/routes/share.$token.$page.tsx` defines its own tiny `DashboardView`, `TasksView`, etc., and the `share-access` Edge Function only returns the bare minimum data these placeholders need. None of the real dashboard visuals (Task Flow infographic, live clock, trend chart, Team Pulse, filters), the real Kanban columns (with assignees, elapsed timeline, priority pills, tag chips), or the real Projects/Team/League/References/Activity layouts are reused.
+## Solution — one shared page, two data sources
 
-## Fix — bring the shared view to parity with the real app
+Replace the clone with the **actual page components**, rendered in a read-only shell that provides them with data via a public token instead of an authenticated Supabase session.
 
-### 1. Expand `share-access` Edge Function payloads
+### 1. Introduce a `DataSource` abstraction
 
-Enrich each `page` payload with everything the corresponding real page renders (all read-only, PII-safe — no emails/phones):
+New file `src/lib/data-source.tsx`:
+- `type DataSource = { mode: "auth" | "share"; token?: string; dashboard(): Promise<...>; tasks(): Promise<...>; projects(): Promise<...>; team(): Promise<...>; league(): Promise<...>; references(): Promise<...>; activity(): Promise<...>; }`.
+- `authDataSource` implements each method by moving the current `supabase.from(...)` queries out of the page files (unchanged shape).
+- `shareDataSource(token)` implements each method by calling `shareApi.data(token, resource)` (already implemented in the edge function).
+- `<DataSourceProvider>` + `useDataSource()` hook.
 
-- **dashboard** — KPIs, distribution, 14-day trend series, per-project progress, team pulse (member → open/done counts), recent activity feed
-- **projects** — projects + task counts per project + progress + members preview
-- **tasks** — tasks with joined assignee names/avatars, project name+color, tags, start_date, due_date, elapsed timeline data
-- **team** — members with role, avatar, task load, completion rate, league points
-- **league** — full leaderboard with points breakdown and rank movement
-- **references** — categories + items with icons/branding
-- **activity** — logs with resolved actor names and entity labels
+### 2. Extend the `share-access` edge function to full parity
 
-### 2. Rebuild the share page views to match the real pages 1:1
+Update `supabase/functions/share-access/index.ts` so each `resource` returns **exactly** the shape the real page needs (raw rows, not a summarised clone):
+- `tasks` → `{ tasks, projects, members, comments_count_by_task, files_count_by_task }`
+- `projects` → same fields as `loadProjects` plus per-project counts and full member map
+- `dashboard` → raw tasks + projects + profiles + activity + sessions (same tables the real dashboard queries)
+- `team`, `league`, `references`, `activity` → same raw tables
 
-Rewrite the views inside `src/routes/share.$token.$page.tsx` (or split into `src/components/share/*`) so each mirrors its real counterpart visually:
+The auth data source returns the same shapes from Supabase directly.
 
-- **DashboardView** — same KPI card style, Task Flow infographic, live clock, 14-day trend line/area chart, per-project progress bars, Team Pulse cards, Recent Activity list, filter bar (read-only)
-- **TasksView** — real Kanban board with 5 columns (todo / in_progress / paused / in_review / done), branded task cards (priority pill, assignee avatar, project chip, tag chips, elapsed timeline bar, due date). Include the ViewSwitcher chip (Kanban / Table) — both read-only, no drag, no edit
-- **ProjectsView** — same card grid used on `/projects`, with progress ring, member avatars, status pill, creation date, "Active / Archived" toggle
-- **TeamView** — same member cards with avatar, role pill, task load bar, completion %, league points, "no PDF button" (admin-only)
-- **LeagueView** — podium (1st/2nd/3rd) + full leaderboard table matching the real page
-- **ReferencesView** — Bento grid with branded icons and category chips
-- **ActivityView** — same timeline layout with actor avatar + entity chip + timestamp
+### 3. Refactor each real page to consume `useDataSource()`
 
-### 3. Reuse tokens, fonts, gradients, and RTL/theme behavior
+For `index.tsx`, `tasks.tsx`, `projects.tsx`, `team.tsx`, `league.tsx`, `references.tsx`, `activity.tsx`:
+- Move data-fetching effect from `supabase.from(...)` to `useDataSource().<resource>()`.
+- Keep JSX, layout, filters, view switcher, kanban, table, charts, timelines, cards — untouched.
+- Wrap all mutation triggers (New Task, Edit, Archive, Add Reference, Suspend, etc.) and realtime subscriptions in `if (!readOnly)` using a new `useReadOnly()` hook (defaults to `false`).
 
-Keep the existing shell (branded sidebar, read-only chip, AR/EN + Dark/Light toggles). All views must respect the current `theme` and `lang` state and use the same CSS variables (`--grad-blue`, `--grad-gold`, `--surface-2`, `--border`, etc.) so the shared preview looks identical to the app.
+### 4. New `ReadOnlyContext`
 
-### 4. Add a "Refresh" control on the shared header
+New file `src/lib/read-only.tsx` exporting `<ReadOnlyProvider value>` + `useReadOnly()`. Components hide action buttons/modals when true; `AppShell`'s outer chrome is not used in share mode.
 
-Small refresh button that re-fetches the current page payload (the user asked earlier for a way to pull the latest state on shared pages).
+### 5. Replace the share viewer shell
+
+Rewrite `src/routes/share.$token.$page.tsx` so it:
+- Resolves the link + password (kept as today).
+- Renders the current **share sidebar + top header** (logo, lang toggle, theme toggle, refresh, "Read-only preview" badge, whitelist-driven nav — unchanged visually).
+- In the main slot, dynamically renders the real page component from `_authenticated/*` based on `page`, wrapped by:
+  ```
+  <DataSourceProvider value={shareDataSource(token)}>
+    <ReadOnlyProvider value>
+      <RealPage />
+    </ReadOnlyProvider>
+  </DataSourceProvider>
+  ```
+- Enforces the whitelist by keeping the existing `notAllowed` guard before rendering.
+- Deletes the ~800 lines of clone JSX (`DashboardView`, `TasksView`, `ProjectsView`, `TeamView`, `LeagueView`, `ReferencesView`, `ActivityView`) inside this file.
+
+### 6. Auth pages keep working unchanged
+
+`src/routes/_authenticated/route.tsx` wraps its `<Outlet />` in `<DataSourceProvider value={authDataSource}>` + `<ReadOnlyProvider value={false}>`. No visual change; same data.
+
+### 7. Cleanup
+
+- Remove the 60s sessionStorage clone cache in the share viewer; keep only the "Refresh" button (invalidates the data source).
+- Keep the `PROJECT_COLORS` / `STATUS_COLORS` / helpers only where they are still used by non-page primitives.
 
 ## Technical notes
 
-- Data still flows through the `share-access` Edge Function with the token in the header (no Supabase session on the client). RLS is untouched.
-- Keep the sanitizer strict: never return `email`, `phone`, invite tokens, or password hashes.
-- Cache each page's payload in `sessionStorage` keyed by `share:{token}:{page}` for 60s to keep navigation snappy.
-- All interactive affordances (add/edit/drag/delete) stay disabled — read-only enforcement remains via the existing `ShareContext` shell.
+- No schema changes and no auth changes.
+- `useReadOnly` gates: `NewTaskModal`, `TaskDetailModal` write actions, drag-and-drop, archive/unarchive, category creation, sign-out button (kept in share sidebar only for admins? — no, share shell has no sign-out today, keep as-is).
+- Realtime `supabase.channel` subscriptions are skipped when `mode === "share"` (share viewer uses the Refresh button).
+- The edge function stays public for `resolve` and `data`, still enforces revocation, expiry, password, and whitelist per resource.
+- Router still uses the existing `share.$token.tsx` layout + `share.$token.index.tsx` password gate; only the `$page` file changes.
 
-## Deliverable
+## Files touched
 
-Opening `/share/{token}/dashboard` (and every other allowed page) looks like the real internal page, not a stripped-down placeholder. All whitelisted pages render at parity with what an authenticated user sees, minus any edit controls.
+- New: `src/lib/data-source.tsx`, `src/lib/read-only.tsx`.
+- Modified: `src/routes/_authenticated/route.tsx`, `index.tsx`, `tasks.tsx`, `projects.tsx`, `team.tsx`, `league.tsx`, `references.tsx`, `activity.tsx` (swap fetch source, gate mutations).
+- Rewritten: `src/routes/share.$token.$page.tsx` (shell only, no clones).
+- Extended: `supabase/functions/share-access/index.ts` (return raw shapes matching real page needs).

@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Lock, ShieldAlert, Loader2 } from "lucide-react";
 import logo from "@/assets/mechatro-logo.png";
-import { shareApi, SHARE_PAGES } from "@/lib/share-links";
+import { shareApi, SHARE_PAGES, SHARE_FUNCTION_URL } from "@/lib/share-links";
+import { enterShareMode, firstAllowedPath } from "@/lib/share-mode";
 
 export const Route = createFileRoute("/share/$token/")({
   component: ShareEntry,
@@ -21,11 +22,21 @@ function ShareEntry() {
   const attempt = async (password?: string) => {
     setSubmitting(true);
     try {
-      const { link } = await shareApi.resolve(token, password);
-      sessionStorage.setItem(`share:${token}`, JSON.stringify(link));
-      const first = link.allowed_pages[0] ?? "dashboard";
+      // Bootstrap = resolve link + preload profiles/directory in one call.
+      const { link, bootstrap } = await shareApi.bootstrap(token, password);
+      enterShareMode({
+        token,
+        password: password ?? null,
+        link,
+        bootstrap,
+        functionUrl: SHARE_FUNCTION_URL,
+      });
       setState("ok");
-      navigate({ to: "/share/$token/$page", params: { token, page: first }, replace: true });
+      // Hard navigation into the real app so route matches re-evaluate with
+      // share mode already active (the _authenticated gate consults it).
+      const target = firstAllowedPath();
+      if (typeof window !== "undefined") window.location.replace(target);
+      else navigate({ to: target, replace: true });
     } catch (e) {
       const code = (e as { code?: string }).code || "";
       setErrCode(code);
@@ -35,6 +46,7 @@ function ShareEntry() {
   };
 
   useEffect(() => { attempt(); /* eslint-disable-next-line */ }, [token]);
+
 
   useEffect(() => {
     if (typeof document !== "undefined") {

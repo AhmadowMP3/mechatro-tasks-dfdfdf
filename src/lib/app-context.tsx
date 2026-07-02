@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { dict, type DictKey, type Lang } from "@/i18n/dict";
 import { logActivity } from "@/lib/activity";
 import type { Session } from "@supabase/supabase-js";
+import { isShareMode, getShareBootstrap } from "@/lib/share-mode";
+
 
 // Fixed 3-role model. `manager` and `viewer` remain in the enum for backward
 // compatibility with legacy UI badges, but only `admin` and `member` are used.
@@ -107,6 +109,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Share Mode: skip auth entirely — populate synthetic viewer + directory
+    // straight from the bootstrap payload provided by the share landing page.
+    if (isShareMode()) {
+      const bs = getShareBootstrap();
+      if (bs) {
+        const viewer: Profile = {
+          id: bs.viewerId,
+          full_name: bs.fullName,
+          role: "viewer",
+          avatar_url: null,
+          job_title: null,
+          phone: null,
+          active: true,
+          language_pref: "ar",
+          theme_pref: "dark",
+          status: "active",
+          is_master_admin: false,
+        };
+        setUser(viewer);
+        setUsers(bs.profiles as unknown as Profile[]);
+        setDirectory(bs.directory);
+      }
+      return;
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       if (data.session) { loadUser(data.session.user.id); refreshUsers(); }
@@ -130,6 +157,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Realtime: react to changes on the signed-in user's own profile row
   // (suspension, role change, etc.) so the UI updates instantly.
   useEffect(() => {
+    if (isShareMode()) return;
     const uid = session?.user?.id;
     if (!uid) return;
     const ch = supabase
@@ -140,6 +168,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [session?.user?.id]);
+
 
   useEffect(() => {
     if (typeof document === "undefined") return;
