@@ -92,9 +92,9 @@ function Dashboard() {
   const hoursToday = sessions
     .filter((s) => new Date(s.started_at).getTime() >= todayStart)
     .reduce((sum, s) => {
-      const dur = s.duration_seconds ?? (s.ended_at ? (new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 1000 : 0);
-      return sum + dur;
-    }, 0) / 3600;
+      const mins = s.duration_minutes ?? (s.ended_at ? (new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60000 : 0);
+      return sum + mins;
+    }, 0) / 60;
 
   // Live now: sessions with no end
   const liveNow = sessions.filter((s) => !s.ended_at).length;
