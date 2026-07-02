@@ -146,7 +146,9 @@ function ReportsHistoryPage() {
   } as React.CSSProperties);
 
   return (
-    <div style={{ padding: "20px 24px 120px", maxWidth: 1200, margin: "0 auto" }}>
+    <>
+      <div style={{ padding: "20px 24px 120px", maxWidth: 1200, margin: "0 auto" }}>
+
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--grad-blue)",
@@ -305,9 +307,10 @@ function ReportsHistoryPage() {
         </div>
       )}
       <Link to="/reports-history" style={{ display: "none" }}>hidden</Link>
-    </div>
+    </>
   );
 }
+
 
 
 const iconBtn: React.CSSProperties = {
