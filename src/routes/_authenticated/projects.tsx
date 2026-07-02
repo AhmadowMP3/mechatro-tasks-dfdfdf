@@ -255,7 +255,7 @@ function ProjectsPage() {
       {filtered.length === 0 ? (
         <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noProjects")}</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px), 1fr))", gap: 16 }}>
           {filtered.map(({ p, progress, memberIds }) => (
             <div key={p.id} className="brand-card" style={{ overflow: "hidden" }}>
               <div style={{ height: 6, background: PROJECT_COLORS[p.color] ?? PROJECT_COLORS.blue }} />

@@ -186,7 +186,7 @@ function TeamPage() {
         </FilterSection>
       </FilterDrawer>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px), 1fr))", gap: 16 }}>
         {filtered.map(({ u, s }) => (
           <div key={u.id} className="brand-card" style={{ padding: 20, opacity: u.active ? 1 : 0.6 }}>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
