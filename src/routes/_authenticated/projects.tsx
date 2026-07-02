@@ -273,9 +273,20 @@ function ProjectsPage() {
                     <div style={{ width: `${progress}%`, height: "100%", background: "var(--grad-green)" }} />
                   </div>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14, fontSize: 12, gap: 8 }}>
                   <MembersList ids={memberIds} />
-                  <span style={{ color: "var(--muted)" }}>{formatDate(p.due_date, lang)}</span>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: lang === "ar" ? "flex-start" : "flex-end", gap: 2 }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--muted)" }}>
+                      <CalendarPlus size={12} style={{ color: "var(--brand-gold)" }} />
+                      <span>{t("created")}:</span>
+                      <b style={{ color: "var(--brand-gold)" }}>{formatDate(p.created_at, lang)}</b>
+                    </span>
+                    {p.due_date && (
+                      <span style={{ color: "var(--muted)" }}>
+                        {t("dueDate")}: <b style={{ color: "var(--foreground)" }}>{formatDate(p.due_date, lang)}</b>
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {isAdmin && (
                   <button onClick={() => toggleArchive(p)} style={{ marginTop: 12, width: "100%", minHeight: 40, borderRadius: 10, background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--border)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, fontWeight: 700 }}>
