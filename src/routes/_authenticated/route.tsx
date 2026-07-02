@@ -1,6 +1,8 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
+import { SuspendedScreen } from "@/components/SuspendedScreen";
+import { useApp } from "@/lib/app-context";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -13,6 +15,8 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function LayoutComponent() {
+  const { user } = useApp();
+  if (user?.status === "suspended") return <SuspendedScreen />;
   return (
     <AppShell>
       <Outlet />

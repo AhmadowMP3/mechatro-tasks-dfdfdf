@@ -99,11 +99,25 @@ Deno.serve(async (req) => {
       case "activate": {
         const user_id = String(body.user_id ?? "");
         if (!user_id) return json(400, { error: "user_id required" });
-        const status = action === "suspend" ? "suspended" : "active";
-        await admin.from("profiles").update({ status, active: status === "active" }).eq("id", user_id);
-        await admin.auth.admin.updateUserById(user_id, {
-          ban_duration: action === "suspend" ? "876000h" : "none",
-        });
+        const { data: t } = await admin.from("profiles").select("is_master_admin").eq("id", user_id).maybeSingle();
+        if (t?.is_master_admin) return json(400, { error: "cannot suspend master admin" });
+        if (action === "suspend") {
+          const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+          await admin.from("profiles").update({
+            status: "suspended", active: false,
+            suspended_by: me.id,
+            suspended_at: new Date().toISOString(),
+            suspend_reason: reason || null,
+          }).eq("id", user_id);
+        } else {
+          await admin.from("profiles").update({
+            status: "active", active: true,
+            suspended_by: null, suspended_at: null, suspend_reason: null,
+          }).eq("id", user_id);
+        }
+        // Do NOT ban at the auth layer — we want the suspended user to sign in
+        // and see the branded "you are suspended" screen with the admin's name.
+        await admin.auth.admin.updateUserById(user_id, { ban_duration: "none" });
         return json(200, { ok: true });
       }
 

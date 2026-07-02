@@ -358,6 +358,9 @@ export type Database = {
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           status: Database["public"]["Enums"]["profile_status"]
+          suspend_reason: string | null
+          suspended_at: string | null
+          suspended_by: string | null
           theme_pref: string
         }
         Insert: {
@@ -375,6 +378,9 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["profile_status"]
+          suspend_reason?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
           theme_pref?: string
         }
         Update: {
@@ -392,6 +398,9 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["profile_status"]
+          suspend_reason?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
           theme_pref?: string
         }
         Relationships: [
@@ -405,6 +414,20 @@ export type Database = {
           {
             foreignKeyName: "profiles_invited_by_fkey"
             columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_suspended_by_fkey"
+            columns: ["suspended_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_suspended_by_fkey"
+            columns: ["suspended_by"]
             isOneToOne: false
             referencedRelation: "team_directory"
             referencedColumns: ["id"]
