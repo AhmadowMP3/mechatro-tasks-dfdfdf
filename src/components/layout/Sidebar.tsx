@@ -19,6 +19,7 @@ const NAV: NavItem[] = [
   { to: "/tasks",         icon: CheckSquare,     key: "tasks" },
   { to: "/team",          icon: Users,           key: "team" },
   { to: "/league",        icon: Trophy,          key: "league" },
+  { to: "/references",    icon: Library,         key: "references" },
   { to: "/notifications", icon: Bell,            key: "notifications" },
   { to: "/settings",      icon: Settings,        key: "settings" },
 ];
