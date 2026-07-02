@@ -210,14 +210,14 @@ function Dashboard() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* HERO */}
-      <div className="brand-card" style={{ padding: 24, position: "relative", overflow: "hidden" }}>
+      <div className="brand-card" style={{ padding: "clamp(16px, 3vw, 24px)", position: "relative", overflow: "hidden" }}>
         <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(700px 260px at 100% 0%, rgba(66,194,238,.15), transparent 60%), radial-gradient(600px 220px at 0% 100%, rgba(232,168,44,.10), transparent 60%)", pointerEvents: "none" }} />
-        <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-          <div>
+        <div style={{ position: "relative", display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: 16, alignItems: "center" }}>
+          <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, color: "var(--brand-blue)", textTransform: "uppercase", marginBottom: 4 }}>
               {formatDate(new Date().toISOString(), lang)}
             </div>
-            <h1 style={{ fontSize: 30, margin: 0, lineHeight: 1.2 }}>
+            <h1 style={{ fontSize: "clamp(22px, 4.5vw, 30px)", margin: 0, lineHeight: 1.2 }}>
               {greeting()}، <span style={{ background: "var(--grad-blue)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>{user?.full_name}</span>
             </h1>
             <p style={{ color: "var(--muted)", marginTop: 6, marginBottom: 0, fontSize: 14 }}>
@@ -229,23 +229,24 @@ function Dashboard() {
             <HeroChip icon="●" iconColor="#73C94E" pulse label={t("liveNow")} value={`${toLocalDigits(liveNow, lang)}`} />
             <HeroChip icon="⏱" iconColor="#42C2EE" label={t("hoursTracked")} value={toLocalDigits(hoursToday.toFixed(1), lang)} />
             <HeroChip icon="🔥" iconColor="#FF9255" label={t("streak")} value={toLocalDigits(streak, lang)} />
-            <div style={{ padding: "10px 14px", borderRadius: 12, background: "var(--surface-2)", border: "1px solid var(--border)", fontVariantNumeric: "tabular-nums", fontFamily: "ui-monospace, Menlo, monospace", fontSize: 20, fontWeight: 700, letterSpacing: 1, color: "var(--brand-blue)" }}>
+            <div style={{ padding: "10px 14px", borderRadius: 12, background: "var(--surface-2)", border: "1px solid var(--border)", fontVariantNumeric: "tabular-nums", fontFamily: "ui-monospace, Menlo, monospace", fontSize: 18, fontWeight: 700, letterSpacing: 1, color: "var(--brand-blue)" }}>
               {timeStr}
-      </div>
-
-      {/* Filter bar */}
-      <FilterBar value={filters} onChange={setFilters} projects={projects} />
+            </div>
           </div>
+
+          {/* Filter bar */}
+          <FilterBar value={filters} onChange={setFilters} projects={projects} />
         </div>
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 }}>
         <StatCard label={t("activeTasks")} value={active.length} color="var(--grad-blue)" lang={lang} accent="#42C2EE" />
         <StatCard label={t("doneThisWeek")} value={doneInRange.length} color="var(--grad-green)" lang={lang} accent="#73C94E" trend={dayBuckets.slice(-7).map((b) => b.count)} />
         <StatCard label={t("overdueTasks")} value={overdueTasks.length} color="linear-gradient(135deg,#D9484B,#F0676A)" lang={lang} accent="#F0676A" highlight={overdueTasks.length > 0} />
         <StatCard label={t("activeProjects")} value={activeProjects.length} color="var(--grad-orange)" lang={lang} accent="#FF9255" />
       </div>
+
 
       {/* Momentum */}
       <MomentumCard buckets={dayBuckets} lang={lang} title={t("momentum")} />
