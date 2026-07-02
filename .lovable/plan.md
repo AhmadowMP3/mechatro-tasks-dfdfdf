@@ -1,16 +1,20 @@
-## Show auto-captured creation date on project cards
+## Fix build + make selected filter pills clearly stand out
 
-The card currently shows only the due date (`24 Jul 2026` in the screenshot). `projects.created_at` is already stored automatically by the database on insert — no schema change needed.
+### 1. Fix build failure in `src/styles.css`
+Line 106 is missing a closing `}` after `background: transparent;`, so every rule below it (`.light`, `@layer base`, …) is swallowed. Close the `*::-webkit-scrollbar-corner` rule properly.
 
-### Edit `src/routes/_authenticated/projects.tsx` (around line 276–279)
-Replace the single `<span>{formatDate(p.due_date, lang)}</span>` block with a compact two-line stack, right-aligned, so both dates are visible:
+### 2. Stronger selected state — `src/components/dashboard/FilterBar.tsx`
+Right now the selected chip is a faint tinted background with blue text — hard to tell apart from unselected. Make it a solid gradient pill so it visibly pops (matches the screenshot request).
 
-- Top line: small `Sparkles`/`CalendarPlus` icon + muted label `t("created")` + `formatDate(p.created_at, lang)` in `var(--brand-gold)` (subtle emphasis showing it's system-generated).
-- Bottom line (only if `p.due_date`): muted label `t("dueDate")` + `formatDate(p.due_date, lang)` in `var(--foreground)`.
+For the range pills (loop starting line 85), when `selected` is true, replace the subtle style with:
+- `background: var(--grad-blue)` (solid Mechatro blue gradient)
+- `color: #fff`
+- `border: 1px solid transparent`
+- `box-shadow: 0 4px 14px color-mix(in oklab, var(--brand-blue) 35%, transparent)`
+- `transform: translateY(-1px)`
 
-MembersList stays on the left; the dates stack on the right of the same row.
+Apply the same solid-gradient treatment to the `MultiSelect` trigger button (around line 230) when `active` is true, and inside the dropdown to items where `on` is true — use gradient background + white text + a white ✓ checkbox instead of the current 12% tint.
 
-### Add i18n key
-`src/i18n/dict.ts`: add `created: { ar: "أُنشئ", en: "Created" }` (if not already present).
+Unselected pills stay as they are (`var(--surface-2)` + `var(--border)`).
 
-No other pages, no schema, no query changes — `created_at` is already selected via `select("*")`.
+No other files or logic change.
