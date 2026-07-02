@@ -206,7 +206,6 @@ export const dict = {
   exportCsv: { ar: "تصدير CSV", en: "Export CSV" },
   loadMore: { ar: "تحميل المزيد", en: "Load more" },
   noActivityMatch: { ar: "لا يوجد نشاط يطابق هذه الفلاتر", en: "No activity matches these filters" },
-  noActivityMatch: { ar: "لا يوجد نشاط يطابق هذه الفلاتر", en: "No activity matches these filters" },
   allUsers: { ar: "كل المستخدمين", en: "All users" },
   allActions: { ar: "كل الإجراءات", en: "All actions" },
   allEntities: { ar: "كل الأنواع", en: "All entities" },
@@ -220,9 +219,7 @@ export const dict = {
   act_file_added: { ar: "أضاف ملفًا إلى", en: "added a file to" },
   act_assigned: { ar: "أسند", en: "assigned" },
   act_signed_in: { ar: "سجَّل الدخول", en: "signed in" },
-  // Entities
-  entity_task: { ar: "مهمة", en: "task" },
-  entity_project: { ar: "مشروع", en: "project" },
+  // Entities (extras beyond existing entity_task/entity_project)
   entity_profile: { ar: "مستخدم", en: "user" },
   entity_role: { ar: "دور", en: "role" },
   entity_comment: { ar: "تعليق", en: "comment" },
