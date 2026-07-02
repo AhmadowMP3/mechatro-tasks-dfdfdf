@@ -118,14 +118,14 @@ function MembersList({ ids }: { ids: string[] }) {
 
 function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const { t, user } = useApp();
-  const [form, setForm] = useState({ name_ar: "", name_en: "", description: "", color: "blue", due_date: "", start_date: "" });
+  const [form, setForm] = useState({ name_ar: "", name_en: "", description: "", color: "blue", due_date: "" });
   const submit = async () => {
     if (!form.name_ar || !form.name_en) { toast.error(t("fullName")); return; }
     const { data, error } = await supabase.from("projects").insert({
       name_ar: form.name_ar, name_en: form.name_en,
       description: form.description || null,
       color: form.color, due_date: form.due_date || null,
-      start_date: form.start_date || null,
+      start_date: new Date().toISOString(),
       created_by: user?.id ?? null,
     }).select().single();
     if (error) { toast.error(error.message); return; }
