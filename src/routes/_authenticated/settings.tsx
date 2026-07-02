@@ -7,7 +7,7 @@ import { useApp } from "@/lib/app-context";
 import { formatDate, toLocalDigits } from "@/lib/format";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/settings")({ component: SettingsPage });
+export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
 function SettingsPage() {
   const { t, lang, can, user } = useApp();

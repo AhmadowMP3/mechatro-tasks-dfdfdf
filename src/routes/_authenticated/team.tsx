@@ -8,9 +8,9 @@ import { Avatar } from "@/components/Avatar";
 import { RoleBadge } from "@/components/Pills";
 import { toLocalDigits, formatMinutes, formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { ModalShell, Field, inp } from "@/routes/projects";
+import { ModalShell, Field, inp } from "@/routes/_authenticated/projects";
 
-export const Route = createFileRoute("/team")({ component: TeamPage });
+export const Route = createFileRoute("/_authenticated/team")({ component: TeamPage });
 
 function TeamPage() {
   const { t, lang, can, users, refreshUsers } = useApp();

@@ -9,7 +9,7 @@ import { useState } from "react";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import type { DictKey } from "@/i18n/dict";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   component: Dashboard,
 });
 

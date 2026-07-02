@@ -10,7 +10,7 @@ import { formatDate, toLocalDigits } from "@/lib/format";
 import { toast } from "sonner";
 import { logActivity } from "@/lib/activity";
 
-export const Route = createFileRoute("/projects")({ component: ProjectsPage });
+export const Route = createFileRoute("/_authenticated/projects")({ component: ProjectsPage });
 
 type P = { id: string; name_ar: string; name_en: string; color: string; status: string; due_date: string | null; archived: boolean; description: string | null; };
 

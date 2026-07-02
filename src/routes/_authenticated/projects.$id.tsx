@@ -10,7 +10,7 @@ import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { NewTaskModal } from "@/components/NewTaskModal";
 import { formatDate, toLocalDigits } from "@/lib/format";
 
-export const Route = createFileRoute("/projects/$id")({ component: ProjectDetail });
+export const Route = createFileRoute("/_authenticated/projects/$id")({ component: ProjectDetail });
 
 function ProjectDetail() {
   const { id } = Route.useParams();

@@ -17,7 +17,7 @@ const NAV: { to: string; icon: React.ComponentType<{ size?: number }>; key: Dict
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
-  const { t, user, users, setUserId, lang } = useApp();
+  const { t, user, lang, signOut } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
@@ -49,25 +49,14 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           margin: "8px 14px 10px", padding: "12px",
           background: "rgba(255,255,255,.04)", border: "1px solid #1E364D",
           borderRadius: 12,
+          display: "flex", alignItems: "center", gap: 10,
         }}>
-          <label style={{ display: "block", fontSize: 10.5, color: "#7E97AB", fontWeight: 700, marginBottom: 6 }}>
-            {t("currentUser")}
-          </label>
-          <select
-            value={user.id}
-            onChange={(e) => setUserId(e.target.value)}
-            style={{
-              width: "100%", padding: "8px 10px", borderRadius: 8, fontSize: 13,
-              background: "#13283D", color: "#EAF2F9", border: "1px solid #1E364D",
-            }}
-          >
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>{u.full_name}</option>
-            ))}
-          </select>
-          <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-            <Avatar id={user.id} name={user.full_name} size={28} />
-            <RoleBadge role={user.role} />
+          <Avatar id={user.id} name={user.full_name} size={40} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: "#EAF2F9", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {user.full_name}
+            </div>
+            <div style={{ marginTop: 4 }}><RoleBadge role={user.role} /></div>
           </div>
         </div>
       )}
@@ -102,10 +91,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       <div style={{ padding: 12, borderTop: "1px solid #1E364D" }}>
         <button
-          onClick={() => {
-            localStorage.removeItem("uid");
-            location.reload();
-          }}
+          onClick={async () => { await signOut(); window.location.href = "/auth"; }}
           style={{
             width: "100%", minHeight: 48, borderRadius: 12,
             background: "rgba(240,103,106,.12)", color: "#F0676A",

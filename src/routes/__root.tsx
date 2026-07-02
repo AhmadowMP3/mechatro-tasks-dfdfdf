@@ -79,25 +79,12 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function InnerLayout() {
-  const { user } = useApp();
-  // Wait for profiles to load
-  if (!user) {
-    return (
-      <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--background)", color: "var(--foreground)" }}>
-        <div style={{ opacity: 0.7 }}>…</div>
-      </div>
-    );
-  }
-  return <AppShell><Outlet /></AppShell>;
-}
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
       <AppProvider>
-        <InnerLayout />
+        <Outlet />
         <Toaster position="top-center" richColors />
       </AppProvider>
     </QueryClientProvider>
