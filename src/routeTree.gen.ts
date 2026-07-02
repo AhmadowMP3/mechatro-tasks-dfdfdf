@@ -26,6 +26,7 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedLeagueRouteImport } from './routes/_authenticated/league'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
+import { Route as ShareTokenIndexRouteImport } from './routes/share.$token.index'
 import { Route as ShareTokenPageRouteImport } from './routes/share.$token.$page'
 import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history.compare'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
@@ -117,6 +118,11 @@ const AuthenticatedAccessControlRoute =
     path: '/access-control',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ShareTokenIndexRoute = ShareTokenIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ShareTokenRoute,
+} as any)
 const ShareTokenPageRoute = ShareTokenPageRouteImport.update({
   id: '/$page',
   path: '/$page',
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/share/$token/': typeof ShareTokenIndexRoute
 }
 export interface FileRoutesByTo {
   '/accept-invite': typeof AcceptInviteRoute
@@ -170,11 +177,11 @@ export interface FileRoutesByTo {
   '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
-  '/share/$token': typeof ShareTokenRouteWithChildren
   '/': typeof AuthenticatedIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/share/$token': typeof ShareTokenIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -198,6 +205,7 @@ export interface FileRoutesById {
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/share/$token/': typeof ShareTokenIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -221,6 +229,7 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/reports-history/compare'
     | '/share/$token/$page'
+    | '/share/$token/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/accept-invite'
@@ -237,11 +246,11 @@ export interface FileRouteTypes {
     | '/share-links'
     | '/tasks'
     | '/team'
-    | '/share/$token'
     | '/'
     | '/projects/$id'
     | '/reports-history/compare'
     | '/share/$token/$page'
+    | '/share/$token'
   id:
     | '__root__'
     | '/_authenticated'
@@ -264,6 +273,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$id'
     | '/_authenticated/reports-history/compare'
     | '/share/$token/$page'
+    | '/share/$token/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -395,6 +405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccessControlRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/share/$token/': {
+      id: '/share/$token/'
+      path: '/'
+      fullPath: '/share/$token/'
+      preLoaderRoute: typeof ShareTokenIndexRouteImport
+      parentRoute: typeof ShareTokenRoute
+    }
     '/share/$token/$page': {
       id: '/share/$token/$page'
       path: '/$page'
@@ -483,10 +500,12 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface ShareTokenRouteChildren {
   ShareTokenPageRoute: typeof ShareTokenPageRoute
+  ShareTokenIndexRoute: typeof ShareTokenIndexRoute
 }
 
 const ShareTokenRouteChildren: ShareTokenRouteChildren = {
   ShareTokenPageRoute: ShareTokenPageRoute,
+  ShareTokenIndexRoute: ShareTokenIndexRoute,
 }
 
 const ShareTokenRouteWithChildren = ShareTokenRoute._addFileChildren(
