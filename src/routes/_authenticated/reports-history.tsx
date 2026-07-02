@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { AppShell } from "@/components/layout/AppShell";
+
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -11,14 +11,13 @@ import { Avatar } from "@/components/Avatar";
 export const Route = createFileRoute("/_authenticated/reports-history")({
   component: ReportsHistoryPage,
   errorComponent: ({ error, reset }) => (
-    <AppShell>
-      <div style={{ padding: 24 }}>
-        <div style={{ color: "var(--danger)" }}>Failed to load: {(error as Error).message}</div>
-        <button onClick={reset} className="brand-btn" style={{ marginTop: 12, background: "var(--grad-blue)", color: "#fff" }}>Retry</button>
-      </div>
-    </AppShell>
+    <div style={{ padding: 24 }}>
+      <div style={{ color: "var(--danger)" }}>Failed to load: {(error as Error).message}</div>
+      <button onClick={reset} className="brand-btn" style={{ marginTop: 12, background: "var(--grad-blue)", color: "#fff" }}>Retry</button>
+    </div>
   ),
-  notFoundComponent: () => <AppShell><div style={{ padding: 24 }}>Not found</div></AppShell>,
+  notFoundComponent: () => <div style={{ padding: 24 }}>Not found</div>,
+
 });
 
 type ReportRow = {
@@ -147,8 +146,10 @@ function ReportsHistoryPage() {
   } as React.CSSProperties);
 
   return (
-    <AppShell>
+    <>
       <div style={{ padding: "20px 24px 120px", maxWidth: 1200, margin: "0 auto" }}>
+
+
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--grad-blue)",
             display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
@@ -306,9 +307,11 @@ function ReportsHistoryPage() {
         </div>
       )}
       <Link to="/reports-history" style={{ display: "none" }}>hidden</Link>
-    </AppShell>
+    </>
   );
 }
+
+
 
 const iconBtn: React.CSSProperties = {
   width: 38, height: 38, borderRadius: 10, cursor: "pointer",

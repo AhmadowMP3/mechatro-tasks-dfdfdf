@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { AppShell } from "@/components/layout/AppShell";
+
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,12 +19,13 @@ export const Route = createFileRoute("/_authenticated/reports-history/compare")(
   }),
   component: CompareReportsPage,
   errorComponent: ({ error, reset }) => (
-    <AppShell><div style={{ padding: 24 }}>
+    <div style={{ padding: 24 }}>
       <div style={{ color: "var(--danger)" }}>{(error as Error).message}</div>
       <button onClick={reset} className="brand-btn" style={{ marginTop: 12, background: "var(--grad-blue)", color: "#fff" }}>Retry</button>
-    </div></AppShell>
+    </div>
   ),
-  notFoundComponent: () => <AppShell><div style={{ padding: 24 }}>Not found</div></AppShell>,
+  notFoundComponent: () => <div style={{ padding: 24 }}>Not found</div>,
+
 });
 
 type ReportRow = {
@@ -99,8 +100,9 @@ function CompareReportsPage() {
     }
   };
 
-  if (loading) return <AppShell><div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading…</div></AppShell>;
-  if (!A || !B) return <AppShell><div style={{ padding: 40 }}>Missing reports</div></AppShell>;
+  if (loading) return <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading…</div>;
+  if (!A || !B) return <div style={{ padding: 40 }}>Missing reports</div>;
+
 
   const sA = A.kpi_snapshot, sB = B.kpi_snapshot;
   const projA = sA.projects_touched, projB = sB.projects_touched;
@@ -111,8 +113,8 @@ function CompareReportsPage() {
   const both = projA.filter(p => bIds.has(p.id));
 
   return (
-    <AppShell>
-      <div style={{ padding: "16px 24px 40px", maxWidth: 1200, margin: "0 auto" }}>
+    <div style={{ padding: "16px 24px 40px", maxWidth: 1200, margin: "0 auto" }}>
+
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
           <button onClick={() => navigate({ to: "/reports-history" })} className="brand-btn"
             style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
@@ -195,11 +197,11 @@ function CompareReportsPage() {
             <VennColumn title={`${t("onlyIn")} B`} items={onlyB} accent="var(--brand-gold)" lang={lang} />
           </div>
         </div>
-      </div>
       <style>{`.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </AppShell>
+    </div>
   );
 }
+
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <div style={{
