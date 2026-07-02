@@ -322,10 +322,8 @@ function TasksPage() {
           </div>
         ) : view === "kanban" ? (
           <KanbanView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} onChanged={refetch} />
-        ) : view === "table" ? (
-          <TableView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} />
         ) : (
-          <CalendarView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} />
+          <TableView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} />
         );
       })()}
 
