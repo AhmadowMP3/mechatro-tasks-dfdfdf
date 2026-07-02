@@ -1,75 +1,39 @@
-## Goal
-Make every screen usable on phones (≤480px) and tablets (≤900px) without sideways scroll, cramped touch targets, or clipped content. Keep desktop layout unchanged.
+## Custom Mechatro Cursor
 
-## Approach
-Introduce a single responsive helper (`useIsMobile` hook already exists as inline in AppShell — promote to `src/lib/useBreakpoint.ts` returning `{ isMobile, isTablet }`). Use it to switch inline styles in every page. Prefer CSS-first fixes (media queries, `clamp()`, `minmax`, `flex-wrap`) over JS.
+Replace the default OS cursor site-wide with a branded, animated cursor that matches the Mechatro identity (blue + gold, dark surface).
 
-## Global fixes (`src/styles.css`)
-- Add a base `html { -webkit-text-size-adjust: 100%; }` and `body { overflow-x: hidden; }`.
-- Add `.brand-card { padding: clamp(14px, 3vw, 24px); }` and reduce section padding on `@media (max-width: 640px)`.
-- Force all modals: `.brand-card` used as modal → `max-height: 90dvh; overflow-y: auto` so long forms scroll.
-- Tighten default heading sizes with `clamp()` at ≤640px.
+### Design
+- **Default cursor**: a small solid gold dot (Mechatro Gold, 6px) with a larger outlined ring (blue, 22px) trailing it smoothly. Ring uses `var(--grad-blue)` border tint, dot uses `var(--grad-gold)`.
+- **Hover state** (over links, buttons, `[role=button]`, `.brand-btn`, kanban cards, inputs): ring expands to 34px, becomes a subtle blue glow, dot stays gold and centers.
+- **Active/click state**: ring contracts (18px) with a quick pulse.
+- **Text inputs / textareas**: cursor switches to a themed I-beam (thin gold vertical bar) so typing still feels natural.
+- **Disabled elements**: ring turns muted gray, dot hides.
+- **RTL**: cursor is direction-agnostic — no changes needed.
+- **Mobile / touch**: fully disabled via `@media (hover: none) and (pointer: coarse)` so touch devices keep native behavior.
+- **Reduced motion**: trailing lerp is removed; ring snaps to pointer without smoothing.
 
-## AppShell (`src/components/layout/AppShell.tsx`)
-- Lower mobile breakpoint check to 1024px so tablets also get the drawer sidebar.
-- Header: allow controls to wrap; hide "English/عربي" text-only, keep compact pill; shrink logo.
-- Main padding: `clamp(12px, 3vw, 28px)`.
+### Implementation
+1. **New component** `src/components/CustomCursor.tsx`
+   - Two fixed-position divs (`.cursor-dot`, `.cursor-ring`) appended to body.
+   - `requestAnimationFrame` loop lerps ring position toward mouse (dot follows 1:1).
+   - Listens to `mousemove`, `mousedown`, `mouseup`, `mouseover`/`mouseout` to toggle `is-hover`, `is-active`, `is-text`, `is-disabled` classes based on `event.target.closest(...)`.
+   - Skips render if `matchMedia('(hover: none)')` matches or `prefers-reduced-motion` limits animation.
+   - Hides on `mouseleave` of window; shows on re-enter.
 
-## Sidebar (`src/components/layout/Sidebar.tsx`)
-- Fix drawer width to `min(300px, 88vw)` so it fits small phones.
-- Ensure scrolling inside drawer when nav list overflows.
+2. **Global styles** in `src/styles.css`
+   - Add `html, body, * { cursor: none; }` (with fallback `cursor: auto` inside the touch media query).
+   - Keep `cursor: text` fallback for inputs so users without JS still see the caret.
+   - Style `.cursor-dot` and `.cursor-ring` with brand tokens, `mix-blend-mode: normal`, `pointer-events: none`, `z-index: 9999`, transform-based positioning, and `transition` for size/opacity only (position handled by rAF).
 
-## Dashboard (`src/routes/_authenticated/index.tsx`)
-- FilterBar row: `flex-wrap: wrap`; presets scroll horizontally with `overflow-x: auto` on mobile.
-- KPI grid: already auto-fit — lower min from 200 → 150.
-- Task Flow segments grid: switch to `repeat(auto-fit, minmax(90px,1fr))` and stack labels vertically on mobile.
-- "1fr 1fr" comparison grids → `repeat(auto-fit, minmax(220px,1fr))`.
-- Momentum bar row: allow horizontal scroll wrapper.
-- Team Pulse rows: stack avatar + meta vertically at ≤480px.
+3. **Mount** in `src/routes/__root.tsx` inside the root layout so it appears on every route (auth pages included).
 
-## Tasks (`src/routes/_authenticated/tasks.tsx` + views)
-- View switcher + filter row: wrap; make ViewSwitcher a full-width segmented control on mobile.
-- KanbanView: keep horizontal scroll but set column width to `min(300px, 82vw)` and add snap (`scroll-snap-type: x mandatory`) for phone swiping.
-- TableView: already `overflowX:auto`; add sticky first column on mobile for readability.
-- CalendarView: shrink day-cell padding + font at ≤640px; day names to 1-letter.
+### Guardrails
+- No changes to routing, data, or business logic.
+- No new dependencies — plain React + CSS.
+- Fully removable by unmounting `<CustomCursor />` and reverting the `cursor: none` rule.
 
-## Projects (`src/routes/_authenticated/projects.tsx` + `projects.$id.tsx`)
-- Card grid min 280 → 240.
-- Meta row (title + created/due dates): wrap onto new line on mobile using grid two-col → single-col.
-- New-project modal already `max-w:520 width:100%`; add `margin: 16px; max-height: 90dvh; overflow-y:auto`.
-
-## Team (`team.tsx`) & League (`league.tsx`)
-- Member cards: min 260 → 200; buttons full width on mobile.
-- League podium: stack vertically at ≤640px, ranking list rows wrap.
-
-## Notifications / Activity / References / Reports History
-- Row layouts: wrap and let action buttons drop to a new line.
-- References filter/search: already wraps; ensure category chip cloud stays scrollable-x on mobile.
-- Report History filters: `flex-wrap` + full-width search input.
-
-## Access Control (`access-control.tsx`)
-- Member row: switch flex → grid two-row (identity | role select + actions) on mobile.
-- Invite modal `1fr 1fr` name grid → single column on mobile.
-
-## Settings
-- `1fr 1fr` info grid → single column on mobile.
-- Tables: wrap in `overflow-x:auto`.
-
-## Task modals (`NewTaskModal`, `TaskDetailModal`, `GenerateReportDialog`, References modal, Category combobox popover)
-- Modal shell: `width: min(560px, 100%)`, `margin: 16px`, `max-height: 90dvh`, internal `overflow-y: auto`.
-- Two-column form rows collapse to one column below 560px.
-- DatePicker popover: constrain width to `min(320px, calc(100vw - 32px))`.
-
-## FilterDrawer / FilterBar
-- Ensure drawer panel: `width: min(420px, 100vw)` and body scrolls.
-- Chip clusters wrap; long selects scroll.
-
-## Verification
-Launch Playwright headless at viewports 375×812 (iPhone), 414×896, 768×1024, and 1280×800. For each authenticated route, screenshot and confirm:
-- No horizontal page scroll.
-- All primary buttons ≥44px tap target.
-- Modals open fully visible and scrollable.
-- Sidebar drawer opens/closes.
-
-## Out of scope
-No behavior/business-logic changes, no database changes, no new dependencies.
+### Technical notes
+Files touched:
+- `src/components/CustomCursor.tsx` (new)
+- `src/styles.css` (add cursor styles + hide native cursor)
+- `src/routes/__root.tsx` (mount component once globally)
