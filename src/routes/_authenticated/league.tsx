@@ -7,7 +7,7 @@ import { useApp } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { toLocalDigits } from "@/lib/format";
 
-export const Route = createFileRoute("/league")({ component: LeaguePage });
+export const Route = createFileRoute("/_authenticated/league")({ component: LeaguePage });
 
 function LeaguePage() {
   const { t, lang, user, users } = useApp();

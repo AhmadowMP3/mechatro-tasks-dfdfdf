@@ -9,7 +9,7 @@ import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { NewTaskModal } from "@/components/NewTaskModal";
 import { isOverdue } from "@/lib/format";
 
-export const Route = createFileRoute("/tasks")({ component: TasksPage });
+export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
 
 function TasksPage() {
   const { t, lang, users, can } = useApp();

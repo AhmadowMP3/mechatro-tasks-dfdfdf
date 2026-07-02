@@ -9,211 +9,213 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TeamRouteImport } from './routes/team'
-import { Route as TasksRouteImport } from './routes/tasks'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ProjectsRouteImport } from './routes/projects'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as LeagueRouteImport } from './routes/league'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
+import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedLeagueRouteImport } from './routes/_authenticated/league'
+import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 
-const TeamRoute = TeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TasksRoute = TasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjectsRoute = ProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LeagueRoute = LeagueRouteImport.update({
-  id: '/league',
-  path: '/league',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/_authenticated/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjectsIdRoute = ProjectsIdRouteImport.update({
+const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
+  id: '/_authenticated/team',
+  path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
+  id: '/_authenticated/tasks',
+  path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/_authenticated/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
+  id: '/_authenticated/projects',
+  path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/_authenticated/notifications',
+    path: '/notifications',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedLeagueRoute = AuthenticatedLeagueRouteImport.update({
+  id: '/_authenticated/league',
+  path: '/league',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => ProjectsRoute,
+  getParentRoute: () => AuthenticatedProjectsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/league': typeof LeagueRoute
-  '/notifications': typeof NotificationsRoute
-  '/projects': typeof ProjectsRouteWithChildren
-  '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
-  '/team': typeof TeamRoute
-  '/projects/$id': typeof ProjectsIdRoute
+  '/league': typeof AuthenticatedLeagueRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/projects': typeof AuthenticatedProjectsRouteWithChildren
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/tasks': typeof AuthenticatedTasksRoute
+  '/team': typeof AuthenticatedTeamRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/league': typeof LeagueRoute
-  '/notifications': typeof NotificationsRoute
-  '/projects': typeof ProjectsRouteWithChildren
-  '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
-  '/team': typeof TeamRoute
-  '/projects/$id': typeof ProjectsIdRoute
+  '/league': typeof AuthenticatedLeagueRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/projects': typeof AuthenticatedProjectsRouteWithChildren
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/tasks': typeof AuthenticatedTasksRoute
+  '/team': typeof AuthenticatedTeamRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/league': typeof LeagueRoute
-  '/notifications': typeof NotificationsRoute
-  '/projects': typeof ProjectsRouteWithChildren
-  '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
-  '/team': typeof TeamRoute
-  '/projects/$id': typeof ProjectsIdRoute
+  '/_authenticated/league': typeof AuthenticatedLeagueRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/tasks': typeof AuthenticatedTasksRoute
+  '/_authenticated/team': typeof AuthenticatedTeamRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/league'
     | '/notifications'
     | '/projects'
     | '/settings'
     | '/tasks'
     | '/team'
+    | '/'
     | '/projects/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/league'
     | '/notifications'
     | '/projects'
     | '/settings'
     | '/tasks'
     | '/team'
+    | '/'
     | '/projects/$id'
   id:
     | '__root__'
-    | '/'
-    | '/league'
-    | '/notifications'
-    | '/projects'
-    | '/settings'
-    | '/tasks'
-    | '/team'
-    | '/projects/$id'
+    | '/_authenticated/league'
+    | '/_authenticated/notifications'
+    | '/_authenticated/projects'
+    | '/_authenticated/settings'
+    | '/_authenticated/tasks'
+    | '/_authenticated/team'
+    | '/_authenticated/'
+    | '/_authenticated/projects/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  LeagueRoute: typeof LeagueRoute
-  NotificationsRoute: typeof NotificationsRoute
-  ProjectsRoute: typeof ProjectsRouteWithChildren
-  SettingsRoute: typeof SettingsRoute
-  TasksRoute: typeof TasksRoute
-  TeamRoute: typeof TeamRoute
+  AuthenticatedLeagueRoute: typeof AuthenticatedLeagueRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
+  AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/team': {
-      id: '/team'
-      path: '/team'
-      fullPath: '/team'
-      preLoaderRoute: typeof TeamRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tasks': {
-      id: '/tasks'
-      path: '/tasks'
-      fullPath: '/tasks'
-      preLoaderRoute: typeof TasksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/projects': {
-      id: '/projects'
-      path: '/projects'
-      fullPath: '/projects'
-      preLoaderRoute: typeof ProjectsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/league': {
-      id: '/league'
-      path: '/league'
-      fullPath: '/league'
-      preLoaderRoute: typeof LeagueRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/projects/$id': {
-      id: '/projects/$id'
+    '/_authenticated/team': {
+      id: '/_authenticated/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AuthenticatedTeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/tasks': {
+      id: '/_authenticated/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AuthenticatedTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/projects': {
+      id: '/_authenticated/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof AuthenticatedProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/league': {
+      id: '/_authenticated/league'
+      path: '/league'
+      fullPath: '/league'
+      preLoaderRoute: typeof AuthenticatedLeagueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/projects/$id': {
+      id: '/_authenticated/projects/$id'
       path: '/$id'
       fullPath: '/projects/$id'
-      preLoaderRoute: typeof ProjectsIdRouteImport
-      parentRoute: typeof ProjectsRoute
+      preLoaderRoute: typeof AuthenticatedProjectsIdRouteImport
+      parentRoute: typeof AuthenticatedProjectsRoute
     }
   }
 }
 
-interface ProjectsRouteChildren {
-  ProjectsIdRoute: typeof ProjectsIdRoute
+interface AuthenticatedProjectsRouteChildren {
+  AuthenticatedProjectsIdRoute: typeof AuthenticatedProjectsIdRoute
 }
 
-const ProjectsRouteChildren: ProjectsRouteChildren = {
-  ProjectsIdRoute: ProjectsIdRoute,
+const AuthenticatedProjectsRouteChildren: AuthenticatedProjectsRouteChildren = {
+  AuthenticatedProjectsIdRoute: AuthenticatedProjectsIdRoute,
 }
 
-const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
-  ProjectsRouteChildren,
-)
+const AuthenticatedProjectsRouteWithChildren =
+  AuthenticatedProjectsRoute._addFileChildren(
+    AuthenticatedProjectsRouteChildren,
+  )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  LeagueRoute: LeagueRoute,
-  NotificationsRoute: NotificationsRoute,
-  ProjectsRoute: ProjectsRouteWithChildren,
-  SettingsRoute: SettingsRoute,
-  TasksRoute: TasksRoute,
-  TeamRoute: TeamRoute,
+  AuthenticatedLeagueRoute: AuthenticatedLeagueRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedTasksRoute: AuthenticatedTasksRoute,
+  AuthenticatedTeamRoute: AuthenticatedTeamRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
