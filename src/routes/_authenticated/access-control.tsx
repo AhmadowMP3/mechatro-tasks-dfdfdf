@@ -51,6 +51,9 @@ function AccessControlPage() {
   const [showInvite, setShowInvite] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<"all" | "pending">("all");
+  const [invitesBump, setInvitesBump] = useState(0);
+  const [live, setLive] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function load() {
     try {
@@ -69,6 +72,23 @@ function AccessControlPage() {
   }
   useEffect(() => { load(); }, []);
 
+  // Realtime: refresh on any profile or invite change.
+  useEffect(() => {
+    const scheduleReload = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => { load(); }, 250);
+    };
+    const channel = supabase
+      .channel("access-control-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "invites" },
+        () => setInvitesBump((n) => n + 1))
+      .subscribe((status) => setLive(status === "SUBSCRIBED"));
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   async function act(action: string, user_id: string, extra?: Record<string, unknown>) {
     setBusyId(user_id);
@@ -77,6 +97,21 @@ function AccessControlPage() {
       await load();
       toast.success(l ? "تم" : "Done");
     } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally { setBusyId(null); }
+  }
+
+  // Optimistic role change — flip the pill immediately, revert on failure.
+  async function changeRole(user_id: string, role: "admin" | "member") {
+    const prev = users;
+    setUsers((cur) => (cur ?? []).map((u) => u.id === user_id ? { ...u, role } : u));
+    setBusyId(user_id);
+    try {
+      await call({ action: "set_role", user_id, role });
+      toast.success(l ? "تم تحديث الدور" : "Role updated");
+      await load();
+    } catch (e) {
+      setUsers(prev);
       toast.error(e instanceof Error ? e.message : String(e));
     } finally { setBusyId(null); }
   }
