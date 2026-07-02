@@ -93,7 +93,7 @@ function TasksPage() {
         {view !== "kanban" && (
           <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} style={filterInp}>
             <option value="">{t("filterStatus")}: {t("all")}</option>
-            {["todo", "in_progress", "paused", "done"].map((s) => <option key={s} value={s}>{t(s as never)}</option>)}
+            {["todo", "in_progress", "paused", "in_review", "done"].map((s) => <option key={s} value={s}>{t(s as never)}</option>)}
           </select>
         )}
         <select value={filters.priority} onChange={(e) => setFilters({ ...filters, priority: e.target.value })} style={filterInp}>
