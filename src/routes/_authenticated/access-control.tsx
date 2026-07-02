@@ -2,12 +2,14 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  ShieldCheck, UserPlus, MailPlus, MoreVertical, Trash2, Pause, Play, Check, Crown, User as UserIcon, X,
+  ShieldCheck, LinkIcon, Link2, MoreVertical, Trash2, Pause, Play, Check, Crown, User as UserIcon, X,
+  Copy, Clock, Mail, Sparkles, RefreshCw, Ban,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { relativeTime } from "@/lib/format";
+
 
 export const Route = createFileRoute("/_authenticated/access-control")({
   ssr: false,
@@ -121,8 +123,9 @@ function AccessControlPage() {
         </div>
         <div style={{ flex: 1 }} />
         <button onClick={() => setShowInvite(true)} style={primaryBtn}>
-          <UserPlus size={16} />{l ? "دعوة مستخدم" : "Invite user"}
+          <LinkIcon size={16} />{l ? "توليد رابط دعوة" : "Generate invite link"}
         </button>
+
       </div>
 
       {users === null && <div style={{ padding: 40, textAlign: "center", color: "#9FB7C9" }}>…</div>}
@@ -220,7 +223,7 @@ function StatusPill({ status, lang }: { status: UserRow["status"]; lang: "ar" | 
 
 function UserMenu({ user, lang, busy, onAction }: {
   user: UserRow; lang: "ar" | "en"; busy: boolean;
-  onAction: (a: "suspend" | "activate" | "delete" | "resend_invite") => void;
+  onAction: (a: "suspend" | "activate" | "delete") => void;
 }) {
   const [open, setOpen] = useState(false);
   const l = lang === "ar";
@@ -240,10 +243,6 @@ function UserMenu({ user, lang, busy, onAction }: {
             borderRadius: 12, padding: 6, minWidth: 200,
             boxShadow: "0 12px 28px rgba(0,0,0,.45)",
           }}>
-            {user.status === "pending" && (
-              <MenuItem icon={MailPlus} label={l ? "إعادة إرسال الدعوة" : "Resend invite"}
-                onClick={() => { setOpen(false); onAction("resend_invite"); }} />
-            )}
             {user.status !== "suspended" && (
               <MenuItem icon={Pause} label={l ? "تعليق الحساب" : "Suspend"}
                 onClick={() => { setOpen(false); onAction("suspend"); }} />
@@ -264,6 +263,7 @@ function UserMenu({ user, lang, busy, onAction }: {
     </div>
   );
 }
+
 
 function MenuItem({ icon: Icon, label, onClick, danger }: {
   icon: React.ComponentType<{ size?: number }>; label: string; onClick: () => void; danger?: boolean;
