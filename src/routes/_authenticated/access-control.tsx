@@ -373,9 +373,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const rowCard: React.CSSProperties = {
-  display: "flex", alignItems: "center", gap: 14, padding: 14,
+  display: "flex", alignItems: "center", gap: 14, padding: 14, flexWrap: "wrap",
   background: "#0F2033", border: "1px solid #1E364D", borderRadius: 12,
 };
+
 const primaryBtn: React.CSSProperties = {
   padding: "10px 16px", borderRadius: 10,
   background: "linear-gradient(135deg,#1D9BF0,#0F6BB8)", color: "#fff",
