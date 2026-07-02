@@ -1,60 +1,37 @@
 ## Goal
-Upgrade filtering on Tasks, Projects, Team, and Activity Log to a collapsible **filter drawer** with rich controls, and add a **branded Mechatro XLSX export** on each page.
+Replace the plain category `<input list>` in the References add/edit modal with a **cool creative CategoryCombobox** — pick an existing category as a chip, or freely type a custom one. Works for both create and edit flows.
 
-## 1. Shared building blocks (new)
+## What changes (frontend only, References page)
 
-**`src/components/filters/FilterDrawer.tsx`**
-- Slide-in panel (uses shadcn `Sheet`, right side in LTR / left in RTL).
-- Sticky header with title + "Reset all", body with grouped filter sections, footer with "Apply" + active-count badge.
-- Trigger button lives in each page header showing active filter count.
-- Bilingual labels via `dict.ts`.
+### New component: `CategoryCombobox`
+Local to `src/routes/_authenticated/references.tsx` (no new files needed).
 
-**`src/components/filters/controls/`** — reusable inputs:
-- `MultiSelectChips` (assignee, project, status, role, category…)
-- `DateRangePicker` with presets (Today, 7d, 30d, This month, Custom)
-- `SearchInput` with debounce
-- `SortControl` (field + direction)
+**Behavior**
+- Single text input that doubles as filter + custom-entry.
+- Below/inside the field: a horizontal **chip cloud** of existing categories (from the current `categories` prop). Clicking a chip selects it.
+- As the user types:
+  - Chips filter live to matches.
+  - If no exact match exists, a highlighted **"Create '{typed}'"** chip appears with a `Plus` icon and gold gradient — pressing Enter or clicking it commits the custom value.
+- Selected category shows as a **big pill at the top of the field** with a gradient border, a category icon (`Tag` lucide), and an `X` to clear.
+- Keyboard: Enter creates/selects, Backspace on empty input clears the selected pill, Escape closes suggestions.
+- Each existing chip gets a **deterministic accent color** derived from a hash of its name (cycled through the brand palette: blue, gold, purple, green, coral) so the cloud looks alive but stable.
 
-**`src/lib/export/xlsx.ts`** — branded Excel export using `exceljs`:
-- Row 1: Mechatro logo (embedded PNG from `src/assets`) + "Mechatro Tasks / مهام ميكاترو" title in Brand Blue.
-- Row 2: Report name (e.g. "Tasks export"), generated-at timestamp, generated-by, active filters summary.
-- Row 4: styled header row (Brand Blue fill, gold bottom border, white bold text, frozen).
-- Data rows: zebra striping, status/priority cells colored by pill palette, dates formatted, RTL sheet direction when language = AR.
-- Auto column widths, autofilter on header, sheet name = page + date.
-- Helper: `exportToBrandedXlsx({ sheetName, title, filtersSummary, columns, rows, lang })`.
+**Visual polish**
+- Rounded 14px container, `var(--surface-2)` background, 1px border that shifts to `var(--brand-blue)` on focus with a soft glow (`box-shadow: 0 0 0 3px color-mix(...)`).
+- Chips: 999px radius, 11px font, subtle scale on hover, tinted background from the derived accent.
+- Selected pill: gradient background (`var(--grad-gold)` when custom / new, `var(--grad-blue)` when picked from existing), 13px bold.
+- Small helper line under the field: "اختر أو اكتب فئة جديدة" / "Pick one or type your own".
+- Fully RTL-safe (uses `insetInlineStart/End`, flex gaps, no hard left/right).
 
-**Dependency:** `bun add exceljs file-saver` (+ `@types/file-saver`).
+### Wiring
+- Replace lines 536–541 (the `<Field label={tt("category")}>` block) with `<CategoryCombobox value={category} onChange={setCategory} options={categories} lang={lang} t={tt} />`.
+- Keep `category.trim().slice(0, 60) || null` normalization on save — no schema/DB changes.
+- Add two dict keys used by the helper text: `categoryHint`, `createCategory` (AR + EN) in `src/i18n/dict.ts`.
 
-## 2. Per-page changes
+## Non-goals
+- No DB migrations, no new tables, no changes to filtering on the main page (the top-of-page category filter stays as-is unless you want it upgraded too — say the word).
+- No changes outside the References route + one dict addition.
 
-### Tasks (`_authenticated/tasks.tsx`)
-Filters: search, project (multi), assignee (multi, admin only), status (multi, incl. `in_review`), priority (multi), date range (created / due — toggle), overdue-only, has-attachments, sort.
-Export columns: Task, Project, Assignee, Status, Priority, Start, Due, Elapsed, Comments count.
-
-### Projects (`_authenticated/projects.tsx`)
-Filters: search, status, owner (admin), date range (created / due), progress bucket (0–25/26–50/51–75/76–100 %), sort.
-Export: Project, Owner, Status, Start, Due, Tasks total, Done, Progress %.
-
-### Team (`_authenticated/team.tsx`)
-Filters: search, role, status (active/invited/disabled), sort (name, tasks, completion rate).
-Export: Name, Email, Role, Status, Joined, Tasks assigned, Done, In progress, Completion %.
-
-### Activity Log (`_authenticated/activity.tsx`)
-Keep existing filters but move into the same drawer for consistency; add action-type multi-select, actor multi-select, entity-type filter, date range presets.
-Replace current plain CSV button with the branded XLSX export. Columns: When, Actor, Action, Entity type, Entity, Details.
-
-## 3. State + URL sync
-- All four pages persist filter state in URL search params via TanStack Router `validateSearch` + `zodValidator` + `fallback` (matches existing dashboard pattern), so filters survive reload and are shareable.
-- Drawer reads/writes through the same hook (`useTaskFilters`, `useProjectFilters`, …).
-
-## 4. UX details
-- Active-filter chips row above the list (removable) even when drawer is closed.
-- Export button placed next to the drawer trigger; shows spinner while building XLSX.
-- Members on Tasks page: assignee filter hidden (they only see own tasks); Team + Activity pages remain admin-only.
-- All filters and export respect current language (labels, date locale, RTL sheet direction).
-
-## Technical section
-- `exceljs` runs fully in the browser; `file-saver` triggers download. No server function needed.
-- Logo embedded via base64 from `src/assets/mechatro-logo.png` at module init.
-- Colors reused from `src/styles.css` tokens mirrored in a `BRAND` constant in `xlsx.ts` (Brand Blue `#0A2540`, Gold `#C8A24B`, etc. — I'll read the exact values from styles.css during build).
-- No DB migrations. No RLS changes. No backend edits.
+## Files touched
+- `src/routes/_authenticated/references.tsx` — add `CategoryCombobox` component, swap the field.
+- `src/i18n/dict.ts` — 2 new keys (AR + EN).
