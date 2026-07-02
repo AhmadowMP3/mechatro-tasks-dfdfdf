@@ -160,6 +160,21 @@ export const dict = {
   act_comment: { ar: "علّق على", en: "commented on" },
   entity_project: { ar: "مشروعًا", en: "a project" },
   entity_task: { ar: "مهمة", en: "a task" },
+  // View modes
+  viewCards: { ar: "بطاقات", en: "Cards" },
+  viewKanban: { ar: "كانبان", en: "Kanban" },
+  viewTable: { ar: "جدول", en: "Table" },
+  viewCalendar: { ar: "تقويم", en: "Calendar" },
+  noDueDate: { ar: "بدون تاريخ", en: "No due date" },
+  unassigned: { ar: "غير مُعيَّن", en: "Unassigned" },
+  moreTasks: { ar: "أخرى", en: "more" },
+  sun: { ar: "أحد", en: "Sun" },
+  mon: { ar: "اثنين", en: "Mon" },
+  tue: { ar: "ثلاثاء", en: "Tue" },
+  wed: { ar: "أربعاء", en: "Wed" },
+  thu: { ar: "خميس", en: "Thu" },
+  fri: { ar: "جمعة", en: "Fri" },
+  sat: { ar: "سبت", en: "Sat" },
 } as const;
 
 export type DictKey = keyof typeof dict;
