@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ShieldCheck, LinkIcon, Link2, MoreVertical, Trash2, Pause, Play, Check, Crown, User as UserIcon, X,
@@ -51,6 +51,9 @@ function AccessControlPage() {
   const [showInvite, setShowInvite] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<"all" | "pending">("all");
+  const [invitesBump, setInvitesBump] = useState(0);
+  const [live, setLive] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function load() {
     try {
@@ -69,6 +72,23 @@ function AccessControlPage() {
   }
   useEffect(() => { load(); }, []);
 
+  // Realtime: refresh on any profile or invite change.
+  useEffect(() => {
+    const scheduleReload = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => { load(); }, 250);
+    };
+    const channel = supabase
+      .channel("access-control-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "invites" },
+        () => setInvitesBump((n) => n + 1))
+      .subscribe((status) => setLive(status === "SUBSCRIBED"));
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   async function act(action: string, user_id: string, extra?: Record<string, unknown>) {
     setBusyId(user_id);
@@ -77,6 +97,21 @@ function AccessControlPage() {
       await load();
       toast.success(l ? "تم" : "Done");
     } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally { setBusyId(null); }
+  }
+
+  // Optimistic role change — flip the pill immediately, revert on failure.
+  async function changeRole(user_id: string, role: "admin" | "member") {
+    const prev = users;
+    setUsers((cur) => (cur ?? []).map((u) => u.id === user_id ? { ...u, role } : u));
+    setBusyId(user_id);
+    try {
+      await call({ action: "set_role", user_id, role });
+      toast.success(l ? "تم تحديث الدور" : "Role updated");
+      await load();
+    } catch (e) {
+      setUsers(prev);
       toast.error(e instanceof Error ? e.message : String(e));
     } finally { setBusyId(null); }
   }
@@ -93,7 +128,7 @@ function AccessControlPage() {
           display: "grid", placeItems: "center", color: "#fff",
           boxShadow: "0 8px 24px rgba(29,155,240,.35)",
         }}><ShieldCheck size={26} /></div>
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>
             {l ? "التحكم بالصلاحيات" : "Access Control"}
           </h1>
@@ -101,6 +136,21 @@ function AccessControlPage() {
             {l ? "الموافقة على الطلبات وإدارة الأدوار" : "Approve access requests and assign roles"}
           </div>
         </div>
+        <span title={live ? "Realtime connected" : "Realtime connecting…"} style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "6px 10px", borderRadius: 999, fontSize: 11.5, fontWeight: 800,
+          background: live ? "rgba(20,168,110,.14)" : "rgba(159,183,201,.12)",
+          color: live ? "#14A86E" : "#9FB7C9",
+          border: `1px solid ${live ? "rgba(20,168,110,.35)" : "#1E364D"}`,
+        }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: "50%",
+            background: live ? "#14A86E" : "#9FB7C9",
+            boxShadow: live ? "0 0 0 4px rgba(20,168,110,.18)" : "none",
+            animation: live ? "pulse 1.6s ease-in-out infinite" : undefined,
+          }} />
+          {l ? (live ? "مباشر" : "…") : (live ? "Live" : "…")}
+        </span>
       </header>
 
       <div style={{ display: "flex", gap: 10, marginTop: 22, marginBottom: 20, alignItems: "center", flexWrap: "wrap" }}>
@@ -178,7 +228,7 @@ function AccessControlPage() {
               <select
                 disabled={busyId === u.id}
                 value={u.role === "admin" ? "admin" : "member"}
-                onChange={(e) => act("set_role", u.id, { role: e.target.value })}
+                onChange={(e) => changeRole(u.id, e.target.value as "admin" | "member")}
                 style={selectStyle}
               >
                 <option value="member">{l ? "عضو" : "Member"}</option>
@@ -193,7 +243,7 @@ function AccessControlPage() {
         ))}
       </div>
 
-      <PendingInvitesList lang={lang} refreshKey={String(users?.length ?? 0) + String(showInvite)} />
+      <PendingInvitesList lang={lang} refreshKey={String(invitesBump)} />
 
       {showInvite && (
         <InviteModal
