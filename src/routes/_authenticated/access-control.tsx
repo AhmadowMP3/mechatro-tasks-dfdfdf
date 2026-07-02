@@ -2,12 +2,14 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  ShieldCheck, UserPlus, MailPlus, MoreVertical, Trash2, Pause, Play, Check, Crown, User as UserIcon, X,
+  ShieldCheck, LinkIcon, Link2, MoreVertical, Trash2, Pause, Play, Check, Crown, User as UserIcon, X,
+  Copy, Clock, Mail, Sparkles, RefreshCw, Ban,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { relativeTime } from "@/lib/format";
+
 
 export const Route = createFileRoute("/_authenticated/access-control")({
   ssr: false,
@@ -121,8 +123,9 @@ function AccessControlPage() {
         </div>
         <div style={{ flex: 1 }} />
         <button onClick={() => setShowInvite(true)} style={primaryBtn}>
-          <UserPlus size={16} />{l ? "دعوة مستخدم" : "Invite user"}
+          <LinkIcon size={16} />{l ? "توليد رابط دعوة" : "Generate invite link"}
         </button>
+
       </div>
 
       {users === null && <div style={{ padding: 40, textAlign: "center", color: "#9FB7C9" }}>…</div>}
@@ -190,16 +193,19 @@ function AccessControlPage() {
         ))}
       </div>
 
+      <PendingInvitesList lang={lang} refreshKey={String(users?.length ?? 0) + String(showInvite)} />
+
       {showInvite && (
         <InviteModal
           lang={lang}
           onClose={() => setShowInvite(false)}
-          onInvited={() => { setShowInvite(false); load(); }}
+          onInvited={() => { load(); }}
         />
       )}
     </div>
   );
 }
+
 
 function StatusPill({ status, lang }: { status: UserRow["status"]; lang: "ar" | "en" }) {
   const l = lang === "ar";
@@ -220,7 +226,7 @@ function StatusPill({ status, lang }: { status: UserRow["status"]; lang: "ar" | 
 
 function UserMenu({ user, lang, busy, onAction }: {
   user: UserRow; lang: "ar" | "en"; busy: boolean;
-  onAction: (a: "suspend" | "activate" | "delete" | "resend_invite") => void;
+  onAction: (a: "suspend" | "activate" | "delete") => void;
 }) {
   const [open, setOpen] = useState(false);
   const l = lang === "ar";
@@ -240,10 +246,6 @@ function UserMenu({ user, lang, busy, onAction }: {
             borderRadius: 12, padding: 6, minWidth: 200,
             boxShadow: "0 12px 28px rgba(0,0,0,.45)",
           }}>
-            {user.status === "pending" && (
-              <MenuItem icon={MailPlus} label={l ? "إعادة إرسال الدعوة" : "Resend invite"}
-                onClick={() => { setOpen(false); onAction("resend_invite"); }} />
-            )}
             {user.status !== "suspended" && (
               <MenuItem icon={Pause} label={l ? "تعليق الحساب" : "Suspend"}
                 onClick={() => { setOpen(false); onAction("suspend"); }} />
@@ -265,6 +267,7 @@ function UserMenu({ user, lang, busy, onAction }: {
   );
 }
 
+
 function MenuItem({ icon: Icon, label, onClick, danger }: {
   icon: React.ComponentType<{ size?: number }>; label: string; onClick: () => void; danger?: boolean;
 }) {
@@ -285,27 +288,43 @@ function InviteModal({ lang, onClose, onInvited }: {
   lang: "ar" | "en"; onClose: () => void; onInvited: () => void;
 }) {
   const l = lang === "ar";
+  const [role, setRole] = useState<"member" | "admin">("member");
+  const [mode, setMode] = useState<"open" | "locked">("open");
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"member" | "admin">("member");
+  const [expiry, setExpiry] = useState<"24h" | "7d" | "30d" | "never">("7d");
   const [busy, setBusy] = useState(false);
+  const [generated, setGenerated] = useState<{ url: string; expires_at: string | null } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     try {
-      await call({
-        action: "invite",
-        email: email.trim().toLowerCase(),
-        full_name: fullName.trim(),
+      const res = await call({
+        action: "create",
         role,
-        redirect_to: `${window.location.origin}/reset-password`,
-      });
-      toast.success(l ? "تم إرسال الدعوة" : "Invite sent");
+        expiry,
+        email: mode === "locked" ? email.trim().toLowerCase() : null,
+        full_name: mode === "locked" ? fullName.trim() : null,
+      }) as { token?: string; expires_at?: string | null };
+      if (!res?.token) throw new Error("No token returned");
+      const url = `${window.location.origin}/accept-invite?token=${res.token}`;
+      setGenerated({ url, expires_at: res.expires_at ?? null });
       onInvited();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally { setBusy(false); }
+  }
+
+  async function copyLink() {
+    if (!generated) return;
+    try {
+      await navigator.clipboard.writeText(generated.url);
+      setCopied(true);
+      toast.success(l ? "تم نسخ الرابط" : "Link copied");
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* noop */ }
   }
 
   return (
@@ -315,51 +334,288 @@ function InviteModal({ lang, onClose, onInvited }: {
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         background: "#0F2033", border: "1px solid #1E364D",
-        borderRadius: 16, padding: "clamp(16px, 3vw, 22px)", width: "100%", maxWidth: 440,
+        borderRadius: 16, padding: "clamp(16px, 3vw, 22px)", width: "100%", maxWidth: 500,
         maxHeight: "calc(100dvh - 32px)", overflowY: "auto",
       }}>
-
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{l ? "دعوة مستخدم جديد" : "Invite a new user"}</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: "linear-gradient(135deg,#F0B429,#F09F26)",
+              display: "grid", placeItems: "center", color: "#1A1408",
+            }}><Sparkles size={18} /></div>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800 }}>
+              {generated
+                ? (l ? "الرابط جاهز" : "Your invite link")
+                : (l ? "توليد رابط دعوة" : "Generate invite link")}
+            </h2>
+          </div>
           <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#9FB7C9", cursor: "pointer" }}>
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Field label={l ? "الاسم الكامل" : "Full name"}>
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} required style={inputCss} />
-          </Field>
-          <Field label={l ? "البريد الإلكتروني" : "Email"}>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputCss} dir="ltr" />
-          </Field>
-          <Field label={l ? "الدور" : "Role"}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
-              {[
-                { v: "member", icon: UserIcon, ar: "عضو", en: "Member", desc: l ? "وصول محدود" : "Limited access" },
-                { v: "admin",  icon: ShieldCheck, ar: "نائب مدير", en: "Admin", desc: l ? "وصول كامل" : "Full access" },
-              ].map(({ v, icon: Icon, ar, en, desc }) => (
-                <button key={v} type="button" onClick={() => setRole(v as "member" | "admin")} style={{
-                  padding: 12, borderRadius: 10, cursor: "pointer",
-                  border: `1.5px solid ${role === v ? "#1D9BF0" : "#1E364D"}`,
-                  background: role === v ? "rgba(29,155,240,.08)" : "transparent",
-                  color: "#EAF2F9", textAlign: "start",
-                  display: "flex", flexDirection: "column", gap: 4,
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 800, fontSize: 14 }}>
-                    <Icon size={14} />{l ? ar : en}
-                  </div>
-                  <div style={{ fontSize: 11.5, color: "#9FB7C9" }}>{desc}</div>
-                </button>
-              ))}
+
+        {generated ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{
+              padding: 14, borderRadius: 12,
+              background: "rgba(240,180,41,.08)", border: "1px dashed rgba(240,180,41,.35)",
+              fontSize: 12.5, color: "#F0B429", textAlign: "center",
+            }}>
+              {l
+                ? "انسخ هذا الرابط وأرسله للعضو يدويًا. صالح لاستخدام واحد فقط."
+                : "Copy this link and share it manually. Single-use only."}
             </div>
-          </Field>
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={ghostBtn}>{l ? "إلغاء" : "Cancel"}</button>
-            <button type="submit" disabled={busy} style={{ ...primaryBtn, opacity: busy ? 0.6 : 1 }}>
-              <MailPlus size={16} />{l ? "إرسال الدعوة" : "Send invite"}
+            <div style={{
+              padding: 12, borderRadius: 10, background: "#0A1A2B",
+              border: "1px solid #1E364D", fontFamily: "monospace",
+              fontSize: 12.5, color: "#EAF2F9", wordBreak: "break-all", direction: "ltr",
+            }}>{generated.url}</div>
+            <button onClick={copyLink} style={{
+              minHeight: 48, borderRadius: 12, border: "none", cursor: "pointer",
+              background: copied
+                ? "linear-gradient(135deg,#14A86E,#0E7B4F)"
+                : "linear-gradient(135deg,#F0B429,#F09F26)",
+              color: copied ? "#fff" : "#1A1408", fontWeight: 900, fontSize: 14,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+              boxShadow: copied ? "0 8px 24px rgba(20,168,110,.35)" : "0 8px 24px rgba(240,180,41,.35)",
+              transition: "all .2s",
+            }}>
+              {copied ? <Check size={16} /> : <Copy size={16} />}
+              {copied ? (l ? "تم النسخ" : "Copied!") : (l ? "نسخ الرابط" : "Copy link")}
             </button>
+            {generated.expires_at && (
+              <div style={{ fontSize: 12, color: "#7A94A9", textAlign: "center" }}>
+                <Clock size={11} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />
+                {l ? "ينتهي في " : "Expires "} {new Date(generated.expires_at).toLocaleString(l ? "ar-EG" : "en-US")}
+              </div>
+            )}
+            <button onClick={onClose} style={ghostBtn}>{l ? "إغلاق" : "Close"}</button>
           </div>
-        </form>
+        ) : (
+          <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <Field label={l ? "الدور" : "Role"}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
+                {[
+                  { v: "member", icon: UserIcon, ar: "عضو", en: "Member", desc: l ? "وصول محدود" : "Limited access" },
+                  { v: "admin",  icon: ShieldCheck, ar: "نائب مدير", en: "Admin", desc: l ? "وصول كامل" : "Full access" },
+                ].map(({ v, icon: Icon, ar, en, desc }) => (
+                  <button key={v} type="button" onClick={() => setRole(v as "member" | "admin")} style={{
+                    padding: 12, borderRadius: 10, cursor: "pointer",
+                    border: `1.5px solid ${role === v ? "#1D9BF0" : "#1E364D"}`,
+                    background: role === v ? "rgba(29,155,240,.08)" : "transparent",
+                    color: "#EAF2F9", textAlign: "start",
+                    display: "flex", flexDirection: "column", gap: 4,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 800, fontSize: 14 }}>
+                      <Icon size={14} />{l ? ar : en}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: "#9FB7C9" }}>{desc}</div>
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            <Field label={l ? "نوع الرابط" : "Link binding"}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8 }}>
+                {[
+                  { v: "open",   ar: "مفتوح للجميع", en: "Open link", desc: l ? "أول من يفتحه يستخدمه" : "First to open claims it" },
+                  { v: "locked", ar: "مقيّد ببريد",  en: "Email-locked", desc: l ? "يُقبل من بريد محدد فقط" : "Only a specific email may sign up" },
+                ].map(({ v, ar, en, desc }) => (
+                  <button key={v} type="button" onClick={() => setMode(v as "open" | "locked")} style={{
+                    padding: 12, borderRadius: 10, cursor: "pointer",
+                    border: `1.5px solid ${mode === v ? "#F0B429" : "#1E364D"}`,
+                    background: mode === v ? "rgba(240,180,41,.08)" : "transparent",
+                    color: "#EAF2F9", textAlign: "start",
+                    display: "flex", flexDirection: "column", gap: 4,
+                  }}>
+                    <div style={{ fontWeight: 800, fontSize: 13.5 }}>{l ? ar : en}</div>
+                    <div style={{ fontSize: 11.5, color: "#9FB7C9" }}>{desc}</div>
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            {mode === "locked" && (
+              <>
+                <Field label={l ? "البريد الإلكتروني" : "Email"}>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputCss} dir="ltr" />
+                </Field>
+                <Field label={l ? "الاسم (اختياري)" : "Name (optional)"}>
+                  <input value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputCss} />
+                </Field>
+              </>
+            )}
+
+            <Field label={l ? "مدة الصلاحية" : "Expires in"}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {([
+                  { v: "24h",   ar: "٢٤ ساعة",   en: "24 hours" },
+                  { v: "7d",    ar: "٧ أيام",    en: "7 days" },
+                  { v: "30d",   ar: "٣٠ يومًا",  en: "30 days" },
+                  { v: "never", ar: "بدون انتهاء", en: "Never" },
+                ] as const).map(({ v, ar, en }) => (
+                  <button key={v} type="button" onClick={() => setExpiry(v)} style={{
+                    padding: "8px 14px", borderRadius: 999, cursor: "pointer", minHeight: 36,
+                    border: `1.5px solid ${expiry === v ? "#1D9BF0" : "#1E364D"}`,
+                    background: expiry === v ? "rgba(29,155,240,.12)" : "transparent",
+                    color: expiry === v ? "#1D9BF0" : "#B9CBDA",
+                    fontWeight: 700, fontSize: 12.5,
+                  }}>{l ? ar : en}</button>
+                ))}
+              </div>
+            </Field>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+              <button type="button" onClick={onClose} style={ghostBtn}>{l ? "إلغاء" : "Cancel"}</button>
+              <button type="submit" disabled={busy} style={{ ...primaryBtn, opacity: busy ? 0.6 : 1 }}>
+                <LinkIcon size={16} />{busy ? (l ? "جارٍ…" : "Generating…") : (l ? "توليد الرابط" : "Generate link")}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+type InviteRow = {
+  id: string;
+  token: string;
+  role: "admin" | "member";
+  email: string | null;
+  full_name: string | null;
+  expires_at: string | null;
+  is_email_locked: boolean;
+  used_at: string | null;
+  revoked_at: string | null;
+  used_by: string | null;
+  created_at: string;
+};
+
+function PendingInvitesList({ lang, refreshKey }: { lang: "ar" | "en"; refreshKey: string }) {
+  const l = lang === "ar";
+  const [rows, setRows] = useState<InviteRow[] | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function load() {
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-invites", { body: { action: "list" } });
+      if (error) throw new Error(error.message);
+      const list = ((data as { invites?: InviteRow[] })?.invites) ?? [];
+      setRows(list);
+    } catch (e) {
+      setRows([]);
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  }
+  useEffect(() => { load(); }, [refreshKey]);
+
+  async function copyOne(token: string) {
+    const url = `${window.location.origin}/accept-invite?token=${token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(l ? "تم نسخ الرابط" : "Link copied");
+    } catch { /* noop */ }
+  }
+
+  async function revoke(id: string) {
+    if (!confirm(l ? "إلغاء هذه الدعوة نهائيًا؟" : "Revoke this invite?")) return;
+    setBusyId(id);
+    try {
+      const { error } = await supabase.functions.invoke("admin-invites", { body: { action: "revoke", id } });
+      if (error) throw new Error(error.message);
+      toast.success(l ? "تم الإلغاء" : "Revoked");
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally { setBusyId(null); }
+  }
+
+  const active = (rows ?? []).filter((r) => !r.used_at && !r.revoked_at);
+  if (!rows) return null;
+  if (active.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 34 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <Link2 size={18} color="#F0B429" />
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>
+          {l ? "روابط الدعوة النشطة" : "Active invite links"}
+        </h2>
+        <span style={{
+          padding: "2px 10px", borderRadius: 999, fontSize: 11.5, fontWeight: 800,
+          background: "rgba(240,180,41,.15)", color: "#F0B429",
+        }}>{active.length}</span>
+        <div style={{ flex: 1 }} />
+        <button onClick={load} style={{
+          padding: "6px 10px", borderRadius: 8, background: "transparent",
+          color: "#9FB7C9", border: "1px solid #1E364D",
+          cursor: "pointer", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4,
+        }}><RefreshCw size={12} />{l ? "تحديث" : "Refresh"}</button>
+      </div>
+      <div style={{ display: "grid", gap: 10 }}>
+        {active.map((r) => {
+          const expired = r.expires_at && new Date(r.expires_at).getTime() < Date.now();
+          return (
+            <div key={r.id} style={{
+              ...rowCard,
+              borderColor: expired ? "rgba(240,103,106,.35)" : "#1E364D",
+              opacity: expired ? 0.7 : 1,
+            }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: r.role === "admin"
+                  ? "linear-gradient(135deg,#1D9BF0,#0F6BB8)"
+                  : "linear-gradient(135deg,#F0B429,#F09F26)",
+                display: "grid", placeItems: "center",
+                color: r.role === "admin" ? "#fff" : "#1A1408",
+              }}>
+                {r.is_email_locked ? <Mail size={20} /> : <LinkIcon size={20} />}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 700, fontSize: 14 }}>
+                    {r.is_email_locked
+                      ? (r.email ?? (l ? "بريد محدد" : "Email-locked"))
+                      : (l ? "رابط مفتوح" : "Open link")}
+                  </span>
+                  <span style={{
+                    padding: "2px 8px", borderRadius: 999, fontSize: 10.5, fontWeight: 800,
+                    background: r.role === "admin" ? "rgba(29,155,240,.16)" : "rgba(240,180,41,.16)",
+                    color: r.role === "admin" ? "#1D9BF0" : "#F0B429",
+                  }}>{r.role === "admin" ? (l ? "نائب مدير" : "Admin") : (l ? "عضو" : "Member")}</span>
+                  {expired && (
+                    <span style={{
+                      padding: "2px 8px", borderRadius: 999, fontSize: 10.5, fontWeight: 800,
+                      background: "rgba(240,103,106,.16)", color: "#F0676A",
+                    }}>{l ? "منتهية" : "Expired"}</span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11.5, color: "#7A94A9", marginTop: 3, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Clock size={11} />
+                  {r.expires_at
+                    ? ((l ? "تنتهي " : "Expires ") + relativeTime(r.expires_at, lang))
+                    : (l ? "بدون انتهاء" : "Never expires")}
+                  <span style={{ opacity: 0.5 }}> · </span>
+                  {l ? "أُنشئت " : "Created "} {relativeTime(r.created_at, lang)}
+                </div>
+              </div>
+              <button onClick={() => copyOne(r.token)} disabled={!!expired} style={{
+                ...approveBtn,
+                background: "rgba(240,180,41,.12)", color: "#F0B429",
+                borderColor: "rgba(240,180,41,.35)",
+              }}><Copy size={13} />{l ? "نسخ" : "Copy"}</button>
+              <button onClick={() => revoke(r.id)} disabled={busyId === r.id} style={{
+                padding: "8px 12px", borderRadius: 8,
+                background: "rgba(240,103,106,.12)", color: "#F0676A",
+                border: "1px solid rgba(240,103,106,.35)", cursor: busyId === r.id ? "wait" : "pointer",
+                fontWeight: 700, fontSize: 12.5, minHeight: 36,
+                display: "inline-flex", alignItems: "center", gap: 5,
+              }}><Ban size={13} />{l ? "إلغاء" : "Revoke"}</button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -373,6 +629,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+
 
 const rowCard: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 14, padding: 14, flexWrap: "wrap",

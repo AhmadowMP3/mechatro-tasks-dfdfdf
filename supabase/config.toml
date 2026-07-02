@@ -2,3 +2,7 @@ project_id = "hxzttehtfnxpnfyeclzj"
 
 [functions.backup-snapshot]
 verify_jwt = false
+
+[functions.redeem-invite]
+verify_jwt = false
+

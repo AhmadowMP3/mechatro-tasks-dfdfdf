@@ -98,7 +98,7 @@ function AuthPage() {
           background: "rgba(29,155,240,.10)", border: "1px solid rgba(29,155,240,.3)",
           borderRadius: 10, fontSize: 12.5, color: "#B9CBDA", textAlign: "center",
         }}>
-          {l ? "الدخول بالدعوة فقط. تواصل مع مسؤول النظام لطلب حساب." : "Invite-only access. Contact your master admin to request an account."}
+          {l ? "الدخول بالدعوة فقط. اطلب من مسؤول النظام إنشاء رابط دعوة لك." : "Invite-only access. Ask your master admin for an invite link."}
         </div>
 
         <form onSubmit={handleSignIn} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
