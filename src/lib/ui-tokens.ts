@@ -2,6 +2,7 @@ export const STATUS_STYLES: Record<string, { bg: string; text: string; ring: str
   todo:        { bg: "rgba(134,161,183,.15)", text: "#86A1B7", ring: "rgba(134,161,183,.35)" },
   in_progress: { bg: "rgba(24,159,209,.18)",  text: "#42C2EE", ring: "rgba(24,159,209,.4)" },
   paused:      { bg: "rgba(232,115,46,.15)",  text: "#FF9255", ring: "rgba(232,115,46,.35)" },
+  in_review:   { bg: "rgba(168,85,247,.18)",  text: "#C084FC", ring: "rgba(168,85,247,.45)" },
   done:        { bg: "rgba(78,154,51,.18)",   text: "#73C94E", ring: "rgba(78,154,51,.4)" },
 };
 
