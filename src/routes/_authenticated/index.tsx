@@ -35,6 +35,28 @@ export const Route = createFileRoute("/_authenticated/")({
 function Dashboard() {
   const { t, lang, user, isMasterAdmin } = useApp();
   const isAdmin = isMasterAdmin || user?.role === "admin";
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/" });
+  const filters: DashboardFilters = {
+    range: search.range ?? DEFAULT_FILTERS.range,
+    from: search.from,
+    to: search.to,
+    projects: search.projects ?? [],
+    statuses: search.statuses ?? [],
+  };
+  const setFilters = (next: DashboardFilters) => {
+    navigate({
+      search: {
+        range: next.range === DEFAULT_FILTERS.range ? undefined : next.range,
+        from: next.from,
+        to: next.to,
+        projects: next.projects.length ? next.projects : undefined,
+        statuses: next.statuses.length ? next.statuses : undefined,
+      },
+      replace: true,
+    });
+  };
+
   const [selected, setSelected] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -48,9 +70,9 @@ function Dashboard() {
       const [tasksRes, projectsRes, activityRes, profilesRes, sessionsRes] = await Promise.all([
         supabase.from("tasks").select("*"),
         supabase.from("projects").select("*"),
-        supabase.from("activity_log").select("*").order("created_at", { ascending: false }).limit(12),
+        supabase.from("activity_log").select("*").order("created_at", { ascending: false }).limit(200),
         supabase.from("profiles").select("id, full_name, avatar_url, role").eq("active", true),
-        supabase.from("work_sessions").select("id, user_id, task_id, started_at, ended_at, duration_minutes").order("started_at", { ascending: false }).limit(200),
+        supabase.from("work_sessions").select("id, user_id, task_id, started_at, ended_at, duration_minutes").order("started_at", { ascending: false }).limit(500),
       ]);
       return {
         tasks: tasksRes.data ?? [],
@@ -62,36 +84,88 @@ function Dashboard() {
     },
   });
 
-  const tasks = data?.tasks ?? [];
+  const allTasks = data?.tasks ?? [];
   const projects = data?.projects ?? [];
-  const activity = data?.activity ?? [];
+  const allActivity = data?.activity ?? [];
   const profiles = data?.profiles ?? [];
-  const sessions = data?.sessions ?? [];
+  const allSessions = data?.sessions ?? [];
+
+  // Resolved range
+  const { start: rangeStart, end: rangeEnd } = useMemo(() => resolveRange(filters), [filters.range, filters.from, filters.to]);
+  const inRange = (iso: string | null | undefined) => {
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    if (rangeStart && t < rangeStart.getTime()) return false;
+    if (rangeEnd && t > rangeEnd.getTime()) return false;
+    return true;
+  };
+
+  // Apply project + status filters to tasks
+  const tasks = useMemo(() => {
+    return allTasks.filter((t) => {
+      if (filters.projects.length && !filters.projects.includes(t.project_id)) return false;
+      if (filters.statuses.length && !filters.statuses.includes(t.status)) return false;
+      return true;
+    });
+  }, [allTasks, filters.projects, filters.statuses]);
+
+  // Activity + sessions filtered by date range (and project when relevant)
+  const activity = useMemo(() => {
+    return allActivity.filter((a) => {
+      if (rangeStart || rangeEnd) { if (!inRange(a.created_at)) return false; }
+      return true;
+    }).slice(0, 12);
+  }, [allActivity, rangeStart, rangeEnd]);
+
+  const sessions = useMemo(() => {
+    return allSessions.filter((s) => {
+      if (rangeStart || rangeEnd) { if (!inRange(s.started_at)) return false; }
+      if (filters.projects.length) {
+        const tk = allTasks.find((x) => x.id === s.task_id);
+        if (!tk || !filters.projects.includes(tk.project_id)) return false;
+      }
+      return true;
+    });
+  }, [allSessions, rangeStart, rangeEnd, filters.projects, allTasks]);
 
   const active = tasks.filter((t) => t.status !== "done");
   const overdueTasks = tasks.filter((t) => isOverdue(t.due_date, t.status));
-  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
-  const doneWeek = tasks.filter((t) => t.status === "done" && t.completed_at && new Date(t.completed_at).getTime() > weekAgo);
-  const activeProjects = projects.filter((p) => p.status === "active" && !p.archived);
+  const doneInRange = tasks.filter((t) => t.status === "done" && t.completed_at && (!rangeStart || !rangeEnd ? inRange(t.completed_at) || (!rangeStart && !rangeEnd) : inRange(t.completed_at)));
+  const projectFilterActive = filters.projects.length > 0;
+  const activeProjectsAll = projects.filter((p) => p.status === "active" && !p.archived);
+  const activeProjects = projectFilterActive ? activeProjectsAll.filter((p) => filters.projects.includes(p.id)) : activeProjectsAll;
 
   const dist = ["todo", "in_progress", "paused", "done"].map((s) => ({
     key: s, count: tasks.filter((t) => t.status === s).length,
   }));
   const total = dist.reduce((a, b) => a + b.count, 0);
 
-  // 14-day completion momentum
-  const days = 14;
-  const dayBuckets: { d: Date; count: number }[] = [];
-  const today0 = new Date(); today0.setHours(0, 0, 0, 0);
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today0); d.setDate(today0.getDate() - i);
-    dayBuckets.push({ d, count: 0 });
-  }
-  tasks.filter((t) => t.status === "done" && t.completed_at).forEach((t) => {
-    const c = new Date(t.completed_at!);
-    const idx = dayBuckets.findIndex((b) => c >= b.d && c < new Date(b.d.getTime() + 86400000));
-    if (idx >= 0) dayBuckets[idx].count++;
-  });
+  // Momentum window: aligned to selected range; capped at 60 bars
+  const momentumWindow = useMemo(() => {
+    const end = rangeEnd ? new Date(rangeEnd) : new Date();
+    end.setHours(0, 0, 0, 0);
+    let days: number;
+    if (rangeStart && rangeEnd) {
+      days = Math.max(1, Math.min(60, Math.round((rangeEnd.getTime() - rangeStart.getTime()) / 86400000) + 1));
+    } else if (filters.range === "today") days = 1;
+    else if (filters.range === "7d") days = 7;
+    else if (filters.range === "30d") days = 30;
+    else if (filters.range === "90d") days = 60;
+    else days = 30;
+    const buckets: { d: Date; count: number }[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(end); d.setDate(end.getDate() - i);
+      buckets.push({ d, count: 0 });
+    }
+    tasks.filter((t) => t.status === "done" && t.completed_at).forEach((t) => {
+      const c = new Date(t.completed_at!);
+      const idx = buckets.findIndex((b) => c >= b.d && c < new Date(b.d.getTime() + 86400000));
+      if (idx >= 0) buckets[idx].count++;
+    });
+    return buckets;
+  }, [tasks, rangeStart, rangeEnd, filters.range]);
+  const dayBuckets = momentumWindow;
+
 
   // Top active projects
   const projectStats = activeProjects.map((p) => {
