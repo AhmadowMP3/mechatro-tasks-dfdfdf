@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { RoleBadge } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
@@ -31,6 +31,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const nav: NavItem[] = [...NAV];
   if (isAdmin) {
     nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });
+    nav.push({ to: "/reports-history", icon: FileText, key: "reportHistory" });
   }
   if (isMasterAdmin) {
     nav.push({ to: "/access-control", icon: ShieldCheck, key: null, label: { ar: "التحكم بالصلاحيات", en: "Access Control" } });
