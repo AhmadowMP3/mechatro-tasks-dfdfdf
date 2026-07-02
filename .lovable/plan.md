@@ -1,31 +1,46 @@
-## What's wrong
+# Standalone Dashboard Export for Client
 
-1. **Role changes silently ignored.** The `admin-users` Edge Function writes the new role to `profiles.role` (`set_role`), but its `list` action reads the role from a separate `user_roles` table. After the update, the reload still returns the old value from `user_roles`, so the dropdown snaps back — the DB was updated but the UI never sees it.
-2. **No realtime.** The page only refetches when the user opens/closes the invite modal or triggers an action. Changes made by other admins, new sign-ups, redeemed invites, etc. don't show up until a manual reload.
+Create a single self-contained HTML file the user can email to their client. Opens in any browser, no backend, no build step.
 
-## The fix
+## Deliverable
 
-### 1. Correct the role source (Edge Function)
-In `supabase/functions/admin-users/index.ts`, `list` will read `role` directly from `profiles.role` (same column `set_role` writes to). Drop the `user_roles` lookup so read and write agree. This alone makes role changes stick visibly.
+`public/mechatro-dashboard-demo.html` — one file, inline CSS + JS, ~40KB. The user can download it from the preview at `/mechatro-dashboard-demo.html` or grab it directly from the project. No external requests except Google Fonts for Montserrat.
 
-### 2. Optimistic UI on role change
-In `access-control.tsx`, when the admin picks a new role, update local `users` state immediately, then call the function. On failure, revert and toast the error. No more waiting for a round-trip to see the pill flip.
+## What it renders
 
-### 3. Realtime subscriptions
-- **Migration:** add `public.profiles` and `public.invites` to the `supabase_realtime` publication so `postgres_changes` events fire.
-- **Client:** in `AccessControlPage`, open one `supabase.channel('access-control')` inside a `useEffect` that listens for `INSERT | UPDATE | DELETE` on both tables. On any event, debounce (~250 ms) and call `load()` + trigger the pending-invites list to refresh. Tear the channel down on unmount.
-- Replace the current `refreshKey` prop on `PendingInvitesList` with a proper realtime refetch driven by the same channel (or its own subscription), so revoked/created/redeemed invites appear instantly.
+A faithful, static reproduction of the live Dashboard using believable mock data:
 
-### 4. Small polish
-- Live "🟢 Live" indicator next to the header so the master admin can see the page is streaming.
-- When a pending user gets approved elsewhere, the row moves from "Pending" to "All" without a click.
+1. **Hero card** — greeting, current date, live ticking clock, and the four chips (Live Now, Hours Tracked, Streak, Time).
+2. **Filter bar** — visual only (Today / 7d / 30d / 90d / All), styled with the active gradient state.
+3. **Four stat cards** — Active Tasks, Done This Week (with sparkline), Overdue, Active Projects.
+4. **Momentum bar chart** — 30 pre-seeded daily buckets, today highlighted in blue→green gradient.
+5. **Task Distribution donut** — todo / in progress / paused / done with legend.
+6. **Overdue list** — 4 mock rows with the red pill.
+7. **Top Projects** — 5 rows with progress bars.
+8. **Workload by Owner** — 6 teammates with avatars (initial circles) and counts.
+9. **Recent Activity** — 10 mock entries with colored dots and relative times.
 
-## Files touched
+## Toggles (top-right of hero)
 
-- `supabase/functions/admin-users/index.ts` — fix `list` to use `profiles.role`.
-- New migration — `ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles, public.invites;` (guarded so it's a no-op if already added).
-- `src/routes/_authenticated/access-control.tsx` — optimistic role update, realtime channel, live indicator, cleaner refresh wiring for `PendingInvitesList`.
+- **Language**: AR (RTL, default) ↔ EN (LTR). Flips `dir`, swaps every label from an inline dictionary, converts digits to Arabic-Indic when AR.
+- **Theme**: Dark (default) ↔ Light. Toggles a `data-theme` attribute on `<html>`; CSS vars swap.
+
+Both persist to `localStorage` so the client's next open remembers their choice.
+
+## Design fidelity
+
+- Colors: exact Mechatro tokens — `--brand-blue #42C2EE`, `--brand-green #73C94E`, `--brand-orange #E8A82C`, dark surfaces `#0B0F14 / #121821 / #1A2130`, light surfaces `#F7F8FA / #FFFFFF / #EEF1F5`, danger `#F0676A`.
+- Fonts: Montserrat (Latin) + Montserrat Arabic via Google Fonts `<link>` in `<head>`.
+- Gradients: `linear-gradient(135deg,#42C2EE,#73C94E)` for blue-green, plus the orange and red gradients used on stat cards.
+- Custom scrollbars, branded radial glows, subtle card borders — all inline in a `<style>` block.
+- Sparkline + donut + bars rendered inline as SVG (no chart libs).
+
+## Technical notes
+
+- Pure HTML/CSS/vanilla JS — no React, no bundler, no fetch calls.
+- ~600 lines total, heavily commented in English so a developer can hand it off.
+- File placed under `public/` so it's served verbatim by Vite and included in the published build; the user gets a shareable URL `https://mechatro-flow.lovable.app/mechatro-dashboard-demo.html` in addition to the raw file.
 
 ## Out of scope
 
-No schema/RLS changes, no changes to invite generation, no change to the master-admin gate.
+- No login, no other pages (Projects/Tasks/Team/etc.), no real DB access, no PDF export. This is a visual demo of the Dashboard only, as requested.
