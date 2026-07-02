@@ -39,18 +39,20 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   return (
     <aside
       style={{
-        width: 260,
+        width: onClose ? "min(300px, 88vw)" : 260,
         background: "linear-gradient(180deg,#050D17,#0A1A2B)",
         color: "#EAF2F9",
         display: "flex", flexDirection: "column",
         borderInlineEnd: "1px solid #1E364D",
         height: "100dvh",
-        position: "sticky",
+        position: onClose ? "relative" : "sticky",
         top: 0,
         alignSelf: "flex-start",
         flexShrink: 0,
+        overflowY: "auto",
       }}
     >
+
       <div style={{ padding: "22px 18px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
         {onClose && (
           <button onClick={onClose} aria-label="close" style={{
