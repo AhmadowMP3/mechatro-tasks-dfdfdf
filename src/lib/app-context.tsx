@@ -113,17 +113,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
-      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+      if (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") {
         if (s) {
           loadUser(s.user.id);
           refreshUsers();
-          if (event === "SIGNED_IN") void logActivity(s.user.id, "signed_in", "auth", s.user.id, {});
         }
       }
       if (event === "SIGNED_OUT") {
         setUser(null); setUsers([]); setDirectory([]);
       }
     });
+
     return () => { sub.subscription.unsubscribe(); };
   }, []);
 
