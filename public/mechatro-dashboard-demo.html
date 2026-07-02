@@ -1,0 +1,588 @@
+<!doctype html>
+<!--
+  Mechatro Tasks — Dashboard Demo
+  Self-contained HTML/CSS/JS. No build, no backend. All data is mocked.
+  Toggles: language (AR/EN) + theme (Dark/Light). Choice persists in localStorage.
+-->
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mechatro Tasks — Dashboard Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Montserrat+Arabic:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ===== Design tokens ===== */
+  :root[data-theme="dark"]{
+    --bg:#0B0F14; --surface:#121821; --surface-2:#1A2130; --surface-3:#232C3D;
+    --border:#232C3D; --foreground:#F1F5F9; --muted:#94A3B8;
+    --brand-blue:#42C2EE; --brand-green:#73C94E; --brand-orange:#E8A82C; --danger:#F0676A;
+    --grad-blue:linear-gradient(135deg,#42C2EE,#73C94E);
+    --grad-green:linear-gradient(135deg,#73C94E,#42C2EE);
+    --grad-orange:linear-gradient(135deg,#E8A82C,#FF9255);
+    --grad-red:linear-gradient(135deg,#D9484B,#F0676A);
+    --shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"]{
+    --bg:#F7F8FA; --surface:#FFFFFF; --surface-2:#F1F4F9; --surface-3:#E6EBF2;
+    --border:#E1E6EE; --foreground:#0B0F14; --muted:#556274;
+    --brand-blue:#1E9DC7; --brand-green:#5AAE39; --brand-orange:#D1911C; --danger:#D9484B;
+    --grad-blue:linear-gradient(135deg,#1E9DC7,#5AAE39);
+    --grad-green:linear-gradient(135deg,#5AAE39,#1E9DC7);
+    --grad-orange:linear-gradient(135deg,#D1911C,#F0803A);
+    --grad-red:linear-gradient(135deg,#B93C3E,#D9484B);
+    --shadow:0 6px 20px rgba(15,25,45,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--foreground);
+    font-family:'Montserrat Arabic','Montserrat',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--brand-blue);text-decoration:none}
+  h1,h2,h3{margin:0;font-weight:800;letter-spacing:-.01em}
+  /* Scrollbars */
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:var(--surface-2)}
+  ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#42C2EE,#73C94E);border-radius:10px}
+  /* Layout */
+  .wrap{max-width:1280px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:20px}
+  .brand-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow)}
+  .row{display:grid;gap:16px}
+  /* Header topbar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:40px;height:40px;border-radius:12px;background:var(--grad-blue);display:grid;place-items:center;color:#0B0F14;font-weight:800;box-shadow:0 6px 18px rgba(66,194,238,.35)}
+  .brand-name{font-weight:800;font-size:18px}
+  .brand-sub{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+  .toggles{display:flex;gap:8px}
+  .seg{display:flex;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:4px}
+  .seg button{background:transparent;color:var(--muted);border:none;border-radius:999px;padding:6px 14px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit}
+  .seg button.active{background:var(--grad-blue);color:#0B0F14;box-shadow:0 4px 14px rgba(66,194,238,.35)}
+  /* Hero */
+  .hero{padding:24px;position:relative;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 260px at 100% 0%,rgba(66,194,238,.15),transparent 60%),radial-gradient(600px 220px at 0% 100%,rgba(232,168,44,.10),transparent 60%);pointer-events:none}
+  .hero-inner{position:relative;display:flex;flex-direction:column;gap:16px}
+  .kicker{font-size:12px;font-weight:700;letter-spacing:1px;color:var(--brand-blue);text-transform:uppercase;margin-bottom:4px}
+  .hero h1{font-size:clamp(22px,4vw,30px);line-height:1.2}
+  .grad-text{background:var(--grad-blue);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hero p{color:var(--muted);margin:6px 0 0;font-size:14px}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .chip{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border)}
+  .chip .dot{font-size:14px}
+  .chip .label{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+  .chip b{font-size:15px}
+  .clock{padding:10px 14px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border);font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace;font-size:18px;font-weight:700;letter-spacing:1px;color:var(--brand-blue)}
+  .pulse{animation:pulse 1.6s ease-in-out infinite;filter:drop-shadow(0 0 6px currentColor)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  /* Filter bar */
+  .filters{display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px dashed var(--border);margin-top:4px}
+  .fbtn{background:var(--surface-2);color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:8px 16px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
+  .fbtn:hover{color:var(--foreground);border-color:var(--brand-blue)}
+  .fbtn.active{background:var(--grad-blue);color:#0B0F14;border-color:transparent;box-shadow:0 6px 18px rgba(66,194,238,.35)}
+  /* Stat cards */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .stat{padding:20px;position:relative;overflow:hidden}
+  .stat::before{content:"";position:absolute;inset:0;background:radial-gradient(300px 120px at 100% 0%,var(--accent,#42C2EE)22,transparent 60%);pointer-events:none}
+  .stat-inner{position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .stat .label{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+  .stat .val{font-size:34px;font-weight:800;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  /* Momentum */
+  .momentum{padding:20px;position:relative;overflow:hidden}
+  .momentum::before{content:"";position:absolute;inset:0;background:radial-gradient(800px 200px at 50% 100%,rgba(115,201,78,.10),transparent 70%)}
+  .mom-head{position:relative;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+  .mom-stats{display:flex;gap:16px;align-items:baseline}
+  .mom-stats b{font-size:22px}
+  .mom-stats .m1{color:var(--brand-green)}
+  .mom-stats .m2{color:var(--brand-blue)}
+  .mom-stats span{color:var(--muted);font-size:12px}
+  .bars{position:relative;display:flex;align-items:flex-end;gap:4px;height:120px;padding:0 2px}
+  .bar-slot{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%}
+  .bar-fill{width:100%;border-radius:6px;transition:height .6s ease}
+  .bar-lbl{font-size:10px;color:var(--muted)}
+  /* Two-col */
+  .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+  /* Donut */
+  .donut-wrap{padding:20px}
+  .donut-wrap h2{font-size:17px;margin-bottom:16px}
+  .donut-flex{display:flex;align-items:center;gap:24px;flex-wrap:wrap;justify-content:center}
+  .donut-svg{width:180px;height:180px}
+  .legend{display:flex;flex-direction:column;gap:10px;min-width:140px}
+  .legend .item{display:flex;align-items:center;gap:10px;font-size:14px}
+  .legend .sq{width:12px;height:12px;border-radius:4px}
+  .legend b{margin-inline-start:auto;font-variant-numeric:tabular-nums}
+  /* Overdue list */
+  .list-card{padding:20px}
+  .list-card h2{font-size:17px;margin-bottom:12px}
+  .list-row{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center}
+  .list-row:last-child{border-bottom:none}
+  .list-row .t{font-weight:700}
+  .list-row .s{font-size:12px;color:var(--muted)}
+  .pill{background:var(--grad-red);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  /* Projects list */
+  .proj-row{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .proj-row:last-child{border-bottom:none}
+  .proj-top{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+  .proj-top b{font-weight:700}
+  .proj-top span{color:var(--muted);font-variant-numeric:tabular-nums}
+  .proj-track{height:8px;background:var(--surface-3);border-radius:999px;overflow:hidden}
+  .proj-fill{height:100%;background:var(--grad-blue);border-radius:999px;transition:width .8s ease}
+  /* Workload */
+  .work-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .work-row:last-child{border-bottom:none}
+  .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#0B0F14;font-weight:800;font-size:14px;flex:0 0 auto}
+  .work-name{flex:1;min-width:0}
+  .work-name .n{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .work-name .r{font-size:11px;color:var(--muted)}
+  .work-count{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+  .work-count b{font-size:18px;color:var(--brand-blue);font-variant-numeric:tabular-nums}
+  .work-count .over{font-size:11px;color:var(--danger);font-weight:700}
+  /* Activity */
+  .act{padding:20px}
+  .act h2{font-size:17px;margin:0}
+  .act-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .act-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px}
+  .act-row:last-child{border-bottom:none}
+  .act-dot{width:8px;height:8px;border-radius:999px;flex:0 0 auto}
+  .act-txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .act-time{color:var(--muted);font-size:12px;flex:0 0 auto}
+  /* Footer */
+  footer{padding:20px;text-align:center;color:var(--muted);font-size:12px}
+  /* RTL number tweak */
+  [dir="rtl"] .clock,[dir="rtl"] .stat .val,[dir="rtl"] .mom-stats b{direction:ltr;unicode-bidi:isolate}
+  @media (max-width:640px){
+    .wrap{padding:14px;gap:14px}
+    .hero{padding:18px}
+    .stat .val{font-size:28px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">M</div>
+      <div>
+        <div class="brand-name" data-i18n="brand">مهام ميكاترو</div>
+        <div class="brand-sub">Mechatro Tasks · Dashboard Preview</div>
+      </div>
+    </div>
+    <div class="toggles">
+      <div class="seg" id="lang-seg">
+        <button data-lang="ar" class="active">AR</button>
+        <button data-lang="en">EN</button>
+      </div>
+      <div class="seg" id="theme-seg">
+        <button data-theme="dark" class="active">◐ Dark</button>
+        <button data-theme="light">☀ Light</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <section class="brand-card hero">
+    <div class="hero-inner">
+      <div>
+        <div class="kicker" id="today-str"></div>
+        <h1><span data-i18n="greeting">مساء الخير</span>، <span class="grad-text">أحمد الشيخ</span></h1>
+        <p><span data-i18n="focus">تركيز اليوم</span> — <b id="active-count">14</b> <span data-i18n="active_tasks_l">مهمة نشطة</span> · <span style="color:var(--danger);font-weight:700"><b id="overdue-count">3</b> <span data-i18n="overdue_l">متأخرة</span></span></p>
+      </div>
+      <div class="chips">
+        <div class="chip"><span class="dot pulse" style="color:#73C94E">●</span><span class="label" data-i18n="live_now">مباشر الآن</span><b style="color:#73C94E" id="live-now">2</b></div>
+        <div class="chip"><span class="dot" style="color:#42C2EE">⏱</span><span class="label" data-i18n="hours">الساعات</span><b style="color:#42C2EE" id="hours">6.4</b></div>
+        <div class="chip"><span class="dot" style="color:#FF9255">🔥</span><span class="label" data-i18n="streak">الاستمرارية</span><b style="color:#FF9255" id="streak">7</b></div>
+        <div class="clock" id="clock">00:00:00</div>
+      </div>
+      <div class="filters" id="filters">
+        <button class="fbtn" data-r="today" data-i18n="f_today">اليوم</button>
+        <button class="fbtn" data-r="7d" data-i18n="f_7d">٧ أيام</button>
+        <button class="fbtn active" data-r="30d" data-i18n="f_30d">٣٠ يوم</button>
+        <button class="fbtn" data-r="90d" data-i18n="f_90d">٩٠ يوم</button>
+        <button class="fbtn" data-r="all" data-i18n="f_all">الكل</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stat cards -->
+  <div class="stats">
+    <div class="brand-card stat" style="--accent:#42C2EE">
+      <div class="stat-inner">
+        <div>
+          <div class="label" data-i18n="active_tasks">المهام النشطة</div>
+          <div class="val" style="--grad:linear-gradient(135deg,#42C2EE,#73C94E)" id="s-active">14</div>
+        </div>
+      </div>
+    </div>
+    <div class="brand-card stat" style="--accent:#73C94E">
+      <div class="stat-inner">
+        <div>
+          <div class="label" data-i18n="done_week">مكتملة هذا الأسبوع</div>
+          <div class="val" style="--grad:linear-gradient(135deg,#73C94E,#42C2EE)" id="s-done">21</div>
+        </div>
+        <svg id="spark" width="80" height="36" style="overflow:visible"></svg>
+      </div>
+    </div>
+    <div class="brand-card stat" style="--accent:#F0676A;border-color:rgba(240,103,106,.5)">
+      <div class="stat-inner">
+        <div>
+          <div class="label" data-i18n="overdue">متأخرة</div>
+          <div class="val" style="--grad:linear-gradient(135deg,#D9484B,#F0676A)" id="s-over">3</div>
+        </div>
+      </div>
+    </div>
+    <div class="brand-card stat" style="--accent:#FF9255">
+      <div class="stat-inner">
+        <div>
+          <div class="label" data-i18n="active_projects">المشاريع النشطة</div>
+          <div class="val" style="--grad:linear-gradient(135deg,#E8A82C,#FF9255)" id="s-proj">6</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Momentum -->
+  <section class="brand-card momentum">
+    <div class="mom-head">
+      <h2 data-i18n="momentum">وتيرة الإنجاز</h2>
+      <div class="mom-stats">
+        <div><b class="m1" id="mom-total">21</b> <span data-i18n="done">إنجاز</span></div>
+        <div><b class="m2" id="mom-avg">0.7</b> <span data-i18n="avg_day">متوسط/يوم</span></div>
+      </div>
+    </div>
+    <div class="bars" id="bars"></div>
+  </section>
+
+  <!-- Distribution + Overdue -->
+  <div class="two">
+    <div class="brand-card donut-wrap">
+      <h2 data-i18n="distribution">توزيع المهام</h2>
+      <div class="donut-flex">
+        <svg class="donut-svg" viewBox="0 0 42 42" id="donut"></svg>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+    <div class="brand-card list-card" style="border-color:rgba(240,103,106,.5)">
+      <h2 style="color:#F0676A">⚠ <span data-i18n="overdue_tasks">المهام المتأخرة</span></h2>
+      <div id="overdue-list"></div>
+    </div>
+  </div>
+
+  <!-- Top projects + Workload -->
+  <div class="two">
+    <div class="brand-card list-card">
+      <h2 data-i18n="top_projects">أهم المشاريع</h2>
+      <div id="projects-list"></div>
+    </div>
+    <div class="brand-card list-card">
+      <h2 data-i18n="workload">توزيع العمل</h2>
+      <div id="workload-list"></div>
+    </div>
+  </div>
+
+  <!-- Activity -->
+  <section class="brand-card act">
+    <div class="act-head">
+      <h2 data-i18n="activity">النشاط الأخير</h2>
+      <a href="#" data-i18n="log">سجل النشاط →</a>
+    </div>
+    <div id="activity-list"></div>
+  </section>
+
+  <footer>© Mechatro · <span data-i18n="demo_note">نسخة عرض ثابتة — البيانات توضيحية</span></footer>
+</div>
+
+<script>
+/* ==================== i18n ==================== */
+const DICT = {
+  ar: {
+    brand:"مهام ميكاترو", greeting:"مساء الخير", focus:"تركيز اليوم",
+    active_tasks_l:"مهمة نشطة", overdue_l:"متأخرة",
+    live_now:"مباشر الآن", hours:"الساعات", streak:"استمرارية",
+    f_today:"اليوم", f_7d:"٧ أيام", f_30d:"٣٠ يوم", f_90d:"٩٠ يوم", f_all:"الكل",
+    active_tasks:"المهام النشطة", done_week:"مكتملة هذا الأسبوع",
+    overdue:"متأخرة", active_projects:"المشاريع النشطة",
+    momentum:"وتيرة الإنجاز", done:"إنجاز", avg_day:"متوسط/يوم",
+    distribution:"توزيع المهام", overdue_tasks:"المهام المتأخرة",
+    top_projects:"أهم المشاريع", workload:"توزيع العمل حسب المسؤول",
+    activity:"النشاط الأخير", log:"سجل النشاط →",
+    demo_note:"نسخة عرض ثابتة — البيانات توضيحية",
+    todo:"قيد الانتظار", in_progress:"قيد التنفيذ", paused:"موقوفة", done_s:"مكتملة",
+    // activities
+    a_created:"إنشاء", a_completed:"إكمال", a_updated:"تحديث", a_commented:"تعليق", a_assigned:"إسناد",
+    e_task:"مهمة", e_project:"مشروع", e_comment:"تعليق",
+    ago:"منذ", min:"د", hour:"س", day:"يوم", now:"الآن",
+    role_admin:"نائب مدير", role_member:"عضو", role_master:"مدير عام"
+  },
+  en: {
+    brand:"Mechatro Tasks", greeting:"Good evening", focus:"Today's focus",
+    active_tasks_l:"active tasks", overdue_l:"overdue",
+    live_now:"Live now", hours:"Hours tracked", streak:"Streak",
+    f_today:"Today", f_7d:"7 days", f_30d:"30 days", f_90d:"90 days", f_all:"All",
+    active_tasks:"Active tasks", done_week:"Done this week",
+    overdue:"Overdue", active_projects:"Active projects",
+    momentum:"Momentum", done:"done", avg_day:"avg/day",
+    distribution:"Task distribution", overdue_tasks:"Overdue tasks",
+    top_projects:"Top projects", workload:"Workload by owner",
+    activity:"Recent activity", log:"Activity log →",
+    demo_note:"Static preview — sample data only",
+    todo:"To do", in_progress:"In progress", paused:"Paused", done_s:"Done",
+    a_created:"Created", a_completed:"Completed", a_updated:"Updated", a_commented:"Commented on", a_assigned:"Assigned",
+    e_task:"task", e_project:"project", e_comment:"comment",
+    ago:"", min:"m", hour:"h", day:"d", now:"just now",
+    role_admin:"Admin", role_member:"Member", role_master:"Master admin"
+  }
+};
+
+/* ==================== Mock data ==================== */
+const MOCK = {
+  active:14, doneWeek:21, overdue:3, projects:6, liveNow:2, hours:6.4, streak:7,
+  distribution:[
+    {k:"todo", n:9,  c:"#42C2EE"},
+    {k:"in_progress", n:7, c:"#E8A82C"},
+    {k:"paused", n:2, c:"#94A3B8"},
+    {k:"done_s", n:21, c:"#73C94E"}
+  ],
+  overdueTasks:[
+    {t:{ar:"مراجعة عرض العميل النهائي", en:"Review final client proposal"}, p:{ar:"موقع ميكاترو", en:"Mechatro Website"}},
+    {t:{ar:"تسليم مخطط المصنع", en:"Deliver factory blueprint"}, p:{ar:"خط الإنتاج ٣", en:"Production Line 3"}},
+    {t:{ar:"اختبار وحدة التحكم", en:"Controller unit testing"}, p:{ar:"روبوت الفرز", en:"Sorting Robot"}}
+  ],
+  topProjects:[
+    {n:{ar:"موقع ميكاترو", en:"Mechatro Website"}, d:18, t:24},
+    {n:{ar:"خط الإنتاج ٣", en:"Production Line 3"}, d:12, t:20},
+    {n:{ar:"روبوت الفرز", en:"Sorting Robot"}, d:9, t:16},
+    {n:{ar:"لوحة القيادة", en:"Control Dashboard"}, d:6, t:14},
+    {n:{ar:"نظام الجرد", en:"Inventory System"}, d:4, t:12}
+  ],
+  workload:[
+    {n:{ar:"أحمد الشيخ", en:"Ahmed Elsheikh"}, r:"role_master", c:6, o:1, col:"#42C2EE"},
+    {n:{ar:"سارة خليل", en:"Sara Khalil"}, r:"role_admin", c:5, o:0, col:"#73C94E"},
+    {n:{ar:"محمد فؤاد", en:"Mohamed Fouad"}, r:"role_member", c:4, o:1, col:"#E8A82C"},
+    {n:{ar:"ليلى منصور", en:"Layla Mansour"}, r:"role_member", c:3, o:0, col:"#FF9255"},
+    {n:{ar:"يوسف عبدالله", en:"Youssef Abdallah"}, r:"role_member", c:2, o:0, col:"#A78BFA"},
+    {n:{ar:"نور حسن", en:"Nour Hassan"}, r:"role_member", c:2, o:1, col:"#F0676A"}
+  ],
+  activity:[
+    {a:"a_completed", e:"e_task", t:{ar:"تركيب الحساس", en:"Sensor installation"}, mAgo:8,  col:"#73C94E"},
+    {a:"a_commented", e:"e_task", t:{ar:"مراجعة العرض", en:"Proposal review"}, mAgo:22, col:"#42C2EE"},
+    {a:"a_created",   e:"e_project", t:{ar:"نظام الجرد", en:"Inventory System"}, mAgo:55, col:"#E8A82C"},
+    {a:"a_assigned",  e:"e_task", t:{ar:"تسليم المخطط", en:"Deliver blueprint"}, mAgo:90, col:"#A78BFA"},
+    {a:"a_updated",   e:"e_task", t:{ar:"اختبار المحرك", en:"Motor testing"}, mAgo:130, col:"#42C2EE"},
+    {a:"a_completed", e:"e_task", t:{ar:"تحديث الوثائق", en:"Docs update"}, mAgo:180, col:"#73C94E"},
+    {a:"a_commented", e:"e_task", t:{ar:"مراجعة الكود", en:"Code review"}, mAgo:240, col:"#42C2EE"},
+    {a:"a_created",   e:"e_task", t:{ar:"طلب قطع غيار", en:"Order spare parts"}, mAgo:320, col:"#E8A82C"},
+    {a:"a_completed", e:"e_task", t:{ar:"صيانة دورية", en:"Routine maintenance"}, mAgo:500, col:"#73C94E"},
+    {a:"a_updated",   e:"e_project", t:{ar:"لوحة القيادة", en:"Control Dashboard"}, mAgo:700, col:"#42C2EE"}
+  ]
+};
+// 30-day momentum, weighted to look believable
+const MOMENTUM = Array.from({length:30}, (_,i) => {
+  const seed = Math.sin(i*1.7)*Math.cos(i*.9);
+  const base = Math.max(0, Math.round(2 + seed*2 + (i>25?2:0)));
+  return base;
+});
+
+/* ==================== State ==================== */
+let state = {
+  lang: localStorage.getItem("mtx-lang") || "ar",
+  theme: localStorage.getItem("mtx-theme") || "dark"
+};
+
+function toArabicDigits(s){
+  const map = "٠١٢٣٤٥٦٧٨٩";
+  return String(s).replace(/[0-9]/g, d => map[+d]);
+}
+function num(n){ return state.lang==="ar" ? toArabicDigits(n) : String(n); }
+function T(k){ return DICT[state.lang][k] ?? k; }
+
+/* ==================== Render ==================== */
+function applyLangTheme(){
+  document.documentElement.lang = state.lang;
+  document.documentElement.dir = state.lang==="ar" ? "rtl" : "ltr";
+  document.documentElement.setAttribute("data-theme", state.theme);
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const k = el.getAttribute("data-i18n");
+    if (DICT[state.lang][k]) el.textContent = DICT[state.lang][k];
+  });
+  // Toggle button state
+  document.querySelectorAll("#lang-seg button").forEach(b => b.classList.toggle("active", b.dataset.lang===state.lang));
+  document.querySelectorAll("#theme-seg button").forEach(b => b.classList.toggle("active", b.dataset.theme===state.theme));
+  // Digit-sensitive fields
+  renderNumbers();
+  renderDate();
+}
+
+function renderNumbers(){
+  document.getElementById("active-count").textContent = num(MOCK.active);
+  document.getElementById("overdue-count").textContent = num(MOCK.overdue);
+  document.getElementById("live-now").textContent = num(MOCK.liveNow);
+  document.getElementById("hours").textContent = num(MOCK.hours.toFixed(1));
+  document.getElementById("streak").textContent = num(MOCK.streak);
+  document.getElementById("s-active").textContent = num(MOCK.active);
+  document.getElementById("s-done").textContent = num(MOCK.doneWeek);
+  document.getElementById("s-over").textContent = num(MOCK.overdue);
+  document.getElementById("s-proj").textContent = num(MOCK.projects);
+  const total = MOMENTUM.reduce((a,b)=>a+b,0);
+  document.getElementById("mom-total").textContent = num(total);
+  document.getElementById("mom-avg").textContent = num((total/MOMENTUM.length).toFixed(1));
+}
+
+function renderDate(){
+  const d = new Date();
+  const opts = { weekday:"long", year:"numeric", month:"long", day:"numeric" };
+  document.getElementById("today-str").textContent =
+    d.toLocaleDateString(state.lang==="ar" ? "ar-EG" : "en-US", opts);
+}
+
+function tickClock(){
+  const d = new Date();
+  const s = d.toLocaleTimeString(state.lang==="ar" ? "ar-EG-u-nu-latn" : "en-US",
+    { hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false });
+  document.getElementById("clock").textContent = s;
+}
+
+/* Sparkline */
+function renderSparkline(){
+  const data = MOMENTUM.slice(-7);
+  const w=80, h=36, max=Math.max(1,...data), step = w/(data.length-1);
+  const pts = data.map((v,i)=>`${i*step},${h - (v/max)*(h-4) - 2}`).join(" ");
+  const svg = document.getElementById("spark");
+  svg.innerHTML = `
+    <defs><linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#73C94E" stop-opacity=".5"/>
+      <stop offset="100%" stop-color="#73C94E" stop-opacity="0"/>
+    </linearGradient></defs>
+    <polygon points="0,${h} ${pts} ${w},${h}" fill="url(#g1)"/>
+    <polyline points="${pts}" fill="none" stroke="#73C94E" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+}
+
+/* Momentum bars */
+function renderBars(){
+  const max = Math.max(1,...MOMENTUM);
+  const bars = document.getElementById("bars");
+  bars.innerHTML = MOMENTUM.map((n,i) => {
+    const h = (n/max)*100;
+    const today = i===MOMENTUM.length-1;
+    const bg = today ? "linear-gradient(180deg,#42C2EE,#73C94E)"
+             : n>0   ? "linear-gradient(180deg,#73C94E,#73C94E66)"
+                     : "var(--surface-3)";
+    const glow = n>0 ? `0 0 14px ${today?"#42C2EE88":"#73C94E55"}` : "none";
+    return `<div class="bar-slot">
+      <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+        <div class="bar-fill" style="height:${Math.max(3,h)}%;background:${bg};box-shadow:${glow}"></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* Donut */
+function renderDonut(){
+  const total = MOCK.distribution.reduce((a,b)=>a+b.n,0);
+  const donut = document.getElementById("donut");
+  const cx=21, cy=21, r=15.9155, C=2*Math.PI*r;
+  let acc = 0;
+  const segs = MOCK.distribution.map(d => {
+    const frac = d.n/total;
+    const dash = frac*C;
+    const gap = C - dash;
+    const off = -acc*C;
+    acc += frac;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${d.c}" stroke-width="6" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${off}" transform="rotate(-90 ${cx} ${cy})"/>`;
+  }).join("");
+  donut.innerHTML = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--surface-3)" stroke-width="6"/>${segs}
+    <text x="21" y="20" text-anchor="middle" font-size="7" font-weight="800" fill="var(--foreground)">${num(total)}</text>
+    <text x="21" y="26" text-anchor="middle" font-size="3" fill="var(--muted)">${T("active_tasks_l")}</text>`;
+
+  document.getElementById("legend").innerHTML = MOCK.distribution.map(d =>
+    `<div class="item"><span class="sq" style="background:${d.c}"></span><span>${T(d.k)}</span><b>${num(d.n)}</b></div>`
+  ).join("");
+}
+
+/* Overdue */
+function renderOverdue(){
+  document.getElementById("overdue-list").innerHTML = MOCK.overdueTasks.map(r => `
+    <div class="list-row">
+      <div style="min-width:0">
+        <div class="t">${r.t[state.lang]}</div>
+        <div class="s">${r.p[state.lang]}</div>
+      </div>
+      <span class="pill">${T("overdue")}</span>
+    </div>`).join("");
+}
+
+/* Projects */
+function renderProjects(){
+  document.getElementById("projects-list").innerHTML = MOCK.topProjects.map(p => {
+    const pct = Math.round((p.d/p.t)*100);
+    return `<div class="proj-row">
+      <div class="proj-top"><b>${p.n[state.lang]}</b><span>${num(p.d)} / ${num(p.t)} · ${num(pct)}%</span></div>
+      <div class="proj-track"><div class="proj-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join("");
+}
+
+/* Workload */
+function renderWorkload(){
+  document.getElementById("workload-list").innerHTML = MOCK.workload.map(w => {
+    const initial = w.n[state.lang].trim()[0];
+    return `<div class="work-row">
+      <div class="avatar" style="background:${w.col}">${initial}</div>
+      <div class="work-name"><div class="n">${w.n[state.lang]}</div><div class="r">${T(w.r)}</div></div>
+      <div class="work-count"><b>${num(w.c)}</b>${w.o? `<span class="over">${num(w.o)} ${T("overdue_l")}</span>`:""}</div>
+    </div>`;
+  }).join("");
+}
+
+/* Activity */
+function relTime(mins){
+  if (mins < 1) return T("now");
+  if (mins < 60) return `${T("ago")} ${num(mins)} ${T("min")}`.trim();
+  if (mins < 60*24) return `${T("ago")} ${num(Math.floor(mins/60))} ${T("hour")}`.trim();
+  return `${T("ago")} ${num(Math.floor(mins/1440))} ${T("day")}`.trim();
+}
+function renderActivity(){
+  document.getElementById("activity-list").innerHTML = MOCK.activity.map(a => `
+    <div class="act-row">
+      <span class="act-dot" style="background:${a.col};box-shadow:0 0 10px ${a.col}88"></span>
+      <span class="act-txt">${T(a.a)} ${T(a.e)} — ${a.t[state.lang]}</span>
+      <span class="act-time">${relTime(a.mAgo)}</span>
+    </div>`).join("");
+}
+
+/* ==================== Wire up ==================== */
+document.querySelectorAll("#lang-seg button").forEach(b => {
+  b.addEventListener("click", () => {
+    state.lang = b.dataset.lang;
+    localStorage.setItem("mtx-lang", state.lang);
+    applyLangTheme();
+    renderAll();
+  });
+});
+document.querySelectorAll("#theme-seg button").forEach(b => {
+  b.addEventListener("click", () => {
+    state.theme = b.dataset.theme;
+    localStorage.setItem("mtx-theme", state.theme);
+    applyLangTheme();
+    renderDonut(); // donut uses CSS var for center text
+  });
+});
+document.querySelectorAll("#filters .fbtn").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#filters .fbtn").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+  });
+});
+
+function renderAll(){
+  renderSparkline(); renderBars(); renderDonut();
+  renderOverdue(); renderProjects(); renderWorkload(); renderActivity();
+}
+
+applyLangTheme();
+renderAll();
+tickClock();
+setInterval(tickClock, 1000);
+</script>
+</body>
+</html>
