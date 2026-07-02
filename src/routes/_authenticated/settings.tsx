@@ -22,7 +22,7 @@ function SettingsPage() {
 
       <section className="brand-card" style={{ padding: 20 }}>
         <h2 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>{t("companyInfo")}</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, fontSize: 14 }}>
           <div><b>{t("companyName")}:</b> Mechatro</div>
           <div><b>{t("currentUser")}:</b> {user?.full_name}</div>
         </div>
