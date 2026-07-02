@@ -10,7 +10,7 @@ import { NewTaskModal } from "@/components/NewTaskModal";
 import { ViewSwitcher, type TaskView } from "@/components/tasks/ViewSwitcher";
 import { KanbanView } from "@/components/tasks/KanbanView";
 import { TableView } from "@/components/tasks/TableView";
-import { CalendarView } from "@/components/tasks/CalendarView";
+
 import { isOverdue, formatDate } from "@/lib/format";
 import {
   FilterDrawer, FilterSection, ChipMultiSelect, FilterSelect,
@@ -65,7 +65,7 @@ function TasksPage() {
   const [view, setView] = useState<TaskView>(() => {
     if (typeof window === "undefined") return "cards";
     const v = window.localStorage.getItem(VIEW_KEY);
-    return (v === "kanban" || v === "table" || v === "calendar" || v === "cards") ? v : "cards";
+    return (v === "kanban" || v === "table" || v === "cards") ? v : "cards";
   });
   useEffect(() => { if (typeof window !== "undefined") window.localStorage.setItem(VIEW_KEY, view); }, [view]);
 
@@ -322,10 +322,8 @@ function TasksPage() {
           </div>
         ) : view === "kanban" ? (
           <KanbanView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} onChanged={refetch} />
-        ) : view === "table" ? (
-          <TableView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} />
         ) : (
-          <CalendarView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} />
+          <TableView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} />
         );
       })()}
 

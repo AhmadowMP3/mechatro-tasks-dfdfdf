@@ -1,14 +1,13 @@
-import { LayoutGrid, Columns3, Table2, CalendarRange } from "lucide-react";
+import { LayoutGrid, Columns3, Table2 } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import type { DictKey } from "@/i18n/dict";
 
-export type TaskView = "cards" | "kanban" | "table" | "calendar";
+export type TaskView = "cards" | "kanban" | "table";
 
 const OPTIONS: { key: TaskView; label: DictKey; Icon: typeof LayoutGrid }[] = [
   { key: "cards", label: "viewCards", Icon: LayoutGrid },
   { key: "kanban", label: "viewKanban", Icon: Columns3 },
   { key: "table", label: "viewTable", Icon: Table2 },
-  { key: "calendar", label: "viewCalendar", Icon: CalendarRange },
 ];
 
 export function ViewSwitcher({ value, onChange }: { value: TaskView; onChange: (v: TaskView) => void }) {
