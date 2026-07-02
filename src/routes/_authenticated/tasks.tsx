@@ -312,7 +312,7 @@ function TasksPage() {
         return filtered.length === 0 ? (
           <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noTasks")}</div>
         ) : view === "cards" ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px),1fr))", gap: 14 }}>
             {filtered.map((tk) => (
               <TaskCard key={tk.id} task={tk}
                 project={projects.find((p) => p.id === tk.project_id) ?? null}
