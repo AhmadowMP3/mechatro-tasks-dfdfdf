@@ -231,7 +231,10 @@ function Dashboard() {
             <HeroChip icon="🔥" iconColor="#FF9255" label={t("streak")} value={toLocalDigits(streak, lang)} />
             <div style={{ padding: "10px 14px", borderRadius: 12, background: "var(--surface-2)", border: "1px solid var(--border)", fontVariantNumeric: "tabular-nums", fontFamily: "ui-monospace, Menlo, monospace", fontSize: 20, fontWeight: 700, letterSpacing: 1, color: "var(--brand-blue)" }}>
               {timeStr}
-            </div>
+      </div>
+
+      {/* Filter bar */}
+      <FilterBar value={filters} onChange={setFilters} projects={projects} />
           </div>
         </div>
       </div>
