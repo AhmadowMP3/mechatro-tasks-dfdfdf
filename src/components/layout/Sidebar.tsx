@@ -34,6 +34,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   }
   if (isMasterAdmin) {
     nav.push({ to: "/access-control", icon: ShieldCheck, key: null, label: { ar: "التحكم بالصلاحيات", en: "Access Control" } });
+    nav.push({ to: "/share-links", icon: Share2, key: null, label: { ar: "روابط المشاركة", en: "Share Links" } });
   }
 
   return (
