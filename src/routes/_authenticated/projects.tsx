@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Archive, ArchiveRestore } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
@@ -9,15 +9,52 @@ import { Avatar } from "@/components/Avatar";
 import { formatDate, toLocalDigits } from "@/lib/format";
 import { toast } from "sonner";
 import { logActivity } from "@/lib/activity";
+import {
+  FilterDrawer, FilterSection, ChipMultiSelect, FilterSelect,
+  DateRangeControl, resolveDateRange, ActiveFilterChips,
+  SearchField, FilterBarCluster, type Preset,
+} from "@/components/filters/FilterDrawer";
+import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
+import type { DictKey } from "@/i18n/dict";
 
 export const Route = createFileRoute("/_authenticated/projects")({ component: ProjectsPage });
 
-type P = { id: string; name_ar: string; name_en: string; color: string; status: string; due_date: string | null; archived: boolean; description: string | null; };
+type P = { id: string; name_ar: string; name_en: string; color: string; status: string; due_date: string | null; start_date: string | null; archived: boolean; description: string | null; created_at: string; created_by: string | null; };
+type Task = { id: string; project_id: string | null; status: string; assignee_id: string | null };
+
+const PROJECT_STATUSES = ["active", "on_hold", "done"] as const;
+const BUCKETS = [
+  { key: "b0", label: "0–25%", min: 0, max: 25 },
+  { key: "b1", label: "26–50%", min: 26, max: 50 },
+  { key: "b2", label: "51–75%", min: 51, max: 75 },
+  { key: "b3", label: "76–100%", min: 76, max: 100 },
+] as const;
+
+type Filters = {
+  q: string;
+  statuses: string[];
+  owners: string[];
+  buckets: string[];
+  archived: boolean;
+  datePreset: Preset;
+  dateField: "created_at" | "due_date";
+  dateFrom: string;
+  dateTo: string;
+  sortField: "created_at" | "due_date" | "progress" | "name";
+  sortDir: "asc" | "desc";
+};
+const DEFAULTS: Filters = {
+  q: "", statuses: [], owners: [], buckets: [], archived: false,
+  datePreset: "all", dateField: "created_at", dateFrom: "", dateTo: "",
+  sortField: "created_at", sortDir: "desc",
+};
 
 function ProjectsPage() {
-  const { t, lang, isAdmin, user } = useApp();
-  const [showArchived, setShowArchived] = useState(false);
+  const { t, lang, isAdmin, user, users } = useApp();
   const [modal, setModal] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [f, setF] = useState<Filters>(DEFAULTS);
+  const patch = (p: Partial<Filters>) => setF((c) => ({ ...c, ...p }));
 
   const { data, refetch } = useQuery({
     queryKey: ["projects", "list"],
@@ -26,11 +63,71 @@ function ProjectsPage() {
         supabase.from("projects").select("*").order("created_at", { ascending: false }),
         supabase.from("tasks").select("id,project_id,status,assignee_id"),
       ]);
-      return { projects: (projects.data ?? []) as P[], tasks: tasks.data ?? [] };
+      return { projects: (projects.data ?? []) as P[], tasks: (tasks.data ?? []) as Task[] };
     },
   });
 
-  const projects = (data?.projects ?? []).filter((p) => showArchived ? p.archived : !p.archived);
+  const enriched = useMemo(() => {
+    return (data?.projects ?? []).map((p) => {
+      const projTasks = (data?.tasks ?? []).filter((tk) => tk.project_id === p.id);
+      const done = projTasks.filter((tk) => tk.status === "done").length;
+      const progress = projTasks.length ? Math.round((done / projTasks.length) * 100) : 0;
+      const memberIds = Array.from(new Set(projTasks.map((tk) => tk.assignee_id).filter(Boolean))) as string[];
+      return { p, projTasks, done, progress, memberIds };
+    });
+  }, [data]);
+
+  const filtered = useMemo(() => {
+    const { since, until } = resolveDateRange(f.datePreset, f.dateFrom, f.dateTo);
+    let out = enriched.filter(({ p, progress }) => {
+      if (f.archived ? !p.archived : p.archived) return false;
+      if (f.q) {
+        const q = f.q.toLowerCase();
+        if (!p.name_ar.toLowerCase().includes(q) && !p.name_en.toLowerCase().includes(q)) return false;
+      }
+      if (f.statuses.length && !f.statuses.includes(p.status)) return false;
+      if (f.owners.length && !f.owners.includes(p.created_by ?? "")) return false;
+      if (f.buckets.length) {
+        const b = BUCKETS.find((x) => progress >= x.min && progress <= x.max);
+        if (!b || !f.buckets.includes(b.key)) return false;
+      }
+      if (since || until) {
+        const raw = p[f.dateField];
+        if (!raw) return false;
+        const d = new Date(raw);
+        if (since && d < since) return false;
+        if (until && d > until) return false;
+      }
+      return true;
+    });
+    out = [...out].sort((a, b) => {
+      let av: string | number = 0, bv: string | number = 0;
+      if (f.sortField === "progress") { av = a.progress; bv = b.progress; }
+      else if (f.sortField === "name") { av = (lang === "ar" ? a.p.name_ar : a.p.name_en).toLowerCase(); bv = (lang === "ar" ? b.p.name_ar : b.p.name_en).toLowerCase(); }
+      else { av = new Date(a.p[f.sortField] ?? 0).getTime(); bv = new Date(b.p[f.sortField] ?? 0).getTime(); }
+      if (av < bv) return f.sortDir === "asc" ? -1 : 1;
+      if (av > bv) return f.sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return out;
+  }, [enriched, f, lang]);
+
+  const chips = useMemo(() => {
+    const c: { key: string; label: string; onRemove: () => void }[] = [];
+    if (f.q) c.push({ key: "q", label: `"${f.q}"`, onRemove: () => patch({ q: "" }) });
+    f.statuses.forEach((s) => c.push({ key: `s-${s}`, label: t(s as DictKey), onRemove: () => patch({ statuses: f.statuses.filter((x) => x !== s) }) }));
+    f.owners.forEach((id) => {
+      const u = users.find((x) => x.id === id);
+      c.push({ key: `o-${id}`, label: u?.full_name ?? id, onRemove: () => patch({ owners: f.owners.filter((x) => x !== id) }) });
+    });
+    f.buckets.forEach((k) => {
+      const b = BUCKETS.find((x) => x.key === k);
+      c.push({ key: `b-${k}`, label: b?.label ?? k, onRemove: () => patch({ buckets: f.buckets.filter((x) => x !== k) }) });
+    });
+    if (f.archived) c.push({ key: "ar", label: t("archivedOnly"), onRemove: () => patch({ archived: false }) });
+    if (f.datePreset !== "all") c.push({ key: "dr", label: `${t(f.dateField === "due_date" ? "dueSoon" : "createdAt")}`, onRemove: () => patch({ datePreset: "all", dateFrom: "", dateTo: "" }) });
+    return c;
+  }, [f, users, t]);
 
   const toggleArchive = async (p: P) => {
     await supabase.from("projects").update({ archived: !p.archived }).eq("id", p.id);
@@ -39,13 +136,39 @@ function ProjectsPage() {
     refetch();
   };
 
+  const doExport = async () => {
+    try {
+      const cols: XlsxColumn<typeof filtered[number]>[] = [
+        { key: "name", header: lang === "ar" ? "المشروع" : "Project", width: 40, get: (r) => lang === "ar" ? r.p.name_ar : r.p.name_en },
+        { key: "status", header: t("filterStatus"), width: 14, kind: "status", get: (r) => r.p.status },
+        { key: "owner", header: lang === "ar" ? "المُنشئ" : "Owner", width: 24, get: (r) => users.find((u) => u.id === r.p.created_by)?.full_name ?? "" },
+        { key: "start", header: lang === "ar" ? "البداية" : "Start", width: 14, kind: "date", get: (r) => r.p.start_date ?? r.p.created_at },
+        { key: "due", header: t("dueDate"), width: 14, kind: "date", get: (r) => r.p.due_date },
+        { key: "total", header: t("totalCount"), width: 12, kind: "number", get: (r) => r.projTasks.length },
+        { key: "done", header: t("doneTasks"), width: 12, kind: "number", get: (r) => r.done },
+        { key: "progress", header: t("progressLbl"), width: 14, kind: "percent", get: (r) => r.progress },
+      ];
+      await exportToBrandedXlsx({
+        sheetName: t("projects"),
+        title: `${t("reportTitle")} · ${t("projects")}`,
+        filtersSummary: chips.map((c) => c.label).join(" · ") || (lang === "ar" ? "بدون فلاتر" : "No filters"),
+        generatedBy: user?.full_name,
+        lang, columns: cols, rows: filtered,
+      });
+      toast.success(t("exported"));
+    } catch (e) {
+      toast.error(t("exportFailed"));
+      console.error(e);
+    }
+  };
+
+  const activeCount = chips.length;
+  const owners = useMemo(() => Array.from(new Set((data?.projects ?? []).map((p) => p.created_by).filter(Boolean))) as string[], [data]);
+
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 24, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 28, margin: 0, flex: 1 }}>{t("projects")}</h1>
-        <button onClick={() => setShowArchived((v) => !v)} className="brand-btn-sm" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
-          {showArchived ? t("hideArchived") : t("showArchived")}
-        </button>
         {isAdmin && (
           <button onClick={() => setModal(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
             <Plus size={18} /> {t("newProject")}
@@ -53,47 +176,115 @@ function ProjectsPage() {
         )}
       </div>
 
-      {projects.length === 0 ? (
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+        <SearchField value={f.q} onChange={(v) => patch({ q: v })} />
+        <FilterBarCluster
+          activeCount={activeCount}
+          onOpen={() => setDrawerOpen(true)}
+          onReset={() => setF(DEFAULTS)}
+          onExport={doExport}
+          exportDisabled={!filtered.length}
+        />
+      </div>
+
+      <ActiveFilterChips chips={chips} onClearAll={() => setF(DEFAULTS)} />
+
+      <FilterDrawer open={drawerOpen} onOpenChange={setDrawerOpen} activeCount={activeCount} onReset={() => setF(DEFAULTS)}>
+        <FilterSection label={t("filterStatus")}>
+          <ChipMultiSelect
+            value={f.statuses}
+            onChange={(v) => patch({ statuses: v })}
+            options={PROJECT_STATUSES.map((s) => ({ value: s, label: t(s as DictKey) }))}
+          />
+        </FilterSection>
+        <FilterSection label={t("progressBucket")}>
+          <ChipMultiSelect
+            value={f.buckets}
+            onChange={(v) => patch({ buckets: v })}
+            options={BUCKETS.map((b) => ({ value: b.key, label: b.label }))}
+          />
+        </FilterSection>
+        {isAdmin && (
+          <FilterSection label={lang === "ar" ? "المُنشئ" : "Owner"}>
+            <ChipMultiSelect
+              value={f.owners}
+              onChange={(v) => patch({ owners: v })}
+              options={owners.map((id) => ({ value: id, label: users.find((u) => u.id === id)?.full_name ?? id }))}
+            />
+          </FilterSection>
+        )}
+        <FilterSection label={t("dateRange")}>
+          <div style={{ marginBottom: 8 }}>
+            <FilterSelect
+              value={f.dateField}
+              onChange={(v) => patch({ dateField: v as Filters["dateField"] })}
+              options={[
+                { value: "created_at", label: t("createdAt") },
+                { value: "due_date", label: t("dueSoon") },
+              ]}
+            />
+          </div>
+          <DateRangeControl preset={f.datePreset} from={f.dateFrom} to={f.dateTo}
+            onChange={({ preset, from, to }) => patch({ datePreset: preset, dateFrom: from, dateTo: to })} />
+        </FilterSection>
+        <FilterSection label={lang === "ar" ? "خيارات" : "Options"}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 40, cursor: "pointer" }}>
+            <input type="checkbox" checked={f.archived} onChange={(e) => patch({ archived: e.target.checked })} style={{ width: 18, height: 18 }} />
+            <span style={{ fontSize: 14 }}>{t("archivedOnly")}</span>
+          </label>
+        </FilterSection>
+        <FilterSection label={t("sortBy")}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <FilterSelect value={f.sortField} onChange={(v) => patch({ sortField: v as Filters["sortField"] })}
+                options={[
+                  { value: "created_at", label: t("createdAt") },
+                  { value: "due_date", label: t("dueSoon") },
+                  { value: "progress", label: t("progressLbl") },
+                  { value: "name", label: lang === "ar" ? "الاسم" : "Name" },
+                ]} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <FilterSelect value={f.sortDir} onChange={(v) => patch({ sortDir: v as "asc" | "desc" })}
+                options={[{ value: "desc", label: t("sortDesc") }, { value: "asc", label: t("sortAsc") }]} />
+            </div>
+          </div>
+        </FilterSection>
+      </FilterDrawer>
+
+      {filtered.length === 0 ? (
         <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noProjects")}</div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
-          {projects.map((p) => {
-            const projTasks = (data?.tasks ?? []).filter((t) => t.project_id === p.id);
-            const doneCount = projTasks.filter((t) => t.status === "done").length;
-            const progress = projTasks.length ? Math.round((doneCount / projTasks.length) * 100) : 0;
-            const memberIds = Array.from(new Set(projTasks.map((t) => t.assignee_id).filter(Boolean))) as string[];
-            return (
-              <div key={p.id} className="brand-card" style={{ overflow: "hidden" }}>
-                <div style={{ height: 6, background: PROJECT_COLORS[p.color] ?? PROJECT_COLORS.blue }} />
-                <div style={{ padding: 18 }}>
-                  <Link to="/projects/$id" params={{ id: p.id }} style={{ color: "var(--foreground)", textDecoration: "none" }}>
-                    <h3 style={{ fontSize: 17, margin: 0, marginBottom: 6 }}>{lang === "ar" ? p.name_ar : p.name_en}</h3>
-                    <p style={{ fontSize: 13, color: "var(--muted)", margin: 0, minHeight: 34, overflow: "hidden" }}>{p.description || "—"}</p>
-                  </Link>
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4, color: "var(--muted)" }}>
-                      <span>{t("progress")}</span>
-                      <b>{toLocalDigits(progress, lang)}%</b>
-                    </div>
-                    <div style={{ height: 6, background: "var(--surface-3)", borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ width: `${progress}%`, height: "100%", background: "var(--grad-green)" }} />
-                    </div>
+          {filtered.map(({ p, progress, memberIds }) => (
+            <div key={p.id} className="brand-card" style={{ overflow: "hidden" }}>
+              <div style={{ height: 6, background: PROJECT_COLORS[p.color] ?? PROJECT_COLORS.blue }} />
+              <div style={{ padding: 18 }}>
+                <Link to="/projects/$id" params={{ id: p.id }} style={{ color: "var(--foreground)", textDecoration: "none" }}>
+                  <h3 style={{ fontSize: 17, margin: 0, marginBottom: 6 }}>{lang === "ar" ? p.name_ar : p.name_en}</h3>
+                  <p style={{ fontSize: 13, color: "var(--muted)", margin: 0, minHeight: 34, overflow: "hidden" }}>{p.description || "—"}</p>
+                </Link>
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4, color: "var(--muted)" }}>
+                    <span>{t("progress")}</span>
+                    <b>{toLocalDigits(progress, lang)}%</b>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 12 }}>
-                    <div style={{ display: "flex", gap: -8 }}>
-                      <MembersList ids={memberIds} />
-                    </div>
-                    <span style={{ color: "var(--muted)" }}>{formatDate(p.due_date, lang)}</span>
+                  <div style={{ height: 6, background: "var(--surface-3)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: `${progress}%`, height: "100%", background: "var(--grad-green)" }} />
                   </div>
-                  {isAdmin && (
-                    <button onClick={() => toggleArchive(p)} style={{ marginTop: 12, width: "100%", minHeight: 40, borderRadius: 10, background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--border)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, fontWeight: 700 }}>
-                      {p.archived ? <><ArchiveRestore size={16} /> {t("unarchive")}</> : <><Archive size={16} /> {t("archive")}</>}
-                    </button>
-                  )}
                 </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 12 }}>
+                  <MembersList ids={memberIds} />
+                  <span style={{ color: "var(--muted)" }}>{formatDate(p.due_date, lang)}</span>
+                </div>
+                {isAdmin && (
+                  <button onClick={() => toggleArchive(p)} style={{ marginTop: 12, width: "100%", minHeight: 40, borderRadius: 10, background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--border)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, fontWeight: 700 }}>
+                    {p.archived ? <><ArchiveRestore size={16} /> {t("unarchive")}</> : <><Archive size={16} /> {t("archive")}</>}
+                  </button>
+                )}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
 
@@ -101,6 +292,8 @@ function ProjectsPage() {
     </div>
   );
 }
+
+
 
 function MembersList({ ids }: { ids: string[] }) {
   const { users } = useApp();
