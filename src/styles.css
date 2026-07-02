@@ -219,3 +219,96 @@ img, svg, video { max-width: 100%; }
   .kanban-col { scroll-snap-align: start; }
 }
 
+
+/* ================= Mechatro Custom Cursor ================= */
+@media (hover: hover) and (pointer: fine) {
+  body.mech-cursor-active,
+  body.mech-cursor-active * {
+    cursor: none !important;
+  }
+  body.mech-cursor-active input,
+  body.mech-cursor-active textarea,
+  body.mech-cursor-active [contenteditable="true"] {
+    caret-color: #F5B841;
+  }
+}
+
+.mech-cursor-dot,
+.mech-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 2147483647;
+  opacity: 0;
+  will-change: transform, width, height, opacity;
+  transition: opacity .18s ease, width .18s ease, height .18s ease,
+              background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.mech-cursor-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #F5B841;
+  box-shadow: 0 0 10px rgba(245, 184, 65, .65), 0 0 2px rgba(245, 184, 65, .9);
+}
+
+.mech-cursor-ring {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(29, 155, 240, .85);
+  background: rgba(29, 155, 240, .06);
+  box-shadow: 0 0 16px rgba(29, 155, 240, .25), inset 0 0 8px rgba(29, 155, 240, .15);
+}
+
+/* Hover — over interactive elements */
+.mech-cursor-ring.is-hover {
+  width: 44px;
+  height: 44px;
+  border-color: rgba(245, 184, 65, .9);
+  background: rgba(245, 184, 65, .08);
+  box-shadow: 0 0 22px rgba(245, 184, 65, .35), inset 0 0 10px rgba(245, 184, 65, .2);
+}
+.mech-cursor-dot.is-hover {
+  width: 5px;
+  height: 5px;
+  background: #FFFFFF;
+  box-shadow: 0 0 12px rgba(255, 255, 255, .8);
+}
+
+/* Active — mouse down */
+.mech-cursor-ring.is-active {
+  width: 22px;
+  height: 22px;
+  border-color: rgba(29, 155, 240, 1);
+  background: rgba(29, 155, 240, .18);
+}
+.mech-cursor-dot.is-active {
+  width: 9px;
+  height: 9px;
+}
+
+/* Text — over inputs / textareas */
+.mech-cursor-ring.is-text {
+  width: 4px;
+  height: 26px;
+  border-radius: 2px;
+  border-color: rgba(245, 184, 65, .9);
+  background: rgba(245, 184, 65, .2);
+  box-shadow: 0 0 10px rgba(245, 184, 65, .35);
+}
+.mech-cursor-dot.is-text {
+  opacity: 0;
+}
+
+/* Disabled */
+.mech-cursor-ring.is-disabled {
+  border-color: rgba(159, 183, 201, .5);
+  background: transparent;
+  box-shadow: none;
+}
+.mech-cursor-dot.is-disabled {
+  opacity: 0;
+}
