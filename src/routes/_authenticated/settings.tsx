@@ -10,9 +10,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
 function SettingsPage() {
-  const { t, lang, can, user } = useApp();
+  const { t, user, isAdmin } = useApp();
 
-  if (!can("manage_settings")) {
+  if (!isAdmin) {
     return <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("cannotEdit")}</div>;
   }
 

@@ -25,9 +25,8 @@ const NAV: NavItem[] = [
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
-  const { t, user, lang, signOut, isMasterAdmin } = useApp();
+  const { t, user, lang, signOut, isMasterAdmin, isAdmin } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isAdmin = isMasterAdmin || user?.role === "admin";
   const nav: NavItem[] = [...NAV];
   if (isAdmin) {
     nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });

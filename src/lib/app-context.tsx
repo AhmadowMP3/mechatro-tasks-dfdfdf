@@ -5,18 +5,14 @@ import { dict, type DictKey, type Lang } from "@/i18n/dict";
 import { logActivity } from "@/lib/activity";
 import type { Session } from "@supabase/supabase-js";
 
-// Legacy role kept for existing UI badges. New logic uses `permissions` array.
+// Fixed 3-role model. `manager` and `viewer` remain in the enum for backward
+// compatibility with legacy UI badges, but only `admin` and `member` are used.
 export type Role = "admin" | "manager" | "member" | "viewer";
 
-export type PermissionKey =
-  | "users.invite" | "users.suspend" | "users.delete" | "users.change_role"
-  | "roles.manage"
-  | "projects.view" | "projects.create" | "projects.edit" | "projects.delete" | "projects.archive"
-  | "tasks.view" | "tasks.create" | "tasks.edit_any" | "tasks.edit_own" | "tasks.delete" | "tasks.comment"
-  | "team.view" | "league.view" | "notifications.view"
-  | "settings.view" | "settings.edit"
-  | "backups.view" | "backups.run" | "backups.restore"
-  | "activity.view";
+// Legacy alias kept so pre-existing pages compile; use `isAdmin` / `isMasterAdmin` now.
+export type Permission =
+  | "manage_projects" | "manage_tasks" | "manage_users" | "manage_settings"
+  | "edit_own_task" | "comment" | "view";
 
 export type Profile = {
   id: string;
@@ -32,10 +28,12 @@ export type Profile = {
   is_master_admin?: boolean;
 };
 
-// Legacy permission alias (kept so pre-existing pages compile).
-export type Permission =
-  | "manage_projects" | "manage_tasks" | "manage_users" | "manage_settings"
-  | "edit_own_task" | "comment" | "view";
+// Public teammate directory row — no PII exposed to Members.
+export type DirectoryEntry = {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+};
 
 type Ctx = {
   lang: Lang;
@@ -45,63 +43,52 @@ type Ctx = {
   t: (k: DictKey, vars?: Record<string, string>) => string;
   user: Profile | null;
   session: Session | null;
-  users: Profile[];
+  users: Profile[];              // full profiles — populated for admins only
+  directory: DirectoryEntry[];   // name + avatar for everyone (safe for members)
   refreshUsers: () => Promise<void>;
   can: (perm: Permission) => boolean;
-  hasPerm: (key: PermissionKey) => boolean;
   isMasterAdmin: boolean;
-  permissions: PermissionKey[];
+  isAdmin: boolean;              // true for both Master Admin and Admin
+  isMember: boolean;             // true when not admin
   signOut: () => Promise<void>;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
-
-const LEGACY_PERMS: Record<Role, Permission[]> = {
-  admin: ["manage_projects", "manage_tasks", "manage_users", "manage_settings", "edit_own_task", "comment", "view"],
-  manager: ["manage_projects", "manage_tasks", "edit_own_task", "comment", "view"],
-  member: ["edit_own_task", "comment", "view"],
-  viewer: ["view"],
-};
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [lang, setLangState] = useState<Lang>("ar");
   const [theme, setThemeState] = useState<"dark" | "light">("dark");
   const [users, setUsers] = useState<Profile[]>([]);
+  const [directory, setDirectory] = useState<DirectoryEntry[]>([]);
   const [user, setUser] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [permissions, setPermissions] = useState<PermissionKey[]>([]);
 
   const setLang = (l: Lang) => { setLangState(l); if (typeof window !== "undefined") localStorage.setItem("lang", l); };
   const setTheme = (t: "dark" | "light") => { setThemeState(t); if (typeof window !== "undefined") localStorage.setItem("theme", t); };
 
+  const loadDirectory = async () => {
+    const { data } = await supabase.from("team_directory").select("id,full_name,avatar_url").order("full_name");
+    if (data) setDirectory(data as DirectoryEntry[]);
+  };
+
   const refreshUsers = async () => {
+    // Admins get full profile rows; members are limited by RLS and get an empty result here.
     const { data } = await supabase.from("profiles").select("*").order("created_at");
     if (data) setUsers(data as Profile[]);
+    await loadDirectory();
   };
 
   const loadUser = async (uid: string) => {
     const { data: prof } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
     if (prof) setUser(prof as Profile);
-    const { data: userRoles } = await supabase.from("user_roles").select("role_id").eq("user_id", uid);
-    const roleIds = (userRoles ?? []).map((r) => r.role_id);
-    if (roleIds.length) {
-      const { data: rp } = await supabase
-        .from("role_permissions")
-        .select("permission")
-        .in("role_id", roleIds);
-      setPermissions(Array.from(new Set((rp ?? []).map((r) => r.permission as PermissionKey))));
-    } else {
-      setPermissions([]);
-    }
   };
 
   const signOut = async () => {
     try { await queryClient.cancelQueries(); queryClient.clear(); } catch { /* noop */ }
     await supabase.auth.signOut();
-    setUser(null); setSession(null); setUsers([]); setPermissions([]);
+    setUser(null); setSession(null); setUsers([]); setDirectory([]);
   };
-
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -126,7 +113,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
       if (event === "SIGNED_OUT") {
-        setUser(null); setUsers([]); setPermissions([]);
+        setUser(null); setUsers([]); setDirectory([]);
       }
     });
     return () => { sub.subscription.unsubscribe(); };
@@ -149,23 +136,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const isMasterAdmin = !!user?.is_master_admin;
+  const isAdmin = isMasterAdmin || user?.role === "admin";
+  const isMember = !!user && !isAdmin;
 
+  // Legacy shim — mapped to the fixed 3-role model.
   const can = (p: Permission) => {
     if (!user) return false;
-    if (isMasterAdmin) return true;
-    return LEGACY_PERMS[user.role].includes(p);
-  };
-
-  const hasPerm = (key: PermissionKey) => {
-    if (!user) return false;
-    if (isMasterAdmin) return true;
-    return permissions.includes(key);
+    if (isAdmin) return true;
+    // Members
+    return p === "view" || p === "comment" || p === "edit_own_task";
   };
 
   return (
     <AppCtx.Provider value={{
-      lang, theme, setLang, setTheme, t, user, session, users, refreshUsers,
-      can, hasPerm, isMasterAdmin, permissions, signOut,
+      lang, theme, setLang, setTheme, t, user, session, users, directory, refreshUsers,
+      can, isMasterAdmin, isAdmin, isMember, signOut,
     }}>
       {children}
     </AppCtx.Provider>

@@ -50,6 +50,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "activity_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
         ]
       }
       app_config: {
@@ -149,10 +156,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "member_reports_compare_member_a_fkey"
+            columns: ["compare_member_a"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "member_reports_compare_member_b_fkey"
             columns: ["compare_member_b"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_reports_compare_member_b_fkey"
+            columns: ["compare_member_b"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
             referencedColumns: ["id"]
           },
           {
@@ -177,10 +198,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "member_reports_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "member_reports_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_reports_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
             referencedColumns: ["id"]
           },
         ]
@@ -225,6 +260,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
             referencedColumns: ["id"]
           },
         ]
@@ -289,6 +331,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
         ]
       }
       projects: {
@@ -339,6 +388,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
         ]
       }
       references: {
@@ -383,68 +439,6 @@ export type Database = {
         }
         Relationships: []
       }
-      role_permissions: {
-        Row: {
-          permission: Database["public"]["Enums"]["permission_key"]
-          role_id: string
-        }
-        Insert: {
-          permission: Database["public"]["Enums"]["permission_key"]
-          role_id: string
-        }
-        Update: {
-          permission?: Database["public"]["Enums"]["permission_key"]
-          role_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "role_permissions_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      roles: {
-        Row: {
-          color: string
-          created_at: string
-          description: string | null
-          id: string
-          is_system: boolean
-          name_ar: string
-          name_en: string
-          slug: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          color?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_system?: boolean
-          name_ar: string
-          name_en: string
-          slug: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          color?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_system?: boolean
-          name_ar?: string
-          name_en?: string
-          slug?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       task_comments: {
         Row: {
           author_id: string | null
@@ -473,6 +467,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
             referencedColumns: ["id"]
           },
           {
@@ -518,6 +519,13 @@ export type Database = {
             columns: ["added_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_files_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
             referencedColumns: ["id"]
           },
           {
@@ -587,6 +595,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -594,39 +609,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_roles: {
-        Row: {
-          assigned_at: string
-          assigned_by: string | null
-          role_id: string
-          user_id: string
-        }
-        Insert: {
-          assigned_at?: string
-          assigned_by?: string | null
-          role_id: string
-          user_id: string
-        }
-        Update: {
-          assigned_at?: string
-          assigned_by?: string | null
-          role_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
         ]
@@ -671,20 +664,37 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "work_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      team_directory: {
+        Row: {
+          avatar_url: string | null
+          full_name: string | null
+          id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      has_permission: {
-        Args: {
-          _permission: Database["public"]["Enums"]["permission_key"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -692,39 +702,12 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin_or_manager: { Args: { _user_id: string }; Returns: boolean }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_master_admin: { Args: { _user_id: string }; Returns: boolean }
       sync_master_admin: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "manager" | "member" | "viewer"
-      permission_key:
-        | "users.invite"
-        | "users.suspend"
-        | "users.delete"
-        | "users.change_role"
-        | "roles.manage"
-        | "projects.view"
-        | "projects.create"
-        | "projects.edit"
-        | "projects.delete"
-        | "projects.archive"
-        | "tasks.view"
-        | "tasks.create"
-        | "tasks.edit_any"
-        | "tasks.edit_own"
-        | "tasks.delete"
-        | "tasks.assign"
-        | "tasks.comment"
-        | "team.view"
-        | "league.view"
-        | "notifications.view"
-        | "settings.view"
-        | "settings.edit"
-        | "backups.view"
-        | "backups.run"
-        | "backups.restore"
-        | "activity.view"
       profile_status: "pending" | "active" | "suspended"
       project_status: "active" | "on_hold" | "done"
       task_priority: "low" | "normal" | "high" | "urgent"
@@ -857,34 +840,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "member", "viewer"],
-      permission_key: [
-        "users.invite",
-        "users.suspend",
-        "users.delete",
-        "users.change_role",
-        "roles.manage",
-        "projects.view",
-        "projects.create",
-        "projects.edit",
-        "projects.delete",
-        "projects.archive",
-        "tasks.view",
-        "tasks.create",
-        "tasks.edit_any",
-        "tasks.edit_own",
-        "tasks.delete",
-        "tasks.assign",
-        "tasks.comment",
-        "team.view",
-        "league.view",
-        "notifications.view",
-        "settings.view",
-        "settings.edit",
-        "backups.view",
-        "backups.run",
-        "backups.restore",
-        "activity.view",
-      ],
       profile_status: ["pending", "active", "suspended"],
       project_status: ["active", "on_hold", "done"],
       task_priority: ["low", "normal", "high", "urgent"],

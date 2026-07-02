@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/projects")({ component: Pr
 type P = { id: string; name_ar: string; name_en: string; color: string; status: string; due_date: string | null; archived: boolean; description: string | null; };
 
 function ProjectsPage() {
-  const { t, lang, can, user } = useApp();
+  const { t, lang, isAdmin, user } = useApp();
   const [showArchived, setShowArchived] = useState(false);
   const [modal, setModal] = useState(false);
 
@@ -46,7 +46,7 @@ function ProjectsPage() {
         <button onClick={() => setShowArchived((v) => !v)} className="brand-btn-sm" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
           {showArchived ? t("hideArchived") : t("showArchived")}
         </button>
-        {can("manage_projects") && (
+        {isAdmin && (
           <button onClick={() => setModal(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
             <Plus size={18} /> {t("newProject")}
           </button>
@@ -85,7 +85,7 @@ function ProjectsPage() {
                     </div>
                     <span style={{ color: "var(--muted)" }}>{formatDate(p.due_date, lang)}</span>
                   </div>
-                  {can("manage_projects") && (
+                  {isAdmin && (
                     <button onClick={() => toggleArchive(p)} style={{ marginTop: 12, width: "100%", minHeight: 40, borderRadius: 10, background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--border)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, fontWeight: 700 }}>
                       {p.archived ? <><ArchiveRestore size={16} /> {t("unarchive")}</> : <><Archive size={16} /> {t("archive")}</>}
                     </button>

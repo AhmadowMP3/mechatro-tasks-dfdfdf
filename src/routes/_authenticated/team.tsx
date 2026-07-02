@@ -14,12 +14,12 @@ import { ModalShell, Field, inp } from "@/routes/_authenticated/projects";
 export const Route = createFileRoute("/_authenticated/team")({ component: TeamPage });
 
 function TeamPage() {
-  const { t, lang, can, users, refreshUsers } = useApp();
+  const { t, lang, isAdmin, users, directory, refreshUsers } = useApp();
   const [add, setAdd] = useState(false);
   const [edit, setEdit] = useState<Profile | null>(null);
   const [record, setRecord] = useState<Profile | null>(null);
   const [report, setReport] = useState<Profile | null>(null);
-  const canAdmin = can("manage_users");
+  const canAdmin = isAdmin;
 
   const { data: aggregates } = useQuery({
     queryKey: ["team-agg"],
@@ -44,7 +44,7 @@ function TeamPage() {
     <div>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 28, margin: 0, flex: 1 }}>{t("team")}</h1>
-        {can("manage_users") && (
+        {isAdmin && (
           <button onClick={() => setAdd(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
             <Plus size={18} /> {t("addMember")}
           </button>
@@ -52,7 +52,11 @@ function TeamPage() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
-        {users.map((u) => {
+        {(isAdmin ? users : directory.map((d) => ({
+          id: d.id, full_name: d.full_name, avatar_url: d.avatar_url,
+          role: "member" as const, job_title: null, phone: null, active: true,
+          language_pref: "ar", theme_pref: "dark",
+        })) as typeof users).map((u) => {
           const s = stats(u.id);
           return (
             <div key={u.id} className="brand-card" style={{ padding: 20, opacity: u.active ? 1 : 0.6 }}>
@@ -62,24 +66,26 @@ function TeamPage() {
                   <div style={{ fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.full_name}</div>
                   <div style={{ fontSize: 12, color: "var(--muted)" }}>{u.job_title || "—"}</div>
                 </div>
-                <RoleBadge role={u.role} />
+                {isAdmin && <RoleBadge role={u.role} />}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 14, textAlign: "center" }}>
                 <MiniStat label={t("openTasks")} value={toLocalDigits(s.open, lang)} />
                 <MiniStat label={t("doneTasks")} value={toLocalDigits(s.done, lang)} />
                 <MiniStat label={t("hoursLogged")} value={toLocalDigits(Math.round(s.minutes / 60), lang)} />
               </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-                <button onClick={() => setRecord(u)} className="brand-btn-sm" style={{ flex: 1, minWidth: 90, background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("record")}</button>
-                {canAdmin && <button onClick={() => setEdit(u)} className="brand-btn-sm" style={{ flex: 1, minWidth: 90, background: "var(--grad-blue)", color: "#fff" }}>{t("editMember")}</button>}
-                {canAdmin && (
-                  <button onClick={() => setReport(u)} className="brand-btn-sm"
-                    title={t("generateReport")}
-                    style={{ flex: "0 0 auto", background: "linear-gradient(135deg,#FF8A3D,#F0676A)", color: "#fff", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <FileText size={14} /> PDF
-                  </button>
-                )}
-              </div>
+              {isAdmin && (
+                <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                  <button onClick={() => setRecord(u)} className="brand-btn-sm" style={{ flex: 1, minWidth: 90, background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("record")}</button>
+                  {canAdmin && <button onClick={() => setEdit(u)} className="brand-btn-sm" style={{ flex: 1, minWidth: 90, background: "var(--grad-blue)", color: "#fff" }}>{t("editMember")}</button>}
+                  {canAdmin && (
+                    <button onClick={() => setReport(u)} className="brand-btn-sm"
+                      title={t("generateReport")}
+                      style={{ flex: "0 0 auto", background: "linear-gradient(135deg,#FF8A3D,#F0676A)", color: "#fff", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <FileText size={14} /> PDF
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
