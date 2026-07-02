@@ -70,7 +70,7 @@ function Dashboard() {
       const [tasksRes, projectsRes, activityRes, profilesRes, sessionsRes] = await Promise.all([
         supabase.from("tasks").select("*"),
         supabase.from("projects").select("*"),
-        supabase.from("activity_log").select("*").order("created_at", { ascending: false }).limit(200),
+        supabase.from("activity_log").select("*").neq("action", "signed_in").neq("action", "signed_out").order("created_at", { ascending: false }).limit(200),
         supabase.from("profiles").select("id, full_name, avatar_url, role").eq("active", true),
         supabase.from("work_sessions").select("id, user_id, task_id, started_at, ended_at, duration_minutes").order("started_at", { ascending: false }).limit(500),
       ]);
@@ -112,6 +112,7 @@ function Dashboard() {
   // Activity + sessions filtered by date range (and project when relevant)
   const activity = useMemo(() => {
     return allActivity.filter((a) => {
+      if (a.action === "signed_in" || a.action === "signed_out") return false;
       if (rangeStart || rangeEnd) { if (!inRange(a.created_at)) return false; }
       return true;
     }).slice(0, 12);
