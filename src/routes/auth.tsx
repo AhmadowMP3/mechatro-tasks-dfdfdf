@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
+
 import { useApp } from "@/lib/app-context";
 import logo from "@/assets/mechatro-logo.png";
 
@@ -38,19 +38,6 @@ function AuthPage() {
 
   const l = lang === "ar";
 
-  async function handleGoogle() {
-    setBusy(true);
-    const res = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (res.error) {
-      toast.error(res.error.message || "Google sign-in failed");
-      setBusy(false);
-      return;
-    }
-    if (res.redirected) return; // browser redirects
-    navigate({ to: "/" });
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -185,29 +172,6 @@ function AuthPage() {
           >{busy ? "…" : label[mode][lang]}</button>
         </form>
 
-        {mode !== "forgot" && (
-          <>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0", color: "#7E97AB", fontSize: 12 }}>
-              <div style={{ flex: 1, height: 1, background: "#1E364D" }} />
-              {l ? "أو" : "or"}
-              <div style={{ flex: 1, height: 1, background: "#1E364D" }} />
-            </div>
-
-            <button
-              type="button" onClick={handleGoogle} disabled={busy}
-              style={{
-                width: "100%", minHeight: 48, borderRadius: 12,
-                background: "#fff", color: "#1A1A1A", fontWeight: 700, fontSize: 14,
-                border: "none", cursor: busy ? "wait" : "pointer",
-                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-                opacity: busy ? 0.6 : 1,
-              }}
-            >
-              <GoogleIcon />
-              {l ? "متابعة عبر Google" : "Continue with Google"}
-            </button>
-          </>
-        )}
       </div>
     </div>
   );
@@ -234,13 +198,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
-      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.6 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C33.9 6.1 29.2 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"/>
-      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C33.9 6.1 29.2 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
-      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 34.9 26.7 36 24 36c-5.3 0-9.7-3.4-11.3-8.1l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
-      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.6l6.2 5.2C41 34.6 44 29.7 44 24c0-1.2-.1-2.3-.4-3.5z"/>
-    </svg>
-  );
-}
