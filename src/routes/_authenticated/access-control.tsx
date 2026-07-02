@@ -228,7 +228,7 @@ function AccessControlPage() {
               <select
                 disabled={busyId === u.id}
                 value={u.role === "admin" ? "admin" : "member"}
-                onChange={(e) => act("set_role", u.id, { role: e.target.value })}
+                onChange={(e) => changeRole(u.id, e.target.value as "admin" | "member")}
                 style={selectStyle}
               >
                 <option value="member">{l ? "عضو" : "Member"}</option>
