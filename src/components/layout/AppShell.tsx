@@ -10,11 +10,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 900);
+    const handler = () => setIsMobile(window.innerWidth < 1024);
     handler();
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
+
 
   const langBtnStyle = (active: boolean): React.CSSProperties => ({
     padding: "8px 14px", minHeight: 44, borderRadius: 999,
