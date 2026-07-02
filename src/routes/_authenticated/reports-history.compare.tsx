@@ -1,6 +1,4 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { z } from "zod";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useApp } from "@/lib/app-context";
@@ -12,10 +10,7 @@ import type { KpiSnapshot } from "@/lib/report/snapshot";
 import { buildComparisonHtml } from "@/lib/report/comparison-html";
 import { persistComparisonPdf } from "@/lib/report/generator";
 
-const searchSchema = z.object({
-  a: fallback(z.string(), "").default(""),
-  b: fallback(z.string(), "").default(""),
-});
+type CompareSearch = { a: string; b: string };
 
 export const Route = createFileRoute("/_authenticated/reports-history/compare")({
   validateSearch: zodValidator(searchSchema),
