@@ -428,21 +428,13 @@ function contentPage(data: ReportData, lang: Lang, s: Stats, blocks: string[], p
 // ---------- Public: build one full report as HTML ----------
 export function buildReportHtml(data: ReportData, lang: Lang): string {
   const s = computeStats(data);
-  const pages: string[] = [];
-  pages.push(coverPage(data, lang, s));
+  const contentPages: string[][] = [
+    [profileSection(data, lang), kpiGrid(s, lang), chartsSection(data, s, lang)],
+    [projectsSection(data, s, lang), tasksSection(data, lang)],
+    [sessionsSection(data, s, lang), commentsFilesSection(data, lang), activitySection(data, lang)],
+  ].map((blocks) => blocks.filter(Boolean)).filter((b) => b.length);
 
-  // Page 2: profile + KPIs + charts
-  pages.push([profileSection(data, lang), kpiGrid(s, lang), chartsSection(data, s, lang)]);
-
-  // Page 3: projects + tasks
-  pages.push([projectsSection(data, s, lang), tasksSection(data, lang)]);
-
-  // Page 4: sessions + comments/files + activity
-  pages.push([sessionsSection(data, s, lang), commentsFilesSection(data, lang), activitySection(data, lang)]);
-
-  // Filter empty blocks
-  const rendered: string[] = [pages[0] as string];
-  const contentPages = (pages.slice(1) as string[][]).map((blocks) => blocks.filter(Boolean)).filter((b) => b.length);
+  const rendered: string[] = [coverPage(data, lang, s)];
   const total = 1 + contentPages.length;
   contentPages.forEach((blocks, i) => rendered.push(contentPage(data, lang, s, blocks, i + 2, total)));
   return rendered.join("");
