@@ -81,7 +81,7 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
           ))}
         </div>
         {rangeKey === "custom" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginTop: 12 }}>
             <label style={{ fontSize: 12, color: "var(--muted)" }}>{t("fromDate")}
               <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)}
                 style={{ width: "100%", padding: 10, marginTop: 4, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--foreground)" }} />
