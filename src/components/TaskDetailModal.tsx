@@ -68,10 +68,10 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
 
   const saveChanges = async () => {
     if (Object.keys(dirty).length === 0) return;
-    const patch: Partial<Task> = { ...dirty };
+    const patch: Record<string, unknown> = { ...dirty };
     if (dirty.status === "done" && task.status !== "done") patch.completed_at = new Date().toISOString();
     if (dirty.status && dirty.status !== "done") patch.completed_at = null;
-    const { error } = await supabase.from("tasks").update(patch).eq("id", taskId);
+    const { error } = await supabase.from("tasks").update(patch as never).eq("id", taskId);
     if (error) { toast.error(error.message); return; }
     toast.success(t("saved"));
     await logActivity(user?.id ?? null, dirty.status ? "act_status" : "act_update", "task", taskId, { title: task.title });
