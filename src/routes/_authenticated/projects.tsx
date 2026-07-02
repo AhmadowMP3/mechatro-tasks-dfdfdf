@@ -271,7 +271,12 @@ function ProjectsPage() {
       </FilterDrawer>
 
       {filtered.length === 0 ? (
-        <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noProjects")}</div>
+        <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
+          {f.archived
+            ? (lang === "ar" ? "لا توجد مشاريع مؤرشفة" : "No archived projects")
+            : t("noProjects")}
+        </div>
+
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px), 1fr))", gap: 16 }}>
           {filtered.map(({ p, progress, memberIds }) => (
