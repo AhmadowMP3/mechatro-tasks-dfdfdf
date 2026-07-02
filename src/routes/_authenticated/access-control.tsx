@@ -243,7 +243,7 @@ function AccessControlPage() {
         ))}
       </div>
 
-      <PendingInvitesList lang={lang} refreshKey={String(users?.length ?? 0) + String(showInvite)} />
+      <PendingInvitesList lang={lang} refreshKey={String(invitesBump)} />
 
       {showInvite && (
         <InviteModal
