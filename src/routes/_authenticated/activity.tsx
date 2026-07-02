@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
+
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
