@@ -95,6 +95,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    try {
+      const { useQueryClient } = await import("@tanstack/react-query");
+      void useQueryClient;
+    } catch { /* noop */ }
+    // Cache teardown before signing out to avoid 401 flashes from in-flight queries.
+    if (typeof window !== "undefined") {
+      const w = window as unknown as { __queryClient?: { cancelQueries: () => Promise<void>; clear: () => void } };
+      if (w.__queryClient) {
+        try { await w.__queryClient.cancelQueries(); w.__queryClient.clear(); } catch { /* noop */ }
+      }
+    }
     await supabase.auth.signOut();
     setUser(null); setSession(null); setUsers([]); setPermissions([]);
   };
