@@ -13,7 +13,10 @@ import { persistComparisonPdf } from "@/lib/report/generator";
 type CompareSearch = { a: string; b: string };
 
 export const Route = createFileRoute("/_authenticated/reports-history/compare")({
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: (search: Record<string, unknown>): CompareSearch => ({
+    a: typeof search.a === "string" ? search.a : "",
+    b: typeof search.b === "string" ? search.b : "",
+  }),
   component: CompareReportsPage,
   errorComponent: ({ error, reset }) => (
     <AppShell><div style={{ padding: 24 }}>
