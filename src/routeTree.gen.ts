@@ -16,6 +16,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
+import { Route as AuthenticatedShareLinksRouteImport } from './routes/_authenticated/share-links'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedReportsHistoryRouteImport } from './routes/_authenticated/reports-history'
 import { Route as AuthenticatedReferencesRouteImport } from './routes/_authenticated/references'
@@ -59,6 +60,11 @@ const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedShareLinksRoute = AuthenticatedShareLinksRouteImport.update({
+  id: '/share-links',
+  path: '/share-links',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/references': typeof AuthenticatedReferencesRoute
   '/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
+  '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/references': typeof AuthenticatedReferencesRoute
   '/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
+  '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
   '/': typeof AuthenticatedIndexRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/_authenticated/references': typeof AuthenticatedReferencesRoute
   '/_authenticated/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/share-links': typeof AuthenticatedShareLinksRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -187,6 +196,7 @@ export interface FileRouteTypes {
     | '/references'
     | '/reports-history'
     | '/settings'
+    | '/share-links'
     | '/tasks'
     | '/team'
     | '/projects/$id'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/references'
     | '/reports-history'
     | '/settings'
+    | '/share-links'
     | '/tasks'
     | '/team'
     | '/'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/_authenticated/references'
     | '/_authenticated/reports-history'
     | '/_authenticated/settings'
+    | '/_authenticated/share-links'
     | '/_authenticated/tasks'
     | '/_authenticated/team'
     | '/_authenticated/'
@@ -286,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof AuthenticatedTasksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/share-links': {
+      id: '/_authenticated/share-links'
+      path: '/share-links'
+      fullPath: '/share-links'
+      preLoaderRoute: typeof AuthenticatedShareLinksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings': {
@@ -398,6 +417,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReferencesRoute: typeof AuthenticatedReferencesRoute
   AuthenticatedReportsHistoryRoute: typeof AuthenticatedReportsHistoryRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedShareLinksRoute: typeof AuthenticatedShareLinksRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -413,6 +433,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsHistoryRoute:
     AuthenticatedReportsHistoryRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedShareLinksRoute: AuthenticatedShareLinksRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
