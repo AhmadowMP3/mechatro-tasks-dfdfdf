@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { RoleBadge } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
@@ -17,8 +17,11 @@ const NAV: { to: string; icon: React.ComponentType<{ size?: number }>; key: Dict
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
-  const { t, user, lang, signOut } = useApp();
+  const { t, user, lang, signOut, isMasterAdmin } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const nav = isMasterAdmin
+    ? [...NAV, { to: "/access-control", icon: ShieldCheck, key: null, label: { ar: "التحكم بالصلاحيات", en: "Access Control" } }]
+    : NAV;
 
   return (
     <aside
