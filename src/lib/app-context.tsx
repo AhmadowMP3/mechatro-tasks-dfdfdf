@@ -25,6 +25,9 @@ export type Profile = {
   language_pref: string;
   theme_pref: string;
   status?: "pending" | "active" | "suspended";
+  suspended_by?: string | null;
+  suspended_at?: string | null;
+  suspend_reason?: string | null;
   is_master_admin?: boolean;
 };
 
