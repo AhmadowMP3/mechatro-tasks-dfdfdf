@@ -102,7 +102,14 @@ function Dashboard() {
 
       {/* Activity */}
       <div className="brand-card" style={{ padding: 20 }}>
-        <h2 style={{ fontSize: 17, marginTop: 0, marginBottom: 12 }}>{t("recentActivity")}</h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <h2 style={{ fontSize: 17, margin: 0 }}>{t("recentActivity")}</h2>
+          {isAdmin && (
+            <Link to="/activity" style={{ fontSize: 13, color: "var(--brand-blue)", textDecoration: "none" }}>
+              {t("activityLog")} →
+            </Link>
+          )}
+        </div>
         {activity.length === 0 ? <p style={{ color: "var(--muted)" }}>{t("noActivity")}</p> : activity.map((a) => (
           <div key={a.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
             <span>
