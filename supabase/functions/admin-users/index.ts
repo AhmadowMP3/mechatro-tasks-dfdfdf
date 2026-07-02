@@ -1,5 +1,7 @@
 // Master-admin API for user management.
-// Actions: list | invite | set_role | approve | suspend | activate | delete | resend_invite | toggle_master
+// Actions: list | set_role | approve | suspend | activate | delete
+// Invites live in the separate `admin-invites` function (link-based flow).
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const CORS = {
@@ -75,36 +77,8 @@ Deno.serve(async (req) => {
       }
 
 
-      case "invite": {
-        const email = String(body.email ?? "").trim().toLowerCase();
-        const full_name = String(body.full_name ?? "").trim() || email.split("@")[0];
-        const role = (String(body.role ?? "member") === "admin") ? "admin" : "member";
-        if (!email) return json(400, { error: "email required" });
-        const redirect = String(body.redirect_to ?? "") || undefined;
-        const { data: inv, error: invErr } = await admin.auth.admin.inviteUserByEmail(email, {
-          data: { full_name, invited_by: me.id },
-          redirectTo: redirect,
-        });
-        if (invErr) throw invErr;
-        const newId = inv.user?.id;
-        if (newId) {
-          await admin.from("profiles").update({
-            full_name, role, status: "active",
-            invited_by: me.id, invited_at: new Date().toISOString(),
-          }).eq("id", newId);
-        }
-        return json(200, { ok: true, user_id: newId });
-      }
 
-      case "resend_invite": {
-        const user_id = String(body.user_id ?? "");
-        if (!user_id) return json(400, { error: "user_id required" });
-        const { data: u } = await admin.auth.admin.getUserById(user_id);
-        if (!u.user?.email) return json(400, { error: "user has no email" });
-        const { error } = await admin.auth.admin.inviteUserByEmail(u.user.email);
-        if (error) throw error;
-        return json(200, { ok: true });
-      }
+
 
       case "set_role": {
         const user_id = String(body.user_id ?? "");
