@@ -1,57 +1,35 @@
-## Multi-View Tasks Page
+## Goal
 
-Add a view switcher to `/tasks` with 4 modes. All views share the existing filters, search, `TaskDetailModal`, and permission checks. Selected view persists in `localStorage` (`tasks.view`).
+When an admin creates a task, the **start date is captured automatically in real time** (the moment of creation) and the admin only picks the **due date**. Make the creation experience feel polished and "alive."
 
-### View switcher UI
+## Changes
 
-Segmented control next to the "New Task" button — icons + labels, bilingual:
-- Cards (current) — `LayoutGrid` icon
-- Kanban — `Columns3` icon
-- Table — `Table2` icon
-- Timeline — `CalendarRange` icon
+### 1. Auto start date on creation
+- In `NewTaskModal.tsx`, drop the start-date input entirely and set `start_date: new Date().toISOString()` in the insert payload.
+- Add a small live "clock chip" at the top of the modal showing the current date + time (updates every second) with a label like "Starts now / يبدأ الآن" — visual cue that the task begins the instant it's created.
 
-### 1. Cards view (keep as-is)
+### 2. Due-date experience (the "cool" part)
+Replace the plain `<input type="date">` with a richer picker block:
+- **Quick-pick chips** above the date field: Today, +1 day, +3 days, +1 week, +2 weeks, End of month. One click fills the due date.
+- **Live duration readout** below the field: "Duration: 5 days • ends Sat, Jul 12" (bilingual, uses existing `formatDate`).
+- **Color-coded urgency ring** around the date field: green (>7d), amber (3–7d), orange (1–2d), red (same day/overdue) — matches existing `PRIORITY_STYLES` gradients.
+- Validation: due date must be ≥ today; disallow past dates in the picker (`min` attr).
 
-Existing responsive `TaskCard` grid. No changes.
+### 3. Task detail modal
+- Show `start_date` prominently as "Started: <relative time> ago" using existing `relativeTime` helper, alongside due date.
 
-### 2. Kanban view
+### 4. Timeline visual on task cards (small touch)
+- On `TaskCard`, add a thin gradient progress bar underneath the title showing elapsed time between `start_date` and `due_date` (percent through the window). Purely visual, uses brand gradient tokens.
 
-4 columns matching `task_status`: Todo · In Progress · Paused · Done.
-- Column header: colored top bar (uses `STATUS_STYLES`), title, count pill.
-- Compact task cards inside each column (title, priority dot, assignee avatar, due date, project color stripe).
-- Drag-and-drop between columns using native HTML5 DnD (no new dep). On drop → `supabase.from('tasks').update({ status }).eq('id', …)` + log activity + refetch. Guarded by `can('manage_tasks')`; viewers get read-only columns.
-- Horizontal scroll on narrow screens; RTL-aware order.
+### 5. i18n
+- Add keys to `src/i18n/dict.ts`: `startsNow`, `quickPick`, `today`, `plusDays`, `plusWeek`, `plusTwoWeeks`, `endOfMonth`, `duration`, `endsOn`, `startedAgo`.
 
-### 3. Table view
+## Out of scope
+- No schema changes (`start_date` column already exists).
+- No changes to Kanban/Table/Calendar views' business logic — they'll simply benefit from `start_date` being always populated.
+- Edit-task flow unchanged (start_date stays immutable after creation).
 
-Dense data table with sortable columns:
-- Title · Project (color chip) · Assignee (avatar + name) · Status pill · Priority pill · Due date (red if overdue) · Progress (small bar from `progress_pct`).
-- Sticky header, zebra rows, hover highlight, click row → open `TaskDetailModal`.
-- Sort by clicking header (title, due_date, priority, status). Sort state local.
-- Responsive: hides Project + Progress columns under 768px.
-
-### 4. Timeline view (the creative one)
-
-Horizontal **swim-lane timeline** grouped by assignee — a mini Gantt.
-- Left column: assignee avatars + names (sticky).
-- Right: horizontal time axis covering min(start_date, today) → max(due_date) + 7 days, ticked by week. Today marked with a vertical accent line (brand blue).
-- Each task = a rounded bar spanning `start_date` → `due_date`, colored by project, with a thin inner fill representing `progress_pct`. Overdue bars get a red left border and pulse.
-- Bar shows truncated title + priority dot; hover reveals tooltip; click opens detail modal.
-- Tasks without dates appear in a "No dates" tray at the bottom.
-- Empty-state per lane when a user has no tasks in range.
-- Horizontal scroll; RTL flips axis direction.
-
-### File changes
-
-- `src/routes/_authenticated/tasks.tsx` — add view state + switcher; render one of four view components.
-- `src/components/tasks/ViewSwitcher.tsx` — segmented control.
-- `src/components/tasks/KanbanView.tsx` — columns + DnD + status update.
-- `src/components/tasks/TableView.tsx` — sortable table.
-- `src/components/tasks/TimelineView.tsx` — swim-lane timeline.
-- `src/i18n/dict.ts` — add labels: `viewCards`, `viewKanban`, `viewTable`, `viewTimeline`, `noDates`, `today`, plus AR translations.
-
-No schema or RLS changes. No new dependencies.
-
-### Verification
-
-After build, use Playwright to load `/tasks`, screenshot each view, and confirm a Kanban drag updates status in the DB.
+## Technical notes
+- All new UI uses existing design tokens (`var(--grad-*)`, `PRIORITY_STYLES`, `Field`, `inp`) — no new dependencies.
+- Live clock uses a single `useEffect` + `setInterval(1000)` cleaned up on unmount.
+- Duration math done client-side with plain `Date` diffs; formatted via existing `formatDate` / `toLocalDigits`.
