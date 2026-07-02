@@ -27,9 +27,12 @@ export const PROJECT_COLORS: Record<string, string> = {
   red: "linear-gradient(135deg,#D9484B,#F0676A)",
 };
 
-export function initials(name: string): string {
-  return name.trim().split(/\s+/).slice(0, 2).map((s) => s[0]?.toUpperCase() ?? "").join("");
+export function initials(name: string | null | undefined): string {
+  const s = (name ?? "").trim();
+  if (!s) return "?";
+  return s.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?";
 }
+
 
 export function avatarColor(id: string): string {
   const hash = Array.from(id).reduce((a, c) => a + c.charCodeAt(0), 0);

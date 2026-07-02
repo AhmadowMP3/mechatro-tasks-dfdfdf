@@ -48,9 +48,10 @@ Deno.serve(async (req) => {
   try {
     switch (action) {
       case "list": {
-        const [{ data: profiles }, listRes] = await Promise.all([
+        const [{ data: profiles }, listRes, { data: roleRows }] = await Promise.all([
           admin.from("profiles").select("*").order("created_at", { ascending: false }),
           admin.auth.admin.listUsers({ perPage: 200 }),
+          admin.from("user_roles").select("user_id, role"),
         ]);
         const emailMap = new Map<string, string>();
         const lastMap = new Map<string, string | null>();
@@ -58,13 +59,21 @@ Deno.serve(async (req) => {
           if (u.email) emailMap.set(u.id, u.email);
           lastMap.set(u.id, u.last_sign_in_at ?? null);
         }
+        const roleMap = new Map<string, string>();
+        for (const r of roleRows ?? []) {
+          if (r?.user_id && r?.role) roleMap.set(r.user_id, r.role);
+        }
         const users = (profiles ?? []).map((p) => ({
           ...p,
+          full_name: p.full_name ?? (emailMap.get(p.id)?.split("@")[0]) ?? "User",
           email: emailMap.get(p.id) ?? p.email ?? null,
           last_sign_in_at: lastMap.get(p.id) ?? null,
+          role: roleMap.get(p.id) ?? "member",
+          status: p.status ?? "active",
         }));
         return json(200, { users });
       }
+
 
       case "invite": {
         const email = String(body.email ?? "").trim().toLowerCase();
