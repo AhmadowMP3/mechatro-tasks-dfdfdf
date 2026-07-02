@@ -19,6 +19,7 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedLeagueRouteImport } from './routes/_authenticated/league'
+import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 
@@ -72,6 +73,11 @@ const AuthenticatedLeagueRoute = AuthenticatedLeagueRouteImport.update({
   path: '/league',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedActivityRoute = AuthenticatedActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAccessControlRoute =
   AuthenticatedAccessControlRouteImport.update({
     id: '/access-control',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/access-control': typeof AuthenticatedAccessControlRoute
+  '/activity': typeof AuthenticatedActivityRoute
   '/league': typeof AuthenticatedLeagueRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/access-control': typeof AuthenticatedAccessControlRoute
+  '/activity': typeof AuthenticatedActivityRoute
   '/league': typeof AuthenticatedLeagueRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/access-control': typeof AuthenticatedAccessControlRoute
+  '/_authenticated/activity': typeof AuthenticatedActivityRoute
   '/_authenticated/league': typeof AuthenticatedLeagueRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/access-control'
+    | '/activity'
     | '/league'
     | '/notifications'
     | '/projects'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/access-control'
+    | '/activity'
     | '/league'
     | '/notifications'
     | '/projects'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/access-control'
+    | '/_authenticated/activity'
     | '/_authenticated/league'
     | '/_authenticated/notifications'
     | '/_authenticated/projects'
@@ -246,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeagueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/activity': {
+      id: '/_authenticated/activity'
+      path: '/activity'
+      fullPath: '/activity'
+      preLoaderRoute: typeof AuthenticatedActivityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/access-control': {
       id: '/_authenticated/access-control'
       path: '/access-control'
@@ -278,6 +297,7 @@ const AuthenticatedProjectsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessControlRoute: typeof AuthenticatedAccessControlRoute
+  AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
   AuthenticatedLeagueRoute: typeof AuthenticatedLeagueRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
@@ -289,6 +309,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessControlRoute: AuthenticatedAccessControlRoute,
+  AuthenticatedActivityRoute: AuthenticatedActivityRoute,
   AuthenticatedLeagueRoute: AuthenticatedLeagueRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,

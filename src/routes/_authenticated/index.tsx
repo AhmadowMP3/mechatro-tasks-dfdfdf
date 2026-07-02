@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
@@ -14,7 +14,8 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 function Dashboard() {
-  const { t, lang, user } = useApp();
+  const { t, lang, user, isMasterAdmin } = useApp();
+  const isAdmin = isMasterAdmin || user?.role === "admin";
   const [selected, setSelected] = useState<string | null>(null);
   const { data, refetch } = useQuery({
     queryKey: ["dashboard"],
@@ -101,7 +102,14 @@ function Dashboard() {
 
       {/* Activity */}
       <div className="brand-card" style={{ padding: 20 }}>
-        <h2 style={{ fontSize: 17, marginTop: 0, marginBottom: 12 }}>{t("recentActivity")}</h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <h2 style={{ fontSize: 17, margin: 0 }}>{t("recentActivity")}</h2>
+          {isAdmin && (
+            <Link to="/activity" style={{ fontSize: 13, color: "var(--brand-blue)", textDecoration: "none" }}>
+              {t("activityLog")} →
+            </Link>
+          )}
+        </div>
         {activity.length === 0 ? <p style={{ color: "var(--muted)" }}>{t("noActivity")}</p> : activity.map((a) => (
           <div key={a.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
             <span>

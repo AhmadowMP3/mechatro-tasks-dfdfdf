@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { dict, type DictKey, type Lang } from "@/i18n/dict";
+import { logActivity } from "@/lib/activity";
 import type { Session } from "@supabase/supabase-js";
 
 // Legacy role kept for existing UI badges. New logic uses `permissions` array.
@@ -120,7 +121,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       if (event === "SIGNED_IN" || event === "USER_UPDATED") {
-        if (s) { loadUser(s.user.id); refreshUsers(); }
+        if (s) {
+          loadUser(s.user.id);
+          refreshUsers();
+          if (event === "SIGNED_IN") void logActivity(s.user.id, "signed_in", "auth", s.user.id, {});
+        }
       }
       if (event === "SIGNED_OUT") {
         setUser(null); setUsers([]); setPermissions([]);
