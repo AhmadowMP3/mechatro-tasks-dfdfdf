@@ -252,7 +252,8 @@ function MultiSelect({
           style={{
             position: "absolute",
             top: "calc(100% + 6px)",
-            [lang === "ar" ? "left" : "right"]: 0,
+            left: lang === "ar" ? 0 : "auto",
+            right: lang === "ar" ? "auto" : 0,
             minWidth: 220,
             maxHeight: 320,
             overflowY: "auto",
