@@ -1,0 +1,4 @@
+project_id = "hxzttehtfnxpnfyeclzj"
+
+[functions.backup-snapshot]
+verify_jwt = false
