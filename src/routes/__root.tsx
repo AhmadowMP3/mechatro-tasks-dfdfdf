@@ -10,6 +10,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { AppShell } from "@/components/layout/AppShell";
+import { CustomCursor } from "@/components/CustomCursor";
+
 
 function NotFoundComponent() {
   return (
@@ -85,8 +87,10 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AppProvider>
         <Outlet />
+        <CustomCursor />
         <Toaster position="top-center" richColors />
       </AppProvider>
+
     </QueryClientProvider>
   );
 }
