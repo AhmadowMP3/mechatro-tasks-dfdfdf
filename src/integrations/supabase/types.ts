@@ -70,6 +70,121 @@ export type Database = {
         }
         Relationships: []
       }
+      member_reports: {
+        Row: {
+          compare_member_a: string | null
+          compare_member_b: string | null
+          compare_report_a: string | null
+          compare_report_b: string | null
+          created_at: string
+          generated_by: string | null
+          generated_by_name_snapshot: string | null
+          id: string
+          kind: string
+          kpi_snapshot: Json
+          language: string
+          member_id: string | null
+          member_name_snapshot: string | null
+          page_count: number | null
+          pdf_path: string
+          pdf_size_bytes: number | null
+          range_from: string | null
+          range_key: string
+          range_to: string | null
+          snapshot_version: number
+          updated_at: string
+        }
+        Insert: {
+          compare_member_a?: string | null
+          compare_member_b?: string | null
+          compare_report_a?: string | null
+          compare_report_b?: string | null
+          created_at?: string
+          generated_by?: string | null
+          generated_by_name_snapshot?: string | null
+          id?: string
+          kind?: string
+          kpi_snapshot?: Json
+          language: string
+          member_id?: string | null
+          member_name_snapshot?: string | null
+          page_count?: number | null
+          pdf_path: string
+          pdf_size_bytes?: number | null
+          range_from?: string | null
+          range_key: string
+          range_to?: string | null
+          snapshot_version?: number
+          updated_at?: string
+        }
+        Update: {
+          compare_member_a?: string | null
+          compare_member_b?: string | null
+          compare_report_a?: string | null
+          compare_report_b?: string | null
+          created_at?: string
+          generated_by?: string | null
+          generated_by_name_snapshot?: string | null
+          id?: string
+          kind?: string
+          kpi_snapshot?: Json
+          language?: string
+          member_id?: string | null
+          member_name_snapshot?: string | null
+          page_count?: number | null
+          pdf_path?: string
+          pdf_size_bytes?: number | null
+          range_from?: string | null
+          range_key?: string
+          range_to?: string | null
+          snapshot_version?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_reports_compare_member_a_fkey"
+            columns: ["compare_member_a"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_reports_compare_member_b_fkey"
+            columns: ["compare_member_b"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_reports_compare_report_a_fkey"
+            columns: ["compare_report_a"]
+            isOneToOne: false
+            referencedRelation: "member_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_reports_compare_report_b_fkey"
+            columns: ["compare_report_b"]
+            isOneToOne: false
+            referencedRelation: "member_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_reports_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_reports_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null

@@ -16,6 +16,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedReportsHistoryRouteImport } from './routes/_authenticated/reports-history'
 import { Route as AuthenticatedReferencesRouteImport } from './routes/_authenticated/references'
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
@@ -23,6 +24,7 @@ import { Route as AuthenticatedLeagueRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
 import { Route as ApiPublicProvisionTestUserRouteImport } from './routes/api/public/provision-test-user'
+import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history.compare'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -59,6 +61,12 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedReportsHistoryRoute =
+  AuthenticatedReportsHistoryRouteImport.update({
+    id: '/reports-history',
+    path: '/reports-history',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedReferencesRoute = AuthenticatedReferencesRouteImport.update({
   id: '/references',
   path: '/references',
@@ -97,6 +105,12 @@ const ApiPublicProvisionTestUserRoute =
     path: '/api/public/provision-test-user',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedReportsHistoryCompareRoute =
+  AuthenticatedReportsHistoryCompareRouteImport.update({
+    id: '/compare',
+    path: '/compare',
+    getParentRoute: () => AuthenticatedReportsHistoryRoute,
+  } as any)
 const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -113,10 +127,12 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/references': typeof AuthenticatedReferencesRoute
+  '/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
+  '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/api/public/provision-test-user': typeof ApiPublicProvisionTestUserRoute
 }
 export interface FileRoutesByTo {
@@ -128,11 +144,13 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/references': typeof AuthenticatedReferencesRoute
+  '/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
   '/': typeof AuthenticatedIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
+  '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/api/public/provision-test-user': typeof ApiPublicProvisionTestUserRoute
 }
 export interface FileRoutesById {
@@ -146,11 +164,13 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/_authenticated/references': typeof AuthenticatedReferencesRoute
+  '/_authenticated/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
+  '/_authenticated/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/api/public/provision-test-user': typeof ApiPublicProvisionTestUserRoute
 }
 export interface FileRouteTypes {
@@ -165,10 +185,12 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/projects'
     | '/references'
+    | '/reports-history'
     | '/settings'
     | '/tasks'
     | '/team'
     | '/projects/$id'
+    | '/reports-history/compare'
     | '/api/public/provision-test-user'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -180,11 +202,13 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/projects'
     | '/references'
+    | '/reports-history'
     | '/settings'
     | '/tasks'
     | '/team'
     | '/'
     | '/projects/$id'
+    | '/reports-history/compare'
     | '/api/public/provision-test-user'
   id:
     | '__root__'
@@ -197,11 +221,13 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/projects'
     | '/_authenticated/references'
+    | '/_authenticated/reports-history'
     | '/_authenticated/settings'
     | '/_authenticated/tasks'
     | '/_authenticated/team'
     | '/_authenticated/'
     | '/_authenticated/projects/$id'
+    | '/_authenticated/reports-history/compare'
     | '/api/public/provision-test-user'
   fileRoutesById: FileRoutesById
 }
@@ -263,6 +289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reports-history': {
+      id: '/_authenticated/reports-history'
+      path: '/reports-history'
+      fullPath: '/reports-history'
+      preLoaderRoute: typeof AuthenticatedReportsHistoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/references': {
       id: '/_authenticated/references'
       path: '/references'
@@ -312,6 +345,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicProvisionTestUserRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/reports-history/compare': {
+      id: '/_authenticated/reports-history/compare'
+      path: '/compare'
+      fullPath: '/reports-history/compare'
+      preLoaderRoute: typeof AuthenticatedReportsHistoryCompareRouteImport
+      parentRoute: typeof AuthenticatedReportsHistoryRoute
+    }
     '/_authenticated/projects/$id': {
       id: '/_authenticated/projects/$id'
       path: '/$id'
@@ -335,6 +375,21 @@ const AuthenticatedProjectsRouteWithChildren =
     AuthenticatedProjectsRouteChildren,
   )
 
+interface AuthenticatedReportsHistoryRouteChildren {
+  AuthenticatedReportsHistoryCompareRoute: typeof AuthenticatedReportsHistoryCompareRoute
+}
+
+const AuthenticatedReportsHistoryRouteChildren: AuthenticatedReportsHistoryRouteChildren =
+  {
+    AuthenticatedReportsHistoryCompareRoute:
+      AuthenticatedReportsHistoryCompareRoute,
+  }
+
+const AuthenticatedReportsHistoryRouteWithChildren =
+  AuthenticatedReportsHistoryRoute._addFileChildren(
+    AuthenticatedReportsHistoryRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessControlRoute: typeof AuthenticatedAccessControlRoute
   AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
@@ -342,6 +397,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
   AuthenticatedReferencesRoute: typeof AuthenticatedReferencesRoute
+  AuthenticatedReportsHistoryRoute: typeof AuthenticatedReportsHistoryRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
@@ -355,6 +411,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,
   AuthenticatedReferencesRoute: AuthenticatedReferencesRoute,
+  AuthenticatedReportsHistoryRoute:
+    AuthenticatedReportsHistoryRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,
