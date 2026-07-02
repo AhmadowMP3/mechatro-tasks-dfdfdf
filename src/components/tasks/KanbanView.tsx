@@ -55,12 +55,15 @@ export function KanbanView({
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(260px, 1fr))`,
+        gridAutoFlow: "column",
+        gridAutoColumns: "minmax(min(82vw, 280px), 1fr)",
         gap: 14,
         overflowX: "auto",
         paddingBottom: 8,
+        scrollSnapType: "x mandatory",
       }}
     >
+
       {COLUMNS.map((col) => {
         const style = STATUS_STYLES[col];
         const colTasks = tasks.filter((x) => x.status === col);
