@@ -533,6 +533,69 @@ export type Database = {
         }
         Relationships: []
       }
+      share_links: {
+        Row: {
+          allowed_pages: string[]
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          label: string
+          last_used_at: string | null
+          max_uses: number | null
+          password_hash: string | null
+          revoked: boolean
+          token: string
+          updated_at: string
+          use_count: number
+        }
+        Insert: {
+          allowed_pages?: string[]
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          label?: string
+          last_used_at?: string | null
+          max_uses?: number | null
+          password_hash?: string | null
+          revoked?: boolean
+          token: string
+          updated_at?: string
+          use_count?: number
+        }
+        Update: {
+          allowed_pages?: string[]
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          label?: string
+          last_used_at?: string | null
+          max_uses?: number | null
+          password_hash?: string | null
+          revoked?: boolean
+          token?: string
+          updated_at?: string
+          use_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_comments: {
         Row: {
           author_id: string | null

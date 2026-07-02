@@ -14,8 +14,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
+import { Route as AuthenticatedShareLinksRouteImport } from './routes/_authenticated/share-links'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedReportsHistoryRouteImport } from './routes/_authenticated/reports-history'
 import { Route as AuthenticatedReferencesRouteImport } from './routes/_authenticated/references'
@@ -24,6 +26,7 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedLeagueRouteImport } from './routes/_authenticated/league'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
+import { Route as ShareTokenPageRouteImport } from './routes/share.$token.$page'
 import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history.compare'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 
@@ -51,6 +54,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
   id: '/team',
   path: '/team',
@@ -59,6 +67,11 @@ const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedShareLinksRoute = AuthenticatedShareLinksRouteImport.update({
+  id: '/share-links',
+  path: '/share-links',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -104,6 +117,11 @@ const AuthenticatedAccessControlRoute =
     path: '/access-control',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ShareTokenPageRoute = ShareTokenPageRouteImport.update({
+  id: '/$page',
+  path: '/$page',
+  getParentRoute: () => ShareTokenRoute,
+} as any)
 const AuthenticatedReportsHistoryCompareRoute =
   AuthenticatedReportsHistoryCompareRouteImport.update({
     id: '/compare',
@@ -129,10 +147,13 @@ export interface FileRoutesByFullPath {
   '/references': typeof AuthenticatedReferencesRoute
   '/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
+  '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
+  '/share/$token': typeof ShareTokenRouteWithChildren
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
+  '/share/$token/$page': typeof ShareTokenPageRoute
 }
 export interface FileRoutesByTo {
   '/accept-invite': typeof AcceptInviteRoute
@@ -146,11 +167,14 @@ export interface FileRoutesByTo {
   '/references': typeof AuthenticatedReferencesRoute
   '/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
+  '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/team': typeof AuthenticatedTeamRoute
+  '/share/$token': typeof ShareTokenRouteWithChildren
   '/': typeof AuthenticatedIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
+  '/share/$token/$page': typeof ShareTokenPageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -166,11 +190,14 @@ export interface FileRoutesById {
   '/_authenticated/references': typeof AuthenticatedReferencesRoute
   '/_authenticated/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/share-links': typeof AuthenticatedShareLinksRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
+  '/share/$token': typeof ShareTokenRouteWithChildren
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
+  '/share/$token/$page': typeof ShareTokenPageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -187,10 +214,13 @@ export interface FileRouteTypes {
     | '/references'
     | '/reports-history'
     | '/settings'
+    | '/share-links'
     | '/tasks'
     | '/team'
+    | '/share/$token'
     | '/projects/$id'
     | '/reports-history/compare'
+    | '/share/$token/$page'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/accept-invite'
@@ -204,11 +234,14 @@ export interface FileRouteTypes {
     | '/references'
     | '/reports-history'
     | '/settings'
+    | '/share-links'
     | '/tasks'
     | '/team'
+    | '/share/$token'
     | '/'
     | '/projects/$id'
     | '/reports-history/compare'
+    | '/share/$token/$page'
   id:
     | '__root__'
     | '/_authenticated'
@@ -223,11 +256,14 @@ export interface FileRouteTypes {
     | '/_authenticated/references'
     | '/_authenticated/reports-history'
     | '/_authenticated/settings'
+    | '/_authenticated/share-links'
     | '/_authenticated/tasks'
     | '/_authenticated/team'
+    | '/share/$token'
     | '/_authenticated/'
     | '/_authenticated/projects/$id'
     | '/_authenticated/reports-history/compare'
+    | '/share/$token/$page'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -235,6 +271,7 @@ export interface RootRouteChildren {
   AcceptInviteRoute: typeof AcceptInviteRoute
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ShareTokenRoute: typeof ShareTokenRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -274,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/team': {
       id: '/_authenticated/team'
       path: '/team'
@@ -286,6 +330,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof AuthenticatedTasksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/share-links': {
+      id: '/_authenticated/share-links'
+      path: '/share-links'
+      fullPath: '/share-links'
+      preLoaderRoute: typeof AuthenticatedShareLinksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings': {
@@ -344,6 +395,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccessControlRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/share/$token/$page': {
+      id: '/share/$token/$page'
+      path: '/$page'
+      fullPath: '/share/$token/$page'
+      preLoaderRoute: typeof ShareTokenPageRouteImport
+      parentRoute: typeof ShareTokenRoute
+    }
     '/_authenticated/reports-history/compare': {
       id: '/_authenticated/reports-history/compare'
       path: '/compare'
@@ -398,6 +456,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReferencesRoute: typeof AuthenticatedReferencesRoute
   AuthenticatedReportsHistoryRoute: typeof AuthenticatedReportsHistoryRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedShareLinksRoute: typeof AuthenticatedShareLinksRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -413,6 +472,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsHistoryRoute:
     AuthenticatedReportsHistoryRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedShareLinksRoute: AuthenticatedShareLinksRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
@@ -421,11 +481,24 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface ShareTokenRouteChildren {
+  ShareTokenPageRoute: typeof ShareTokenPageRoute
+}
+
+const ShareTokenRouteChildren: ShareTokenRouteChildren = {
+  ShareTokenPageRoute: ShareTokenPageRoute,
+}
+
+const ShareTokenRouteWithChildren = ShareTokenRoute._addFileChildren(
+  ShareTokenRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AcceptInviteRoute: AcceptInviteRoute,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ShareTokenRoute: ShareTokenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

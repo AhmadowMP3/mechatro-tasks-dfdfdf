@@ -6,3 +6,6 @@ verify_jwt = false
 [functions.redeem-invite]
 verify_jwt = false
 
+
+[functions.share-access]
+verify_jwt = false
