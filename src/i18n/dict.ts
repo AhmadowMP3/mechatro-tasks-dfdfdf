@@ -342,7 +342,10 @@ export const dict = {
   openLink: { ar: "فتح", en: "Open" },
   copyLink: { ar: "نسخ الرابط", en: "Copy link" },
   copied: { ar: "تم النسخ", en: "Copied" },
-  categoryPlaceholder: { ar: "مثال: تصميم، موارد بشرية...", en: "e.g. Design, HR, Suppliers..." },
+  categoryPlaceholder: { ar: "ابحث أو اكتب فئة جديدة...", en: "Search or type a new category..." },
+  categoryHint: { ar: "اختر من الفئات الموجودة أو اكتب فئة جديدة", en: "Pick an existing category or type your own" },
+  createCategory: { ar: "إنشاء", en: "Create" },
+
   clearFilters: { ar: "مسح الفلاتر", en: "Clear filters" },
   // Report History
   reportHistory: { ar: "سجل التقارير", en: "Report History" },
