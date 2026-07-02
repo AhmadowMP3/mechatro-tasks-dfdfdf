@@ -110,7 +110,8 @@ export async function loadMemberReportData(memberId: string, r: ReportRange): Pr
       is_master_admin: !!member.is_master_admin, status: member.status ?? null, active: !!member.active,
       created_at: member.created_at, language_pref: member.language_pref ?? "ar",
     },
-    range, tasks, projects, sessions, comments, files, activity,
+    range, tasks, projects, sessions, comments, files,
+    activity: (activity as unknown as ReportData["activity"]),
     rank: { position: position >= 0 ? position + 1 : (allProfilesR.data?.length ?? 0), total: allProfilesR.data?.length ?? 0, points },
     generated_by: { full_name: uName, email: userR.data.user?.email ?? null },
   };
