@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
-import { logActivity } from "@/lib/activity";
+
 import { toast } from "sonner";
 import { FileText, Download, Eye, Trash2, GitCompareArrows, X, CheckCircle2, ArrowLeftRight, Users2 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -122,8 +122,6 @@ function ReportsHistoryPage() {
       await supabase.storage.from("member-reports").remove([r.pdf_path]);
       const { error } = await supabase.from("member_reports").delete().eq("id", r.id);
       if (error) throw error;
-      const { data: u } = await supabase.auth.getUser();
-      await logActivity(u.user?.id ?? null, "report.deleted", "report", r.id, { member_id: r.member_id, path: r.pdf_path });
       setRows((prev) => prev.filter((x) => x.id !== r.id));
       setSelected((prev) => prev.filter((x) => x !== r.id));
       toast.success("Deleted");
@@ -133,6 +131,7 @@ function ReportsHistoryPage() {
       setConfirmDel(null);
     }
   };
+
 
   const doCompare = () => {
     if (selected.length !== 2) return;

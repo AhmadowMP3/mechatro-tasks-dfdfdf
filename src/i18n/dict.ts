@@ -235,6 +235,7 @@ export const dict = {
   act_file_added: { ar: "أضاف ملفًا إلى", en: "added a file to" },
   act_assigned: { ar: "أسند", en: "assigned" },
   act_signed_in: { ar: "سجَّل الدخول", en: "signed in" },
+  act_signed_out: { ar: "سجَّل الخروج", en: "signed out" },
   // Entities (extras beyond existing entity_task/entity_project)
   entity_profile: { ar: "مستخدم", en: "user" },
   entity_role: { ar: "دور", en: "role" },
@@ -242,6 +243,9 @@ export const dict = {
   entity_file: { ar: "ملف", en: "file" },
   entity_session: { ar: "جلسة", en: "session" },
   entity_auth: { ar: "جلسة دخول", en: "session" },
+  entity_reference: { ar: "مرجعًا", en: "a reference" },
+  entity_report: { ar: "تقريرًا", en: "a report" },
+
   // Report
   generateReport: { ar: "توليد تقرير", en: "Generate report" },
   memberReport: { ar: "تقرير العضو", en: "Member Report" },

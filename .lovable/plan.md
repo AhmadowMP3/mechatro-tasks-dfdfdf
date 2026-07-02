@@ -1,39 +1,49 @@
-## Custom Mechatro Cursor
+## Make the Activity Log capture everything
 
-Replace the default OS cursor site-wide with a branded, animated cursor that matches the Mechatro identity (blue + gold, dark surface).
+Right now the log only fills up with `signed_in` events because most non-auth writes bypass `logActivity()` (kanban drag, references delete, project archive, task delete, admin role changes, etc.). Instead of hunting every call site, we install **database triggers** that log every insert/update/delete automatically — so nothing can slip through, regardless of whether it came from the app, an edge function, or a future feature.
 
-### Design
-- **Default cursor**: a small solid gold dot (Mechatro Gold, 6px) with a larger outlined ring (blue, 22px) trailing it smoothly. Ring uses `var(--grad-blue)` border tint, dot uses `var(--grad-gold)`.
-- **Hover state** (over links, buttons, `[role=button]`, `.brand-btn`, kanban cards, inputs): ring expands to 34px, becomes a subtle blue glow, dot stays gold and centers.
-- **Active/click state**: ring contracts (18px) with a quick pulse.
-- **Text inputs / textareas**: cursor switches to a themed I-beam (thin gold vertical bar) so typing still feels natural.
-- **Disabled elements**: ring turns muted gray, dot hides.
-- **RTL**: cursor is direction-agnostic — no changes needed.
-- **Mobile / touch**: fully disabled via `@media (hover: none) and (pointer: coarse)` so touch devices keep native behavior.
-- **Reduced motion**: trailing lerp is removed; ring snaps to pointer without smoothing.
+### 1. Database — universal audit triggers (migration)
+Create one security-definer function `public.log_row_change()` that:
+- reads `auth.uid()` as `actor_id` (falls back to `NULL` for system/service-role writes),
+- maps `TG_OP` to a canonical action (`INSERT`→`created`, `UPDATE`→`updated`, `DELETE`→`deleted`),
+- for updates, if the `status` column exists and changed, emits `status_changed` with `{from, to}` meta instead,
+- picks the entity title/name from the row (`title`, `name_en`/`name_ar`, `full_name`),
+- writes into `public.activity_log`.
 
-### Implementation
-1. **New component** `src/components/CustomCursor.tsx`
-   - Two fixed-position divs (`.cursor-dot`, `.cursor-ring`) appended to body.
-   - `requestAnimationFrame` loop lerps ring position toward mouse (dot follows 1:1).
-   - Listens to `mousemove`, `mousedown`, `mouseup`, `mouseover`/`mouseout` to toggle `is-hover`, `is-active`, `is-text`, `is-disabled` classes based on `event.target.closest(...)`.
-   - Skips render if `matchMedia('(hover: none)')` matches or `prefers-reduced-motion` limits animation.
-   - Hides on `mouseleave` of window; shows on re-enter.
+Attach `AFTER INSERT OR UPDATE OR DELETE` triggers to:
+- `tasks` — covers create, edit, drag-to-column, delete
+- `projects` — covers create, edit, archive/unarchive, delete
+- `references` — covers create, edit, pin toggle, delete
+- `task_comments` → action `commented`
+- `task_files` → action `file_added`
+- `profiles` — only when `role`, `status`, or `active` changes → action `assigned` with `{from_role, to_role, status}` meta
+- `member_reports` → `report.generated` / `report.deleted`
 
-2. **Global styles** in `src/styles.css`
-   - Add `html, body, * { cursor: none; }` (with fallback `cursor: auto` inside the touch media query).
-   - Keep `cursor: text` fallback for inputs so users without JS still see the caret.
-   - Style `.cursor-dot` and `.cursor-ring` with brand tokens, `mix-blend-mode: normal`, `pointer-events: none`, `z-index: 9999`, transform-based positioning, and `transition` for size/opacity only (position handled by rAF).
+RLS stays untouched; the function runs `SECURITY DEFINER` so inserts always succeed. `activity_log` INSERT policy already allows any authenticated user (existing schema).
 
-3. **Mount** in `src/routes/__root.tsx` inside the root layout so it appears on every route (auth pages included).
+### 2. Frontend cleanup
+- Remove now-duplicate client-side `logActivity()` calls in `TaskDetailModal`, `NewTaskModal`, `KanbanView`, `projects.tsx`, `references.tsx`, `reports-history.tsx`, `report/generator.ts` so a single edit doesn't produce two rows.
+- Keep client-side logging **only** for events that have no DB trace:
+  - `signed_in` (already in `app-context.tsx`)
+  - `signed_out` (add on sign-out)
+- `src/lib/activity.ts` keeps `logActivity()` and `normalizeAction()` for those two.
 
-### Guardrails
-- No changes to routing, data, or business logic.
-- No new dependencies — plain React + CSS.
-- Fully removable by unmounting `<CustomCursor />` and reverting the `cursor: none` rule.
+### 3. Activity page polish (`src/routes/_authenticated/activity.tsx`)
+- Add `reference` and `report` to the `ENTITIES` filter list.
+- Extend `resolveEntityNames()` to fetch reference titles (`references.title`) and report labels (`member_reports` → member full_name + range).
+- Add `signed_out` to `ACTIONS`, `ACTION_ICONS` (LogOut icon), and `ACTION_COLORS`.
+- Bilingual dict keys: `act_signed_out`, `entity_reference`, `entity_report` (add to `src/i18n/dict.ts` if missing).
 
-### Technical notes
-Files touched:
-- `src/components/CustomCursor.tsx` (new)
-- `src/styles.css` (add cursor styles + hide native cursor)
-- `src/routes/__root.tsx` (mount component once globally)
+### 4. Verification
+- After migration approval: perform a create/edit/delete on tasks, projects, references from the UI and confirm each shows up in `/activity` with the correct actor name, action pill, and entity title in both AR and EN.
+- Confirm the log line reads like: **"Ahmed  updated  task  'Fix login bug'"** and **"Sara  status changed  task  'Redesign hero'  (in_progress → in_review)"**.
+
+### Files touched
+- New migration (triggers + audit function)
+- `src/lib/activity.ts` (trim to auth-only helpers)
+- `src/lib/app-context.tsx` (add signed_out log on sign-out)
+- `src/components/TaskDetailModal.tsx`, `NewTaskModal.tsx`, `tasks/KanbanView.tsx` (remove redundant logs)
+- `src/routes/_authenticated/projects.tsx`, `references.tsx`, `reports-history.tsx` (remove redundant logs)
+- `src/lib/report/generator.ts` (remove redundant logs)
+- `src/routes/_authenticated/activity.tsx` (reference/report support, signed_out entry)
+- `src/i18n/dict.ts` (missing labels only)

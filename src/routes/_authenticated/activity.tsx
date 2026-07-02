@@ -11,8 +11,9 @@ import type { DictKey } from "@/i18n/dict";
 import {
   ScrollText, Filter,
   Plus, Pencil, Trash2, ArrowRightLeft, MessageSquare, Paperclip,
-  UserPlus, Archive as ArchiveIcon, LogIn, Activity as ActivityIcon,
+  UserPlus, Archive as ArchiveIcon, LogIn, LogOut, Activity as ActivityIcon,
 } from "lucide-react";
+
 import {
   FilterDrawer, FilterSection, ChipMultiSelect, FilterSelect,
   DateRangeControl, resolveDateRange, ActiveFilterChips,
@@ -22,8 +23,9 @@ import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import { toast } from "sonner";
 
 
-const ACTIONS = ["created","updated","status_changed","deleted","archived","commented","file_added","assigned","signed_in"] as const;
-const ENTITIES = ["task","project","profile","role","comment","file","session","auth"] as const;
+const ACTIONS = ["created","updated","status_changed","deleted","archived","commented","file_added","assigned","signed_in","signed_out"] as const;
+const ENTITIES = ["task","project","profile","reference","comment","file","report","auth"] as const;
+
 const RANGES = ["all","24h","7d","30d"] as const;
 type Range = typeof RANGES[number];
 
@@ -65,6 +67,8 @@ const ACTION_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   file_added: Paperclip,
   assigned: UserPlus,
   signed_in: LogIn,
+  signed_out: LogOut,
+
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -77,6 +81,8 @@ const ACTION_COLORS: Record<string, string> = {
   file_added: "#189FD1",
   assigned: "#22C55E",
   signed_in: "#9FB7C9",
+  signed_out: "#9FB7C9",
+
 };
 
 function rangeSince(r: Range): string | null {
@@ -184,6 +190,15 @@ function ActivityPage() {
       const { data } = await supabase.from("profiles").select("id,full_name").in("id", [...ids]);
       for (const x of data ?? []) next[x.id] = x.full_name;
     }
+    if (byType.reference?.size) {
+      const { data } = await (supabase.from as unknown as (t: string) => any)("references").select("id,title").in("id", [...byType.reference]);
+      for (const x of (data ?? []) as { id: string; title: string }[]) next[x.id] = x.title;
+    }
+    if (byType.report?.size) {
+      const { data } = await supabase.from("member_reports").select("id,member_name_snapshot").in("id", [...byType.report]);
+      for (const x of (data ?? []) as { id: string; member_name_snapshot: string | null }[]) next[x.id] = x.member_name_snapshot ?? "Report";
+    }
+
     setEntityNames(next);
   };
 

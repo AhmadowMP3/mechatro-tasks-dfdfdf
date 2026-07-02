@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { detectIconFromUrl, faviconFor, isValidHttpUrl } from "@/lib/references";
-import { logActivity } from "@/lib/activity";
+
 import { toast } from "sonner";
 import {
   Library, Plus, Search, Pin, PinOff, ExternalLink, Copy, Edit3, Trash2, X, MoreVertical, Tag as TagIcon, Filter,
@@ -83,17 +83,16 @@ function ReferencesPage() {
 
   const togglePin = async (r: RefRow) => {
     await (supabase.from as unknown as (t: string) => any)("references").update({ pinned: !r.pinned }).eq("id", r.id);
-    await logActivity(user?.id ?? null, "updated", "reference", r.id, { pinned: !r.pinned });
     refetch();
   };
 
   const remove = async (r: RefRow) => {
     if (!confirm(t("confirmDeleteRef"))) return;
     await (supabase.from as unknown as (t: string) => any)("references").delete().eq("id", r.id);
-    await logActivity(user?.id ?? null, "deleted", "reference", r.id, { title: r.title });
     toast.success(t("deleteReference"));
     refetch();
   };
+
 
   const openEdit = (r: RefRow) => { setEditing(r); setShowModal(true); };
   const openNew  = () => { setEditing(null); setShowModal(true); };
@@ -480,13 +479,11 @@ function RefModal({ initial, onClose, onSaved, userId, t, categories }: {
     if (initial) {
       const { error } = await (supabase.from as unknown as (t: string) => any)("references").update(payload).eq("id", initial.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
-      await logActivity(userId, "updated", "reference", initial.id, { title: payload.title });
     } else {
-      const { data, error } = await (supabase.from as unknown as (t: string) => any)("references").insert({ ...payload, created_by: userId }).select("id").single();
+      const { error } = await (supabase.from as unknown as (t: string) => any)("references").insert({ ...payload, created_by: userId });
       if (error) { toast.error(error.message); setSaving(false); return; }
-      const newId = (data as { id: string } | null)?.id ?? null;
-      await logActivity(userId, "created", "reference", newId, { title: payload.title });
     }
+
     toast.success(tt("saved") || "Saved");
     setSaving(false);
     onSaved();

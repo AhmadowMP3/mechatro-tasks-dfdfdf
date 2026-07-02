@@ -5,7 +5,7 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
-import { logActivity, notify } from "@/lib/activity";
+import { notify } from "@/lib/activity";
 import { ModalShell, Field, inp } from "@/routes/_authenticated/projects";
 import { useQuery } from "@tanstack/react-query";
 import { formatDate, toLocalDigits } from "@/lib/format";
@@ -72,13 +72,13 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
     }).select().single();
     if (error) { toast.error(error.message); return; }
     if (data) {
-      await logActivity(user?.id ?? null, "act_create", "task", data.id, { title: form.title });
       if (form.assignee_id && form.assignee_id !== user?.id) {
         await notify(form.assignee_id, "task_assigned",
           `تم إسنادك: ${form.title}`, `Assigned to you: ${form.title}`,
           undefined, data.id);
       }
     }
+
     toast.success(t("created"));
     onCreated();
   };
