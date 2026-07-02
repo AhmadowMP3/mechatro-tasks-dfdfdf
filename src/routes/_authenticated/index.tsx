@@ -543,7 +543,7 @@ function TaskFlowCard({ title, segments, total, lang }: { title: string; segment
           );
         })}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginTop: 16 }}>
         <MiniGauge label={lang === "ar" ? "نسبة الإنجاز" : "Completion"} pct={completionPct} color="#73C94E" lang={lang} />
         <MiniGauge label={lang === "ar" ? "نسبة النشاط" : "In motion"} pct={activityPct} color="#42C2EE" lang={lang} />
       </div>
