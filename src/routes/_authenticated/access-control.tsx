@@ -237,7 +237,7 @@ function AccessControlPage() {
             )}
 
             {!u.is_master_admin && (
-              <UserMenu user={u} lang={lang} busy={busyId === u.id} onAction={(a) => act(a, u.id)} />
+              <UserMenu user={u} lang={lang} busy={busyId === u.id} onAction={(a, extra) => act(a, u.id, extra)} />
             )}
           </div>
         ))}
