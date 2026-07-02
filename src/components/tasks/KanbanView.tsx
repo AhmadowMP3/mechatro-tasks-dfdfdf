@@ -65,35 +65,52 @@ export function KanbanView({
         const style = STATUS_STYLES[col];
         const colTasks = tasks.filter((x) => x.status === col);
         const isOver = overCol === col;
+        const draggingTask = dragId ? tasks.find((x) => x.id === dragId) : undefined;
+        const dropAllowed = !!draggingTask && canMove(draggingTask, col);
+        const isReview = col === "in_review";
+        const isDone = col === "done";
         return (
           <div
             key={col}
-            onDragOver={(e) => { if (editable && dragId) { e.preventDefault(); setOverCol(col); } }}
+            onDragOver={(e) => { if (dropAllowed) { e.preventDefault(); setOverCol(col); } }}
             onDragLeave={() => setOverCol((c) => (c === col ? null : c))}
             onDrop={() => {
-              if (editable && dragId) moveTask(dragId, col);
+              if (dropAllowed) moveTask(dragId!, col);
               setDragId(null); setOverCol(null);
             }}
             className="brand-card"
             style={{
               padding: 12,
               minHeight: 200,
-              background: isOver ? "var(--surface-2)" : "var(--card)",
-              border: `1px solid ${isOver ? style.text : "var(--border)"}`,
+              background: isOver && dropAllowed ? "var(--surface-2)" : "var(--card)",
+              border: `1px solid ${isOver && dropAllowed ? style.text : (isReview ? "rgba(168,85,247,.35)" : "var(--border)")}`,
+              boxShadow: isReview ? `0 0 0 1px rgba(168,85,247,.15) inset, 0 8px 24px -18px ${style.text}` : undefined,
+              backgroundImage: isReview
+                ? "radial-gradient(120% 60% at 50% 0%, rgba(168,85,247,.08), transparent 70%)"
+                : undefined,
               transition: "border-color .15s ease, background .15s ease",
               display: "flex",
               flexDirection: "column",
               gap: 10,
+              opacity: draggingTask && !dropAllowed ? 0.55 : 1,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 8, borderBottom: `2px solid ${style.text}` }}>
-              <span style={{ width: 10, height: 10, borderRadius: 3, background: style.text }} />
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, flex: 1, color: style.text }}>{t(col as never)}</h3>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: style.text, boxShadow: isReview ? `0 0 10px ${style.text}` : undefined }} />
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, flex: 1, color: style.text, display: "flex", alignItems: "center", gap: 6 }}>
+                {t(col as never)}
+                {isDone && !isAdmin && <span title={t("onlyAdminCanComplete")} style={{ fontSize: 11 }}>🔒</span>}
+              </h3>
               <span style={{
                 fontSize: 11, fontWeight: 800, minWidth: 22, textAlign: "center",
                 padding: "2px 8px", borderRadius: 999, background: style.bg, color: style.text,
               }}>{toLocalDigits(colTasks.length, lang)}</span>
             </div>
+            {isReview && (
+              <div style={{ fontSize: 11, color: "var(--muted)", padding: "0 2px", lineHeight: 1.4 }}>
+                {lang === "ar" ? "المهام هنا بانتظار اعتماد المدير." : "Tasks here await admin approval."}
+              </div>
+            )}
             {colTasks.length === 0 && (
               <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "18px 6px" }}>—</div>
             )}
@@ -101,10 +118,11 @@ export function KanbanView({
               const project = projects.find((p) => p.id === tk.project_id);
               const assignee = users.find((u) => u.id === tk.assignee_id);
               const overdue = isOverdue(tk.due_date, tk.status);
+              const dragThis = isAdmin || tk.assignee_id === user?.id;
               return (
                 <div
                   key={tk.id}
-                  draggable={editable}
+                  draggable={dragThis}
                   onDragStart={() => setDragId(tk.id)}
                   onDragEnd={() => { setDragId(null); setOverCol(null); }}
                   onClick={() => onOpen(tk.id)}
@@ -113,7 +131,7 @@ export function KanbanView({
                     borderRadius: 10,
                     background: "var(--surface-2)",
                     border: `1px solid ${overdue ? "rgba(240,103,106,.5)" : "var(--border)"}`,
-                    cursor: editable ? "grab" : "pointer",
+                    cursor: dragThis ? "grab" : "pointer",
                     opacity: dragId === tk.id ? 0.4 : 1,
                     borderInlineStart: project ? `3px solid transparent` : undefined,
                     backgroundImage: project
