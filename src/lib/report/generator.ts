@@ -99,6 +99,7 @@ async function renderHtmlToPdfBlob(
         logging: false,
         windowWidth: 794,
         windowHeight: 1123,
+        foreignObjectRendering: true,
       });
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
       if (i > 0) pdf.addPage();
