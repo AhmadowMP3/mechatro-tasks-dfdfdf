@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { RoleBadge } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
