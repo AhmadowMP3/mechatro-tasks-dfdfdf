@@ -52,6 +52,24 @@ export type Database = {
           },
         ]
       }
+      app_config: {
+        Row: {
+          id: boolean
+          master_admin_email: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          master_admin_email?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          master_admin_email?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -101,39 +119,62 @@ export type Database = {
           active: boolean
           avatar_url: string | null
           created_at: string
+          email: string | null
           full_name: string
           id: string
+          invited_at: string | null
+          invited_by: string | null
+          is_master_admin: boolean
           job_title: string | null
           language_pref: string
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
+          status: Database["public"]["Enums"]["profile_status"]
           theme_pref: string
         }
         Insert: {
           active?: boolean
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           full_name: string
           id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_master_admin?: boolean
           job_title?: string | null
           language_pref?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["profile_status"]
           theme_pref?: string
         }
         Update: {
           active?: boolean
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string
           id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_master_admin?: boolean
           job_title?: string | null
           language_pref?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["profile_status"]
           theme_pref?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -184,6 +225,68 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      role_permissions: {
+        Row: {
+          permission: Database["public"]["Enums"]["permission_key"]
+          role_id: string
+        }
+        Insert: {
+          permission: Database["public"]["Enums"]["permission_key"]
+          role_id: string
+        }
+        Update: {
+          permission?: Database["public"]["Enums"]["permission_key"]
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name_ar: string
+          name_en: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name_ar: string
+          name_en: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name_ar?: string
+          name_en?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       task_comments: {
         Row: {
@@ -339,6 +442,35 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_sessions: {
         Row: {
           duration_minutes: number | null
@@ -386,6 +518,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_permission: {
+        Args: {
+          _permission: Database["public"]["Enums"]["permission_key"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -394,9 +533,39 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_manager: { Args: { _user_id: string }; Returns: boolean }
+      is_master_admin: { Args: { _user_id: string }; Returns: boolean }
+      sync_master_admin: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "manager" | "member" | "viewer"
+      permission_key:
+        | "users.invite"
+        | "users.suspend"
+        | "users.delete"
+        | "users.change_role"
+        | "roles.manage"
+        | "projects.view"
+        | "projects.create"
+        | "projects.edit"
+        | "projects.delete"
+        | "projects.archive"
+        | "tasks.view"
+        | "tasks.create"
+        | "tasks.edit_any"
+        | "tasks.edit_own"
+        | "tasks.delete"
+        | "tasks.assign"
+        | "tasks.comment"
+        | "team.view"
+        | "league.view"
+        | "notifications.view"
+        | "settings.view"
+        | "settings.edit"
+        | "backups.view"
+        | "backups.run"
+        | "backups.restore"
+        | "activity.view"
+      profile_status: "pending" | "active" | "suspended"
       project_status: "active" | "on_hold" | "done"
       task_priority: "low" | "normal" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "paused" | "done"
@@ -528,6 +697,35 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "member", "viewer"],
+      permission_key: [
+        "users.invite",
+        "users.suspend",
+        "users.delete",
+        "users.change_role",
+        "roles.manage",
+        "projects.view",
+        "projects.create",
+        "projects.edit",
+        "projects.delete",
+        "projects.archive",
+        "tasks.view",
+        "tasks.create",
+        "tasks.edit_any",
+        "tasks.edit_own",
+        "tasks.delete",
+        "tasks.assign",
+        "tasks.comment",
+        "team.view",
+        "league.view",
+        "notifications.view",
+        "settings.view",
+        "settings.edit",
+        "backups.view",
+        "backups.run",
+        "backups.restore",
+        "activity.view",
+      ],
+      profile_status: ["pending", "active", "suspended"],
       project_status: ["active", "on_hold", "done"],
       task_priority: ["low", "normal", "high", "urgent"],
       task_status: ["todo", "in_progress", "paused", "done"],

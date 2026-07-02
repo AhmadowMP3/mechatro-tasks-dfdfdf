@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-
 import { useApp } from "@/lib/app-context";
 import logo from "@/assets/mechatro-logo.png";
 
@@ -18,56 +17,29 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Mode = "signin" | "signup" | "forgot";
-
 function AuthPage() {
   const { t, lang, setLang, theme, setTheme } = useApp();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const l = lang === "ar";
 
-  // If already signed in, bounce to app
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/" });
     });
   }, [navigate]);
 
-  const l = lang === "ar";
-
-
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success(l ? "تم تسجيل الدخول" : "Signed in");
-        navigate({ to: "/" });
-      } else if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { full_name: fullName || email.split("@")[0] },
-          },
-        });
-        if (error) throw error;
-        toast.success(l ? "تم إنشاء الحساب" : "Account created");
-        navigate({ to: "/" });
-      } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-        if (error) throw error;
-        toast.success(l ? "أُرسل رابط إعادة التعيين" : "Reset link sent");
-        setMode("signin");
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast.success(l ? "تم تسجيل الدخول" : "Signed in");
+      navigate({ to: "/" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
@@ -75,43 +47,44 @@ function AuthPage() {
     }
   }
 
-  const label = {
-    signin: { ar: "تسجيل الدخول", en: "Sign in" },
-    signup: { ar: "إنشاء حساب", en: "Sign up" },
-    forgot: { ar: "استعادة كلمة المرور", en: "Reset password" },
-  } as const;
-
   return (
     <div
       dir={l ? "rtl" : "ltr"}
       style={{
-        minHeight: "100dvh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center",
         padding: 20,
         background: "linear-gradient(160deg,#050D17 0%,#0A1A2B 60%,#0E2338 100%)",
         color: "#EAF2F9",
         fontFamily: l ? "'Almarai', system-ui, sans-serif" : "'Montserrat', system-ui, sans-serif",
+        position: "relative", overflow: "hidden",
       }}
     >
-      <div style={{ position: "absolute", top: 16, insetInlineEnd: 16, display: "flex", gap: 8 }}>
-        <button
-          onClick={() => setLang(l ? "en" : "ar")}
-          style={pillBtn}
-        >{l ? "English" : "عربي"}</button>
-        <button
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          style={pillBtn}
-        >{theme === "dark" ? "☀︎" : "☾"}</button>
+      {/* Decorative glow */}
+      <div style={{
+        position: "absolute", top: "-20%", insetInlineEnd: "-10%",
+        width: 480, height: 480, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(29,155,240,.25), transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", bottom: "-25%", insetInlineStart: "-10%",
+        width: 520, height: 520, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(48,192,116,.18), transparent 70%)",
+        pointerEvents: "none",
+      }} />
+
+      <div style={{ position: "absolute", top: 16, insetInlineEnd: 16, display: "flex", gap: 8, zIndex: 2 }}>
+        <button onClick={() => setLang(l ? "en" : "ar")} style={pillBtn}>{l ? "English" : "عربي"}</button>
+        <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={pillBtn}>
+          {theme === "dark" ? "☀︎" : "☾"}
+        </button>
       </div>
 
       <div style={{
-        width: "100%", maxWidth: 440,
+        width: "100%", maxWidth: 440, zIndex: 1,
         background: "rgba(10,26,43,.85)",
         border: "1px solid #1E364D",
-        borderRadius: 20,
-        padding: 32,
+        borderRadius: 20, padding: 32,
         boxShadow: "0 24px 60px rgba(0,0,0,.5)",
         backdropFilter: "blur(6px)",
       }}>
@@ -120,58 +93,51 @@ function AuthPage() {
           <div style={{ fontSize: 13, color: "#9FB7C9", fontWeight: 700 }}>{t("appName")}</div>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: "flex", background: "#13283D", borderRadius: 12, padding: 3, marginBottom: 20 }}>
-          {(["signin", "signup", "forgot"] as Mode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              style={{
-                flex: 1, minHeight: 40, borderRadius: 10,
-                background: mode === m ? "var(--grad-blue, linear-gradient(135deg,#1D9BF0,#0F6BB8))" : "transparent",
-                color: mode === m ? "#fff" : "#B9CBDA",
-                border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-              }}
-            >{label[m][lang]}</button>
-          ))}
+        <div style={{
+          padding: "10px 14px", marginBottom: 18,
+          background: "rgba(29,155,240,.10)", border: "1px solid rgba(29,155,240,.3)",
+          borderRadius: 10, fontSize: 12.5, color: "#B9CBDA", textAlign: "center",
+        }}>
+          {l ? "الدخول بالدعوة فقط. تواصل مع مسؤول النظام لطلب حساب." : "Invite-only access. Contact your master admin to request an account."}
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {mode === "signup" && (
-            <Field label={l ? "الاسم الكامل" : "Full name"}>
-              <input
-                type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
-                required style={inputStyle}
-              />
-            </Field>
-          )}
+        <form onSubmit={handleSignIn} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <Field label={l ? "البريد الإلكتروني" : "Email"}>
-            <input
-              type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              required style={inputStyle} dir="ltr"
-            />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} dir="ltr" />
           </Field>
-          {mode !== "forgot" && (
-            <Field label={l ? "كلمة المرور" : "Password"}>
-              <input
-                type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                required minLength={6} style={inputStyle} dir="ltr"
-              />
-            </Field>
-          )}
+          <Field label={l ? "كلمة المرور" : "Password"}>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} style={inputStyle} dir="ltr" />
+          </Field>
+
+          <button type="submit" disabled={busy} style={{
+            marginTop: 6, minHeight: 48, borderRadius: 12,
+            background: "linear-gradient(135deg,#1D9BF0,#0F6BB8)",
+            color: "#fff", fontWeight: 800, fontSize: 15,
+            border: "none", cursor: busy ? "wait" : "pointer",
+            opacity: busy ? 0.6 : 1,
+          }}>{busy ? "…" : (l ? "تسجيل الدخول" : "Sign in")}</button>
 
           <button
-            type="submit" disabled={busy}
+            type="button"
+            onClick={() => setShowInfo((s) => !s)}
             style={{
-              marginTop: 6, minHeight: 48, borderRadius: 12,
-              background: "linear-gradient(135deg,#1D9BF0,#0F6BB8)",
-              color: "#fff", fontWeight: 800, fontSize: 15,
-              border: "none", cursor: busy ? "wait" : "pointer",
-              opacity: busy ? 0.6 : 1,
+              background: "transparent", border: "none", color: "#9FB7C9",
+              cursor: "pointer", fontSize: 12.5, padding: "8px 0", fontWeight: 600,
             }}
-          >{busy ? "…" : label[mode][lang]}</button>
-        </form>
+          >{l ? "طلب صلاحية الوصول" : "Request access"}</button>
 
+          {showInfo && (
+            <div style={{
+              padding: 12, borderRadius: 10,
+              background: "#0F2033", border: "1px dashed #1E364D",
+              fontSize: 12.5, color: "#B9CBDA", lineHeight: 1.7,
+            }}>
+              {l
+                ? "أرسل بريدًا إلى مسؤول النظام في ميكاترو مع اسمك الكامل والقسم المطلوب. سيقوم بإصدار دعوة تفعيل الحساب على بريدك."
+                : "Email the Mechatro master admin with your full name and department. They will send an activation invite to your inbox."}
+            </div>
+          )}
+        </form>
       </div>
     </div>
   );
@@ -180,8 +146,7 @@ function AuthPage() {
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "12px 14px", borderRadius: 10,
   background: "#13283D", color: "#EAF2F9",
-  border: "1px solid #1E364D", fontSize: 14, minHeight: 44,
-  outline: "none",
+  border: "1px solid #1E364D", fontSize: 14, minHeight: 44, outline: "none",
 };
 const pillBtn: React.CSSProperties = {
   minHeight: 40, padding: "0 14px", borderRadius: 999,
@@ -197,4 +162,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
-

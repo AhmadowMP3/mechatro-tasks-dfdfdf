@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { RoleBadge } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
@@ -17,8 +17,11 @@ const NAV: { to: string; icon: React.ComponentType<{ size?: number }>; key: Dict
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
-  const { t, user, lang, signOut } = useApp();
+  const { t, user, lang, signOut, isMasterAdmin } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const nav = isMasterAdmin
+    ? [...NAV, { to: "/access-control", icon: ShieldCheck, key: null, label: { ar: "التحكم بالصلاحيات", en: "Access Control" } }]
+    : NAV;
 
   return (
     <aside
@@ -62,8 +65,12 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       )}
 
       <nav style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
-        {NAV.map(({ to, icon: Icon, key }) => {
+        {nav.map((item) => {
+          const { to, icon: Icon } = item;
           const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
+          const label = "label" in item && item.label
+            ? item.label[lang]
+            : t(item.key as DictKey);
           return (
             <Link
               key={to}
@@ -82,7 +89,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                 justifyContent: "flex-end",
               }}
             >
-              <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>{t(key)}</span>
+              <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>{label}</span>
               <Icon size={20} />
             </Link>
           );
