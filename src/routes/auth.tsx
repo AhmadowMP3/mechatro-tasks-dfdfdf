@@ -36,8 +36,13 @@ function AuthPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      if (data.user) {
+        void supabase.from("activity_log").insert({
+          actor_id: data.user.id, action: "signed_in", entity_type: "auth", entity_id: data.user.id, meta: {},
+        });
+      }
       toast.success(l ? "تم تسجيل الدخول" : "Signed in");
       navigate({ to: "/" });
     } catch (err) {
