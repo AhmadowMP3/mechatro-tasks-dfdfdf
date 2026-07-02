@@ -1,20 +1,62 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { formatDate, isOverdue, relativeTime, toLocalDigits } from "@/lib/format";
 import { OverduePill } from "@/components/Pills";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import type { DictKey } from "@/i18n/dict";
+import { FilterBar, DEFAULT_FILTERS, resolveRange, type DashboardFilters } from "@/components/dashboard/FilterBar";
+
+type SearchParams = Partial<DashboardFilters>;
 
 export const Route = createFileRoute("/_authenticated/")({
+  validateSearch: (raw: Record<string, unknown>): SearchParams => {
+    const allowedRanges = ["today", "7d", "30d", "90d", "all", "custom"] as const;
+    const range = allowedRanges.includes(raw.range as never) ? (raw.range as DashboardFilters["range"]) : undefined;
+    const arr = (v: unknown): string[] | undefined => {
+      if (Array.isArray(v)) return v.filter((x): x is string => typeof x === "string");
+      if (typeof v === "string" && v.length > 0) return v.split(",");
+      return undefined;
+    };
+    const dateStr = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
+    return {
+      range,
+      from: dateStr(raw.from),
+      to: dateStr(raw.to),
+      projects: arr(raw.projects),
+      statuses: arr(raw.statuses),
+    };
+  },
   component: Dashboard,
 });
 
 function Dashboard() {
   const { t, lang, user, isMasterAdmin } = useApp();
   const isAdmin = isMasterAdmin || user?.role === "admin";
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/" });
+  const filters: DashboardFilters = {
+    range: search.range ?? DEFAULT_FILTERS.range,
+    from: search.from,
+    to: search.to,
+    projects: search.projects ?? [],
+    statuses: search.statuses ?? [],
+  };
+  const setFilters = (next: DashboardFilters) => {
+    navigate({
+      search: {
+        range: next.range === DEFAULT_FILTERS.range ? undefined : next.range,
+        from: next.from,
+        to: next.to,
+        projects: next.projects.length ? next.projects : undefined,
+        statuses: next.statuses.length ? next.statuses : undefined,
+      },
+      replace: true,
+    });
+  };
+
   const [selected, setSelected] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -28,9 +70,9 @@ function Dashboard() {
       const [tasksRes, projectsRes, activityRes, profilesRes, sessionsRes] = await Promise.all([
         supabase.from("tasks").select("*"),
         supabase.from("projects").select("*"),
-        supabase.from("activity_log").select("*").order("created_at", { ascending: false }).limit(12),
+        supabase.from("activity_log").select("*").order("created_at", { ascending: false }).limit(200),
         supabase.from("profiles").select("id, full_name, avatar_url, role").eq("active", true),
-        supabase.from("work_sessions").select("id, user_id, task_id, started_at, ended_at, duration_minutes").order("started_at", { ascending: false }).limit(200),
+        supabase.from("work_sessions").select("id, user_id, task_id, started_at, ended_at, duration_minutes").order("started_at", { ascending: false }).limit(500),
       ]);
       return {
         tasks: tasksRes.data ?? [],
@@ -42,36 +84,88 @@ function Dashboard() {
     },
   });
 
-  const tasks = data?.tasks ?? [];
+  const allTasks = data?.tasks ?? [];
   const projects = data?.projects ?? [];
-  const activity = data?.activity ?? [];
+  const allActivity = data?.activity ?? [];
   const profiles = data?.profiles ?? [];
-  const sessions = data?.sessions ?? [];
+  const allSessions = data?.sessions ?? [];
+
+  // Resolved range
+  const { start: rangeStart, end: rangeEnd } = useMemo(() => resolveRange(filters), [filters.range, filters.from, filters.to]);
+  const inRange = (iso: string | null | undefined) => {
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    if (rangeStart && t < rangeStart.getTime()) return false;
+    if (rangeEnd && t > rangeEnd.getTime()) return false;
+    return true;
+  };
+
+  // Apply project + status filters to tasks
+  const tasks = useMemo(() => {
+    return allTasks.filter((t) => {
+      if (filters.projects.length && !filters.projects.includes(t.project_id)) return false;
+      if (filters.statuses.length && !filters.statuses.includes(t.status)) return false;
+      return true;
+    });
+  }, [allTasks, filters.projects, filters.statuses]);
+
+  // Activity + sessions filtered by date range (and project when relevant)
+  const activity = useMemo(() => {
+    return allActivity.filter((a) => {
+      if (rangeStart || rangeEnd) { if (!inRange(a.created_at)) return false; }
+      return true;
+    }).slice(0, 12);
+  }, [allActivity, rangeStart, rangeEnd]);
+
+  const sessions = useMemo(() => {
+    return allSessions.filter((s) => {
+      if (rangeStart || rangeEnd) { if (!inRange(s.started_at)) return false; }
+      if (filters.projects.length) {
+        const tk = allTasks.find((x) => x.id === s.task_id);
+        if (!tk || !filters.projects.includes(tk.project_id)) return false;
+      }
+      return true;
+    });
+  }, [allSessions, rangeStart, rangeEnd, filters.projects, allTasks]);
 
   const active = tasks.filter((t) => t.status !== "done");
   const overdueTasks = tasks.filter((t) => isOverdue(t.due_date, t.status));
-  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
-  const doneWeek = tasks.filter((t) => t.status === "done" && t.completed_at && new Date(t.completed_at).getTime() > weekAgo);
-  const activeProjects = projects.filter((p) => p.status === "active" && !p.archived);
+  const doneInRange = tasks.filter((t) => t.status === "done" && t.completed_at && (!rangeStart || !rangeEnd ? inRange(t.completed_at) || (!rangeStart && !rangeEnd) : inRange(t.completed_at)));
+  const projectFilterActive = filters.projects.length > 0;
+  const activeProjectsAll = projects.filter((p) => p.status === "active" && !p.archived);
+  const activeProjects = projectFilterActive ? activeProjectsAll.filter((p) => filters.projects.includes(p.id)) : activeProjectsAll;
 
   const dist = ["todo", "in_progress", "paused", "done"].map((s) => ({
     key: s, count: tasks.filter((t) => t.status === s).length,
   }));
   const total = dist.reduce((a, b) => a + b.count, 0);
 
-  // 14-day completion momentum
-  const days = 14;
-  const dayBuckets: { d: Date; count: number }[] = [];
-  const today0 = new Date(); today0.setHours(0, 0, 0, 0);
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today0); d.setDate(today0.getDate() - i);
-    dayBuckets.push({ d, count: 0 });
-  }
-  tasks.filter((t) => t.status === "done" && t.completed_at).forEach((t) => {
-    const c = new Date(t.completed_at!);
-    const idx = dayBuckets.findIndex((b) => c >= b.d && c < new Date(b.d.getTime() + 86400000));
-    if (idx >= 0) dayBuckets[idx].count++;
-  });
+  // Momentum window: aligned to selected range; capped at 60 bars
+  const momentumWindow = useMemo(() => {
+    const end = rangeEnd ? new Date(rangeEnd) : new Date();
+    end.setHours(0, 0, 0, 0);
+    let days: number;
+    if (rangeStart && rangeEnd) {
+      days = Math.max(1, Math.min(60, Math.round((rangeEnd.getTime() - rangeStart.getTime()) / 86400000) + 1));
+    } else if (filters.range === "today") days = 1;
+    else if (filters.range === "7d") days = 7;
+    else if (filters.range === "30d") days = 30;
+    else if (filters.range === "90d") days = 60;
+    else days = 30;
+    const buckets: { d: Date; count: number }[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(end); d.setDate(end.getDate() - i);
+      buckets.push({ d, count: 0 });
+    }
+    tasks.filter((t) => t.status === "done" && t.completed_at).forEach((t) => {
+      const c = new Date(t.completed_at!);
+      const idx = buckets.findIndex((b) => c >= b.d && c < new Date(b.d.getTime() + 86400000));
+      if (idx >= 0) buckets[idx].count++;
+    });
+    return buckets;
+  }, [tasks, rangeStart, rangeEnd, filters.range]);
+  const dayBuckets = momentumWindow;
+
 
   // Top active projects
   const projectStats = activeProjects.map((p) => {
@@ -87,14 +181,12 @@ function Dashboard() {
   }).sort((a, b) => b.count - a.count).slice(0, 6);
   const unassigned = active.filter((t) => !t.assignee_id).length;
 
-  // Hours tracked today
-  const todayStart = today0.getTime();
-  const hoursToday = sessions
-    .filter((s) => new Date(s.started_at).getTime() >= todayStart)
-    .reduce((sum, s) => {
-      const mins = s.duration_minutes ?? (s.ended_at ? (new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60000 : 0);
-      return sum + mins;
-    }, 0) / 60;
+  // Hours tracked within the current scope (sessions are already range/project-filtered)
+  const hoursToday = sessions.reduce((sum, s) => {
+    const mins = s.duration_minutes ?? (s.ended_at ? (new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60000 : 0);
+    return sum + mins;
+  }, 0) / 60;
+
 
   // Live now: sessions with no end
   const liveNow = sessions.filter((s) => !s.ended_at).length;
@@ -139,7 +231,10 @@ function Dashboard() {
             <HeroChip icon="🔥" iconColor="#FF9255" label={t("streak")} value={toLocalDigits(streak, lang)} />
             <div style={{ padding: "10px 14px", borderRadius: 12, background: "var(--surface-2)", border: "1px solid var(--border)", fontVariantNumeric: "tabular-nums", fontFamily: "ui-monospace, Menlo, monospace", fontSize: 20, fontWeight: 700, letterSpacing: 1, color: "var(--brand-blue)" }}>
               {timeStr}
-            </div>
+      </div>
+
+      {/* Filter bar */}
+      <FilterBar value={filters} onChange={setFilters} projects={projects} />
           </div>
         </div>
       </div>
@@ -147,7 +242,7 @@ function Dashboard() {
       {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 16 }}>
         <StatCard label={t("activeTasks")} value={active.length} color="var(--grad-blue)" lang={lang} accent="#42C2EE" />
-        <StatCard label={t("doneThisWeek")} value={doneWeek.length} color="var(--grad-green)" lang={lang} accent="#73C94E" trend={dayBuckets.slice(-7).map((b) => b.count)} />
+        <StatCard label={t("doneThisWeek")} value={doneInRange.length} color="var(--grad-green)" lang={lang} accent="#73C94E" trend={dayBuckets.slice(-7).map((b) => b.count)} />
         <StatCard label={t("overdueTasks")} value={overdueTasks.length} color="linear-gradient(135deg,#D9484B,#F0676A)" lang={lang} accent="#F0676A" highlight={overdueTasks.length > 0} />
         <StatCard label={t("activeProjects")} value={activeProjects.length} color="var(--grad-orange)" lang={lang} accent="#FF9255" />
       </div>

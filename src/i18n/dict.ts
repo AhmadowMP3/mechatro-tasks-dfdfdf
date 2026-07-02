@@ -378,6 +378,17 @@ export const dict = {
   projectsTouched: { ar: "المشاريع", en: "Projects touched" },
   overdueLbl: { ar: "متأخرة", en: "Overdue" },
   sessionsLbl: { ar: "الجلسات", en: "Sessions" },
+  // Dashboard filters
+  dateRange: { ar: "النطاق الزمني", en: "Date range" },
+  last7Days: { ar: "آخر ٧ أيام", en: "Last 7 days" },
+  last30Days: { ar: "آخر ٣٠ يوم", en: "Last 30 days" },
+  last90Days: { ar: "آخر ٩٠ يوم", en: "Last 90 days" },
+  allTime: { ar: "كل الوقت", en: "All time" },
+  customRange: { ar: "نطاق مخصص", en: "Custom" },
+  allProjects: { ar: "كل المشاريع", en: "All projects" },
+  allStatuses: { ar: "كل الحالات", en: "All statuses" },
+  filtersActive: { ar: "فلاتر مفعّلة", en: "filters active" },
+  scopedTo: { ar: "مضبوط على", en: "Scoped to" },
 } as const;
 
 
