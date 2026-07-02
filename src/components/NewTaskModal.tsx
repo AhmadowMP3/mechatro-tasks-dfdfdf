@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock, Zap } from "lucide-react";
+import { DatePickerField } from "@/components/DatePickerField";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
@@ -160,18 +162,19 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
           ))}
         </div>
         <div style={{
-          padding: 2, borderRadius: 10,
+          padding: 2, borderRadius: 12,
           background: form.due_date ? urgencyRing : "transparent",
           transition: "background .2s",
         }}>
-          <input
-            type="date"
+          <DatePickerField
             value={form.due_date}
             min={minDate}
-            onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-            style={{ ...inp, borderColor: form.due_date ? "transparent" : undefined }}
+            lang={lang}
+            placeholder={t("pickDate")}
+            onChange={(v) => setForm({ ...form, due_date: v })}
           />
         </div>
+
         {form.due_date && duration != null && (
           <div style={{
             display: "flex", alignItems: "center", gap: 8, marginTop: 8,
