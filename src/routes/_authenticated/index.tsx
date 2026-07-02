@@ -74,10 +74,13 @@ function Dashboard() {
 
       {/* Distribution + Overdue */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: 16 }}>
-        <div className="brand-card" style={{ padding: 20 }}>
-          <h2 style={{ fontSize: 17, marginTop: 0, marginBottom: 16 }}>{t("taskDistribution")}</h2>
-          <Donut segments={dist.map((d) => ({ label: t(d.key as DictKey), value: d.count, color: donutColor(d.key) }))} lang={lang} total={total} />
-        </div>
+        <TaskFlowCard
+          title={t("taskDistribution")}
+          segments={dist.map((d) => ({ key: d.key, label: t(d.key as DictKey), value: d.count, color: donutColor(d.key) }))}
+          total={total}
+          lang={lang}
+        />
+
 
         <div className="brand-card" style={{ padding: 20, borderColor: overdueTasks.length ? "rgba(240,103,106,.5)" : "var(--border)" }}>
           <h2 style={{ fontSize: 17, marginTop: 0, marginBottom: 12, color: overdueTasks.length ? "#F0676A" : "var(--foreground)" }}>
