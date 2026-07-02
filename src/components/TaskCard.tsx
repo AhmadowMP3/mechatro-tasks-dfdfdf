@@ -62,19 +62,14 @@ export function TaskCard({ task, project, assignee, onClick }: {
         </div>
       )}
       <div style={{ marginTop: 10 }}>
-        <div style={{ height: 6, background: "var(--surface-3)", borderRadius: 4, overflow: "hidden" }}>
-          <div style={{ width: `${task.progress}%`, height: "100%", background: "var(--grad-blue)" }} />
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12, color: "var(--muted)", alignItems: "center" }}>
-          <span>{toLocalDigits(task.progress, lang)}%</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {assignee && <Avatar id={assignee.id} name={assignee.full_name} size={24} />}
-            <span style={{ color: overdue ? "#F0676A" : "var(--muted)", fontWeight: overdue ? 700 : 500 }}>
-              {task.due_date ? formatDate(task.due_date, lang) : t("na")}
-            </span>
-          </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8, fontSize: 12, color: "var(--muted)", alignItems: "center", gap: 8 }}>
+          {assignee && <Avatar id={assignee.id} name={assignee.full_name} size={24} />}
+          <span style={{ color: overdue ? "#F0676A" : "var(--muted)", fontWeight: overdue ? 700 : 500 }}>
+            {task.due_date ? formatDate(task.due_date, lang) : t("na")}
+          </span>
         </div>
       </div>
+
     </button>
   );
 }
