@@ -105,7 +105,7 @@ type RoleRow = {
 };
 
 // ─── API helper (invokes edge functions with bearer) ──────────────────────
-async function call(fn: "admin-users" | "admin-roles", body: unknown) {
+async function call(fn: "admin-users" | "admin-roles", body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke(fn, { body });
   if (error) throw new Error(error.message);
   const payload = data as { error?: string };
