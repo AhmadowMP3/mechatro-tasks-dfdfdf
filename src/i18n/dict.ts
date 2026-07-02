@@ -20,7 +20,12 @@ export const dict = {
   todo: { ar: "لم تبدأ", en: "To do" },
   in_progress: { ar: "قيد التنفيذ", en: "In progress" },
   paused: { ar: "متوقفة", en: "Paused" },
+  in_review: { ar: "قيد المراجعة", en: "In Review" },
   done: { ar: "مكتملة", en: "Done" },
+  submitForReview: { ar: "إرسال للمراجعة", en: "Submit for review" },
+  approveDone: { ar: "اعتماد وإنهاء", en: "Approve & complete" },
+  onlyAdminCanComplete: { ar: "فقط المدير يمكنه إنهاء المهمة. أرسلها للمراجعة.", en: "Only an admin can complete tasks. Submit it for review instead." },
+  awaitingReview: { ar: "بانتظار مراجعة المدير", en: "Awaiting admin review" },
   // Priority
   low: { ar: "منخفضة", en: "Low" },
   normal: { ar: "عادية", en: "Normal" },

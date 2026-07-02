@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
@@ -8,7 +9,8 @@ import { logActivity } from "@/lib/activity";
 import type { TaskRow } from "@/components/TaskCard";
 
 type Project = { id: string; name_ar: string; name_en: string; color: string };
-const COLUMNS = ["todo", "in_progress", "paused", "done"] as const;
+const COLUMNS = ["todo", "in_progress", "paused", "in_review", "done"] as const;
+type ColStatus = (typeof COLUMNS)[number];
 
 export function KanbanView({
   tasks, projects, users, onOpen, onChanged,
@@ -19,19 +21,34 @@ export function KanbanView({
   onOpen: (id: string) => void;
   onChanged: () => void;
 }) {
-  const { t, lang, can, user } = useApp();
-  const editable = can("manage_tasks");
+  const { t, lang, isAdmin, user } = useApp();
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
 
-  async function moveTask(id: string, status: string) {
+  function canMove(task: TaskRow | undefined, target: ColStatus): boolean {
+    if (!task) return false;
+    if (isAdmin) return true;
+    // Members can only drag their own tasks, and never to 'done'
+    if (task.assignee_id !== user?.id) return false;
+    if (target === "done") return false;
+    return true;
+  }
+
+  async function moveTask(id: string, status: ColStatus) {
     const task = tasks.find((x) => x.id === id);
     if (!task || task.status === status) return;
-    const { error } = await supabase.from("tasks").update({ status: status as "todo" | "in_progress" | "paused" | "done" }).eq("id", id);
-    if (!error) {
-      await logActivity(user?.id ?? null, "status", "task", id, { from: task.status, to: status });
-      onChanged();
+    if (!canMove(task, status)) {
+      toast.error(t("onlyAdminCanComplete"));
+      return;
     }
+    const patch: { status: ColStatus; completed_at?: string | null } = { status };
+    if (status === "done") patch.completed_at = new Date().toISOString();
+    if (task.status === "done" && status !== "done") patch.completed_at = null;
+    const { error } = await supabase.from("tasks").update(patch).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    await logActivity(user?.id ?? null, "status", "task", id, { from: task.status, to: status });
+    if (status === "in_review") toast.success(t("awaitingReview"));
+    onChanged();
   }
 
   return (
@@ -48,35 +65,52 @@ export function KanbanView({
         const style = STATUS_STYLES[col];
         const colTasks = tasks.filter((x) => x.status === col);
         const isOver = overCol === col;
+        const draggingTask = dragId ? tasks.find((x) => x.id === dragId) : undefined;
+        const dropAllowed = !!draggingTask && canMove(draggingTask, col);
+        const isReview = col === "in_review";
+        const isDone = col === "done";
         return (
           <div
             key={col}
-            onDragOver={(e) => { if (editable && dragId) { e.preventDefault(); setOverCol(col); } }}
+            onDragOver={(e) => { if (dropAllowed) { e.preventDefault(); setOverCol(col); } }}
             onDragLeave={() => setOverCol((c) => (c === col ? null : c))}
             onDrop={() => {
-              if (editable && dragId) moveTask(dragId, col);
+              if (dropAllowed) moveTask(dragId!, col);
               setDragId(null); setOverCol(null);
             }}
             className="brand-card"
             style={{
               padding: 12,
               minHeight: 200,
-              background: isOver ? "var(--surface-2)" : "var(--card)",
-              border: `1px solid ${isOver ? style.text : "var(--border)"}`,
+              background: isOver && dropAllowed ? "var(--surface-2)" : "var(--card)",
+              border: `1px solid ${isOver && dropAllowed ? style.text : (isReview ? "rgba(168,85,247,.35)" : "var(--border)")}`,
+              boxShadow: isReview ? `0 0 0 1px rgba(168,85,247,.15) inset, 0 8px 24px -18px ${style.text}` : undefined,
+              backgroundImage: isReview
+                ? "radial-gradient(120% 60% at 50% 0%, rgba(168,85,247,.08), transparent 70%)"
+                : undefined,
               transition: "border-color .15s ease, background .15s ease",
               display: "flex",
               flexDirection: "column",
               gap: 10,
+              opacity: draggingTask && !dropAllowed ? 0.55 : 1,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 8, borderBottom: `2px solid ${style.text}` }}>
-              <span style={{ width: 10, height: 10, borderRadius: 3, background: style.text }} />
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, flex: 1, color: style.text }}>{t(col as never)}</h3>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: style.text, boxShadow: isReview ? `0 0 10px ${style.text}` : undefined }} />
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, flex: 1, color: style.text, display: "flex", alignItems: "center", gap: 6 }}>
+                {t(col as never)}
+                {isDone && !isAdmin && <span title={t("onlyAdminCanComplete")} style={{ fontSize: 11 }}>🔒</span>}
+              </h3>
               <span style={{
                 fontSize: 11, fontWeight: 800, minWidth: 22, textAlign: "center",
                 padding: "2px 8px", borderRadius: 999, background: style.bg, color: style.text,
               }}>{toLocalDigits(colTasks.length, lang)}</span>
             </div>
+            {isReview && (
+              <div style={{ fontSize: 11, color: "var(--muted)", padding: "0 2px", lineHeight: 1.4 }}>
+                {lang === "ar" ? "المهام هنا بانتظار اعتماد المدير." : "Tasks here await admin approval."}
+              </div>
+            )}
             {colTasks.length === 0 && (
               <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "18px 6px" }}>—</div>
             )}
@@ -84,10 +118,11 @@ export function KanbanView({
               const project = projects.find((p) => p.id === tk.project_id);
               const assignee = users.find((u) => u.id === tk.assignee_id);
               const overdue = isOverdue(tk.due_date, tk.status);
+              const dragThis = isAdmin || tk.assignee_id === user?.id;
               return (
                 <div
                   key={tk.id}
-                  draggable={editable}
+                  draggable={dragThis}
                   onDragStart={() => setDragId(tk.id)}
                   onDragEnd={() => { setDragId(null); setOverCol(null); }}
                   onClick={() => onOpen(tk.id)}
@@ -96,7 +131,7 @@ export function KanbanView({
                     borderRadius: 10,
                     background: "var(--surface-2)",
                     border: `1px solid ${overdue ? "rgba(240,103,106,.5)" : "var(--border)"}`,
-                    cursor: editable ? "grab" : "pointer",
+                    cursor: dragThis ? "grab" : "pointer",
                     opacity: dragId === tk.id ? 0.4 : 1,
                     borderInlineStart: project ? `3px solid transparent` : undefined,
                     backgroundImage: project

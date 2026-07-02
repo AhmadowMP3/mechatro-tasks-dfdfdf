@@ -10,7 +10,7 @@ import type { TaskRow } from "@/components/TaskCard";
 type Project = { id: string; name_ar: string; name_en: string; color: string };
 type SortKey = "title" | "due_date" | "priority" | "status" | "progress";
 const PRIO_RANK: Record<string, number> = { urgent: 4, high: 3, normal: 2, low: 1 };
-const STATUS_RANK: Record<string, number> = { todo: 1, in_progress: 2, paused: 3, done: 4 };
+const STATUS_RANK: Record<string, number> = { todo: 1, in_progress: 2, paused: 3, in_review: 4, done: 5 };
 
 export function TableView({
   tasks, projects, users, onOpen,
