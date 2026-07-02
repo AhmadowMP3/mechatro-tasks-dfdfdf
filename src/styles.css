@@ -164,3 +164,11 @@
   cursor: pointer;
   border: none;
 }
+
+/* Responsive visibility helpers */
+@media (max-width: 640px) {
+  .hide-sm { display: none !important; }
+}
+@media (max-width: 768px) {
+  .hide-md { display: none !important; }
+}
