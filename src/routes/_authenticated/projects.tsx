@@ -124,7 +124,7 @@ function ProjectsPage() {
       const b = BUCKETS.find((x) => x.key === k);
       c.push({ key: `b-${k}`, label: b?.label ?? k, onRemove: () => patch({ buckets: f.buckets.filter((x) => x !== k) }) });
     });
-    if (f.archived) c.push({ key: "ar", label: t("archivedOnly"), onRemove: () => patch({ archived: false }) });
+    // archived toggle is a top-level tab, not a removable chip
     if (f.datePreset !== "all") c.push({ key: "dr", label: `${t(f.dateField === "due_date" ? "dueSoon" : "createdAt")}`, onRemove: () => patch({ datePreset: "all", dateFrom: "", dateTo: "" }) });
     return c;
   }, [f, users, t]);
@@ -177,6 +177,30 @@ function ProjectsPage() {
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+        <div role="tablist" aria-label={lang === "ar" ? "عرض" : "View"} style={{ display: "inline-flex", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 999, padding: 4 }}>
+          {([false, true] as const).map((val) => {
+            const active = f.archived === val;
+            const label = val ? (lang === "ar" ? "مؤرشفة" : "Archived") : (lang === "ar" ? "نشطة" : "Active");
+            return (
+              <button
+                key={String(val)}
+                role="tab"
+                aria-selected={active}
+                onClick={() => patch({ archived: val })}
+                style={{
+                  minHeight: 36, padding: "6px 16px", borderRadius: 999, border: "none",
+                  cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit",
+                  background: active ? "var(--grad-blue)" : "transparent",
+                  color: active ? "#0B0F14" : "var(--muted)",
+                  boxShadow: active ? "0 6px 18px rgba(66,194,238,.35)" : "none",
+                  transition: "all .2s",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
         <SearchField value={f.q} onChange={(v) => patch({ q: v })} />
         <FilterBarCluster
           activeCount={activeCount}
@@ -227,12 +251,6 @@ function ProjectsPage() {
           <DateRangeControl preset={f.datePreset} from={f.dateFrom} to={f.dateTo}
             onChange={({ preset, from, to }) => patch({ datePreset: preset, dateFrom: from, dateTo: to })} />
         </FilterSection>
-        <FilterSection label={lang === "ar" ? "خيارات" : "Options"}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 40, cursor: "pointer" }}>
-            <input type="checkbox" checked={f.archived} onChange={(e) => patch({ archived: e.target.checked })} style={{ width: 18, height: 18 }} />
-            <span style={{ fontSize: 14 }}>{t("archivedOnly")}</span>
-          </label>
-        </FilterSection>
         <FilterSection label={t("sortBy")}>
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
@@ -253,7 +271,12 @@ function ProjectsPage() {
       </FilterDrawer>
 
       {filtered.length === 0 ? (
-        <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noProjects")}</div>
+        <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
+          {f.archived
+            ? (lang === "ar" ? "لا توجد مشاريع مؤرشفة" : "No archived projects")
+            : t("noProjects")}
+        </div>
+
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px), 1fr))", gap: 16 }}>
           {filtered.map(({ p, progress, memberIds }) => (
