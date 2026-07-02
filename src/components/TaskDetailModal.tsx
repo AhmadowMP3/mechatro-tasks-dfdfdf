@@ -17,7 +17,8 @@ type Task = {
 };
 
 
-const STATUS_LIST = ["todo", "in_progress", "paused", "done"] as const;
+const STATUS_LIST = ["todo", "in_progress", "paused", "in_review", "done"] as const;
+const MEMBER_STATUS_LIST = ["todo", "in_progress", "paused", "in_review"] as const;
 const PRIORITY_LIST = ["low", "normal", "high", "urgent"] as const;
 
 export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string; onClose: () => void; onChanged: () => void }) {
