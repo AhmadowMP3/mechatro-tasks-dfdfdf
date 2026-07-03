@@ -39,7 +39,7 @@ const PUBLIC_ACTIONS = new Set(["resolve", "data", "bootstrap", "query"]);
 // permitted and only the columns baked into the base queries below are exposed.
 const TABLE_ACCESS: Record<string, { pages: string[]; select: string }> = {
   tasks:         { pages: ["dashboard","tasks","projects","team","league"],
-                   select: "id,title,description,status,priority,due_date,start_date,project_id,assignee_id,created_at,completed_at,tags,created_by" },
+                   select: "id,title,description,status,priority,due_date,start_date,project_id,assignee_id,created_at,completed_at,created_by" },
   projects:      { pages: ["dashboard","tasks","projects","team"],
                    select: "id,name_ar,name_en,description,status,color,created_at,due_date,start_date,archived,created_by" },
   profiles:      { pages: ["dashboard","tasks","projects","team","league","references","activity"],
@@ -338,7 +338,7 @@ Deno.serve(async (req) => {
         }
         case "tasks": {
           const [{ data: tasks }, projects, profiles] = await Promise.all([
-            admin.from("tasks").select("id, title, description, status, priority, due_date, start_date, project_id, assignee_id, created_at, tags")
+            admin.from("tasks").select("id, title, description, status, priority, due_date, start_date, project_id, assignee_id, created_at")
               .order("created_at", { ascending: false }).limit(300),
             loadProjects(),
             loadProfiles(),
