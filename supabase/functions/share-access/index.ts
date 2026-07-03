@@ -338,7 +338,7 @@ Deno.serve(async (req) => {
         }
         case "tasks": {
           const [{ data: tasks }, projects, profiles] = await Promise.all([
-            admin.from("tasks").select("id, title, description, status, priority, due_date, start_date, project_id, assignee_id, created_at, tags")
+            admin.from("tasks").select("id, title, description, status, priority, due_date, start_date, project_id, assignee_id, created_at")
               .order("created_at", { ascending: false }).limit(300),
             loadProjects(),
             loadProfiles(),
