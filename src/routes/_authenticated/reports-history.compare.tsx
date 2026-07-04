@@ -127,7 +127,7 @@ function CompareReportsPage() {
         </div>
 
         <div style={{
-          background: "linear-gradient(135deg,#0A1A2B 0%,#0F5FFF 100%)",
+          background: "linear-gradient(135deg,var(--sidebar) 0%,#0F5FFF 100%)",
           borderRadius: 20, padding: 24, marginBottom: 20, color: "#fff",
           position: "relative", overflow: "hidden",
         }}>

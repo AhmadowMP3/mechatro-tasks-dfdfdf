@@ -142,8 +142,8 @@ function AcceptInvitePage() {
       style={{
         minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center",
         padding: 20,
-        background: "linear-gradient(160deg,#050D17 0%,#0A1A2B 60%,#0E2338 100%)",
-        color: "#EAF2F9",
+        background: "linear-gradient(160deg,var(--sidebar) 0%,var(--sidebar) 60%,#0E2338 100%)",
+        color: "var(--foreground)",
         fontFamily: l ? "'Almarai', system-ui, sans-serif" : "'Montserrat', system-ui, sans-serif",
         position: "relative", overflow: "hidden",
       }}
@@ -171,7 +171,7 @@ function AcceptInvitePage() {
       <div style={{
         width: "100%", maxWidth: 460, zIndex: 1,
         background: "rgba(10,26,43,.88)",
-        border: "1px solid #1E364D",
+        border: "1px solid var(--border)",
         borderRadius: 20, padding: 32,
         boxShadow: "0 24px 60px rgba(0,0,0,.55)",
         backdropFilter: "blur(6px)",
@@ -188,7 +188,7 @@ function AcceptInvitePage() {
         </div>
 
         {loading && (
-          <div style={{ padding: 40, textAlign: "center", color: "#9FB7C9" }}>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
             <Loader2 size={28} style={{ animation: "spin 1s linear infinite", opacity: .8 }} />
             <div style={{ marginTop: 10, fontSize: 13 }}>{l ? "جارِ التحقق من الرابط…" : "Verifying invite…"}</div>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -205,7 +205,7 @@ function AcceptInvitePage() {
             <div style={{ fontWeight: 800, fontSize: 15, color: "#F0676A" }}>
               {l ? "تعذّر فتح الدعوة" : "Invite not available"}
             </div>
-            <div style={{ marginTop: 6, fontSize: 13, color: "#B9CBDA" }}>{translate(peekError, l)}</div>
+            <div style={{ marginTop: 6, fontSize: 13, color: "var(--muted)" }}>{translate(peekError, l)}</div>
             <button onClick={() => navigate({ to: "/auth" })} style={{ ...primaryBtn, marginTop: 16 }}>
               {l ? "الذهاب إلى تسجيل الدخول" : "Go to sign in"}
             </button>
@@ -217,20 +217,20 @@ function AcceptInvitePage() {
             <div style={{
               padding: "12px 14px", marginBottom: 16, borderRadius: 12,
               background: "rgba(29,155,240,.10)", border: "1px solid rgba(29,155,240,.30)",
-              display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#B9CBDA",
+              display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--muted)",
             }}>
               <ShieldCheck size={18} color="#1D9BF0" />
               <div>
                 {peek.full_name ? (
                   <>
                     {l ? "أهلًا " : "Welcome, "}
-                    <strong style={{ color: "#EAF2F9" }}>{peek.full_name}</strong>
+                    <strong style={{ color: "var(--foreground)" }}>{peek.full_name}</strong>
                     {" — "}
                   </>
                 ) : null}
                 {l ? "تم دعوتك لتصبح" : "you've been invited as"}
                 {" "}
-                <strong style={{ color: peek.role === "admin" ? "#F0B429" : "#EAF2F9" }}>
+                <strong style={{ color: peek.role === "admin" ? "#F0B429" : "var(--foreground)" }}>
                   {peek.role === "admin" ? (l ? "نائب مدير" : "Admin") : (l ? "عضو" : "Member")}
                 </strong>
                 {peek.expires_at && (
@@ -297,7 +297,7 @@ function AcceptInvitePage() {
 function Field({ label, icon: Icon, children }: { label: string; icon: React.ComponentType<{ size?: number }>; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 12, color: "#9FB7C9", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6 }}>
         <Icon size={12} />{label}
       </span>
       {children}
@@ -307,13 +307,13 @@ function Field({ label, icon: Icon, children }: { label: string; icon: React.Com
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "12px 14px", borderRadius: 10,
-  background: "#13283D", color: "#EAF2F9",
-  border: "1px solid #1E364D", fontSize: 14, minHeight: 44, outline: "none",
+  background: "var(--surface-3)", color: "var(--foreground)",
+  border: "1px solid var(--border)", fontSize: 14, minHeight: 44, outline: "none",
 };
 const pillBtn: React.CSSProperties = {
   minHeight: 40, padding: "0 14px", borderRadius: 999,
-  background: "rgba(255,255,255,.08)", color: "#EAF2F9",
-  border: "1px solid #1E364D", fontWeight: 700, fontSize: 13, cursor: "pointer",
+  background: "rgba(255,255,255,.08)", color: "var(--foreground)",
+  border: "1px solid var(--border)", fontWeight: 700, fontSize: 13, cursor: "pointer",
 };
 const primaryBtn: React.CSSProperties = {
   padding: "10px 16px", borderRadius: 10,

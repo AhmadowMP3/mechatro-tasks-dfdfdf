@@ -134,7 +134,7 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
         <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("chooseStyle")}</div>
         <div className="wizard-theme-grid">
           {([
-            { id: "aurora" as const, label: t("themeAurora"), bg: "linear-gradient(135deg,#050D17,#0E4A6B)", fg: "#EAF2F9" },
+            { id: "aurora" as const, label: t("themeAurora"), bg: "linear-gradient(135deg,var(--sidebar),#0E4A6B)", fg: "var(--foreground)" },
             { id: "executive" as const, label: t("themeExecutive"), bg: "linear-gradient(135deg,#0A2540,#132D50)", fg: "#fff" },
             { id: "minimal" as const, label: t("themeMinimal"), bg: "#FCFCFC", fg: "#111" },
           ]).map((c) => (

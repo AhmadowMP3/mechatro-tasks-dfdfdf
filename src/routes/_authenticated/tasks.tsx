@@ -28,11 +28,11 @@ const VIEW_KEY = "tasks.view";
 const STATUSES = ["todo", "in_progress", "paused", "in_review", "done"] as const;
 const PRIORITIES = ["low", "normal", "high", "urgent"] as const;
 const STATUS_COLORS: Record<string, string> = {
-  todo: "#86A1B7", in_progress: "#189FD1", paused: "#E8732E",
+  todo: "var(--muted)", in_progress: "#189FD1", paused: "#E8732E",
   in_review: "#7C5CD1", done: "#3F782A",
 };
 const PRIORITY_COLORS: Record<string, string> = {
-  low: "#86A1B7", normal: "#189FD1", high: "#E8732E", urgent: "#D64545",
+  low: "var(--muted)", normal: "#189FD1", high: "#E8732E", urgent: "#D64545",
 };
 
 type Filters = {

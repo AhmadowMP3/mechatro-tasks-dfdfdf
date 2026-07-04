@@ -483,7 +483,7 @@ function WorkloadCard({ title, rows, unassigned, lang }: { title: string; rows: 
                 <b style={{ fontSize: 12 }}>{toLocalDigits(unassigned, lang)}</b>
               </div>
               <div style={{ height: 6, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden" }}>
-                <div style={{ width: `${(unassigned / max) * 100}%`, height: "100%", background: "linear-gradient(90deg, #86A1B7, #86A1B788)" }} />
+                <div style={{ width: `${(unassigned / max) * 100}%`, height: "100%", background: "linear-gradient(90deg, var(--muted), var(--muted)88)" }} />
               </div>
             </div>
           </div>
@@ -497,14 +497,14 @@ function WorkloadCard({ title, rows, unassigned, lang }: { title: string; rows: 
 function t_unassigned(lang: "ar" | "en") { return lang === "ar" ? "غير مُسنَد" : "Unassigned"; }
 
 function donutColor(key: string) {
-  return { todo: "#86A1B7", in_progress: "#42C2EE", paused: "#FF9255", done: "#73C94E" }[key] ?? "#86A1B7";
+  return { todo: "var(--muted)", in_progress: "#42C2EE", paused: "#FF9255", done: "#73C94E" }[key] ?? "var(--muted)";
 }
 
 function actionColor(action: string) {
   if (action.includes("done") || action.includes("completed") || action.includes("created")) return "#73C94E";
   if (action.includes("deleted") || action.includes("removed")) return "#F0676A";
   if (action.includes("paused")) return "#FF9255";
-  if (action.includes("signed") || action.includes("login")) return "#86A1B7";
+  if (action.includes("signed") || action.includes("login")) return "var(--muted)";
   return "#42C2EE";
 }
 

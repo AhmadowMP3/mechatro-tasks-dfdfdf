@@ -113,7 +113,7 @@ export function DatePickerField({ value, onChange, min, lang, placeholder }: Pro
           <div style={{
             position: "absolute", top: "calc(100% + 8px)", insetInlineStart: 0, zIndex: 61,
             width: 300, padding: 14, borderRadius: 14,
-            background: "var(--surface-1, #0F2033)", border: "1px solid var(--border, #1E364D)",
+            background: "var(--surface-1, #0F2033)", border: "1px solid var(--border, var(--border))",
             boxShadow: "0 20px 48px rgba(0,0,0,.55)",
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -171,7 +171,7 @@ export function DatePickerField({ value, onChange, min, lang, placeholder }: Pro
                       boxShadow: !isSel && isToday ? "inset 0 0 0 1.5px #F0B429" : "none",
                       transition: "background .15s",
                     }}
-                    onMouseEnter={(e) => { if (!isSel && !disabled) e.currentTarget.style.background = "var(--surface-3, #13283D)"; }}
+                    onMouseEnter={(e) => { if (!isSel && !disabled) e.currentTarget.style.background = "var(--surface-3, var(--surface-3))"; }}
                     onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "transparent"; }}
                   >{toLocalDigits(d.getDate(), lang)}</button>
                 );
@@ -186,7 +186,7 @@ export function DatePickerField({ value, onChange, min, lang, placeholder }: Pro
 
 const navBtn: React.CSSProperties = {
   width: 30, height: 30, borderRadius: 8,
-  background: "var(--surface-2, #13283D)", color: "var(--foreground)",
-  border: "1px solid var(--border, #1E364D)", cursor: "pointer",
+  background: "var(--surface-2, var(--surface-3))", color: "var(--foreground)",
+  border: "1px solid var(--border, var(--border))", cursor: "pointer",
   display: "grid", placeItems: "center",
 };

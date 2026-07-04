@@ -77,12 +77,12 @@ const ACTION_COLORS: Record<string, string> = {
   updated: "#189FD1",
   status_changed: "#FF8A3D",
   deleted: "#F0676A",
-  archived: "#9FB7C9",
+  archived: "var(--muted)",
   commented: "#A78BFA",
   file_added: "#189FD1",
   assigned: "#22C55E",
-  signed_in: "#9FB7C9",
-  signed_out: "#9FB7C9",
+  signed_in: "var(--muted)",
+  signed_out: "var(--muted)",
 
 };
 

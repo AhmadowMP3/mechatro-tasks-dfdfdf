@@ -140,13 +140,13 @@ function AccessControlPage() {
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "6px 10px", borderRadius: 999, fontSize: 11.5, fontWeight: 800,
             background: live ? "rgba(20,168,110,.14)" : "rgba(159,183,201,.12)",
-            color: live ? "#14A86E" : "#9FB7C9",
-            border: `1px solid ${live ? "rgba(20,168,110,.35)" : "#1E364D"}`,
+            color: live ? "#14A86E" : "var(--muted)",
+            border: `1px solid ${live ? "rgba(20,168,110,.35)" : "var(--border)"}`,
             flexShrink: 0,
           }}>
             <span style={{
               width: 8, height: 8, borderRadius: "50%",
-              background: live ? "#14A86E" : "#9FB7C9",
+              background: live ? "#14A86E" : "var(--muted)",
               boxShadow: live ? "0 0 0 4px rgba(20,168,110,.18)" : "none",
               animation: live ? "pulse 1.6s ease-in-out infinite" : undefined,
             }} />
@@ -158,8 +158,8 @@ function AccessControlPage() {
 
       <div style={{ display: "flex", gap: 10, marginTop: 22, marginBottom: 20, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{
-          display: "inline-flex", background: "#13283D", borderRadius: 12, padding: 4,
-          border: "1px solid #1E364D",
+          display: "inline-flex", background: "var(--surface-3)", borderRadius: 12, padding: 4,
+          border: "1px solid var(--border)",
         }}>
           {[
             { k: "all", label: l ? "الكل" : "All" },
@@ -168,7 +168,7 @@ function AccessControlPage() {
             <button key={k} onClick={() => setTab(k as "all" | "pending")} style={{
               padding: "10px 18px", borderRadius: 8,
               background: tab === k ? "linear-gradient(135deg,#1D9BF0,#0F6BB8)" : "transparent",
-              color: tab === k ? "#fff" : "#B9CBDA",
+              color: tab === k ? "#fff" : "var(--muted)",
               border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13.5,
               minHeight: 40,
             }}>{label}</button>
@@ -181,9 +181,9 @@ function AccessControlPage() {
 
       </div>
 
-      {users === null && <div style={{ padding: 40, textAlign: "center", color: "#9FB7C9" }}>…</div>}
+      {users === null && <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>…</div>}
       {shown.length === 0 && users !== null && (
-        <div style={{ padding: 40, textAlign: "center", color: "#9FB7C9" }}>
+        <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
           {tab === "pending"
             ? (l ? "لا توجد طلبات معلّقة" : "No pending requests")
             : (l ? "لا مستخدمين" : "No users")}
@@ -206,7 +206,7 @@ function AccessControlPage() {
                 )}
                 <StatusPill status={u.status} lang={lang} />
               </div>
-              <div style={{ fontSize: 12.5, color: "#9FB7C9", marginTop: 2 }} dir="ltr">{u.email ?? "—"}</div>
+              <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }} dir="ltr">{u.email ?? "—"}</div>
               <div style={{ fontSize: 11.5, color: "#7A94A9", marginTop: 3 }}>
                 {u.last_sign_in_at
                   ? (l ? "آخر دخول: " : "Last sign-in: ") + relativeTime(u.last_sign_in_at, lang)
@@ -267,7 +267,7 @@ function StatusPill({ status, lang }: { status: UserRow["status"]; lang: "ar" | 
     active:    { bg: "rgba(20,168,110,.16)",  text: "#14A86E", label: l ? "مفعّل"           : "Active" },
     suspended: { bg: "rgba(240,103,106,.16)", text: "#F0676A", label: l ? "معلّق"           : "Suspended" },
   };
-  const m = map[status] ?? { bg: "rgba(159,183,201,.16)", text: "#9FB7C9", label: String(status ?? "—") };
+  const m = map[status] ?? { bg: "rgba(159,183,201,.16)", text: "var(--muted)", label: String(status ?? "—") };
   return (
     <span style={{
       padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
@@ -288,8 +288,8 @@ function UserMenu({ user, lang, busy, onAction }: {
   return (
     <div style={{ position: "relative" }}>
       <button onClick={() => setOpen((s) => !s)} disabled={busy} aria-label="menu" style={{
-        width: 40, height: 40, borderRadius: 10, background: "#13283D",
-        color: "#EAF2F9", border: "1px solid #1E364D",
+        width: 40, height: 40, borderRadius: 10, background: "var(--surface-3)",
+        color: "var(--foreground)", border: "1px solid var(--border)",
         cursor: busy ? "wait" : "pointer", display: "grid", placeItems: "center",
       }}><MoreVertical size={16} /></button>
       {open && (
@@ -297,7 +297,7 @@ function UserMenu({ user, lang, busy, onAction }: {
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
           <div style={{
             position: "absolute", top: "calc(100% + 6px)", insetInlineEnd: 0, zIndex: 41,
-            background: "#0F2033", border: "1px solid #1E364D",
+            background: "#0F2033", border: "1px solid var(--border)",
             borderRadius: 12, padding: 6, minWidth: 200,
             boxShadow: "0 12px 28px rgba(0,0,0,.45)",
           }}>
@@ -327,7 +327,7 @@ function UserMenu({ user, lang, busy, onAction }: {
           <div onClick={(e) => e.stopPropagation()} style={{
             width: "100%", maxWidth: 460, background: "#0F2033",
             border: "1px solid rgba(240,103,106,.35)", borderRadius: 18,
-            padding: 22, color: "#EAF2F9",
+            padding: 22, color: "var(--foreground)",
             boxShadow: "0 24px 60px rgba(0,0,0,.55)",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
@@ -340,12 +340,12 @@ function UserMenu({ user, lang, busy, onAction }: {
                 <div style={{ fontWeight: 800, fontSize: 16 }}>
                   {l ? "تعليق حساب" : "Suspend account"}
                 </div>
-                <div style={{ fontSize: 12.5, color: "#9FB7C9" }}>
+                <div style={{ fontSize: 12.5, color: "var(--muted)" }}>
                   {user.full_name}
                 </div>
               </div>
             </div>
-            <label style={{ display: "block", fontSize: 12.5, color: "#9FB7C9", margin: "12px 0 6px" }}>
+            <label style={{ display: "block", fontSize: 12.5, color: "var(--muted)", margin: "12px 0 6px" }}>
               {l ? "السبب (اختياري) — سيظهر للمستخدم" : "Reason (optional) — shown to the user"}
             </label>
             <textarea
@@ -354,15 +354,15 @@ function UserMenu({ user, lang, busy, onAction }: {
               placeholder={l ? "مثال: مخالفة سياسة الاستخدام" : "e.g. Policy violation"}
               style={{
                 width: "100%", padding: 10, borderRadius: 10,
-                background: "#0A1826", color: "#EAF2F9",
-                border: "1px solid #1E364D", fontSize: 14, resize: "vertical",
+                background: "#0A1826", color: "var(--foreground)",
+                border: "1px solid var(--border)", fontSize: 14, resize: "vertical",
                 fontFamily: "inherit",
               }}
             />
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
               <button onClick={() => setShowReason(false)} style={{
                 padding: "10px 16px", borderRadius: 10, background: "transparent",
-                color: "#EAF2F9", border: "1px solid #1E364D", cursor: "pointer", fontWeight: 600,
+                color: "var(--foreground)", border: "1px solid var(--border)", cursor: "pointer", fontWeight: 600,
               }}>{l ? "إلغاء" : "Cancel"}</button>
               <button onClick={() => { setShowReason(false); onAction("suspend", { reason: reason.trim() }); }}
                 style={{
@@ -387,7 +387,7 @@ function MenuItem({ icon: Icon, label, onClick, danger }: {
     <button onClick={onClick} style={{
       width: "100%", display: "flex", alignItems: "center", gap: 10,
       padding: "10px 12px", borderRadius: 8, background: "transparent",
-      color: danger ? "#F0676A" : "#EAF2F9",
+      color: danger ? "#F0676A" : "var(--foreground)",
       border: "none", cursor: "pointer", fontSize: 13.5, fontWeight: 600, textAlign: "start",
     }}
       onMouseEnter={(e) => (e.currentTarget.style.background = danger ? "rgba(240,103,106,.1)" : "rgba(255,255,255,.05)")}
@@ -499,7 +499,7 @@ function InviteModal({ lang, onClose, onInvited }: {
       zIndex: 100, display: "grid", placeItems: "center", padding: 16,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: "#0F2033", border: "1px solid #1E364D",
+        background: "#0F2033", border: "1px solid var(--border)",
         borderRadius: 16, padding: "clamp(16px, 3vw, 22px)", width: "100%", maxWidth: 500,
         maxHeight: "calc(100dvh - 32px)", overflowY: "auto",
       }}>
@@ -516,7 +516,7 @@ function InviteModal({ lang, onClose, onInvited }: {
                 : (l ? "توليد رابط دعوة" : "Generate invite link")}
             </h2>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#9FB7C9", cursor: "pointer" }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--muted)", cursor: "pointer" }}>
             <X size={20} />
           </button>
         </div>
@@ -538,9 +538,9 @@ function InviteModal({ lang, onClose, onInvited }: {
             </div>
 
             {generated.full_name && (
-              <div style={{ fontSize: 13, color: "#B9CBDA" }}>
+              <div style={{ fontSize: 13, color: "var(--muted)" }}>
                 {l ? "للمُرسَل إليه: " : "Recipient: "}
-                <strong style={{ color: "#EAF2F9" }}>{generated.full_name}</strong>
+                <strong style={{ color: "var(--foreground)" }}>{generated.full_name}</strong>
               </div>
             )}
 
@@ -549,9 +549,9 @@ function InviteModal({ lang, onClose, onInvited }: {
                 {l ? "الرابط" : "LINK"}
               </div>
               <div style={{
-                padding: 12, borderRadius: 10, background: "#0A1A2B",
-                border: "1px solid #1E364D", fontFamily: "monospace",
-                fontSize: 12.5, color: "#EAF2F9", wordBreak: "break-all", direction: "ltr",
+                padding: 12, borderRadius: 10, background: "var(--sidebar)",
+                border: "1px solid var(--border)", fontFamily: "monospace",
+                fontSize: 12.5, color: "var(--foreground)", wordBreak: "break-all", direction: "ltr",
               }}>{generated.url}</div>
             </div>
 
@@ -561,7 +561,7 @@ function InviteModal({ lang, onClose, onInvited }: {
                   {l ? "كلمة المرور" : "PASSWORD"}
                 </div>
                 <div style={{
-                  padding: 12, borderRadius: 10, background: "#0A1A2B",
+                  padding: 12, borderRadius: 10, background: "var(--sidebar)",
                   border: "1px solid rgba(240,180,41,.35)", fontFamily: "monospace",
                   fontSize: 15, fontWeight: 800, color: "#F0B429", wordBreak: "break-all", direction: "ltr",
                   display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
@@ -647,15 +647,15 @@ function InviteModal({ lang, onClose, onInvited }: {
                 ].map(({ v, icon: Icon, ar, en, desc }) => (
                   <button key={v} type="button" onClick={() => setRole(v as "member" | "admin")} style={{
                     padding: 12, borderRadius: 10, cursor: "pointer",
-                    border: `1.5px solid ${role === v ? "#1D9BF0" : "#1E364D"}`,
+                    border: `1.5px solid ${role === v ? "#1D9BF0" : "var(--border)"}`,
                     background: role === v ? "rgba(29,155,240,.08)" : "transparent",
-                    color: "#EAF2F9", textAlign: "start",
+                    color: "var(--foreground)", textAlign: "start",
                     display: "flex", flexDirection: "column", gap: 4,
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 800, fontSize: 14 }}>
                       <Icon size={14} />{l ? ar : en}
                     </div>
-                    <div style={{ fontSize: 11.5, color: "#9FB7C9" }}>{desc}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{desc}</div>
                   </button>
                 ))}
               </div>
@@ -669,13 +669,13 @@ function InviteModal({ lang, onClose, onInvited }: {
                 ].map(({ v, ar, en, desc }) => (
                   <button key={v} type="button" onClick={() => setMode(v as "open" | "locked")} style={{
                     padding: 12, borderRadius: 10, cursor: "pointer",
-                    border: `1.5px solid ${mode === v ? "#F0B429" : "#1E364D"}`,
+                    border: `1.5px solid ${mode === v ? "#F0B429" : "var(--border)"}`,
                     background: mode === v ? "rgba(240,180,41,.08)" : "transparent",
-                    color: "#EAF2F9", textAlign: "start",
+                    color: "var(--foreground)", textAlign: "start",
                     display: "flex", flexDirection: "column", gap: 4,
                   }}>
                     <div style={{ fontWeight: 800, fontSize: 13.5 }}>{l ? ar : en}</div>
-                    <div style={{ fontSize: 11.5, color: "#9FB7C9" }}>{desc}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{desc}</div>
                   </button>
                 ))}
               </div>
@@ -695,13 +695,13 @@ function InviteModal({ lang, onClose, onInvited }: {
                 ].map(({ v, ar, en, desc }) => (
                   <button key={v} type="button" onClick={() => setAccess(v as "self_serve" | "preset")} style={{
                     padding: 12, borderRadius: 10, cursor: "pointer",
-                    border: `1.5px solid ${access === v ? "#F0B429" : "#1E364D"}`,
+                    border: `1.5px solid ${access === v ? "#F0B429" : "var(--border)"}`,
                     background: access === v ? "rgba(240,180,41,.08)" : "transparent",
-                    color: "#EAF2F9", textAlign: "start",
+                    color: "var(--foreground)", textAlign: "start",
                     display: "flex", flexDirection: "column", gap: 4,
                   }}>
                     <div style={{ fontWeight: 800, fontSize: 13.5 }}>{l ? ar : en}</div>
-                    <div style={{ fontSize: 11.5, color: "#9FB7C9" }}>{desc}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{desc}</div>
                   </button>
                 ))}
               </div>
@@ -726,7 +726,7 @@ function InviteModal({ lang, onClose, onInvited }: {
                     title={showPreset ? (l ? "إخفاء" : "Hide") : (l ? "إظهار" : "Show")}
                     style={{
                       minHeight: 44, padding: "0 12px", borderRadius: 10,
-                      background: "#13283D", color: "#EAF2F9", border: "1px solid #1E364D",
+                      background: "var(--surface-3)", color: "var(--foreground)", border: "1px solid var(--border)",
                       cursor: "pointer", fontWeight: 700, fontSize: 12,
                     }}>{showPreset ? (l ? "إخفاء" : "Hide") : (l ? "إظهار" : "Show")}</button>
                   <button type="button" onClick={() => { setPresetPassword(genReadablePassword()); setShowPreset(true); }}
@@ -754,9 +754,9 @@ function InviteModal({ lang, onClose, onInvited }: {
                 ] as const).map(({ v, ar, en }) => (
                   <button key={v} type="button" onClick={() => setExpiry(v)} style={{
                     padding: "8px 14px", borderRadius: 999, cursor: "pointer", minHeight: 36,
-                    border: `1.5px solid ${expiry === v ? "#1D9BF0" : "#1E364D"}`,
+                    border: `1.5px solid ${expiry === v ? "#1D9BF0" : "var(--border)"}`,
                     background: expiry === v ? "rgba(29,155,240,.12)" : "transparent",
-                    color: expiry === v ? "#1D9BF0" : "#B9CBDA",
+                    color: expiry === v ? "#1D9BF0" : "var(--muted)",
                     fontWeight: 700, fontSize: 12.5,
                   }}>{l ? ar : en}</button>
                 ))}
@@ -847,7 +847,7 @@ function PendingInvitesList({ lang, refreshKey }: { lang: "ar" | "en"; refreshKe
         <div style={{ flex: 1 }} />
         <button onClick={load} style={{
           padding: "6px 10px", borderRadius: 8, background: "transparent",
-          color: "#9FB7C9", border: "1px solid #1E364D",
+          color: "var(--muted)", border: "1px solid var(--border)",
           cursor: "pointer", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4,
         }}><RefreshCw size={12} />{l ? "تحديث" : "Refresh"}</button>
       </div>
@@ -857,7 +857,7 @@ function PendingInvitesList({ lang, refreshKey }: { lang: "ar" | "en"; refreshKe
           return (
             <div key={r.id} style={{
               ...rowCard,
-              borderColor: expired ? "rgba(240,103,106,.35)" : "#1E364D",
+              borderColor: expired ? "rgba(240,103,106,.35)" : "var(--border)",
               opacity: expired ? 0.7 : 1,
             }}>
               <div style={{
@@ -921,7 +921,7 @@ function PendingInvitesList({ lang, refreshKey }: { lang: "ar" | "en"; refreshKe
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 12.5, fontWeight: 700, color: "#B9CBDA" }}>{label}</span>
+      <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--muted)" }}>{label}</span>
       {children}
     </label>
   );
@@ -930,7 +930,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const rowCard: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 14, padding: 14, flexWrap: "wrap",
-  background: "#0F2033", border: "1px solid #1E364D", borderRadius: 12,
+  background: "#0F2033", border: "1px solid var(--border)", borderRadius: 12,
 };
 
 const primaryBtn: React.CSSProperties = {
@@ -953,16 +953,16 @@ const approveAdminBtn: React.CSSProperties = {
 };
 const ghostBtn: React.CSSProperties = {
   padding: "10px 16px", borderRadius: 10, background: "transparent",
-  color: "#B9CBDA", border: "1px solid #1E364D", cursor: "pointer",
+  color: "var(--muted)", border: "1px solid var(--border)", cursor: "pointer",
   fontWeight: 700, fontSize: 13.5, minHeight: 40,
 };
 const selectStyle: React.CSSProperties = {
-  padding: "8px 10px", borderRadius: 8, background: "#0A1A2B",
-  color: "#EAF2F9", border: "1px solid #1E364D", fontSize: 13,
+  padding: "8px 10px", borderRadius: 8, background: "var(--sidebar)",
+  color: "var(--foreground)", border: "1px solid var(--border)", fontSize: 13,
   minWidth: 140, minHeight: 36,
 };
 const inputCss: React.CSSProperties = {
-  padding: "10px 12px", borderRadius: 10, background: "#0A1A2B",
-  color: "#EAF2F9", border: "1px solid #1E364D", fontSize: 14,
+  padding: "10px 12px", borderRadius: 10, background: "var(--sidebar)",
+  color: "var(--foreground)", border: "1px solid var(--border)", fontSize: 14,
   width: "100%", boxSizing: "border-box", minHeight: 42,
 };
