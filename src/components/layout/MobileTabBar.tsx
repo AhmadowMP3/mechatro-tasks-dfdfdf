@@ -6,7 +6,6 @@ import {
   Users,
   Trophy,
   Library,
-  Bell,
   MoreHorizontal,
 } from "lucide-react";
 import { useApp } from "@/lib/app-context";
@@ -30,20 +29,16 @@ const ALL_TABS: Tab[] = [
 ];
 
 export function MobileTabBar({ onMoreClick }: { onMoreClick: () => void }) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const shareMode = isShareMode();
   const shareLink = getShareLink();
 
-  // Build tab list: in share mode restrict to whitelisted pages
   let tabs = ALL_TABS.slice();
   if (shareMode && shareLink) {
     tabs = tabs.filter((tab) => shareLink.allowed_pages.includes(tab.pageKey));
   }
-
-  // Cap at 4 primary + "More" (or notifications in share mode which has no drawer sign-out but still fits)
   const primary = tabs.slice(0, 4);
-  const hasOverflow = tabs.length > 4 || !shareMode;
 
   const isActive = (to: string) =>
     to === "/" ? pathname === "/" : pathname.startsWith(to);
@@ -56,7 +51,7 @@ export function MobileTabBar({ onMoreClick }: { onMoreClick: () => void }) {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 3,
     padding: "6px 4px",
     color: active ? "var(--primary)" : "var(--muted)",
     textDecoration: "none",
@@ -67,6 +62,8 @@ export function MobileTabBar({ onMoreClick }: { onMoreClick: () => void }) {
     cursor: "pointer",
     position: "relative",
   });
+
+  const moreLabel = lang === "ar" ? "المزيد" : "More";
 
   return (
     <nav
@@ -97,7 +94,7 @@ export function MobileTabBar({ onMoreClick }: { onMoreClick: () => void }) {
                     insetInline: "22%",
                     height: 3,
                     borderRadius: "0 0 3px 3px",
-                    background: "var(--grad-blue, var(--primary))",
+                    background: "var(--primary)",
                   }}
                 />
               )}
@@ -116,17 +113,15 @@ export function MobileTabBar({ onMoreClick }: { onMoreClick: () => void }) {
           );
         })}
 
-        {hasOverflow && (
-          <button
-            type="button"
-            onClick={onMoreClick}
-            aria-label={t("more" as DictKey) || "More"}
-            style={cell(false)}
-          >
-            {shareMode ? <Bell size={22} /> : <MoreHorizontal size={22} />}
-            <span>{shareMode ? t("notifications") : (t("more" as DictKey) || "More")}</span>
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onMoreClick}
+          aria-label={moreLabel}
+          style={cell(false)}
+        >
+          <MoreHorizontal size={22} />
+          <span>{moreLabel}</span>
+        </button>
       </div>
     </nav>
   );
