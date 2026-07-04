@@ -16,6 +16,7 @@ import {
 } from "@/components/filters/FilterDrawer";
 import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import type { DictKey } from "@/i18n/dict";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/team")({ component: TeamPage });
 
