@@ -394,7 +394,7 @@ function StepTheme({ value, onChange }: { value: ThemeId; onChange: (v: ThemeId)
         <Palette size={18} /> <div style={{ fontSize: 15, fontWeight: 700 }}>{t("chooseStyle")}</div>
       </div>
       <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("chooseStyleHint")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+      <div className="wizard-theme-grid">
         {cards.map((c) => (
           <button key={c.id} onClick={() => onChange(c.id)} className="brand-btn" style={{
             flexDirection: "column", padding: 0, overflow: "hidden", gap: 0,
