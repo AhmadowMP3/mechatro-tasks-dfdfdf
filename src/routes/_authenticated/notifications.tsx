@@ -5,6 +5,7 @@ import { useApp } from "@/lib/app-context";
 import { relativeTime } from "@/lib/format";
 import { toast } from "sonner";
 import { Check, CheckCheck } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/notifications")({ component: NotificationsPage });
 
