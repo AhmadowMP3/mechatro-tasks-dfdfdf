@@ -29,7 +29,7 @@ function ReportsPage() {
   if (!isAdmin) {
     return (
       <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-        {lang === "ar" ? "هذه الصفحة للمديرين فقط" : "Admins only"}
+        {t("adminsOnly")}
       </div>
     );
   }
@@ -39,9 +39,9 @@ function ReportsPage() {
     try {
       await exportBrandedWorkbook({
         lang: targetLang,
-        generatedBy: user?.full_name ?? "Admin",
+        generatedBy: user?.full_name ?? t("admin"),
       });
-      toast.success(lang === "ar" ? "تم تحميل الملف" : "Workbook downloaded");
+      toast.success(t("workbookDownloaded"));
     } catch (e) {
       console.error(e);
       toast.error((e as Error).message);
