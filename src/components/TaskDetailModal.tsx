@@ -275,16 +275,6 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
           </Field>
         </div>
 
-        {/* Progress */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={fieldLabel}>{t("progress")}: {toLocalDigits(merged.progress, lang)}%</label>
-          <input
-            type="range" min={0} max={100} step={5} value={merged.progress}
-            disabled={!canEdit}
-            onChange={(e) => setField("progress", Number(e.target.value))}
-            style={{ width: "100%", accentColor: "#189FD1" }}
-          />
-        </div>
 
         {/* Description */}
         <div style={{ marginBottom: 16 }}>
