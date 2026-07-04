@@ -345,7 +345,6 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
             </div>
           )}
         </div>
-      </div>
     </ResponsiveModal>
   );
 }
