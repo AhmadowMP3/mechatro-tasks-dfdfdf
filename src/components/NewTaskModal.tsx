@@ -70,7 +70,14 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
       due_date: form.due_date || null, progress: 0,
       start_date: startISO, created_by: user?.id ?? null,
     }).select().single();
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      const { explainSupabaseError } = await import("@/lib/permission-errors");
+      toast.error(
+        explainSupabaseError(error, { action: "create", entity: "task", user, lang }),
+        { duration: 8000 },
+      );
+      return;
+    }
     if (data) {
       if (form.assignee_id && form.assignee_id !== user?.id) {
         await notify(form.assignee_id, "task_assigned",
