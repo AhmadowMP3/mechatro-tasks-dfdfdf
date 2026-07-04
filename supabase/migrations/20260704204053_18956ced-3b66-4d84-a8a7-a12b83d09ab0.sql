@@ -1,0 +1,4 @@
+ALTER TABLE public.invites
+  ADD COLUMN IF NOT EXISTS password_hash TEXT,
+  ADD COLUMN IF NOT EXISTS password_attempts INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS password_locked_until TIMESTAMPTZ;

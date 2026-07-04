@@ -1,6 +1,7 @@
 // Master-admin API for invite links.
 // Actions: create | list | revoke
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import bcrypt from "https://esm.sh/bcryptjs@2.4.3";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -60,6 +61,13 @@ Deno.serve(async (req) => {
         const emailRaw = String(body.email ?? "").trim().toLowerCase();
         const email = emailRaw || null;
         const full_name = String(body.full_name ?? "").trim() || null;
+        const presetPasswordRaw = typeof body.preset_password === "string" ? body.preset_password : "";
+        const preset_password = presetPasswordRaw.trim() ? presetPasswordRaw : null;
+        if (preset_password !== null && preset_password.length < 8) {
+          return json(400, { error: "password_too_short" });
+        }
+        const password_hash = preset_password ? await bcrypt.hash(preset_password, 10) : null;
+
         // expires_in: "24h" | "7d" | "30d" | "never"
         const expiresIn = String(body.expires_in ?? "7d");
         const hoursMap: Record<string, number> = { "24h": 24, "7d": 24 * 7, "30d": 24 * 30 };
@@ -69,20 +77,24 @@ Deno.serve(async (req) => {
 
         const t = newToken();
         const { data: row, error } = await admin.from("invites").insert({
-          token: t, role, email, full_name, expires_at, created_by: me!.id,
+          token: t, role, email, full_name, expires_at, created_by: me!.id, password_hash,
         }).select("*").single();
         if (error) throw error;
-        return json(200, { invite: row });
+        return json(200, { invite: row, preset_password });
       }
 
       case "list": {
         const { data, error } = await admin
           .from("invites")
-          .select("id, token, role, email, full_name, created_by, created_at, expires_at, revoked_at, used_at, used_by")
+          .select("id, token, role, email, full_name, created_by, created_at, expires_at, revoked_at, used_at, used_by, password_hash")
           .order("created_at", { ascending: false })
           .limit(100);
         if (error) throw error;
-        return json(200, { invites: data ?? [] });
+        const invites = (data ?? []).map((r: Record<string, unknown>) => {
+          const { password_hash, ...rest } = r;
+          return { ...rest, has_password: !!password_hash };
+        });
+        return json(200, { invites });
       }
 
       case "revoke": {

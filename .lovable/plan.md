@@ -1,69 +1,93 @@
-## What's actually going on
+## Goal
 
-The invite system already exists and works:
+Let the admin set a **name + password** when generating an invite link. The admin then shares the link + password with the invitee. The invitee opens the link, is greeted by name, enters the password, and their account is created & signed in — no picking their own password.
 
-- Admin page: `/access-control` — approve pending users, change roles, kick users, generate invite links, view/revoke active links.
-- Public accept page: `/accept-invite?token=…` — invitee lands here, signs up / signs in, gets auto-approved with the role from the invite.
-- Backend: `admin-invites` + `redeem-invite` edge functions (already deployed).
+## UX flow
 
-You can't find it because:
+**Admin — Generate link (Access Control → Generate invite link)**
 
-1. In the sidebar it's gated to **master admin only** (regular admins don't see it).
-2. It's not surfaced anywhere on mobile beyond the hamburger sidebar, so it feels hidden.
-3. There's no shortcut from the pages where you'd actually think of inviting someone (Team page).
+New "Access" section in the invite modal, added under Role / Link binding:
 
-## Plan
+```text
+┌─ Access ────────────────────────────────────┐
+│ ( ) Self-serve — invitee sets own password  │
+│ (•) Preset password — I'll share it manually│
+│                                              │
+│   Full name        [ Ahmed Hassan         ]  │
+│   Password         [ ••••••••••    ] 🎲 Gen  │
+│   (min 8 chars, shown once after creation)   │
+└──────────────────────────────────────────────┘
+```
 
-### 1. Surface "People & Invites" everywhere it belongs
+- "🎲 Gen" fills a readable random password (e.g. `swift-otter-84`).
+- Email-locked mode stays as-is; preset password works with both open and email-locked.
+- Role and expiry stay as-is.
 
-- Rename the sidebar entry from "Access Control" to **"People & Invites"** with a `UserPlus` icon (both AR/EN). Keep route as `/access-control`.
-- Show it for **all admins** (not just master). The `admin-invites` / `admin-users` edge functions already enforce master-admin for destructive ops, so admins get a read + invite-generate experience; sensitive controls stay gated server-side.
-- Add a prominent **"Invite by link"** button on the **Team** page header for admins — opens the same `InviteModal` used in Access Control.
-- Add an **"Invite people"** quick tile on the Dashboard for admins (small card, gold accent, opens the modal).
+**Admin — Link ready screen** (after Generate)
 
-### 2. Mobile discoverability
+Show link **and** password side-by-side, with:
+- Copy link button (existing)
+- Copy password button (new)
+- "Copy both" convenience button that copies a ready-to-send block:
+  ```
+  Link: https://…/accept-invite?token=…
+  Password: swift-otter-84
+  ```
+- One-time reveal warning: *"Save this password now — it can't be shown again."*
 
-- Add a floating **"+ Invite"** entry inside the mobile sidebar top area (right under the profile block) for admins — one tap → invite modal, no need to scroll the nav.
-- Ensure the mobile tab bar's overflow ("More") lists People & Invites for admins.
+**Invitee — Accept page**
 
-### 3. Polish the invite modal + link screen
+When `has_preset_password = true`, replace the current "choose your password" form with a branded gate:
 
-Desktop + mobile:
-- Full-height sheet on mobile (bottom-sheet style), centered dialog on desktop.
-- Role picker as segmented buttons (Member / Admin) with icons.
-- Expiry chips: 24h · 7d · 30d · Never.
-- Optional "lock to email" field with a hint.
-- Generated-link view: big monospace pill, one-tap **Copy** + **Share** (uses `navigator.share` on mobile), QR code toggle for in-person handoff, and expiry countdown.
-- Active invites list: cleaner rows on mobile (stacked), copy/revoke inline, "expires in Xd" badge.
+```text
+        Welcome, Ahmed 👋
+   You've been invited to Mechatro Tasks
 
-### 4. Accept-invite page polish
+   Email     [ ahmed@… ]   ← readonly if email-locked, else empty
+   Password  [ ••••••••• ]
 
-- Branded header with Mechatro logo lockup.
-- Clear "You've been invited as **Member/Admin**" hero.
-- Sign-in vs. sign-up toggle preserved; on success, auto-navigate to `/`.
-- Better error states for revoked/expired/used (already localized — just restyle).
+           [  Activate account  ]
+```
 
-### 5. Kick / role change UX (already exists — just polish)
+On submit → account is created with that email + the preset password, session is set, redirect to `/`.
 
-- Confirm dialog for kick with the user's name.
-- Role dropdown → segmented control on desktop rows; sheet picker on mobile rows.
-- Toast on success ("Kicked Ahmed", "Ahmed is now Admin").
+## Technical details
 
-## Files to touch
+**DB migration** — add to `public.invites`:
+- `password_hash TEXT NULL` (bcrypt/scrypt hash of preset password; nullable = self-serve invite)
+- `has_password BOOLEAN GENERATED ALWAYS AS (password_hash IS NOT NULL) STORED` (for cheap peek)
 
-- `src/components/layout/Sidebar.tsx` — rename entry, change gate to `isAdmin`, add mobile "Invite" shortcut block.
-- `src/components/layout/MobileTabBar.tsx` — add to More menu for admins.
-- `src/routes/_authenticated/access-control.tsx` — modal + list polish, mobile layout.
-- `src/routes/_authenticated/team.tsx` — add "Invite by link" header button.
-- `src/routes/_authenticated/index.tsx` (dashboard) — add "Invite people" tile for admins.
-- `src/routes/accept-invite.tsx` — visual polish only.
-- `src/styles.css` — utility classes for the invite sheet + QR block.
+Grants/RLS unchanged; invites are only touched by edge functions using the service role.
 
-No schema, edge-function, or RLS changes. Existing `admin-invites` and `redeem-invite` functions handle everything.
+**Edge function: `admin-invites` (action `create`)**
+- Accept optional `preset_password` (string, ≥8 chars) and `full_name`.
+- Hash with `bcrypt` (`https://esm.sh/bcryptjs`) and store in `password_hash`.
+- Response returns `preset_password` **once** (echoed back so the UI can show it) — never stored in plaintext.
 
-## One thing to confirm
+**Edge function: `redeem-invite`**
+- `peek` response: add `has_password: boolean`.
+- `redeem`: if `password_hash` is set, require `body.password` and verify with `bcrypt.compare`; on match, create the auth user with that same password as the login password. If no `password_hash`, keep current behavior (invitee-chosen password ≥ 8 chars).
+- Return `password_mismatch` error code when the invitee types the wrong password.
 
-Right now regular admins can't open Access Control at all. Do you want:
+**Frontend**
+- `src/routes/_authenticated/access-control.tsx` — extend `InviteModal`:
+  - Add `access` state (`self_serve | preset`), `presetPassword`, generator helper.
+  - Pass to `admin-invites` create.
+  - In the "generated" view, render the password block + copy handlers when preset was used.
+- `src/routes/accept-invite.tsx` — extend peek result with `has_password`, and when true:
+  - Hide the "choose password" copy; show "Enter the password your admin sent you".
+  - Add `password_mismatch` to `ERROR_MAP`.
+  - On success, sign in with the entered email + password (already the flow after redeem).
 
-- **A**: Regular admins can open the page and generate invite links, but only master admin can approve/kick/change roles (recommended — backend already enforces this).
-- **B**: Keep it master-admin-only, just make it easier to find on mobile.
+**Security notes**
+- Password stored only as bcrypt hash; plaintext returned once at creation time and never again.
+- Rate-limit password attempts on redeem: 5 tries per token per hour (simple counter column `password_attempts` + `password_locked_until`) to stop brute force.
+- All checks stay server-side in the edge function; client never sees the hash.
+
+## Files touched
+
+- `supabase/migrations/<new>.sql` — add columns
+- `supabase/functions/admin-invites/index.ts` — accept + hash preset password
+- `supabase/functions/redeem-invite/index.ts` — verify preset password on redeem, expose `has_password` on peek
+- `src/routes/_authenticated/access-control.tsx` — Access section in modal + reveal-once password UI
+- `src/routes/accept-invite.tsx` — password-gate variant of the accept form

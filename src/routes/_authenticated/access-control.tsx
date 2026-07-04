@@ -402,15 +402,33 @@ function InviteModal({ lang, onClose, onInvited }: {
   const l = lang === "ar";
   const [role, setRole] = useState<"member" | "admin">("member");
   const [mode, setMode] = useState<"open" | "locked">("open");
+  const [access, setAccess] = useState<"self_serve" | "preset">("self_serve");
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
+  const [presetPassword, setPresetPassword] = useState("");
+  const [showPreset, setShowPreset] = useState(false);
   const [expiry, setExpiry] = useState<"24h" | "7d" | "30d" | "never">("7d");
   const [busy, setBusy] = useState(false);
-  const [generated, setGenerated] = useState<{ url: string; expires_at: string | null } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [generated, setGenerated] = useState<{
+    url: string; expires_at: string | null; preset_password: string | null; full_name: string | null;
+  } | null>(null);
+  const [copied, setCopied] = useState<"link" | "pw" | "both" | null>(null);
+
+  function genReadablePassword() {
+    const words = ["swift","calm","brave","sunny","clever","brisk","gentle","lucky","noble","quiet","rapid","royal","witty","zesty","cosmic","mellow"];
+    const animals = ["otter","tiger","falcon","panda","eagle","koala","lion","wolf","fox","hawk","lynx","seal","yak","zebra"];
+    const w = words[Math.floor(Math.random() * words.length)];
+    const a = animals[Math.floor(Math.random() * animals.length)];
+    const n = Math.floor(10 + Math.random() * 90);
+    return `${w}-${a}-${n}`;
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (access === "preset" && presetPassword.trim().length < 8) {
+      toast.error(l ? "كلمة المرور يجب أن تكون ٨ أحرف على الأقل" : "Password must be at least 8 characters");
+      return;
+    }
     setBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-invites", {
@@ -419,16 +437,26 @@ function InviteModal({ lang, onClose, onInvited }: {
           role,
           expires_in: expiry,
           email: mode === "locked" ? email.trim().toLowerCase() : null,
-          full_name: mode === "locked" ? fullName.trim() : null,
+          full_name: (mode === "locked" || access === "preset") ? fullName.trim() : null,
+          preset_password: access === "preset" ? presetPassword.trim() : null,
         },
       });
       if (error) throw new Error(error.message);
-      const res = (data ?? {}) as { invite?: { token: string; expires_at: string | null }; error?: string };
+      const res = (data ?? {}) as {
+        invite?: { token: string; expires_at: string | null; full_name: string | null };
+        preset_password?: string | null;
+        error?: string;
+      };
       if (res.error) throw new Error(res.error);
       const invite = res.invite;
       if (!invite?.token) throw new Error("No token returned");
       const url = `${window.location.origin}/accept-invite?token=${invite.token}`;
-      setGenerated({ url, expires_at: invite.expires_at ?? null });
+      setGenerated({
+        url,
+        expires_at: invite.expires_at ?? null,
+        preset_password: res.preset_password ?? null,
+        full_name: invite.full_name ?? (fullName.trim() || null),
+      });
       onInvited();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -440,9 +468,28 @@ function InviteModal({ lang, onClose, onInvited }: {
     if (!generated) return;
     try {
       await navigator.clipboard.writeText(generated.url);
-      setCopied(true);
+      setCopied("link");
       toast.success(l ? "تم نسخ الرابط" : "Link copied");
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(null), 2000);
+    } catch { /* noop */ }
+  }
+  async function copyPassword() {
+    if (!generated?.preset_password) return;
+    try {
+      await navigator.clipboard.writeText(generated.preset_password);
+      setCopied("pw");
+      toast.success(l ? "تم نسخ كلمة المرور" : "Password copied");
+      setTimeout(() => setCopied(null), 2000);
+    } catch { /* noop */ }
+  }
+  async function copyBoth() {
+    if (!generated?.preset_password) return;
+    const block = `${l ? "الرابط" : "Link"}: ${generated.url}\n${l ? "كلمة المرور" : "Password"}: ${generated.preset_password}`;
+    try {
+      await navigator.clipboard.writeText(block);
+      setCopied("both");
+      toast.success(l ? "تم النسخ" : "Copied");
+      setTimeout(() => setCopied(null), 2000);
     } catch { /* noop */ }
   }
 
@@ -481,30 +528,85 @@ function InviteModal({ lang, onClose, onInvited }: {
               background: "rgba(240,180,41,.08)", border: "1px dashed rgba(240,180,41,.35)",
               fontSize: 12.5, color: "#F0B429", textAlign: "center",
             }}>
-              {l
-                ? "انسخ هذا الرابط وأرسله للعضو يدويًا. صالح لاستخدام واحد فقط."
-                : "Copy this link and share it manually. Single-use only."}
+              {generated.preset_password
+                ? (l
+                    ? "احفظ كلمة المرور الآن — لن تظهر مرة أخرى. أرسل الرابط وكلمة المرور للعضو."
+                    : "Save the password now — it won't be shown again. Send the link and password to the invitee.")
+                : (l
+                    ? "انسخ هذا الرابط وأرسله للعضو يدويًا. صالح لاستخدام واحد فقط."
+                    : "Copy this link and share it manually. Single-use only.")}
             </div>
-            <div style={{
-              padding: 12, borderRadius: 10, background: "#0A1A2B",
-              border: "1px solid #1E364D", fontFamily: "monospace",
-              fontSize: 12.5, color: "#EAF2F9", wordBreak: "break-all", direction: "ltr",
-            }}>{generated.url}</div>
-            <div style={{ display: "grid", gridTemplateColumns: typeof navigator !== "undefined" && "share" in navigator ? "1fr 1fr" : "1fr", gap: 10 }}>
+
+            {generated.full_name && (
+              <div style={{ fontSize: 13, color: "#B9CBDA" }}>
+                {l ? "للمُرسَل إليه: " : "Recipient: "}
+                <strong style={{ color: "#EAF2F9" }}>{generated.full_name}</strong>
+              </div>
+            )}
+
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#7A94A9", marginBottom: 4, letterSpacing: 0.5 }}>
+                {l ? "الرابط" : "LINK"}
+              </div>
+              <div style={{
+                padding: 12, borderRadius: 10, background: "#0A1A2B",
+                border: "1px solid #1E364D", fontFamily: "monospace",
+                fontSize: 12.5, color: "#EAF2F9", wordBreak: "break-all", direction: "ltr",
+              }}>{generated.url}</div>
+            </div>
+
+            {generated.preset_password && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#7A94A9", marginBottom: 4, letterSpacing: 0.5 }}>
+                  {l ? "كلمة المرور" : "PASSWORD"}
+                </div>
+                <div style={{
+                  padding: 12, borderRadius: 10, background: "#0A1A2B",
+                  border: "1px solid rgba(240,180,41,.35)", fontFamily: "monospace",
+                  fontSize: 15, fontWeight: 800, color: "#F0B429", wordBreak: "break-all", direction: "ltr",
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                }}>
+                  <span>{generated.preset_password}</span>
+                  <button type="button" onClick={copyPassword} style={{
+                    minHeight: 34, padding: "0 12px", borderRadius: 8,
+                    background: copied === "pw" ? "linear-gradient(135deg,#14A86E,#0E7B4F)" : "rgba(240,180,41,.15)",
+                    color: copied === "pw" ? "#fff" : "#F0B429",
+                    border: "none", cursor: "pointer", fontWeight: 800, fontSize: 12,
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                  }}>
+                    {copied === "pw" ? <Check size={13} /> : <Copy size={13} />}
+                    {copied === "pw" ? (l ? "تم" : "Copied") : (l ? "نسخ" : "Copy")}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: generated.preset_password ? "1fr 1fr" : (typeof navigator !== "undefined" && "share" in navigator ? "1fr 1fr" : "1fr"), gap: 10 }}>
               <button onClick={copyLink} style={{
                 minHeight: 48, borderRadius: 12, border: "none", cursor: "pointer",
-                background: copied
+                background: copied === "link"
                   ? "linear-gradient(135deg,#14A86E,#0E7B4F)"
                   : "linear-gradient(135deg,#F0B429,#F09F26)",
-                color: copied ? "#fff" : "#1A1408", fontWeight: 900, fontSize: 14,
+                color: copied === "link" ? "#fff" : "#1A1408", fontWeight: 900, fontSize: 14,
                 display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-                boxShadow: copied ? "0 8px 24px rgba(20,168,110,.35)" : "0 8px 24px rgba(240,180,41,.35)",
+                boxShadow: copied === "link" ? "0 8px 24px rgba(20,168,110,.35)" : "0 8px 24px rgba(240,180,41,.35)",
                 transition: "all .2s",
               }}>
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? (l ? "تم النسخ" : "Copied!") : (l ? "نسخ الرابط" : "Copy link")}
+                {copied === "link" ? <Check size={16} /> : <Copy size={16} />}
+                {copied === "link" ? (l ? "تم النسخ" : "Copied!") : (l ? "نسخ الرابط" : "Copy link")}
               </button>
-              {typeof navigator !== "undefined" && "share" in navigator && (
+              {generated.preset_password ? (
+                <button onClick={copyBoth} style={{
+                  minHeight: 48, borderRadius: 12, cursor: "pointer",
+                  background: copied === "both" ? "linear-gradient(135deg,#14A86E,#0E7B4F)" : "transparent",
+                  border: "1.5px solid #1D9BF0",
+                  color: copied === "both" ? "#fff" : "#1D9BF0", fontWeight: 900, fontSize: 14,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                }}>
+                  {copied === "both" ? <Check size={16} /> : <Copy size={16} />}
+                  {copied === "both" ? (l ? "تم النسخ" : "Copied!") : (l ? "نسخ الاثنين" : "Copy both")}
+                </button>
+              ) : typeof navigator !== "undefined" && "share" in navigator ? (
                 <button
                   onClick={async () => {
                     if (!generated) return;
@@ -525,7 +627,7 @@ function InviteModal({ lang, onClose, onInvited }: {
                 >
                   <Share2 size={16} />{l ? "مشاركة" : "Share"}
                 </button>
-              )}
+              ) : null}
             </div>
             {generated.expires_at && (
               <div style={{ fontSize: 12, color: "#7A94A9", textAlign: "center" }}>
@@ -580,14 +682,66 @@ function InviteModal({ lang, onClose, onInvited }: {
             </Field>
 
             {mode === "locked" && (
-              <>
-                <Field label={l ? "البريد الإلكتروني" : "Email"}>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputCss} dir="ltr" />
-                </Field>
-                <Field label={l ? "الاسم (اختياري)" : "Name (optional)"}>
-                  <input value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputCss} />
-                </Field>
-              </>
+              <Field label={l ? "البريد الإلكتروني" : "Email"}>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputCss} dir="ltr" />
+              </Field>
+            )}
+
+            <Field label={l ? "طريقة الدخول" : "Access"}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+                {[
+                  { v: "self_serve", ar: "المستلم يختار كلمة المرور", en: "Invitee sets password", desc: l ? "يفعّل حسابه بنفسه" : "They pick their own" },
+                  { v: "preset",     ar: "كلمة مرور مُعدَّة",         en: "Preset password",       desc: l ? "أنت تحدّدها وترسلها" : "You set it & share it" },
+                ].map(({ v, ar, en, desc }) => (
+                  <button key={v} type="button" onClick={() => setAccess(v as "self_serve" | "preset")} style={{
+                    padding: 12, borderRadius: 10, cursor: "pointer",
+                    border: `1.5px solid ${access === v ? "#F0B429" : "#1E364D"}`,
+                    background: access === v ? "rgba(240,180,41,.08)" : "transparent",
+                    color: "#EAF2F9", textAlign: "start",
+                    display: "flex", flexDirection: "column", gap: 4,
+                  }}>
+                    <div style={{ fontWeight: 800, fontSize: 13.5 }}>{l ? ar : en}</div>
+                    <div style={{ fontSize: 11.5, color: "#9FB7C9" }}>{desc}</div>
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            {(access === "preset" || mode === "locked") && (
+              <Field label={l ? "الاسم الكامل" + (access === "preset" ? "" : " (اختياري)") : "Full name" + (access === "preset" ? "" : " (optional)")}>
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)}
+                  placeholder={l ? "مثال: أحمد محمود" : "e.g. Ahmed Mahmoud"}
+                  required={access === "preset"} style={inputCss} />
+              </Field>
+            )}
+
+            {access === "preset" && (
+              <Field label={l ? "كلمة المرور (٨ أحرف على الأقل)" : "Password (min 8 characters)"}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input type={showPreset ? "text" : "password"} value={presetPassword}
+                    onChange={(e) => setPresetPassword(e.target.value)}
+                    minLength={8} required style={{ ...inputCss, flex: 1 }} dir="ltr"
+                    autoComplete="new-password" />
+                  <button type="button" onClick={() => setShowPreset((s) => !s)}
+                    title={showPreset ? (l ? "إخفاء" : "Hide") : (l ? "إظهار" : "Show")}
+                    style={{
+                      minHeight: 44, padding: "0 12px", borderRadius: 10,
+                      background: "#13283D", color: "#EAF2F9", border: "1px solid #1E364D",
+                      cursor: "pointer", fontWeight: 700, fontSize: 12,
+                    }}>{showPreset ? (l ? "إخفاء" : "Hide") : (l ? "إظهار" : "Show")}</button>
+                  <button type="button" onClick={() => { setPresetPassword(genReadablePassword()); setShowPreset(true); }}
+                    title={l ? "توليد" : "Generate"}
+                    style={{
+                      minHeight: 44, padding: "0 12px", borderRadius: 10,
+                      background: "linear-gradient(135deg,#F0B429,#F09F26)", color: "#1A1408",
+                      border: "none", cursor: "pointer", fontWeight: 800, fontSize: 12,
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                    }}><Sparkles size={13} />{l ? "توليد" : "Gen"}</button>
+                </div>
+                <div style={{ fontSize: 11, color: "#7A94A9", marginTop: 4 }}>
+                  {l ? "ستظهر مرة واحدة فقط بعد الإنشاء — احفظها لإرسالها." : "Shown once after creation — save it to share."}
+                </div>
+              </Field>
             )}
 
             <Field label={l ? "مدة الصلاحية" : "Expires in"}>

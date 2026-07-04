@@ -1,6 +1,7 @@
 // Public: redeems an invite token and creates the auth user.
 // No JWT required — the token itself is the credential.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import bcrypt from "https://esm.sh/bcryptjs@2.4.3";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -24,6 +25,9 @@ type Invite = {
   revoked_at: string | null;
   used_at: string | null;
   created_by: string | null;
+  password_hash: string | null;
+  password_attempts: number | null;
+  password_locked_until: string | null;
 };
 
 Deno.serve(async (req) => {
@@ -43,7 +47,7 @@ Deno.serve(async (req) => {
 
   const { data: raw } = await admin
     .from("invites")
-    .select("id, token, role, email, full_name, expires_at, revoked_at, used_at, created_by")
+    .select("id, token, role, email, full_name, expires_at, revoked_at, used_at, created_by, password_hash, password_attempts, password_locked_until")
     .eq("token", token)
     .maybeSingle();
   const inv = raw as Invite | null;
@@ -64,16 +68,15 @@ Deno.serve(async (req) => {
         full_name: inv.full_name,
         expires_at: inv.expires_at,
         is_email_locked: !!inv.email,
+        has_password: !!inv.password_hash,
       },
     });
   }
 
   // Redeem: create the user, wire up the profile, and mark used.
   const emailInput = String(body.email ?? "").trim().toLowerCase();
-  const password = String(body.password ?? "");
+  const passwordInput = String(body.password ?? "");
   const full_name = String(body.full_name ?? "").trim() || inv.full_name || null;
-
-  if (!password || password.length < 8) return json(400, { error: "password_too_short" });
 
   const email = inv.email ? inv.email : emailInput;
   if (!email) return json(400, { error: "email_required" });
@@ -81,16 +84,37 @@ Deno.serve(async (req) => {
     return json(400, { error: "email_mismatch" });
   }
 
+  // Preset-password gate.
+  if (inv.password_hash) {
+    if (inv.password_locked_until && new Date(inv.password_locked_until).getTime() > Date.now()) {
+      return json(429, { error: "too_many_attempts" });
+    }
+    if (!passwordInput) return json(400, { error: "password_required" });
+    const ok = await bcrypt.compare(passwordInput, inv.password_hash);
+    if (!ok) {
+      const attempts = (inv.password_attempts ?? 0) + 1;
+      const lock = attempts >= 5
+        ? new Date(Date.now() + 60 * 60 * 1000).toISOString()
+        : null;
+      await admin.from("invites").update({
+        password_attempts: attempts,
+        password_locked_until: lock,
+      }).eq("id", inv.id);
+      return json(401, { error: "password_mismatch" });
+    }
+  } else {
+    if (!passwordInput || passwordInput.length < 8) return json(400, { error: "password_too_short" });
+  }
+
   // Create the auth user (email pre-confirmed).
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
-    password,
+    password: passwordInput,
     email_confirm: true,
     user_metadata: { full_name, invited_via: inv.id },
   });
   if (createErr || !created.user) {
     const msg = createErr?.message ?? "create_failed";
-    // A duplicate address is the most common failure — normalize it.
     if (/already/i.test(msg)) return json(409, { error: "email_taken" });
     return json(500, { error: msg });
   }
