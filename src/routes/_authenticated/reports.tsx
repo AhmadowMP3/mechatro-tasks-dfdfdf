@@ -81,10 +81,10 @@ function ReportsPage() {
           </div>
 
           <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8, fontSize: 13, color: "var(--muted)" }}>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "ورقة ملخص + مؤشرات" : "Summary sheet + KPIs"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "كل المهام مع فلترة" : "All tasks with filters"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "ورقة منفصلة لكل عضو" : "One sheet per member"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "شارات حالة وأولوية ملونة" : "Color status + priority pills"}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelSummaryKpis")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelAllTasksFilters")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelOneSheetPerMember")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelColorPills")}</li>
           </ul>
 
           <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
