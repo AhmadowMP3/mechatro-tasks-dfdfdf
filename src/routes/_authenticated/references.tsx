@@ -103,22 +103,23 @@ function ReferencesPage() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 260 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 14, background: "var(--grad-gold)", display: "grid", placeItems: "center", boxShadow: "0 8px 24px rgba(231,176,58,.25)" }}>
-            <Library size={26} color="#0A1626" />
+      <PageHeader
+        title={t("references")}
+        subtitle={t("referencesSubtitle")}
+        adornment={
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--grad-gold)", display: "grid", placeItems: "center", boxShadow: "0 8px 24px rgba(231,176,58,.25)", flexShrink: 0 }}>
+            <Library size={22} color="#0A1626" />
           </div>
-          <div>
-            <h1 style={{ fontSize: 28, margin: 0, lineHeight: 1.1 }}>{t("references")}</h1>
-            <div style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 4 }}>{t("referencesSubtitle")}</div>
-          </div>
-        </div>
-        {canManage && (
-          <button onClick={openNew} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", minHeight: 44 }}>
-            <Plus size={18} /> {t("addReference")}
-          </button>
-        )}
-      </div>
+        }
+        actions={
+          canManage ? (
+            <button onClick={openNew} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", minHeight: 44 }}>
+              <Plus size={18} /> {t("addReference")}
+            </button>
+          ) : null
+        }
+      />
+
 
       {/* Filters */}
       <div className="brand-card" style={{ padding: 14, marginBottom: 18, display: "flex", flexDirection: "column", gap: 12 }}>
