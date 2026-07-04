@@ -148,6 +148,56 @@ export type Database = {
           },
         ]
       }
+      league_seasons: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          name: string
+          project_id: string | null
+          scope: Database["public"]["Enums"]["season_scope"]
+          starts_at: string
+          status: Database["public"]["Enums"]["season_status"]
+          updated_at: string
+          winner_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          name: string
+          project_id?: string | null
+          scope?: Database["public"]["Enums"]["season_scope"]
+          starts_at: string
+          status?: Database["public"]["Enums"]["season_status"]
+          updated_at?: string
+          winner_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          name?: string
+          project_id?: string | null
+          scope?: Database["public"]["Enums"]["season_scope"]
+          starts_at?: string
+          status?: Database["public"]["Enums"]["season_status"]
+          updated_at?: string
+          winner_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "league_seasons_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_reports: {
         Row: {
           compare_member_a: string | null
@@ -347,6 +397,7 @@ export type Database = {
           active: boolean
           avatar_url: string | null
           created_at: string
+          current_streak: number
           email: string | null
           full_name: string
           id: string
@@ -355,6 +406,8 @@ export type Database = {
           is_master_admin: boolean
           job_title: string | null
           language_pref: string
+          last_task_done_on: string | null
+          longest_streak: number
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           status: Database["public"]["Enums"]["profile_status"]
@@ -362,11 +415,13 @@ export type Database = {
           suspended_at: string | null
           suspended_by: string | null
           theme_pref: string
+          total_points: number
         }
         Insert: {
           active?: boolean
           avatar_url?: string | null
           created_at?: string
+          current_streak?: number
           email?: string | null
           full_name: string
           id?: string
@@ -375,6 +430,8 @@ export type Database = {
           is_master_admin?: boolean
           job_title?: string | null
           language_pref?: string
+          last_task_done_on?: string | null
+          longest_streak?: number
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["profile_status"]
@@ -382,11 +439,13 @@ export type Database = {
           suspended_at?: string | null
           suspended_by?: string | null
           theme_pref?: string
+          total_points?: number
         }
         Update: {
           active?: boolean
           avatar_url?: string | null
           created_at?: string
+          current_streak?: number
           email?: string | null
           full_name?: string
           id?: string
@@ -395,6 +454,8 @@ export type Database = {
           is_master_admin?: boolean
           job_title?: string | null
           language_pref?: string
+          last_task_done_on?: string | null
+          longest_streak?: number
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["profile_status"]
@@ -402,6 +463,7 @@ export type Database = {
           suspended_at?: string | null
           suspended_by?: string | null
           theme_pref?: string
+          total_points?: number
         }
         Relationships: [
           {
@@ -532,6 +594,41 @@ export type Database = {
           url?: string
         }
         Relationships: []
+      }
+      season_scores: {
+        Row: {
+          last_rank: number | null
+          points: number
+          season_id: string
+          tasks_done: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          last_rank?: number | null
+          points?: number
+          season_id: string
+          tasks_done?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          last_rank?: number | null
+          points?: number
+          season_id?: string
+          tasks_done?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_scores_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "league_seasons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       share_links: {
         Row: {
@@ -703,6 +800,9 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          points: number
+          points_awarded_amount: number | null
+          points_awarded_at: string | null
           priority: Database["public"]["Enums"]["task_priority"]
           progress: number
           project_id: string
@@ -719,6 +819,9 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          points?: number
+          points_awarded_amount?: number | null
+          points_awarded_at?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
           project_id: string
@@ -735,6 +838,9 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          points?: number
+          points_awarded_amount?: number | null
+          points_awarded_at?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
           project_id?: string
@@ -780,6 +886,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_badges: {
+        Row: {
+          awarded_at: string
+          code: string
+          id: string
+          meta: Json
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          code: string
+          id?: string
+          meta?: Json
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          code?: string
+          id?: string
+          meta?: Json
+          user_id?: string
+        }
+        Relationships: []
       }
       work_sessions: {
         Row: {
@@ -852,12 +982,15 @@ export type Database = {
       }
     }
     Functions: {
+      close_ended_seasons: { Args: never; Returns: number }
       sync_master_admin: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "manager" | "member" | "viewer"
       profile_status: "pending" | "active" | "suspended"
       project_status: "active" | "on_hold" | "done"
+      season_scope: "global" | "project"
+      season_status: "upcoming" | "active" | "ended"
       task_priority: "low" | "normal" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "paused" | "in_review" | "done"
     }
@@ -990,6 +1123,8 @@ export const Constants = {
       app_role: ["admin", "manager", "member", "viewer"],
       profile_status: ["pending", "active", "suspended"],
       project_status: ["active", "on_hold", "done"],
+      season_scope: ["global", "project"],
+      season_status: ["upcoming", "active", "ended"],
       task_priority: ["low", "normal", "high", "urgent"],
       task_status: ["todo", "in_progress", "paused", "in_review", "done"],
     },
