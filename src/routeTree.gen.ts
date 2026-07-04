@@ -20,6 +20,7 @@ import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedShareLinksRouteImport } from './routes/_authenticated/share-links'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedReportsHistoryRouteImport } from './routes/_authenticated/reports-history'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedReferencesRouteImport } from './routes/_authenticated/references'
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
@@ -86,6 +87,11 @@ const AuthenticatedReportsHistoryRoute =
     path: '/reports-history',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedReferencesRoute = AuthenticatedReferencesRouteImport.update({
   id: '/references',
   path: '/references',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/references': typeof AuthenticatedReferencesRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/share-links': typeof AuthenticatedShareLinksRoute
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/references': typeof AuthenticatedReferencesRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/share-links': typeof AuthenticatedShareLinksRoute
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/_authenticated/references': typeof AuthenticatedReferencesRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/share-links': typeof AuthenticatedShareLinksRoute
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/projects'
     | '/references'
+    | '/reports'
     | '/reports-history'
     | '/settings'
     | '/share-links'
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/projects'
     | '/references'
+    | '/reports'
     | '/reports-history'
     | '/settings'
     | '/share-links'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/projects'
     | '/_authenticated/references'
+    | '/_authenticated/reports'
     | '/_authenticated/reports-history'
     | '/_authenticated/settings'
     | '/_authenticated/share-links'
@@ -361,6 +373,13 @@ declare module '@tanstack/react-router' {
       path: '/reports-history'
       fullPath: '/reports-history'
       preLoaderRoute: typeof AuthenticatedReportsHistoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/references': {
@@ -471,6 +490,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
   AuthenticatedReferencesRoute: typeof AuthenticatedReferencesRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedReportsHistoryRoute: typeof AuthenticatedReportsHistoryRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedShareLinksRoute: typeof AuthenticatedShareLinksRoute
@@ -486,6 +506,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,
   AuthenticatedReferencesRoute: AuthenticatedReferencesRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedReportsHistoryRoute:
     AuthenticatedReportsHistoryRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
@@ -522,3 +543,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

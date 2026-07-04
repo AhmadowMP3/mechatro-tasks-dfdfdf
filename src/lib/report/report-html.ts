@@ -1,16 +1,24 @@
 import type { ReportData } from "./data";
 import { dict, type Lang } from "@/i18n/dict";
 import logo from "@/assets/mechatro-logo.png";
+import { getTheme, setTheme, type ThemeId } from "./themes";
 
-// ---------- Palette ----------
-const C = {
-  blue: "#189FD1", blueDark: "#0B6E96", green: "#22C55E", orange: "#FF8A3D", red: "#F0676A",
-  ink: "#0F1B2D", ink2: "#1A2942", muted: "#6B7A93", line: "#E4E9F2",
-  paper: "#FFFFFF", soft: "#F5F8FC",
+// ---------- Palette (derived from current theme) ----------
+const themeC = () => {
+  const th = getTheme();
+  return {
+    blue: th.blue, blueDark: th.blueDark, green: th.green, orange: th.orange, red: th.red,
+    ink: th.ink, ink2: th.ink2, muted: th.muted, line: th.line,
+    paper: th.paper, soft: th.soft, card: th.card, gold: th.gold,
+  };
 };
+let C = themeC();
 
-const STATUS_COLOR: Record<string, string> = { todo: "#9FB7C9", in_progress: C.blue, paused: C.orange, done: C.green };
-const PRIO_COLOR: Record<string, string> = { low: "#9FB7C9", normal: C.blue, high: C.orange, urgent: C.red };
+const statusColors = () => ({ todo: C.muted, in_progress: C.blue, paused: C.orange, in_review: "#A855F7", done: C.green });
+const prioColors = () => ({ low: C.muted, normal: C.blue, high: C.orange, urgent: C.red });
+let STATUS_COLOR: Record<string, string> = statusColors();
+let PRIO_COLOR: Record<string, string> = prioColors();
+
 
 // ---------- Helpers ----------
 const t = (k: keyof typeof dict, lang: Lang) => dict[k]?.[lang] ?? String(k);
@@ -141,25 +149,74 @@ function sparklineSVG(values: number[], width = 720, height = 120): string {
 
 // ---------- Section builders ----------
 function coverPage(data: ReportData, lang: Lang, s: Stats): string {
+  const th = getTheme();
   const m = data.member;
   const initials = m.full_name.split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase();
+  const isLight = th.id === "minimal" || th.id === "executive" && false; // exec has dark cover
+  const onCoverText = th.coverInk;
+  const softOverlay = isLight ? "rgba(0,0,0,.06)" : "rgba(255,255,255,.14)";
+  const softBorder = isLight ? "rgba(0,0,0,.08)" : "rgba(255,255,255,.18)";
+  const softSubtle = isLight ? "rgba(0,0,0,.55)" : "rgba(255,255,255,.75)";
+
   const avatar = m.avatar_url
-    ? `<img src="${esc(m.avatar_url)}" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid rgba(255,255,255,.25);box-shadow:0 10px 30px rgba(0,0,0,.35)"/>`
-    : `<div style="width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:800;color:#fff;border:4px solid rgba(255,255,255,.25);box-shadow:0 10px 30px rgba(0,0,0,.35)">${esc(initials)}</div>`;
+    ? `<img src="${esc(m.avatar_url)}" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid ${softBorder};box-shadow:0 10px 30px rgba(0,0,0,.35)"/>`
+    : `<div style="width:120px;height:120px;border-radius:50%;background:${softOverlay};display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:800;color:${onCoverText};border:4px solid ${softBorder};box-shadow:0 10px 30px rgba(0,0,0,.25)">${esc(initials)}</div>`;
 
   const bilingualTitle = lang === "ar"
-    ? `<div style="font-size:36px;font-weight:800;letter-spacing:-.5px">تقرير العضو</div><div style="font-size:16px;color:rgba(255,255,255,.7);margin-top:6px">Mechatro Member Report</div>`
-    : `<div style="font-size:36px;font-weight:800;letter-spacing:-.5px">Member Report</div><div style="font-size:16px;color:rgba(255,255,255,.7);margin-top:6px">تقرير العضو</div>`;
+    ? `<div style="font-size:36px;font-weight:800;letter-spacing:-.5px">تقرير العضو</div><div style="font-size:16px;color:${th.coverSub};margin-top:6px">Mechatro Member Report</div>`
+    : `<div style="font-size:36px;font-weight:800;letter-spacing:-.5px">Member Report</div><div style="font-size:16px;color:${th.coverSub};margin-top:6px">تقرير العضو</div>`;
+
+  // Minimal theme uses a totally different layout: big black text, thin gold divider.
+  if (th.id === "minimal") {
+    return `
+    <section class="pdf-page cover" style="background:${th.coverBg};color:${onCoverText};position:relative;overflow:hidden">
+      <div style="padding:80px 72px 56px 72px;height:100%;display:flex;flex-direction:column;gap:32px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <img src="${logo}" style="width:36px;height:36px;object-fit:contain"/>
+          <div style="font-size:11px;font-weight:800;letter-spacing:4px;color:${th.muted}">MECHATRO · REPORT</div>
+        </div>
+        <div style="width:64px;height:3px;background:${th.gold};margin-top:20px"></div>
+        <div style="font-size:64px;font-weight:900;line-height:1;letter-spacing:-2px;color:${th.ink};margin-top:8px">
+          ${lang === "ar" ? "تقرير العضو" : "Member Report"}
+        </div>
+        <div style="font-size:20px;color:${th.muted};margin-top:-8px">
+          ${lang === "ar" ? "Member Report" : "تقرير العضو"}
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:flex;gap:32px;align-items:flex-end">
+          ${avatar}
+          <div style="flex:1">
+            <div style="font-size:44px;font-weight:900;line-height:1.05;color:${th.ink}">${esc(m.full_name)}</div>
+            <div style="font-size:15px;color:${th.muted};margin-top:8px;letter-spacing:.5px">${esc(m.job_title ?? t(m.role as never, lang))}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid ${th.line};padding-top:24px;margin-top:16px">
+          ${["kpi_total_tasks","kpi_completion","kpi_ontime","kpi_hours"].map((k, i) => {
+            const values = [String(s.total), s.completionPct + "%", s.onTimePct + "%", String(Math.round(s.totalMinutes / 60))];
+            return `<div style="border-inline-start:${i === 0 ? "none" : `1px solid ${th.line}`};padding-inline-start:${i === 0 ? 0 : 20}px">
+              <div style="font-size:36px;font-weight:900;color:${th.ink};line-height:1">${values[i]}</div>
+              <div style="font-size:10px;color:${th.muted};margin-top:8px;text-transform:uppercase;letter-spacing:2px">${esc(t(k as never, lang))}</div>
+            </div>`;
+          }).join("")}
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:${th.muted};letter-spacing:.5px;margin-top:20px">
+          <div>${esc(rangeLabel(data, lang))}</div>
+          <div>${esc(fmtDT(new Date().toISOString(), lang))}</div>
+          <div>${esc(data.generated_by.full_name)}</div>
+        </div>
+      </div>
+    </section>`;
+  }
 
   return `
-  <section class="pdf-page cover" style="background:linear-gradient(135deg,#0B1D3A 0%,#0B6E96 45%,#189FD1 100%);color:#fff;position:relative;overflow:hidden">
-    <div style="position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(34,197,94,.25),transparent 40%),radial-gradient(circle at 10% 90%,rgba(255,138,61,.25),transparent 40%)"></div>
+  <section class="pdf-page cover" style="background:${th.coverBg};color:${onCoverText};position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:${th.coverGlow}"></div>
     <div style="position:relative;padding:56px 56px 40px 56px;height:100%;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;gap:14px">
         <img src="${logo}" style="width:44px;height:44px;object-fit:contain"/>
         <div>
           <div style="font-size:18px;font-weight:800">${esc(t("appName", lang))}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.65);letter-spacing:2px">MECHATRO • INTERNAL REPORT</div>
+          <div style="font-size:11px;color:${softSubtle};letter-spacing:2px">MECHATRO • INTERNAL REPORT</div>
         </div>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:28px;margin-top:20px">
@@ -168,35 +225,37 @@ function coverPage(data: ReportData, lang: Lang, s: Stats): string {
           ${avatar}
           <div>
             <div style="font-size:44px;font-weight:800;line-height:1.1">${esc(m.full_name)}</div>
-            <div style="font-size:16px;color:rgba(255,255,255,.8);margin-top:8px">${esc(m.job_title ?? t(m.role as never, lang))}</div>
+            <div style="font-size:16px;color:${softSubtle};margin-top:8px">${esc(m.job_title ?? t(m.role as never, lang))}</div>
             <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
-              <span style="background:rgba(255,255,255,.16);padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700">${esc(t(m.role as never, lang))}</span>
-              ${m.is_master_admin ? `<span style="background:${C.orange};padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700">${esc(t("masterAdmin", lang))}</span>` : ""}
-              <span style="background:${m.active ? C.green : "#9FB7C9"};padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700">${esc(m.active ? t("active", lang) : "Inactive")}</span>
+              <span style="background:${softOverlay};padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700">${esc(t(m.role as never, lang))}</span>
+              ${m.is_master_admin ? `<span style="background:${th.gold};color:#1a1a1a;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700">${esc(t("masterAdmin", lang))}</span>` : ""}
+              <span style="background:${m.active ? th.green : "#9FB7C9"};padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700">${esc(m.active ? t("active", lang) : "Inactive")}</span>
             </div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px">
-          ${bigStat(t("kpi_total_tasks", lang), String(s.total))}
-          ${bigStat(t("kpi_completion", lang), s.completionPct + "%")}
-          ${bigStat(t("kpi_ontime", lang), s.onTimePct + "%")}
-          ${bigStat(t("kpi_hours", lang), String(Math.round(s.totalMinutes / 60)))}
+          ${bigStat(t("kpi_total_tasks", lang), String(s.total), softOverlay, softBorder, softSubtle)}
+          ${bigStat(t("kpi_completion", lang), s.completionPct + "%", softOverlay, softBorder, softSubtle)}
+          ${bigStat(t("kpi_ontime", lang), s.onTimePct + "%", softOverlay, softBorder, softSubtle)}
+          ${bigStat(t("kpi_hours", lang), String(Math.round(s.totalMinutes / 60)), softOverlay, softBorder, softSubtle)}
         </div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.7);border-top:1px solid rgba(255,255,255,.15);padding-top:14px">
-        <div>${esc(t("reportPeriod", lang))}: <b style="color:#fff">${esc(rangeLabel(data, lang))}</b></div>
-        <div>${esc(t("reportGeneratedOn", lang))}: <b style="color:#fff">${esc(fmtDT(new Date().toISOString(), lang))}</b></div>
-        <div>${esc(t("reportedBy", lang))}: <b style="color:#fff">${esc(data.generated_by.full_name)}</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:${softSubtle};border-top:1px solid ${softBorder};padding-top:14px">
+        <div>${esc(t("reportPeriod", lang))}: <b style="color:${onCoverText}">${esc(rangeLabel(data, lang))}</b></div>
+        <div>${esc(t("reportGeneratedOn", lang))}: <b style="color:${onCoverText}">${esc(fmtDT(new Date().toISOString(), lang))}</b></div>
+        <div>${esc(t("reportedBy", lang))}: <b style="color:${onCoverText}">${esc(data.generated_by.full_name)}</b></div>
       </div>
     </div>
   </section>`;
 }
 
-const bigStat = (label: string, value: string) => `
-  <div style="background:rgba(255,255,255,.14);backdrop-filter:blur(6px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,.18)">
+
+const bigStat = (label: string, value: string, bg = "rgba(255,255,255,.14)", border = "rgba(255,255,255,.18)", labelColor = "rgba(255,255,255,.75)") => `
+  <div style="background:${bg};backdrop-filter:blur(6px);border-radius:14px;padding:14px 16px;border:1px solid ${border}">
     <div style="font-size:28px;font-weight:800;line-height:1">${esc(value)}</div>
-    <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:4px;text-transform:uppercase;letter-spacing:1px">${esc(label)}</div>
+    <div style="font-size:11px;color:${labelColor};margin-top:4px;text-transform:uppercase;letter-spacing:1px">${esc(label)}</div>
   </div>`;
+
 
 function sectionHeader(title: string, accent = C.blue): string {
   return `<div style="display:flex;align-items:center;gap:10px;margin:0 0 14px 0">
@@ -425,8 +484,17 @@ function contentPage(data: ReportData, lang: Lang, s: Stats, blocks: string[], p
   void s;
 }
 
+// Refresh derived palette maps after a theme change.
+function refreshPalette() {
+  C = themeC();
+  STATUS_COLOR = statusColors();
+  PRIO_COLOR = prioColors();
+}
+
 // ---------- Public: build one full report as HTML ----------
-export function buildReportHtml(data: ReportData, lang: Lang): string {
+export function buildReportHtml(data: ReportData, lang: Lang, theme?: ThemeId): string {
+  if (theme) setTheme(theme);
+  refreshPalette();
   const s = computeStats(data);
   const contentPages: string[][] = [
     [profileSection(data, lang), kpiGrid(s, lang), chartsSection(data, s, lang)],
@@ -440,7 +508,8 @@ export function buildReportHtml(data: ReportData, lang: Lang): string {
   return rendered.join("");
 }
 
-export function buildBilingualHtml(data: ReportData): string {
+export function buildBilingualHtml(data: ReportData, theme?: ThemeId): string {
   // Two full docs stacked (AR first then EN). Each has its own cover + pages.
-  return buildReportHtml(data, "ar") + `<div class="html2pdf__page-break"></div>` + buildReportHtml(data, "en");
+  return buildReportHtml(data, "ar", theme) + `<div class="html2pdf__page-break"></div>` + buildReportHtml(data, "en", theme);
 }
+

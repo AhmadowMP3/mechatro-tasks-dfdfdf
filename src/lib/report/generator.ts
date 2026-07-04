@@ -3,11 +3,13 @@ import { buildReportHtml, buildBilingualHtml } from "./report-html";
 import type { Lang } from "@/i18n/dict";
 import { supabase } from "@/integrations/supabase/client";
 import montArabic from "@/assets/MontserratArabic-Regular.ttf.asset.json";
+import type { ThemeId } from "./themes";
 
 import { buildKpiSnapshot } from "./snapshot";
 
 
 export type ReportLangChoice = "ar" | "en" | "bilingual";
+
 
 async function waitForImages(root: Document | HTMLElement) {
   const imgs = Array.from(root.querySelectorAll("img"));
@@ -133,19 +135,22 @@ export type PreparedMemberReport = {
   pageCount: number;
   data: ReportData;
   choice: ReportLangChoice;
+  theme?: ThemeId;
 };
 
 /** Build the branded PDF blob without downloading or persisting — for preview. */
 export async function buildMemberReportPdf(
   data: ReportData,
-  choice: ReportLangChoice
+  choice: ReportLangChoice,
+  theme?: ThemeId,
 ): Promise<PreparedMemberReport> {
-  const html = choice === "bilingual" ? buildBilingualHtml(data) : buildReportHtml(data, choice as Lang);
+  const html = choice === "bilingual" ? buildBilingualHtml(data, theme) : buildReportHtml(data, choice as Lang, theme);
   const safeName = data.member.full_name.replace(/[^\w\-\u0600-\u06FF]+/g, "_");
   const filename = `Mechatro_Report_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`;
   const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename);
-  return { blob, filename, pageCount, data, choice };
+  return { blob, filename, pageCount, data, choice, theme };
 }
+
 
 /** Download + persist a previously-prepared member report to storage & history. */
 export async function persistMemberReportPdf(
@@ -199,11 +204,22 @@ export async function persistMemberReportPdf(
 /** Legacy one-shot: build + download + persist. Kept for callers that skip preview. */
 export async function generateMemberReportPdf(
   data: ReportData,
-  choice: ReportLangChoice
+  choice: ReportLangChoice,
+  theme?: ThemeId,
 ): Promise<{ id: string | null; path: string | null }> {
-  const prepared = await buildMemberReportPdf(data, choice);
+  const prepared = await buildMemberReportPdf(data, choice, theme);
   return persistMemberReportPdf(prepared);
 }
+
+/** Build a team-wide PDF (all members). */
+export async function buildTeamReportPdf(
+  html: string,
+  filename: string,
+): Promise<{ blob: Blob; filename: string; pageCount: number }> {
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename);
+  return { blob, filename, pageCount };
+}
+
 
 
 /** Render a pre-built HTML doc, download it, and upload to history as a `comparison` row. */
