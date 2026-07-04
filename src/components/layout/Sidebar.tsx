@@ -158,7 +158,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       <nav style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
         {nav.map((item) => {
           const { to, icon: Icon } = item;
-          const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
+          const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
           const label = "label" in item && item.label
             ? item.label[lang]
             : t(item.key as DictKey);
