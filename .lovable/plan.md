@@ -1,44 +1,40 @@
 ## Goal
-Make the sidebar profile block a full "who am I / access level" panel — avatar, name, role badge, email, sign-out — and let the signed-in user edit their own name inline. Also confirm the signup (invite acceptance) form already captures the full name and tighten it a bit.
+Provision two ready-to-use test accounts with known passwords so you can log in and see the "New Project" / "New Task" buttons (Admin) and the member view (Member).
 
-## What already exists (no change needed)
-- Signup is **invite-only** in this app — there's no public signup form. The invite acceptance page (`/accept-invite`) already asks for **full name** + password before redeeming. Good.
-- Sidebar already renders **avatar + full name + role badge** at the top.
-- Sidebar footer already has a **Sign out** button.
+## Why the buttons are hidden today
+The "New Project" and "New Task" buttons are gated by `isAdmin` in `src/routes/_authenticated/projects.tsx` and `.../tasks.tsx`. The screenshots show "My Tasks" and no create button — that means the account you're signed in with resolves to `role = 'member'`. Your Master Admin account (`minimamba1608@gmail.com`) does have `role = 'admin'` in the DB, so signing into that one already works. The fix here is to give you fresh, guaranteed test credentials for both roles.
 
-## What I'll add / change
+## Test accounts to create
 
-### 1. Sidebar profile block (`src/components/layout/Sidebar.tsx`)
-Turn the existing block into a richer "Profile" card:
-- Avatar (kept)
-- Full name (kept) — clickable, opens inline edit
-- **Role/access badge** — RoleBadge already shows role; keep it and add a subtle "Master Admin" chip when `isMasterAdmin`.
-- **Email** — new line under the name in muted color, LTR, truncated with ellipsis on overflow.
-- A small **pencil (edit) icon** on the block — opens a lightweight edit modal.
-- Placement: **stays near the top** (the app already has it there). The **sign-out button remains fixed at the bottom** as it is today (matches your "bottom of the sidebar" answer for the profile footer sign-out control).
+| Role   | Email                          | Password       | Full name        |
+|--------|--------------------------------|----------------|------------------|
+| Admin  | `admin.test@mechatro.test`     | `Admin!2026`   | Admin Test       |
+| Member | `member.test@mechatro.test`    | `Member!2026`  | Member Test      |
 
-Note on your placement answer: the block itself has to sit at the top-under-logo because a large signed-in identity card at the very bottom conflicts with the existing sign-out button. What I'll do is keep the profile info near the top (visible on every page load without scrolling) and keep the **sign-out button as a fixed footer at the bottom**, so the sidebar bottom is dedicated to that action. If you'd rather move the whole profile block to the bottom (above sign-out) instead, tell me on approval and I'll switch it.
+(Passwords can be changed later from Settings.)
 
-### 2. Edit-name modal (small, inside the sidebar file)
-- Opens when the user taps their profile block or the pencil icon.
-- Single field: **Full name** (trimmed, required, 2–80 chars).
-- Cancel + Save buttons; Save calls `supabase.from("profiles").update({ full_name }).eq("id", user.id)`.
-- The existing `profiles_guard_self_update` trigger allows non-admins to update their own `full_name` (it only blocks role/status/email/active/id changes), so this works for every user.
-- On success: toast, refresh the local `user` in `AppProvider` (call `refreshUsers` + re-fetch own profile), close modal.
-- Bilingual labels (AR/EN) via existing `t()` where a key exists, otherwise inline strings.
+## Implementation
 
-### 3. Invite form polish (`src/routes/accept-invite.tsx`)
-- Add zod-style client validation: `full_name.trim().length >= 2 && <= 80`.
-- Show inline error if empty/too short before calling `redeem-invite`. No backend change.
+1. **Clean up orphan profile rows** — the `profiles` table already has duplicate rows for those two emails from earlier experiments but no matching `auth.users`. A migration will delete profile rows whose `id` isn't in `auth.users` for those two emails so the trigger can re-create clean ones.
 
-### 4. `app-context` (`src/lib/app-context.tsx`)
-- Expose a small `refreshSelf()` helper that re-reads the signed-in user's profile row, so the edit modal can refresh the sidebar instantly without a full page reload.
+2. **Provision auth users via a one-shot admin server function** (`src/lib/provision-test-users.functions.ts`):
+   - `createServerFn` guarded by `requireSupabaseAuth` + master-admin check.
+   - Loads `supabaseAdmin` inside the handler (`await import('@/integrations/supabase/client.server')`).
+   - Uses `supabase.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name } })` for each account.
+   - After creation, updates each `profiles` row: sets `role = 'admin'` / `'member'`, `status = 'active'`, `active = true`.
+   - Idempotent: if the email already exists, updates password + metadata via `admin.updateUserById` instead.
+
+3. **Trigger it once** — add a small "Seed test users" button on Settings visible only to the Master Admin. Clicking it calls the server fn and toasts the two credentials. Removed later or left behind a dev flag.
+
+4. **After running** — sign out, sign in as `admin.test@mechatro.test / Admin!2026` and you'll see:
+   - Sidebar → **Projects** → top-right **"+ New Project"** button
+   - Sidebar → **Tasks** → top-right **"+ New Task"** button
+
+## Files touched
+
+- `supabase/migrations/<ts>_cleanup_orphan_test_profiles.sql` (new)
+- `src/lib/provision-test-users.functions.ts` (new)
+- `src/routes/_authenticated/settings.tsx` (add master-admin-only "Seed test users" button)
 
 ## Not touched
-- No changes to RLS, edge functions, or role assignment.
-- No changes to how signup/invite tokens are issued.
-- No new i18n bundle overhaul — new labels use existing keys or short inline AR/EN strings.
-
-## After it's done
-- Every signed-in user sees, in the sidebar: their avatar, their name (editable via pencil), their role badge (Master Admin / Admin / Member), and their email. Sign-out stays at the bottom.
-- Members can rename themselves; role/email/status stay locked (as the security guard already enforces).
+RLS, existing roles, invite flow, or your Master Admin account.
