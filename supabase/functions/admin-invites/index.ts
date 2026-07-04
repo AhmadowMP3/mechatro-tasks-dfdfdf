@@ -83,14 +83,6 @@ Deno.serve(async (req) => {
         return json(200, { invite: row, preset_password });
       }
 
-        const t = newToken();
-        const { data: row, error } = await admin.from("invites").insert({
-          token: t, role, email, full_name, expires_at, created_by: me!.id,
-        }).select("*").single();
-        if (error) throw error;
-        return json(200, { invite: row });
-      }
-
       case "list": {
         const { data, error } = await admin
           .from("invites")
