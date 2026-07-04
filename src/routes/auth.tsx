@@ -145,7 +145,7 @@ function AuthPage() {
           {showInfo && (
             <div style={{
               padding: 12, borderRadius: 10,
-              background: "#0F2033", border: "1px dashed var(--border)",
+              background: "var(--card)", border: "1px dashed var(--border)",
               fontSize: 12.5, color: "var(--muted)", lineHeight: 1.7,
             }}>
               {l

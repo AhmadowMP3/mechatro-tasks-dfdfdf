@@ -113,7 +113,7 @@ export function DatePickerField({ value, onChange, min, lang, placeholder }: Pro
           <div style={{
             position: "absolute", top: "calc(100% + 8px)", insetInlineStart: 0, zIndex: 61,
             width: 300, padding: 14, borderRadius: 14,
-            background: "var(--surface-1, #0F2033)", border: "1px solid var(--border, var(--border))",
+            background: "var(--surface-1, var(--card))", border: "1px solid var(--border, var(--border))",
             boxShadow: "0 20px 48px rgba(0,0,0,.55)",
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
