@@ -17,8 +17,9 @@ export const Route = createFileRoute("/_authenticated/access-control")({
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
-    const { data: prof } = await supabase.from("profiles").select("is_master_admin").eq("id", data.user.id).maybeSingle();
-    if (!prof?.is_master_admin) throw redirect({ to: "/" });
+    const { data: prof } = await supabase.from("profiles").select("role, is_master_admin").eq("id", data.user.id).maybeSingle();
+    const isAdmin = prof?.is_master_admin || prof?.role === "admin";
+    if (!isAdmin) throw redirect({ to: "/" });
   },
   component: AccessControlPage,
 });
