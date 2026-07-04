@@ -349,7 +349,7 @@ function MembersList({ ids }: { ids: string[] }) {
 }
 
 function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const { t, user } = useApp();
+  const { t, user, lang } = useApp();
   const [form, setForm] = useState({ name_ar: "", name_en: "", description: "", color: "blue", due_date: "" });
   const submit = async () => {
     if (!form.name_ar || !form.name_en) { toast.error(t("fullName")); return; }
@@ -360,7 +360,14 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
       start_date: new Date().toISOString(),
       created_by: user?.id ?? null,
     }).select().single();
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      const { explainSupabaseError } = await import("@/lib/permission-errors");
+      toast.error(
+        explainSupabaseError(error, { action: "create", entity: "project", user, lang }),
+        { duration: 8000 },
+      );
+      return;
+    }
     void data;
     toast.success(t("created"));
     onCreated();
