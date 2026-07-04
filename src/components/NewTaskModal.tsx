@@ -29,7 +29,7 @@ function daysBetween(fromISO: string, toISO: string): number {
 }
 
 export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose: () => void; onCreated: () => void; defaultProjectId?: string }) {
-  const { t, lang, user, users } = useApp();
+  const { t, lang, user, users, isAdmin } = useApp();
   const { data: projects } = useQuery({
     queryKey: ["projects-mini"],
     queryFn: async () => (await supabase.from("projects").select("id,name_ar,name_en").eq("archived", false)).data ?? [],
@@ -37,6 +37,7 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
   const [form, setForm] = useState({
     title: "", description: "", project_id: defaultProjectId ?? "",
     assignee_id: "", priority: "normal", status: "todo", due_date: "",
+    points: 25,
   });
 
   // Live clock — updates every second while modal is open.
@@ -69,6 +70,7 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
       priority: form.priority as never, status: form.status as never,
       due_date: form.due_date || null, progress: 0,
       start_date: startISO, created_by: user?.id ?? null,
+      points: isAdmin ? Math.max(0, Math.min(1000, Number(form.points) || 0)) : 0,
     }).select().single();
     if (error) {
       const { explainSupabaseError } = await import("@/lib/permission-errors");
@@ -154,6 +156,35 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
           </select>
         </Field>
       </div>
+
+      {isAdmin && (
+        <Field label={`⭐ ${t("pointsReward")}`}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              type="number"
+              min={0}
+              max={1000}
+              value={form.points}
+              onChange={(e) => setForm({ ...form, points: Number(e.target.value) })}
+              style={{ ...inp, maxWidth: 140, fontWeight: 800, fontSize: 18, textAlign: "center", background: "linear-gradient(135deg, rgba(255,215,0,.12), rgba(255,165,0,.08))", borderColor: "rgba(255,193,7,.4)" }}
+            />
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[10, 25, 50, 100].map((v) => (
+                <button key={v} type="button" onClick={() => setForm({ ...form, points: v })}
+                  style={{
+                    padding: "6px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+                    background: form.points === v ? "linear-gradient(135deg,#F5A623,#F0676A)" : "var(--surface-2)",
+                    color: form.points === v ? "#fff" : "var(--foreground)",
+                    border: `1px solid ${form.points === v ? "transparent" : "var(--border)"}`,
+                    cursor: "pointer",
+                  }}>{v}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{t("pointsHint")}</div>
+        </Field>
+      )}
+
 
       {/* Due date block: quick chips + ringed input + duration readout */}
       <Field label={t("dueDate")}>

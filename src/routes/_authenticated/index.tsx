@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import type { DictKey } from "@/i18n/dict";
 import { FilterBar, DEFAULT_FILTERS, resolveRange, type DashboardFilters } from "@/components/dashboard/FilterBar";
+import { LeaguePodiumCard } from "@/components/dashboard/LeaguePodiumCard";
 
 type SearchParams = Partial<DashboardFilters>;
 
@@ -286,6 +287,10 @@ function Dashboard() {
         <TopProjectsCard title={t("topProjects")} rows={projectStats} lang={lang} />
         <WorkloadCard title={t("workloadByOwner")} rows={workload} unassigned={unassigned} lang={lang} />
       </div>
+
+      {/* League podium */}
+      <LeaguePodiumCard />
+
 
       {/* Activity */}
       <div className="brand-card" style={{ padding: 20 }}>
