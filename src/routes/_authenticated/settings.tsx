@@ -1,13 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Play, RotateCcw, AlertTriangle } from "lucide-react";
+import { Download, Play, RotateCcw, AlertTriangle, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { formatDate, toLocalDigits } from "@/lib/format";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useServerFn } from "@tanstack/react-start";
+import { provisionTestUsers } from "@/lib/provision-test-users.functions";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
