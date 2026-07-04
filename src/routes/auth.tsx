@@ -69,8 +69,8 @@ function AuthPage() {
       style={{
         minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center",
         padding: 20,
-        background: "linear-gradient(160deg,#050D17 0%,#0A1A2B 60%,#0E2338 100%)",
-        color: "#EAF2F9",
+        background: "linear-gradient(160deg,var(--sidebar) 0%,var(--sidebar) 60%,#0E2338 100%)",
+        color: "var(--foreground)",
         fontFamily: l ? "'Almarai', system-ui, sans-serif" : "'Montserrat', system-ui, sans-serif",
         position: "relative", overflow: "hidden",
       }}
@@ -99,20 +99,20 @@ function AuthPage() {
       <div style={{
         width: "100%", maxWidth: 440, zIndex: 1,
         background: "rgba(10,26,43,.85)",
-        border: "1px solid #1E364D",
+        border: "1px solid var(--border)",
         borderRadius: 20, padding: 32,
         boxShadow: "0 24px 60px rgba(0,0,0,.5)",
         backdropFilter: "blur(6px)",
       }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 22 }}>
           <img src={logo} alt="Mechatro" style={{ width: 200, marginBottom: 10 }} />
-          <div style={{ fontSize: 13, color: "#9FB7C9", fontWeight: 700 }}>{t("appName")}</div>
+          <div style={{ fontSize: 13, color: "var(--muted)", fontWeight: 700 }}>{t("appName")}</div>
         </div>
 
         <div style={{
           padding: "10px 14px", marginBottom: 18,
           background: "rgba(29,155,240,.10)", border: "1px solid rgba(29,155,240,.3)",
-          borderRadius: 10, fontSize: 12.5, color: "#B9CBDA", textAlign: "center",
+          borderRadius: 10, fontSize: 12.5, color: "var(--muted)", textAlign: "center",
         }}>
           {l ? "الدخول بالدعوة فقط. اطلب من مسؤول النظام إنشاء رابط دعوة لك." : "Invite-only access. Ask your master admin for an invite link."}
         </div>
@@ -137,7 +137,7 @@ function AuthPage() {
             type="button"
             onClick={() => setShowInfo((s) => !s)}
             style={{
-              background: "transparent", border: "none", color: "#9FB7C9",
+              background: "transparent", border: "none", color: "var(--muted)",
               cursor: "pointer", fontSize: 12.5, padding: "8px 0", fontWeight: 600,
             }}
           >{l ? "طلب صلاحية الوصول" : "Request access"}</button>
@@ -145,8 +145,8 @@ function AuthPage() {
           {showInfo && (
             <div style={{
               padding: 12, borderRadius: 10,
-              background: "#0F2033", border: "1px dashed #1E364D",
-              fontSize: 12.5, color: "#B9CBDA", lineHeight: 1.7,
+              background: "#0F2033", border: "1px dashed var(--border)",
+              fontSize: 12.5, color: "var(--muted)", lineHeight: 1.7,
             }}>
               {l
                 ? "أرسل بريدًا إلى مسؤول النظام في ميكاترو مع اسمك الكامل والقسم المطلوب. سيقوم بإصدار دعوة تفعيل الحساب على بريدك."
@@ -161,19 +161,19 @@ function AuthPage() {
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "12px 14px", borderRadius: 10,
-  background: "#13283D", color: "#EAF2F9",
-  border: "1px solid #1E364D", fontSize: 14, minHeight: 44, outline: "none",
+  background: "var(--surface-3)", color: "var(--foreground)",
+  border: "1px solid var(--border)", fontSize: 14, minHeight: 44, outline: "none",
 };
 const pillBtn: React.CSSProperties = {
   minHeight: 40, padding: "0 14px", borderRadius: 999,
-  background: "rgba(255,255,255,.08)", color: "#EAF2F9",
-  border: "1px solid #1E364D", fontWeight: 700, fontSize: 13, cursor: "pointer",
+  background: "rgba(255,255,255,.08)", color: "var(--foreground)",
+  border: "1px solid var(--border)", fontWeight: 700, fontSize: 13, cursor: "pointer",
 };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 12, color: "#9FB7C9", fontWeight: 700 }}>{label}</span>
+      <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700 }}>{label}</span>
       {children}
     </label>
   );

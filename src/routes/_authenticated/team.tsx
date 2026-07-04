@@ -140,7 +140,7 @@ function TeamPage() {
               <Link
                 to="/access-control"
                 className="brand-btn"
-                style={{ background: "transparent", color: "#EAF2F9", border: "1.5px solid #1E364D", textDecoration: "none" }}
+                style={{ background: "transparent", color: "var(--foreground)", border: "1.5px solid var(--border)", textDecoration: "none" }}
               >
                 <UserPlus size={18} /> {lang === "ar" ? "دعوة برابط" : "Invite by link"}
               </Link>
@@ -177,7 +177,7 @@ function TeamPage() {
           <ChipMultiSelect value={f.statuses} onChange={(v) => patch({ statuses: v as Filters["statuses"] })}
             options={[
               { value: "active", label: t("activeMember"), color: "#3F782A" },
-              { value: "inactive", label: t("inactiveMember"), color: "#86A1B7" },
+              { value: "inactive", label: t("inactiveMember"), color: "var(--muted)" },
             ]} />
         </FilterSection>
         <FilterSection label={t("sortBy")}>

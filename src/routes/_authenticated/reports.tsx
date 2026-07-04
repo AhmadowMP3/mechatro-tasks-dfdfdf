@@ -384,7 +384,7 @@ function StepPeriod({ rangeKey, setRangeKey, from, to, setFrom, setTo, today }: 
 function StepTheme({ value, onChange }: { value: ThemeId; onChange: (v: ThemeId) => void }) {
   const { t, lang } = useApp();
   const cards: Array<{ id: ThemeId; label: string; desc: string; preview: React.CSSProperties }> = [
-    { id: "aurora", label: t("themeAurora"), desc: t("themeAuroraDesc"), preview: { background: "linear-gradient(135deg,#050D17 0%,#0B2540 45%,#0E4A6B 100%)", color: "#EAF2F9" } },
+    { id: "aurora", label: t("themeAurora"), desc: t("themeAuroraDesc"), preview: { background: "linear-gradient(135deg,var(--sidebar) 0%,#0B2540 45%,#0E4A6B 100%)", color: "var(--foreground)" } },
     { id: "executive", label: t("themeExecutive"), desc: t("themeExecutiveDesc"), preview: { background: "linear-gradient(135deg,#0A2540 0%,#132D50 50%,#0A2540 100%)", color: "#fff" } },
     { id: "minimal", label: t("themeMinimal"), desc: t("themeMinimalDesc"), preview: { background: "#FCFCFC", color: "#111" } },
   ];

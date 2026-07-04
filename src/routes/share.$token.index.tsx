@@ -58,7 +58,7 @@ function ShareEntry() {
   const wrap: React.CSSProperties = {
     minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center",
     padding: 20, background: "radial-gradient(1200px 800px at 20% 0%, rgba(43,111,178,.18), transparent 60%), radial-gradient(1000px 700px at 100% 100%, rgba(212,175,55,.12), transparent 55%), #05090F",
-    color: "#EAF2F9",
+    color: "var(--foreground)",
   };
   const card: React.CSSProperties = {
     width: "100%", maxWidth: 460, padding: 32, borderRadius: 24,
@@ -83,7 +83,7 @@ function ShareEntry() {
         {state === "loading" && (
           <>
             <Loader2 size={32} style={{ margin: "0 auto", animation: "spin 1s linear infinite" }} />
-            <div style={{ color: "#9FB7C9" }}>{ar ? "جاري التحقق..." : "Verifying..."}</div>
+            <div style={{ color: "var(--muted)" }}>{ar ? "جاري التحقق..." : "Verifying..."}</div>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </>
         )}
@@ -92,7 +92,7 @@ function ShareEntry() {
           <form onSubmit={(e) => { e.preventDefault(); attempt(pw); }} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <Lock size={32} style={{ margin: "0 auto", color: "#D4AF37" }} />
             <div style={{ fontSize: 18, fontWeight: 800 }}>{ar ? "هذا الرابط محمي" : "This link is protected"}</div>
-            <div style={{ fontSize: 13, color: "#9FB7C9" }}>{ar ? "أدخل كلمة المرور للمتابعة" : "Enter the password to continue"}</div>
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>{ar ? "أدخل كلمة المرور للمتابعة" : "Enter the password to continue"}</div>
             <input autoFocus type="password" value={pw} onChange={(e) => setPw(e.target.value)}
               placeholder={ar ? "كلمة المرور" : "Password"}
               style={{ width: "100%", minHeight: 48, padding: "0 14px", borderRadius: 12, background: "rgba(255,255,255,.05)", border: "1px solid rgba(120,150,180,.3)", color: "#fff", fontSize: 15, outline: "none" }} />
@@ -117,14 +117,14 @@ function ShareEntry() {
                 : errCode === "not_found" ? (ar ? "رابط غير موجود" : "Link not found")
                 : (ar ? "لا يمكن الوصول لهذا الرابط" : "This link is not accessible")}
             </div>
-            <div style={{ fontSize: 13, color: "#9FB7C9" }}>
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>
               {ar ? "يرجى التواصل مع من شارك معك الرابط." : "Please contact whoever shared this link with you."}
             </div>
           </>
         )}
 
         {state === "ok" && (
-          <div style={{ color: "#9FB7C9" }}>{ar ? "جاري التوجيه..." : "Redirecting..."}</div>
+          <div style={{ color: "var(--muted)" }}>{ar ? "جاري التوجيه..." : "Redirecting..."}</div>
         )}
 
         <div style={{ marginTop: 8, fontSize: 11, color: "#5C7285" }}>
@@ -139,7 +139,7 @@ function langChip(active: boolean): React.CSSProperties {
   return {
     padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: "pointer",
     background: active ? "rgba(212,175,55,.2)" : "transparent",
-    color: active ? "#D4AF37" : "#9FB7C9",
+    color: active ? "#D4AF37" : "var(--muted)",
     border: `1px solid ${active ? "rgba(212,175,55,.4)" : "rgba(120,150,180,.2)"}`,
   };
 }

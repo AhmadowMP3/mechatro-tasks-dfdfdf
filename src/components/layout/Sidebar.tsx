@@ -69,10 +69,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     <aside
       style={{
         width: onClose ? "min(300px, 88vw)" : 260,
-        background: "linear-gradient(180deg,#050D17,#0A1A2B)",
-        color: "#EAF2F9",
+        background: "linear-gradient(180deg,var(--sidebar),var(--sidebar))",
+        color: "var(--foreground)",
         display: "flex", flexDirection: "column",
-        borderInlineEnd: "1px solid #1E364D",
+        borderInlineEnd: "1px solid var(--border)",
         height: "100dvh",
         position: onClose ? "relative" : "sticky",
         top: 0,
@@ -86,11 +86,11 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         {onClose && (
           <button onClick={onClose} aria-label="close" style={{
             position: "absolute", insetInlineEnd: 8, top: 8, width: 44, height: 44,
-            background: "transparent", color: "#EAF2F9", borderRadius: 10, cursor: "pointer", border: "none",
+            background: "transparent", color: "var(--foreground)", borderRadius: 10, cursor: "pointer", border: "none",
           }}><X size={20} /></button>
         )}
         <img src={logo} alt="Mechatro" style={{ width: 172, maxWidth: "100%", filter: "drop-shadow(0 2px 8px rgba(0,0,0,.4))" }} />
-        <div style={{ fontSize: 12, color: "#9FB7C9", fontWeight: 700, letterSpacing: 0.5 }}>
+        <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, letterSpacing: 0.5 }}>
           {t("appName")}
         </div>
       </div>
@@ -98,7 +98,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       {user && (
         <div style={{
           margin: "8px 14px 10px", padding: "12px",
-          background: "rgba(255,255,255,.04)", border: "1px solid #1E364D",
+          background: "rgba(255,255,255,.04)", border: "1px solid var(--border)",
           borderRadius: 12,
           display: "flex", alignItems: "center", gap: 10,
           position: "relative",
@@ -106,7 +106,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           <Avatar id={user.id} name={user.full_name} size={40} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: "#EAF2F9", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--foreground)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
                 {user.full_name}
               </div>
               {!shareMode && (
@@ -115,7 +115,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                   aria-label={lang === "ar" ? "تعديل الاسم" : "Edit name"}
                   title={lang === "ar" ? "تعديل الاسم" : "Edit name"}
                   style={{
-                    background: "transparent", border: "none", color: "#9FB7C9",
+                    background: "transparent", border: "none", color: "var(--muted)",
                     cursor: "pointer", padding: 4, borderRadius: 6, display: "inline-flex",
                   }}
                 >
@@ -124,7 +124,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               )}
             </div>
             {email && (
-              <div dir="ltr" style={{ fontSize: 11.5, color: "#8AA3B8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
+              <div dir="ltr" style={{ fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
                 {email}
               </div>
             )}
@@ -174,7 +174,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                 borderRadius: 12,
                 minHeight: 48,
                 background: active ? "var(--grad-blue)" : "transparent",
-                color: active ? "#fff" : "#B9CBDA",
+                color: active ? "#fff" : "var(--muted)",
                 fontWeight: 700, fontSize: 14.5,
                 textDecoration: "none",
                 flexDirection: lang === "ar" ? "row-reverse" : "row",
@@ -193,7 +193,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         })}
       </nav>
 
-      <div style={{ padding: 12, borderTop: "1px solid #1E364D" }}>
+      <div style={{ padding: 12, borderTop: "1px solid var(--border)" }}>
         {shareMode ? (
           <div style={{
             width: "100%", minHeight: 48, borderRadius: 12, padding: "8px 12px",
@@ -271,8 +271,8 @@ function EditNameModal({
         dir={l ? "rtl" : "ltr"}
         style={{
           width: "100%", maxWidth: 400,
-          background: "#0A1A2B", border: "1px solid #1E364D", borderRadius: 16,
-          padding: 20, color: "#EAF2F9",
+          background: "var(--sidebar)", border: "1px solid var(--border)", borderRadius: 16,
+          padding: 20, color: "var(--foreground)",
           boxShadow: "0 24px 60px rgba(0,0,0,.5)",
         }}
       >
@@ -280,7 +280,7 @@ function EditNameModal({
           {l ? "تعديل الاسم" : "Edit name"}
         </div>
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 12, color: "#9FB7C9", fontWeight: 700 }}>
+          <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700 }}>
             {l ? "الاسم الكامل" : "Full name"}
           </span>
           <input
@@ -290,8 +290,8 @@ function EditNameModal({
             maxLength={80}
             style={{
               width: "100%", padding: "12px 14px", borderRadius: 10,
-              background: "#13283D", color: "#EAF2F9",
-              border: "1px solid #1E364D", fontSize: 14, minHeight: 44, outline: "none",
+              background: "var(--surface-3)", color: "var(--foreground)",
+              border: "1px solid var(--border)", fontSize: 14, minHeight: 44, outline: "none",
             }}
           />
         </label>
@@ -311,8 +311,8 @@ function EditNameModal({
             disabled={busy}
             style={{
               flex: 1, minHeight: 44, borderRadius: 10,
-              background: "transparent", color: "#EAF2F9",
-              border: "1px solid #1E364D", fontWeight: 700, cursor: "pointer",
+              background: "transparent", color: "var(--foreground)",
+              border: "1px solid var(--border)", fontWeight: 700, cursor: "pointer",
             }}
           >{l ? "إلغاء" : "Cancel"}</button>
         </div>

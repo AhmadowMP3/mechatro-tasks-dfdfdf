@@ -41,13 +41,13 @@ function ResetPasswordPage() {
   return (
     <div dir={l ? "rtl" : "ltr"} style={{
       minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
-      background: "linear-gradient(160deg,#050D17 0%,#0A1A2B 60%,#0E2338 100%)",
-      color: "#EAF2F9",
+      background: "linear-gradient(160deg,var(--sidebar) 0%,var(--sidebar) 60%,#0E2338 100%)",
+      color: "var(--foreground)",
       fontFamily: l ? "'Almarai', system-ui, sans-serif" : "'Montserrat', system-ui, sans-serif",
     }}>
       <form onSubmit={handleSubmit} style={{
         width: "100%", maxWidth: 420, padding: 32, borderRadius: 20,
-        background: "rgba(10,26,43,.85)", border: "1px solid #1E364D",
+        background: "rgba(10,26,43,.85)", border: "1px solid var(--border)",
         display: "flex", flexDirection: "column", gap: 14,
       }}>
         <img src={logo} alt="Mechatro" style={{ width: 180, alignSelf: "center", marginBottom: 8 }} />
@@ -58,7 +58,7 @@ function ResetPasswordPage() {
           placeholder={l ? "كلمة المرور الجديدة" : "New password"}
           style={{
             width: "100%", padding: "12px 14px", borderRadius: 10,
-            background: "#13283D", color: "#EAF2F9", border: "1px solid #1E364D",
+            background: "var(--surface-3)", color: "var(--foreground)", border: "1px solid var(--border)",
             fontSize: 14, minHeight: 44, outline: "none",
           }}
         />

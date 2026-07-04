@@ -166,6 +166,6 @@ export function KanbanView({
 }
 
 function PriorityDot({ p }: { p: string }) {
-  const c = p === "urgent" ? "#F0676A" : p === "high" ? "#FF9255" : p === "normal" ? "#42C2EE" : "#86A1B7";
+  const c = p === "urgent" ? "#F0676A" : p === "high" ? "#FF9255" : p === "normal" ? "#42C2EE" : "var(--muted)";
   return <span style={{ width: 8, height: 8, borderRadius: "50%", background: c, display: "inline-block" }} />;
 }

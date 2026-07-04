@@ -190,7 +190,7 @@ const dateInputStyle: React.CSSProperties = {
 };
 
 function statusColor(s: string) {
-  return { todo: "#86A1B7", in_progress: "#42C2EE", paused: "#FF9255", done: "#73C94E" }[s] ?? "#86A1B7";
+  return { todo: "var(--muted)", in_progress: "#42C2EE", paused: "#FF9255", done: "#73C94E" }[s] ?? "var(--muted)";
 }
 
 function MultiSelect({

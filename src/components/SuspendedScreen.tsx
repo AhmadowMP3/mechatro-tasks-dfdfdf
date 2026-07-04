@@ -47,7 +47,7 @@ export function SuspendedScreen() {
           "radial-gradient(1200px 700px at 15% -10%, rgba(240,103,106,.20), transparent 60%)," +
           "radial-gradient(900px 600px at 95% 110%, rgba(29,155,240,.18), transparent 60%)," +
           "linear-gradient(180deg,#050B14 0%, #08121F 100%)",
-        color: "#EAF2F9",
+        color: "var(--foreground)",
         overflow: "auto",
       }}
     >
@@ -109,13 +109,13 @@ export function SuspendedScreen() {
         <h1 style={{
           margin: "0 0 10px", fontSize: "clamp(24px, 4.4vw, 34px)",
           lineHeight: 1.2, fontWeight: 900,
-          background: "linear-gradient(135deg,#fff, #EAF2F9 60%, #F0676A)",
+          background: "linear-gradient(135deg,#fff, var(--foreground) 60%, #F0676A)",
           WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
         }}>
           {l ? `تم تعليق حسابك بواسطة ${adminName}` : `You've been suspended by ${adminName}`}
         </h1>
 
-        <p style={{ margin: "0 auto 22px", maxWidth: 460, color: "#B9CBDA", fontSize: 14.5, lineHeight: 1.6 }}>
+        <p style={{ margin: "0 auto 22px", maxWidth: 460, color: "var(--muted)", fontSize: 14.5, lineHeight: 1.6 }}>
           {l
             ? "لا يمكنك الوصول إلى مساحة عمل ميكاترو حاليًا. يرجى التواصل مع المدير لاستعادة الوصول."
             : "You can no longer access the Mechatro workspace. Please contact your administrator to restore access."}
@@ -135,7 +135,7 @@ export function SuspendedScreen() {
               <div style={{ fontSize: 11.5, color: "#7A94A9", fontWeight: 700, letterSpacing: ".04em" }}>
                 {l ? "تم التعليق بواسطة" : "Suspended by"}
               </div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#EAF2F9" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--foreground)" }}>
                 {by.full_name || (l ? "مدير" : "Administrator")}
               </div>
             </div>
@@ -153,7 +153,7 @@ export function SuspendedScreen() {
             <div style={{ fontSize: 11.5, color: "#F0B429", fontWeight: 700, letterSpacing: ".04em", marginBottom: 4 }}>
               {l ? "السبب" : "Reason"}
             </div>
-            <div style={{ fontSize: 14, color: "#EAF2F9", lineHeight: 1.55 }}>
+            <div style={{ fontSize: 14, color: "var(--foreground)", lineHeight: 1.55 }}>
               {user.suspend_reason}
             </div>
           </div>
@@ -187,7 +187,7 @@ export function SuspendedScreen() {
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "12px 20px", borderRadius: 12,
               background: "transparent", border: "1px solid rgba(255,255,255,.14)",
-              color: "#EAF2F9", fontWeight: 700, fontSize: 14, cursor: "pointer",
+              color: "var(--foreground)", fontWeight: 700, fontSize: 14, cursor: "pointer",
             }}
           >
             <LogOut size={16} />{t("logout")}
