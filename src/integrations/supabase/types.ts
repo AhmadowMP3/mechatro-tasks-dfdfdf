@@ -852,15 +852,6 @@ export type Database = {
       }
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_admin: { Args: { _user_id: string }; Returns: boolean }
-      is_master_admin: { Args: { _user_id: string }; Returns: boolean }
       sync_master_admin: { Args: never; Returns: undefined }
     }
     Enums: {

@@ -1,12 +1,23 @@
 // Backup & restore edge function. Scheduled by pg_cron every 10 days.
 // POST body: { manual?: true } snapshot; { restore: true, file: "backup-...json" } restore.
+//
+// AuthN/Z:
+//  - User-initiated calls must present a master-admin Bearer JWT.
+//  - Scheduled cron jobs may present the `x-backup-cron-secret` header matching
+//    the BACKUP_CRON_SECRET env var (snapshot only, never restore).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-backup-cron-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+function json(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status, headers: { ...CORS, "content-type": "application/json" },
+  });
+}
 
 const TABLES = [
   "profiles", "projects", "tasks", "task_files",
@@ -18,10 +29,27 @@ Deno.serve(async (req) => {
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const cronSecret = Deno.env.get("BACKUP_CRON_SECRET") ?? "";
   const sb = createClient(url, serviceKey);
 
   let body: { manual?: boolean; restore?: boolean; file?: string } = {};
   try { body = await req.json(); } catch (_) { /* scheduled */ }
+
+  // ---- AuthN/Z gate ----
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const cronHeader = req.headers.get("x-backup-cron-secret") ?? "";
+
+  const isCron = !body.restore && cronSecret.length > 0 && cronHeader === cronSecret;
+  if (!isCron) {
+    if (!token) return json(401, { error: "missing token" });
+    const { data: userRes, error: userErr } = await sb.auth.getUser(token);
+    if (userErr || !userRes.user) return json(401, { error: "invalid token" });
+    const { data: me } = await sb.from("profiles")
+      .select("id, is_master_admin").eq("id", userRes.user.id).maybeSingle();
+    if (!me?.is_master_admin) return json(403, { error: "master admin only" });
+  }
+
 
   try {
     if (body.restore && body.file) {
