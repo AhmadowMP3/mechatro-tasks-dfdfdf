@@ -55,11 +55,18 @@ function LeaguePage() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 28, margin: 0, flex: 1 }}>{t("monthlyLeaderboard")}</h1>
-        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)}
-          style={{ minHeight: 44, padding: "8px 12px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--foreground)", fontSize: 14 }} />
-      </div>
+      <PageHeader
+        title={t("monthlyLeaderboard")}
+        actions={
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            style={{ minHeight: 44, padding: "8px 12px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--foreground)", fontSize: 14 }}
+          />
+        }
+      />
+
 
       {/* Podium */}
       {podium.length > 0 && (
