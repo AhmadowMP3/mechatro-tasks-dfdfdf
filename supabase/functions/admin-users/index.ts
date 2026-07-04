@@ -37,11 +37,18 @@ Deno.serve(async (req) => {
     .select("id, is_master_admin, role")
     .eq("id", userRes.user.id)
     .maybeSingle();
-  if (!me?.is_master_admin) return json(403, { error: "master admin only" });
+  const isAdmin = me?.is_master_admin || me?.role === "admin";
+  if (!isAdmin) return json(403, { error: "admin only" });
 
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { /* ignore */ }
   const action = String(body.action ?? "");
+
+  // Only master admin can mutate (approve/reject/set_role/suspend/delete).
+  // Regular admins get read-only access ("list") plus invite generation via admin-invites.
+  if (action !== "list" && !me?.is_master_admin) {
+    return json(403, { error: "master admin only" });
+  }
 
   try {
     switch (action) {
