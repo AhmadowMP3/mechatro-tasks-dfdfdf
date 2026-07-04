@@ -157,6 +157,35 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
         </Field>
       </div>
 
+      {isAdmin && (
+        <Field label={<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>⭐ {t("pointsReward")}</span> as never}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              type="number"
+              min={0}
+              max={1000}
+              value={form.points}
+              onChange={(e) => setForm({ ...form, points: Number(e.target.value) })}
+              style={{ ...inp, maxWidth: 140, fontWeight: 800, fontSize: 18, textAlign: "center", background: "linear-gradient(135deg, rgba(255,215,0,.12), rgba(255,165,0,.08))", borderColor: "rgba(255,193,7,.4)" }}
+            />
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[10, 25, 50, 100].map((v) => (
+                <button key={v} type="button" onClick={() => setForm({ ...form, points: v })}
+                  style={{
+                    padding: "6px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+                    background: form.points === v ? "linear-gradient(135deg,#F5A623,#F0676A)" : "var(--surface-2)",
+                    color: form.points === v ? "#fff" : "var(--foreground)",
+                    border: `1px solid ${form.points === v ? "transparent" : "var(--border)"}`,
+                    cursor: "pointer",
+                  }}>{v}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{t("pointsHint")}</div>
+        </Field>
+      )}
+
+
       {/* Due date block: quick chips + ringed input + duration readout */}
       <Field label={t("dueDate")}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
