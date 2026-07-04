@@ -110,10 +110,10 @@ function ReportsPage() {
           </div>
 
           <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8, fontSize: 13, color: "var(--muted)" }}>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "الفريق كاملاً أو عضو محدد" : "Whole team or single member"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "3 أنماط مصممة بعناية" : "3 crafted themes"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "معاينة قبل التحميل" : "Preview before download"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "عربي وإنجليزي وثنائي اللغة" : "AR / EN / bilingual"}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfTeamOrMember")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfThreeThemes")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfPreviewBeforeDownload")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfArEnBilingual")}</li>
           </ul>
 
           <button onClick={() => setWizardOpen(true)} className="brand-btn" style={{ background: "linear-gradient(135deg,#7C5CD1,#42C2EE)", color: "#fff", marginTop: "auto" }}>
