@@ -297,7 +297,18 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
 
         {/* Save button */}
         {canEdit && Object.keys(dirty).length > 0 && (
-          <button onClick={saveChanges} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", marginBottom: 16 }}>
+          <button
+            onClick={saveChanges}
+            disabled={!editValid}
+            className="brand-btn"
+            style={{
+              background: editValid ? "var(--grad-blue)" : "var(--surface-2)",
+              color: editValid ? "#fff" : "var(--muted)",
+              marginBottom: 16,
+              cursor: editValid ? "pointer" : "not-allowed",
+              opacity: editValid ? 1 : 0.6,
+            }}
+          >
             <Save size={18} /> {t("save")}
           </button>
         )}
