@@ -62,8 +62,8 @@ function AcceptInvitePage() {
   const [loading, setLoading] = useState(true);
 
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
