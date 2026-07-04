@@ -405,7 +405,7 @@ function StepTheme({ value, onChange }: { value: ThemeId; onChange: (v: ThemeId)
               </div>
               <div>
                 <div style={{ fontSize: c.id === "minimal" ? 22 : 14, fontWeight: 900, lineHeight: 1 }}>
-                  {c.id === "minimal" ? "Report" : "Sample Title"}
+                  {c.id === "minimal" ? t("reportLabel") : t("sampleTitle")}
                 </div>
                 <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
                   {[0,1,2].map((i) => (
