@@ -123,7 +123,7 @@ export const dict = {
   pointsHint: { ar: "تُمنح للمكلَّف عند اعتماد المهمة", en: "Awarded to the assignee on approval" },
   taskPoints: { ar: "نقاط المهمة", en: "Task points" },
   currentSeason: { ar: "الموسم الحالي", en: "Current season" },
-  allTime: { ar: "طوال الوقت", en: "All-time" },
+  allTimeLeague: { ar: "طوال الوقت", en: "All-time" },
   seasonsHistory: { ar: "سجل المواسم", en: "Seasons history" },
   manageSeasons: { ar: "إدارة المواسم", en: "Manage seasons" },
   newSeason: { ar: "موسم جديد", en: "New season" },
