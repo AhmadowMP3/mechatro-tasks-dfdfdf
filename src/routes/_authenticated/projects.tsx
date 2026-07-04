@@ -8,6 +8,7 @@ import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { Avatar } from "@/components/Avatar";
 import { formatDate, toLocalDigits } from "@/lib/format";
 import { toast } from "sonner";
+import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 
 import {
   FilterDrawer, FilterSection, ChipMultiSelect, FilterSelect,
