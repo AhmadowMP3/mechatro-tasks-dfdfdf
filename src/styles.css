@@ -312,3 +312,34 @@ img, svg, video { max-width: 100%; }
 .mech-cursor-dot.is-disabled {
   opacity: 0;
 }
+
+/* ============================================================
+   Mobile UI helpers (≤ 767px). Desktop is untouched.
+   ============================================================ */
+@media (max-width: 767px) {
+  /* Prevent iOS Safari zoom on focus for text inputs */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  /* Guarantee minimum tap target for buttons/links inside app content */
+  button, a[role="button"] {
+    min-height: 44px;
+  }
+  /* Any element opting into a "row" pattern gets safe truncation help */
+  .mobile-truncate { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Horizontal scrollers used for toolbars/filter chips */
+  .mobile-hscroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .mobile-hscroll::-webkit-scrollbar { display: none; }
+  .mobile-hscroll > * { scroll-snap-align: start; flex-shrink: 0; }
+}
+
+/* Safe-area utilities */
+.safe-pb { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-pt { padding-top: env(safe-area-inset-top, 0px); }
