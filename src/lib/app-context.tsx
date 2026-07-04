@@ -23,6 +23,7 @@ export type Profile = {
   avatar_url: string | null;
   job_title: string | null;
   phone: string | null;
+  email?: string | null;
   active: boolean;
   language_pref: string;
   theme_pref: string;
@@ -51,6 +52,7 @@ type Ctx = {
   users: Profile[];              // full profiles — populated for admins only
   directory: DirectoryEntry[];   // name + avatar for everyone (safe for members)
   refreshUsers: () => Promise<void>;
+  refreshSelf: () => Promise<void>;
   can: (perm: Permission) => boolean;
   isMasterAdmin: boolean;
   isAdmin: boolean;              // true for both Master Admin and Admin
@@ -201,6 +203,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppCtx.Provider value={{
       lang, theme, setLang, setTheme, t, user, session, users, directory, refreshUsers,
+      refreshSelf: async () => { if (session?.user?.id) await loadUser(session.user.id); },
       can, isMasterAdmin, isAdmin, isMember, signOut,
     }}>
       {children}
