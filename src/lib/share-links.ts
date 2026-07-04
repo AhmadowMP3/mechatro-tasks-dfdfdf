@@ -55,8 +55,8 @@ export const shareApi = {
     call<{ link: { label: string; allowed_pages: string[]; expires_at: string | null } }>(
       { action: "resolve", token, password: password ?? null }, false,
     ),
-  data: <T = unknown>(token: string, resource: string) =>
-    call<T>({ action: "data", token, resource }, false),
+  data: <T = unknown>(token: string, resource: string, password?: string) =>
+    call<T>({ action: "data", token, resource, password: password ?? null }, false),
   bootstrap: (token: string, password?: string) =>
     call<{
       link: { label: string; allowed_pages: string[]; expires_at: string | null };
