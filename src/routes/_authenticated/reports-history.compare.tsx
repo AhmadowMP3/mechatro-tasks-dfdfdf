@@ -134,13 +134,12 @@ function CompareReportsPage() {
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 90% 10%, rgba(245,179,1,.25), transparent 40%)" }} />
           <div style={{ position: "relative", zIndex: 1 }}>
             <div style={{ fontSize: 11, letterSpacing: 3, fontWeight: 800, color: "var(--brand-gold)", textTransform: "uppercase" }}>{t("headToHead")}</div>
-            <div style={{
-              display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 16, alignItems: "center", marginTop: 18,
-            }}>
+            <div className="compare-hero-grid" style={{ marginTop: 18 }}>
               <ReportHeader label={t("reportA")} row={A} accent="var(--brand-blue)" />
-              <div style={{ fontSize: 36, color: "var(--brand-gold)", fontWeight: 900 }}><ArrowLeftRight /></div>
+              <div className="compare-hero-arrow" style={{ fontSize: 36, color: "var(--brand-gold)", fontWeight: 900, display: "inline-flex" }}><ArrowLeftRight /></div>
               <ReportHeader label={t("reportB")} row={B} accent="var(--brand-gold)" />
             </div>
+
           </div>
         </div>
 
