@@ -23,6 +23,7 @@ export type Profile = {
   avatar_url: string | null;
   job_title: string | null;
   phone: string | null;
+  email?: string | null;
   active: boolean;
   language_pref: string;
   theme_pref: string;
