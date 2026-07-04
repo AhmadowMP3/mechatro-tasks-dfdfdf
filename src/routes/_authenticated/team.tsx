@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, UserPlus } from "lucide-react";
 import { GenerateReportDialog } from "@/components/team/GenerateReportDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
