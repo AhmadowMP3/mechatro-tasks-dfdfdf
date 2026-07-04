@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import {
   Library, Plus, Search, Pin, PinOff, ExternalLink, Copy, Edit3, Trash2, X, MoreVertical, Tag as TagIcon, Filter,
 } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/references")({ component: ReferencesPage });
 
