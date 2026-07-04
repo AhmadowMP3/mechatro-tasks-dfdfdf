@@ -70,6 +70,7 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
       priority: form.priority as never, status: form.status as never,
       due_date: form.due_date || null, progress: 0,
       start_date: startISO, created_by: user?.id ?? null,
+      points: isAdmin ? Math.max(0, Math.min(1000, Number(form.points) || 0)) : 0,
     }).select().single();
     if (error) {
       const { explainSupabaseError } = await import("@/lib/permission-errors");
