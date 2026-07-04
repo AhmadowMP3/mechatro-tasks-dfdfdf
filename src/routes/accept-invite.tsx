@@ -4,7 +4,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
-import { ShieldCheck, User as UserIcon, Sparkles, Lock, Mail, Loader2, AlertTriangle } from "lucide-react";
+import { ShieldCheck, User as UserIcon, Sparkles, Lock, Loader2, AlertTriangle } from "lucide-react";
 import logo from "@/assets/mechatro-logo.png";
 
 const searchSchema = z.object({ token: z.string().catch("").default("") });
