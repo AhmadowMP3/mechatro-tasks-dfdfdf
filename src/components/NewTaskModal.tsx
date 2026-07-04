@@ -239,7 +239,19 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
       </Field>
 
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <button onClick={submit} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", flex: 1 }}>{t("create")}</button>
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <button
+          onClick={submit}
+          disabled={!isValid}
+          className="brand-btn"
+          style={{
+            background: isValid ? "var(--grad-blue)" : "var(--surface-2)",
+            color: isValid ? "#fff" : "var(--muted)",
+            flex: 1,
+            cursor: isValid ? "pointer" : "not-allowed",
+            opacity: isValid ? 1 : 0.6,
+          }}
+        >{t("create")}</button>
         <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
       </div>
     </ModalShell>
