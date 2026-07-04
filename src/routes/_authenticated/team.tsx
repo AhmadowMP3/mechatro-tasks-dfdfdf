@@ -16,6 +16,7 @@ import {
 } from "@/components/filters/FilterDrawer";
 import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import type { DictKey } from "@/i18n/dict";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/team")({ component: TeamPage });
 
@@ -131,14 +132,17 @@ function TeamPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 28, margin: 0, flex: 1 }}>{t("team")}</h1>
-        {isAdmin && (
-          <button onClick={() => setAdd(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
-            <Plus size={18} /> {t("addMember")}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title={t("team")}
+        actions={
+          isAdmin ? (
+            <button onClick={() => setAdd(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
+              <Plus size={18} /> {t("addMember")}
+            </button>
+          ) : null
+        }
+      />
+
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
         <SearchField value={f.q} onChange={(v) => patch({ q: v })} />

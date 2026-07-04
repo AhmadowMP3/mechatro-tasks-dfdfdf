@@ -16,6 +16,7 @@ import {
 } from "@/components/filters/FilterDrawer";
 import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import type { DictKey } from "@/i18n/dict";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/projects")({ component: ProjectsPage });
 
@@ -167,14 +168,17 @@ function ProjectsPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 28, margin: 0, flex: 1 }}>{t("projects")}</h1>
-        {isAdmin && (
-          <button onClick={() => setModal(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
-            <Plus size={18} /> {t("newProject")}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title={t("projects")}
+        actions={
+          isAdmin ? (
+            <button onClick={() => setModal(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
+              <Plus size={18} /> {t("newProject")}
+            </button>
+          ) : null
+        }
+      />
+
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
         <div role="tablist" aria-label={lang === "ar" ? "عرض" : "View"} style={{ display: "inline-flex", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 999, padding: 4 }}>

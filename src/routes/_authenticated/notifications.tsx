@@ -5,6 +5,7 @@ import { useApp } from "@/lib/app-context";
 import { relativeTime } from "@/lib/format";
 import { toast } from "sonner";
 import { Check, CheckCheck } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/notifications")({ component: NotificationsPage });
 
@@ -30,14 +31,17 @@ function NotificationsPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 28, margin: 0, flex: 1 }}>{t("notifications")}</h1>
-        {unread > 0 && (
-          <button onClick={markAll} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
-            <CheckCheck size={18} /> {t("markAllRead")}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title={t("notifications")}
+        actions={
+          unread > 0 ? (
+            <button onClick={markAll} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
+              <CheckCheck size={18} /> {t("markAllRead")}
+            </button>
+          ) : null
+        }
+      />
+
 
       <div className="brand-card" style={{ padding: 0, overflow: "hidden" }}>
         {(data ?? []).length === 0 ? (

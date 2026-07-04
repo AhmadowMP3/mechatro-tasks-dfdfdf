@@ -5,6 +5,7 @@ import { Copy, Trash2, Ban, Pencil, Plus, Link2, Eye, RefreshCw, Lock, Calendar,
 
 import { useApp } from "@/lib/app-context";
 import { shareApi, SHARE_PAGES, type ShareLinkRow } from "@/lib/share-links";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/share-links")({
   beforeLoad: ({ context }) => {
@@ -45,30 +46,33 @@ function SharePage() {
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, background: "var(--grad-gold)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+        <PageHeader
+          title={
+            <span style={{ background: "var(--grad-gold)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               {ar ? "روابط المشاركة" : "Share Links"}
-            </h1>
-            <p style={{ margin: "4px 0 0", color: "var(--muted-foreground)", fontSize: 14 }}>
-              {ar
-                ? "أنشئ روابط عرض للقراءة فقط. المستلم يشاهد الصفحات التي تحددها فقط، بدون تسجيل دخول، وبدون إمكانية التعديل."
-                : "Generate read-only preview links. Recipients see only the pages you allow, without login, with no editing power."}
-            </p>
-          </div>
-          <button
-            onClick={() => setEditing("new")}
-            style={{
-              minHeight: 44, padding: "0 18px", borderRadius: 999,
-              background: "var(--grad-gold)", color: "#0B1116",
-              fontWeight: 800, border: "none", cursor: "pointer",
-              display: "inline-flex", alignItems: "center", gap: 8,
-              boxShadow: "0 10px 30px -12px rgba(212,175,55,.55)",
-            }}
-          >
-            <Plus size={18} /> {ar ? "رابط جديد" : "New link"}
-          </button>
-        </div>
+            </span>
+          }
+          subtitle={
+            ar
+              ? "أنشئ روابط عرض للقراءة فقط. المستلم يشاهد الصفحات التي تحددها فقط."
+              : "Read-only preview links. Recipients see only the pages you allow, no login, no editing."
+          }
+          actions={
+            <button
+              onClick={() => setEditing("new")}
+              style={{
+                minHeight: 44, padding: "0 18px", borderRadius: 999,
+                background: "var(--grad-gold)", color: "#0B1116",
+                fontWeight: 800, border: "none", cursor: "pointer",
+                display: "inline-flex", alignItems: "center", gap: 8,
+                boxShadow: "0 10px 30px -12px rgba(212,175,55,.55)",
+              }}
+            >
+              <Plus size={18} /> {ar ? "رابط جديد" : "New link"}
+            </button>
+          }
+        />
+
 
         {loading ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--muted-foreground)" }}>

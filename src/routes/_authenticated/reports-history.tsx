@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FileText, Download, Eye, Trash2, GitCompareArrows, X, CheckCircle2, ArrowLeftRight, Users2 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/reports-history")({
   component: ReportsHistoryPage,
@@ -150,16 +151,16 @@ function ReportsHistoryPage() {
       <div style={{ padding: "20px 24px 120px", maxWidth: 1200, margin: "0 auto" }}>
 
 
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--grad-blue)",
-            display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-            <FileText size={24} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: 26, fontWeight: 900, margin: 0, color: "var(--foreground)" }}>{t("reportHistory")}</h1>
-            <div style={{ fontSize: 13, color: "var(--muted)" }}>{t("reportHistoryDesc")}</div>
-          </div>
-        </div>
+        <PageHeader
+          title={t("reportHistory")}
+          subtitle={t("reportHistoryDesc")}
+          adornment={
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--grad-blue)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0 }}>
+              <FileText size={22} />
+            </div>
+          }
+        />
+
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
           <button style={chip("all")} onClick={() => setFilter("all")}>{t("allKinds")} · {rows.length}</button>
