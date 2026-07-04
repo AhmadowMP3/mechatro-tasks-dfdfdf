@@ -132,7 +132,7 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
 
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("chooseStyle")}</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        <div className="wizard-theme-grid">
           {([
             { id: "aurora" as const, label: t("themeAurora"), bg: "linear-gradient(135deg,#050D17,#0E4A6B)", fg: "#EAF2F9" },
             { id: "executive" as const, label: t("themeExecutive"), bg: "linear-gradient(135deg,#0A2540,#132D50)", fg: "#fff" },
