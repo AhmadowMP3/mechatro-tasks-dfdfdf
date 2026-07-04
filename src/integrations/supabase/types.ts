@@ -425,6 +425,7 @@ export type Database = {
           suspended_by: string | null
           theme_pref: string
           total_points: number
+          username: string | null
         }
         Insert: {
           active?: boolean
@@ -449,6 +450,7 @@ export type Database = {
           suspended_by?: string | null
           theme_pref?: string
           total_points?: number
+          username?: string | null
         }
         Update: {
           active?: boolean
@@ -473,6 +475,7 @@ export type Database = {
           suspended_by?: string | null
           theme_pref?: string
           total_points?: number
+          username?: string | null
         }
         Relationships: [
           {
@@ -992,6 +995,7 @@ export type Database = {
     }
     Functions: {
       close_ended_seasons: { Args: never; Returns: number }
+      resolve_login_email: { Args: { p_name: string }; Returns: string }
       sync_master_admin: { Args: never; Returns: undefined }
     }
     Enums: {
