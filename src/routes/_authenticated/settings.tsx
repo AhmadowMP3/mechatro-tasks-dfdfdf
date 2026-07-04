@@ -74,6 +74,32 @@ function BackupsSection() {
           <Play size={16} /> {t("backupNow")}
         </button>
       </div>
+      {isMobile ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {(data ?? []).length === 0 ? (
+            <div style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>—</div>
+          ) : (data ?? []).map((b) => (
+            <div key={b.name} style={{
+              padding: 14, borderRadius: 12, border: "1px solid var(--border)",
+              background: "var(--surface-2)", display: "flex", flexDirection: "column", gap: 10,
+            }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{formatDate(b.created_at, lang)}</span>
+                <span style={{ fontSize: 12, color: "var(--muted)", wordBreak: "break-all" }}>{b.name}</span>
+                <span style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{toLocalDigits(Math.round(b.size / 1024), lang)} KB</span>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => download(b)} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "var(--surface-3)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
+                  <Download size={14} /> {t("download")}
+                </button>
+                <button onClick={() => setRestoreTarget(b)} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)" }}>
+                  <RotateCcw size={14} /> {t("restore")}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
       <div style={{ overflow: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
@@ -103,6 +129,7 @@ function BackupsSection() {
           </tbody>
         </table>
       </div>
+      )}
       {restoreTarget && <RestoreDialog backup={restoreTarget} onClose={() => setRestoreTarget(null)} onDone={() => { setRestoreTarget(null); refetch(); }} />}
     </section>
   );
