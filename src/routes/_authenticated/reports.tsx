@@ -268,7 +268,7 @@ function StepScope({ scope, setScope, memberId, setMemberId, users }: { scope: S
   return (
     <div>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t("reportScope")}</div>
-      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{lang === "ar" ? "اختر إن كان التقرير للفريق كاملاً أو لعضو محدد" : "Pick whether to report on the whole team or a specific member"}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("pickScopeHint")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
         <ScopeCard active={scope === "team"} onClick={() => setScope("team")} icon={<Users2 size={22} />} title={t("scopeTeam")} desc={t("scopeTeamDesc")} />
         <ScopeCard active={scope === "member"} onClick={() => setScope("member")} icon={<User size={22} />} title={t("scopeMember")} desc={t("scopeMemberDesc")} />
