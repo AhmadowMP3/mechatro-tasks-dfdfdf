@@ -343,7 +343,7 @@ function StepLanguage({ value, onChange }: { value: ReportLangChoice; onChange: 
 }
 
 function StepPeriod({ rangeKey, setRangeKey, from, to, setFrom, setTo, today }: { rangeKey: "7d"|"30d"|"90d"|"all"|"custom"; setRangeKey: (k: "7d"|"30d"|"90d"|"all"|"custom") => void; from: string; to: string; setFrom: (v: string) => void; setTo: (v: string) => void; today: string }) {
-  const { t, lang } = useApp();
+  const { t } = useApp();
   const opts: Array<{ id: "7d"|"30d"|"90d"|"all"|"custom"; label: string }> = [
     { id: "7d", label: t("rangeLast7d") },
     { id: "30d", label: t("rangeLast30d") },
@@ -354,7 +354,7 @@ function StepPeriod({ rangeKey, setRangeKey, from, to, setFrom, setTo, today }: 
   return (
     <div>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t("reportRange")}</div>
-      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{lang === "ar" ? "الفترة الزمنية للتقرير" : "Time period"}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("reportTimePeriodHint")}</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
         {opts.map((o) => (
           <button key={o.id} onClick={() => setRangeKey(o.id)} className="brand-btn" style={{
