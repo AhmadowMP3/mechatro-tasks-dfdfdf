@@ -114,6 +114,26 @@
   --sidebar-border: #DAE2EB;
 }
 
+/* Branded scrollbars — apply to every scrollable surface */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--grad-blue);
+  border-radius: 999px;
+  border: 2px solid var(--background);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--grad-orange);
+  background-clip: padding-box;
+  border: 2px solid var(--background);
+}
+*::-webkit-scrollbar-corner { background: transparent; }
+
 @layer base {
   * { border-color: var(--border); }
   html, body { margin: 0; padding: 0; }
@@ -124,17 +144,22 @@
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
     background-image:
-      radial-gradient(1100px 560px at 100% -8%, rgba(24,159,209,.13), transparent 58%),
-      radial-gradient(900px 480px at -5% 108%, rgba(232,115,46,.10), transparent 55%);
+      radial-gradient(1100px 560px at 100% -8%, rgba(24,159,209,.16), transparent 58%),
+      radial-gradient(900px 480px at -5% 108%, rgba(232,115,46,.12), transparent 55%),
+      radial-gradient(700px 400px at 50% 140%, rgba(24,159,209,.06), transparent 60%);
     background-attachment: fixed;
+    transition: background-color .35s ease, color .35s ease;
   }
   .light body {
     background-image:
-      radial-gradient(1100px 560px at 100% -8%, rgba(24,159,209,.08), transparent 58%),
-      radial-gradient(900px 480px at -5% 108%, rgba(232,115,46,.05), transparent 55%);
+      radial-gradient(1100px 560px at 100% -8%, rgba(20,135,180,.10), transparent 58%),
+      radial-gradient(900px 480px at -5% 108%, rgba(219,101,36,.07), transparent 55%),
+      radial-gradient(700px 380px at 50% 140%, rgba(20,135,180,.05), transparent 60%);
   }
   h1, h2, h3, h4 { font-weight: 800; }
-  ::selection { background: rgba(24,159,209,.35); }
+  ::selection { background: rgba(24,159,209,.35); color: #fff; }
+  .light ::selection { background: rgba(20,135,180,.25); color: var(--foreground); }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 8px; }
 }
 
 /* Brand utilities */
@@ -142,10 +167,13 @@
 @utility grad-orange { background: var(--grad-orange); color: #fff; }
 @utility grad-green { background: var(--grad-green); color: #fff; }
 @utility brand-card {
+  position: relative;
   background-color: var(--card);
+  background-image: var(--grad-card);
   border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: var(--shadow-brand);
+  box-shadow: var(--shadow-card);
+  transition: background-color .3s ease, border-color .3s ease, box-shadow .3s ease;
 }
 @utility brand-btn {
   min-height: 52px;
