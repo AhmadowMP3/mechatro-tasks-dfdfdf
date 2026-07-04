@@ -28,6 +28,7 @@ import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
 import { Route as ShareTokenIndexRouteImport } from './routes/share.$token.index'
 import { Route as ShareTokenPageRouteImport } from './routes/share.$token.$page'
+import { Route as ApiPublicSeedTestUsersRouteImport } from './routes/api/public/seed-test-users'
 import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history.compare'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 
@@ -128,6 +129,11 @@ const ShareTokenPageRoute = ShareTokenPageRouteImport.update({
   path: '/$page',
   getParentRoute: () => ShareTokenRoute,
 } as any)
+const ApiPublicSeedTestUsersRoute = ApiPublicSeedTestUsersRouteImport.update({
+  id: '/api/public/seed-test-users',
+  path: '/api/public/seed-test-users',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedReportsHistoryCompareRoute =
   AuthenticatedReportsHistoryCompareRouteImport.update({
     id: '/compare',
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/share/$token': typeof ShareTokenRouteWithChildren
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
+  '/api/public/seed-test-users': typeof ApiPublicSeedTestUsersRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
   '/share/$token/': typeof ShareTokenIndexRoute
 }
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
+  '/api/public/seed-test-users': typeof ApiPublicSeedTestUsersRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
   '/share/$token': typeof ShareTokenIndexRoute
 }
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
+  '/api/public/seed-test-users': typeof ApiPublicSeedTestUsersRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
   '/share/$token/': typeof ShareTokenIndexRoute
 }
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
     | '/share/$token'
     | '/projects/$id'
     | '/reports-history/compare'
+    | '/api/public/seed-test-users'
     | '/share/$token/$page'
     | '/share/$token/'
   fileRoutesByTo: FileRoutesByTo
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/'
     | '/projects/$id'
     | '/reports-history/compare'
+    | '/api/public/seed-test-users'
     | '/share/$token/$page'
     | '/share/$token'
   id:
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/projects/$id'
     | '/_authenticated/reports-history/compare'
+    | '/api/public/seed-test-users'
     | '/share/$token/$page'
     | '/share/$token/'
   fileRoutesById: FileRoutesById
@@ -282,6 +294,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShareTokenRoute: typeof ShareTokenRouteWithChildren
+  ApiPublicSeedTestUsersRoute: typeof ApiPublicSeedTestUsersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -419,6 +432,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShareTokenPageRouteImport
       parentRoute: typeof ShareTokenRoute
     }
+    '/api/public/seed-test-users': {
+      id: '/api/public/seed-test-users'
+      path: '/api/public/seed-test-users'
+      fullPath: '/api/public/seed-test-users'
+      preLoaderRoute: typeof ApiPublicSeedTestUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/reports-history/compare': {
       id: '/_authenticated/reports-history/compare'
       path: '/compare'
@@ -518,6 +538,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ShareTokenRoute: ShareTokenRouteWithChildren,
+  ApiPublicSeedTestUsersRoute: ApiPublicSeedTestUsersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
