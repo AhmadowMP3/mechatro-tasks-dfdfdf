@@ -158,7 +158,7 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
       </div>
 
       {isAdmin && (
-        <Field label={<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>⭐ {t("pointsReward")}</span> as never}>
+        <Field label={`⭐ ${t("pointsReward")}`}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input
               type="number"
