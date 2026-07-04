@@ -202,6 +202,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppCtx.Provider value={{
       lang, theme, setLang, setTheme, t, user, session, users, directory, refreshUsers,
+      refreshSelf: async () => { if (session?.user?.id) await loadUser(session.user.id); },
       can, isMasterAdmin, isAdmin, isMember, signOut,
     }}>
       {children}
