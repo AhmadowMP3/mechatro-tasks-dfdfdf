@@ -221,7 +221,14 @@ function AcceptInvitePage() {
             }}>
               <ShieldCheck size={18} color="#1D9BF0" />
               <div>
-                {l ? "تم دعوتك لتصبح" : "You've been invited as"}
+                {peek.full_name ? (
+                  <>
+                    {l ? "أهلًا " : "Welcome, "}
+                    <strong style={{ color: "#EAF2F9" }}>{peek.full_name}</strong>
+                    {" — "}
+                  </>
+                ) : null}
+                {l ? "تم دعوتك لتصبح" : "you've been invited as"}
                 {" "}
                 <strong style={{ color: peek.role === "admin" ? "#F0B429" : "#EAF2F9" }}>
                   {peek.role === "admin" ? (l ? "نائب مدير" : "Admin") : (l ? "عضو" : "Member")}
@@ -233,6 +240,19 @@ function AcceptInvitePage() {
                 )}
               </div>
             </div>
+
+            {peek.has_password && (
+              <div style={{
+                padding: "10px 12px", marginBottom: 12, borderRadius: 10,
+                background: "rgba(240,180,41,.08)", border: "1px dashed rgba(240,180,41,.35)",
+                fontSize: 12.5, color: "#F0B429", display: "flex", gap: 8, alignItems: "center",
+              }}>
+                <Lock size={14} />
+                {l
+                  ? "أدخل كلمة المرور التي أرسلها لك المدير لتفعيل حسابك."
+                  : "Enter the password your admin sent you to activate the account."}
+              </div>
+            )}
 
             <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <Field label={l ? "الاسم الكامل" : "Full name"} icon={UserIcon}>
@@ -246,10 +266,16 @@ function AcceptInvitePage() {
                   style={{ ...inputStyle, opacity: peek.is_email_locked ? 0.75 : 1, cursor: peek.is_email_locked ? "not-allowed" : "text" }}
                   dir="ltr" />
               </Field>
-              <Field label={l ? "كلمة المرور (٨ أحرف على الأقل)" : "Password (min 8 characters)"} icon={Lock}>
+              <Field
+                label={peek.has_password
+                  ? (l ? "كلمة المرور المُرسَلة إليك" : "Password from your admin")
+                  : (l ? "كلمة المرور (٨ أحرف على الأقل)" : "Password (min 8 characters)")}
+                icon={Lock}
+              >
                 <input type="password" value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required minLength={8} style={inputStyle} dir="ltr" />
+                  required minLength={peek.has_password ? 1 : 8} style={inputStyle} dir="ltr"
+                  autoComplete={peek.has_password ? "current-password" : "new-password"} />
               </Field>
 
               <button type="submit" disabled={submitting} style={{
