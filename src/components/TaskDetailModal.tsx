@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { X, Play, Pause, MessageSquare, Link as LinkIcon, Trash2, ExternalLink, Send, Save } from "lucide-react";
+import confetti from "canvas-confetti";
+import { X, Play, Pause, MessageSquare, Link as LinkIcon, Trash2, ExternalLink, Send, Save, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
 import { StatusPill, PriorityPill, OverduePill } from "@/components/Pills";
