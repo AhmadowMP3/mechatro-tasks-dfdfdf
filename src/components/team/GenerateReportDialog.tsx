@@ -130,6 +130,30 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
         )}
       </div>
 
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("chooseStyle")}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          {([
+            { id: "aurora" as const, label: t("themeAurora"), bg: "linear-gradient(135deg,#050D17,#0E4A6B)", fg: "#EAF2F9" },
+            { id: "executive" as const, label: t("themeExecutive"), bg: "linear-gradient(135deg,#0A2540,#132D50)", fg: "#fff" },
+            { id: "minimal" as const, label: t("themeMinimal"), bg: "#FCFCFC", fg: "#111" },
+          ]).map((c) => (
+            <button key={c.id} type="button" onClick={() => setTheme(c.id)} className="brand-btn" style={{
+              flexDirection: "column", padding: 0, overflow: "hidden", gap: 0, minHeight: 100,
+              background: "var(--surface-2)", border: `2px solid ${theme === c.id ? "#42C2EE" : "var(--border)"}`,
+              color: "var(--foreground)",
+            }}>
+              <div style={{ background: c.bg, color: c.fg, width: "100%", height: 56, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, letterSpacing: 2, position: "relative" }}>
+                REPORT
+                {theme === c.id && <div style={{ position: "absolute", top: 4, insetInlineEnd: 4, width: 20, height: 20, borderRadius: 999, background: "#42C2EE", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><Check size={12} /></div>}
+              </div>
+              <div style={{ padding: 8, fontSize: 12, fontWeight: 700 }}>{c.label}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={build} disabled={busy} className="brand-btn"
           style={{ background: "var(--grad-blue)", color: "#fff", flex: 1, opacity: busy ? 0.7 : 1 }}>
