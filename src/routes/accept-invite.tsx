@@ -258,13 +258,8 @@ function AcceptInvitePage() {
                 <input value={fullName} onChange={(e) => setFullName(e.target.value)}
                   required style={inputStyle} placeholder={l ? "مثال: أحمد محمود" : "e.g. Ahmed Mahmoud"} />
               </Field>
-              <Field label={l ? "البريد الإلكتروني" : "Email"} icon={Mail}>
-                <input type="email" value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required readOnly={peek.is_email_locked}
-                  style={{ ...inputStyle, opacity: peek.is_email_locked ? 0.75 : 1, cursor: peek.is_email_locked ? "not-allowed" : "text" }}
-                  dir="ltr" />
-              </Field>
+
+
               <Field
                 label={peek.has_password
                   ? (l ? "كلمة المرور المُرسَلة إليك" : "Password from your admin")
