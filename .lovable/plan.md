@@ -1,78 +1,90 @@
-## Cause
 
-The share viewer at `src/routes/share.$token.$page.tsx` is a **parallel rebuild** of every page (Dashboard, Tasks, Projects, Team, League, References, Activity) using its own JSX, its own layout, and its own reduced datasets from the `share-access` edge function. It will always drift from the real app because none of the real page components are actually rendered — only lookalikes are.
+# Mobile UI Full Checkup
 
-The real pages under `src/routes/_authenticated/*.tsx` (`index.tsx`, `tasks.tsx`, `projects.tsx`, `team.tsx`, `league.tsx`, `references.tsx`, `activity.tsx`) all call `supabase.from(...)` directly and rely on the logged-in RLS session, so they can't just be dropped into an unauthenticated `/share/$token` context.
+**Rule for every change:** desktop stays byte-for-byte the same. Every fix is gated behind `isMobile` (`< 768px`) so nothing below 1024px changes on tablet/desktop unintentionally, and mobile only diverges where it must.
 
-## Solution — one shared page, two data sources
+Same tokens, same colors, same typography — just fitted, with real thumb ergonomics.
 
-Replace the clone with the **actual page components**, rendered in a read-only shell that provides them with data via a public token instead of an authenticated Supabase session.
+## 1. Layout chrome (AppShell + Sidebar)
 
-### 1. Introduce a `DataSource` abstraction
+Rebuild the mobile shell as **top bar + bottom nav** while keeping the exact desktop sidebar.
 
-New file `src/lib/data-source.tsx`:
-- `type DataSource = { mode: "auth" | "share"; token?: string; dashboard(): Promise<...>; tasks(): Promise<...>; projects(): Promise<...>; team(): Promise<...>; league(): Promise<...>; references(): Promise<...>; activity(): Promise<...>; }`.
-- `authDataSource` implements each method by moving the current `supabase.from(...)` queries out of the page files (unchanged shape).
-- `shareDataSource(token)` implements each method by calling `shareApi.data(token, resource)` (already implemented in the edge function).
-- `<DataSourceProvider>` + `useDataSource()` hook.
+```text
+┌─────────────────────────────┐
+│ ☰  [logo]      AR|EN  🌙 🔔 │  top bar (sticky, 56px)
+├─────────────────────────────┤
+│                             │
+│         page content        │
+│   (padding-bottom: 84px)    │
+│                             │
+├─────────────────────────────┤
+│ 🏠   📁   ✅   👥   •••     │  bottom tab bar (safe-area)
+└─────────────────────────────┘
+```
 
-### 2. Extend the `share-access` edge function to full parity
+- **Top bar:** hamburger (opens full drawer with the current sidebar contents for secondary routes/profile/sign-out), logo, share-mode chip, refresh (share mode), lang toggle, theme toggle, notifications bell with unread dot. Bell hidden in share mode.
+- **Bottom nav:** 4 primary tabs + "More". Tabs adapt to role/share mode:
+  - Default: Dashboard, Projects, Tasks, Team, More
+  - Share mode: only allowed pages, filled left-to-right, rest under More
+- Uses `env(safe-area-inset-bottom)` and `100dvh` (not `100vh`) so iOS Safari address bar doesn't clip content.
+- Main content gets `padding-bottom: calc(72px + safe-area-inset-bottom)` on mobile so the bottom bar never covers the last row.
+- Drawer opens from correct side based on `lang` (RTL-aware, already partially there).
 
-Update `supabase/functions/share-access/index.ts` so each `resource` returns **exactly** the shape the real page needs (raw rows, not a summarised clone):
-- `tasks` → `{ tasks, projects, members, comments_count_by_task, files_count_by_task }`
-- `projects` → same fields as `loadProjects` plus per-project counts and full member map
-- `dashboard` → raw tasks + projects + profiles + activity + sessions (same tables the real dashboard queries)
-- `team`, `league`, `references`, `activity` → same raw tables
+## 2. Universal mobile fixes (applies to every page)
 
-The auth data source returns the same shapes from Supabase directly.
+- **Page headers:** switch from bare `flex flex-wrap` to `grid-cols-[minmax(0,1fr)_auto]` on mobile so title truncates and action button never wraps to a second row awkwardly. Titles drop from 28px → 22px on mobile.
+- **Filter bars / toolbars:** horizontally scroll on mobile with `overflow-x: auto; scroll-snap-type: x mandatory;` instead of wrapping into 4 rows.
+- **Cards / rows:** full-bleed (edge-to-edge minus 14px page padding), 16px internal padding on mobile vs 20–24px desktop.
+- **Tap targets:** every interactive element ≥ 44×44 (audit and fix icon-only buttons under that size).
+- **Modals → bottom sheets on mobile:** Dialog/Drawer components render as bottom sheet (rounded top corners, drag handle, max-height 92dvh, scrollable body). Applies to `NewTaskModal`, `TaskDetailModal`, `FilterDrawer`, `GenerateReportDialog`, and any `alert-dialog`/`sheet` opened from the pages listed below.
+- **Tables → cards:** `TableView` on mobile renders as stacked cards (already partially so — audit and finish). Kanban gets a horizontal scroll with column snap.
+- **Long text:** apply `min-w-0` + `truncate` on all flex text children; multi-line clamp on descriptions.
+- **RTL:** replace remaining `marginLeft`/`marginRight` with `marginInlineStart`/`marginInlineEnd`; verify drawer/sheet slide direction in Arabic.
+- **Forms:** inputs get `font-size: 16px` on mobile (prevents iOS zoom-on-focus); labels stack above inputs; date pickers use native input on mobile.
 
-### 3. Refactor each real page to consume `useDataSource()`
+## 3. Page-by-page pass
 
-For `index.tsx`, `tasks.tsx`, `projects.tsx`, `team.tsx`, `league.tsx`, `references.tsx`, `activity.tsx`:
-- Move data-fetching effect from `supabase.from(...)` to `useDataSource().<resource>()`.
-- Keep JSX, layout, filters, view switcher, kanban, table, charts, timelines, cards — untouched.
-- Wrap all mutation triggers (New Task, Edit, Archive, Add Reference, Suspend, etc.) and realtime subscriptions in `if (!readOnly)` using a new `useReadOnly()` hook (defaults to `false`).
+Authenticated pages:
+- **Dashboard (`/`)** — stat cards go 1-col on mobile, filter bar scrolls, charts get responsive width.
+- **Tasks (`/tasks`)** — view switcher becomes segmented pill row, Kanban horizontal snap-scroll, Table → card list, filter drawer → bottom sheet.
+- **Projects (`/projects` + `/projects/$id`)** — grid → 1-col, project detail header uses the responsive grid pattern; sticky sub-tabs.
+- **Team (`/team`)** — member cards 1-col, report dialog as bottom sheet.
+- **League (`/league`)** — podium reflows to vertical, table → cards.
+- **References (`/references`)** — card grid 1-col, tag filters horizontally scrollable.
+- **Activity (`/activity`)** — timeline: timestamps stack above content on mobile.
+- **Reports history + compare** — list rows collapse; comparison tables horizontally scroll inside a bordered container.
+- **Share Links (`/share-links`)** — link rows become cards; copy button always visible.
+- **Access Control (`/access-control`)** — user rows → cards with role select full-width.
+- **Settings (`/settings`)** — section cards 1-col; language/theme rows large tap targets.
+- **Notifications (`/notifications`)** — rows already OK; verify "mark all read" button doesn't wrap.
+- **Suspended screen** — center content, cap width, safe-area padding.
 
-### 4. New `ReadOnlyContext`
+Public pages:
+- **`/auth`** — form full-width with 16px inputs, buttons min-h-52; social login row stacks vertically < 380px.
+- **`/accept-invite`** — same input rules, clear CTA.
+- **`/reset-password`** — same.
+- **`/share/…`** — top bar hides hamburger (no drawer needed), bottom nav shows only allowed pages, "read-only preview" chip stays visible.
 
-New file `src/lib/read-only.tsx` exporting `<ReadOnlyProvider value>` + `useReadOnly()`. Components hide action buttons/modals when true; `AppShell`'s outer chrome is not used in share mode.
+## 4. Verification
 
-### 5. Replace the share viewer shell
+- Playwright at 375×812 (iPhone), 390×844, 414×896, 768×1024 (iPad — must look like desktop), 1280 (desktop — must be unchanged).
+- Screenshot each route at 375 for the summary.
+- RTL pass: switch to Arabic and re-screenshot 3 key pages (Dashboard, Tasks, Task detail sheet).
+- Check console for hook / hydration warnings.
 
-Rewrite `src/routes/share.$token.$page.tsx` so it:
-- Resolves the link + password (kept as today).
-- Renders the current **share sidebar + top header** (logo, lang toggle, theme toggle, refresh, "Read-only preview" badge, whitelist-driven nav — unchanged visually).
-- In the main slot, dynamically renders the real page component from `_authenticated/*` based on `page`, wrapped by:
-  ```
-  <DataSourceProvider value={shareDataSource(token)}>
-    <ReadOnlyProvider value>
-      <RealPage />
-    </ReadOnlyProvider>
-  </DataSourceProvider>
-  ```
-- Enforces the whitelist by keeping the existing `notAllowed` guard before rendering.
-- Deletes the ~800 lines of clone JSX (`DashboardView`, `TasksView`, `ProjectsView`, `TeamView`, `LeagueView`, `ReferencesView`, `ActivityView`) inside this file.
+## 5. Out of scope (ask if you want these)
 
-### 6. Auth pages keep working unchanged
+- No new features, no data changes, no auth flow changes.
+- No visual redesign — same tokens, same brand.
+- No PWA install / offline / push.
 
-`src/routes/_authenticated/route.tsx` wraps its `<Outlet />` in `<DataSourceProvider value={authDataSource}>` + `<ReadOnlyProvider value={false}>`. No visual change; same data.
+---
 
-### 7. Cleanup
+### Technical notes
 
-- Remove the 60s sessionStorage clone cache in the share viewer; keep only the "Refresh" button (invalidates the data source).
-- Keep the `PROJECT_COLORS` / `STATUS_COLORS` / helpers only where they are still used by non-page primitives.
-
-## Technical notes
-
-- No schema changes and no auth changes.
-- `useReadOnly` gates: `NewTaskModal`, `TaskDetailModal` write actions, drag-and-drop, archive/unarchive, category creation, sign-out button (kept in share sidebar only for admins? — no, share shell has no sign-out today, keep as-is).
-- Realtime `supabase.channel` subscriptions are skipped when `mode === "share"` (share viewer uses the Refresh button).
-- The edge function stays public for `resolve` and `data`, still enforces revocation, expiry, password, and whitelist per resource.
-- Router still uses the existing `share.$token.tsx` layout + `share.$token.index.tsx` password gate; only the `$page` file changes.
-
-## Files touched
-
-- New: `src/lib/data-source.tsx`, `src/lib/read-only.tsx`.
-- Modified: `src/routes/_authenticated/route.tsx`, `index.tsx`, `tasks.tsx`, `projects.tsx`, `team.tsx`, `league.tsx`, `references.tsx`, `activity.tsx` (swap fetch source, gate mutations).
-- Rewritten: `src/routes/share.$token.$page.tsx` (shell only, no clones).
-- Extended: `supabase/functions/share-access/index.ts` (return raw shapes matching real page needs).
+- Mobile breakpoint: `matchMedia("(max-width: 767px)")` via a shared `useIsMobile` hook (already exists in `src/hooks/use-mobile.tsx` — reuse it, don't duplicate the `resize` listener currently in `AppShell`).
+- Bottom nav is a new component `src/components/layout/MobileTabBar.tsx`; sidebar drawer contents unchanged.
+- Bottom-sheet variant: reuse existing shadcn `Drawer` (Vaul) for modals on mobile; keep `Dialog` on desktop via a small `<ResponsiveModal>` wrapper.
+- Add `viewport-fit=cover` to the root route's `<meta viewport>` if missing, and `padding: env(safe-area-inset-*)` where needed.
+- Use `100dvh` everywhere `100vh` currently appears in mobile-visible surfaces.
+- No changes to `src/routeTree.gen.ts`, Supabase, or edge functions.
