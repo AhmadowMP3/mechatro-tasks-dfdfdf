@@ -33,11 +33,16 @@ type Range = typeof RANGES[number];
 const searchSchema = z.object({
   q:      z.string().catch("").default(""),
   user:   z.string().catch("").default(""),
-  action: z.enum(["", ...ACTIONS]).catch("").default(""),
-  entity: z.enum(["", ...ENTITIES]).catch("").default(""),
+  action: z.string().catch("").default(""), // comma-separated list
+  entity: z.string().catch("").default(""), // comma-separated list
   range:  z.enum(RANGES).catch("7d").default("7d"),
+  from:   z.string().catch("").default(""), // ISO date (YYYY-MM-DD)
+  to:     z.string().catch("").default(""),
 });
 type Search = z.infer<typeof searchSchema>;
+
+const splitCSV = (s: string): string[] => s ? s.split(",").filter(Boolean) : [];
+const joinCSV = (arr: string[]): string => arr.filter(Boolean).join(",");
 
 export const Route = createFileRoute("/_authenticated/activity")({
   validateSearch: (s: Record<string, unknown>) => searchSchema.parse(s),
