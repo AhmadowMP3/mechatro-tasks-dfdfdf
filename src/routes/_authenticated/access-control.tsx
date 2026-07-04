@@ -401,11 +401,10 @@ function InviteModal({ lang, onClose, onInvited }: {
 }) {
   const l = lang === "ar";
   const [role, setRole] = useState<"member" | "admin">("member");
-  const [mode, setMode] = useState<"open" | "locked">("open");
   const [access, setAccess] = useState<"self_serve" | "preset">("self_serve");
-  const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [presetPassword, setPresetPassword] = useState("");
+
   const [showPreset, setShowPreset] = useState(false);
   const [expiry, setExpiry] = useState<"24h" | "7d" | "30d" | "never">("7d");
   const [busy, setBusy] = useState(false);
