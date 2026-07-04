@@ -8,6 +8,7 @@ import { formatDate, formatMinutes, isOverdue, relativeTime, toLocalDigits } fro
 import { driveFileType, isDriveUrl, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { notify } from "@/lib/activity";
 import { toast } from "sonner";
+import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 
 type Task = {
   id: string; project_id: string; title: string; description: string | null;
