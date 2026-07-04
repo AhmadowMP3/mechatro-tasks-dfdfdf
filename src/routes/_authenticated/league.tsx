@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { toLocalDigits } from "@/lib/format";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/league")({ component: LeaguePage });
 
