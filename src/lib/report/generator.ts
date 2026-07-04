@@ -204,11 +204,22 @@ export async function persistMemberReportPdf(
 /** Legacy one-shot: build + download + persist. Kept for callers that skip preview. */
 export async function generateMemberReportPdf(
   data: ReportData,
-  choice: ReportLangChoice
+  choice: ReportLangChoice,
+  theme?: ThemeId,
 ): Promise<{ id: string | null; path: string | null }> {
-  const prepared = await buildMemberReportPdf(data, choice);
+  const prepared = await buildMemberReportPdf(data, choice, theme);
   return persistMemberReportPdf(prepared);
 }
+
+/** Build a team-wide PDF (all members). */
+export async function buildTeamReportPdf(
+  html: string,
+  filename: string,
+): Promise<{ blob: Blob; filename: string; pageCount: number }> {
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename);
+  return { blob, filename, pageCount };
+}
+
 
 
 /** Render a pre-built HTML doc, download it, and upload to history as a `comparison` row. */
