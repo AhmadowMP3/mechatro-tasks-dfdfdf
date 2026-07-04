@@ -84,20 +84,8 @@ export function MobileTabBar({ onMoreClick }: { onMoreClick: () => void }) {
         {primary.map(({ to, icon: Icon, key }) => {
           const active = isActive(to);
           return (
-            <Link key={to} to={to} style={cell(active)}>
-              {active && (
-                <span
-                  aria-hidden
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    insetInline: "22%",
-                    height: 3,
-                    borderRadius: "0 0 3px 3px",
-                    background: "var(--primary)",
-                  }}
-                />
-              )}
+            <Link key={to} to={to} className={`mtab ${active ? "is-active" : ""}`} style={cell(active)}>
+              <span className="mtab-pill" aria-hidden />
               <Icon size={22} />
               <span
                 style={{
@@ -117,8 +105,10 @@ export function MobileTabBar({ onMoreClick }: { onMoreClick: () => void }) {
           type="button"
           onClick={onMoreClick}
           aria-label={moreLabel}
+          className="mtab"
           style={cell(false)}
         >
+          <span className="mtab-pill" aria-hidden />
           <MoreHorizontal size={22} />
           <span>{moreLabel}</span>
         </button>
