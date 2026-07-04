@@ -99,15 +99,58 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           background: "rgba(255,255,255,.04)", border: "1px solid #1E364D",
           borderRadius: 12,
           display: "flex", alignItems: "center", gap: 10,
+          position: "relative",
         }}>
           <Avatar id={user.id} name={user.full_name} size={40} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: "#EAF2F9", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {user.full_name}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: "#EAF2F9", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
+                {user.full_name}
+              </div>
+              {!shareMode && (
+                <button
+                  onClick={() => setEditOpen(true)}
+                  aria-label={lang === "ar" ? "تعديل الاسم" : "Edit name"}
+                  title={lang === "ar" ? "تعديل الاسم" : "Edit name"}
+                  style={{
+                    background: "transparent", border: "none", color: "#9FB7C9",
+                    cursor: "pointer", padding: 4, borderRadius: 6, display: "inline-flex",
+                  }}
+                >
+                  <Pencil size={14} />
+                </button>
+              )}
             </div>
-            <div style={{ marginTop: 4 }}><RoleBadge role={user.role} /></div>
+            {email && (
+              <div dir="ltr" style={{ fontSize: 11.5, color: "#8AA3B8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
+                {email}
+              </div>
+            )}
+            <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <RoleBadge role={user.role} />
+              {isMasterAdmin && (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  fontSize: 10.5, fontWeight: 800, padding: "2px 8px", borderRadius: 999,
+                  background: "linear-gradient(135deg,rgba(212,175,55,.2),rgba(212,175,55,.08))",
+                  color: "#D4AF37", border: "1px solid rgba(212,175,55,.4)",
+                }}>
+                  <Crown size={11} /> {lang === "ar" ? "المدير الأعلى" : "Master"}
+                </span>
+              )}
+            </div>
           </div>
         </div>
+      )}
+
+      {editOpen && user && (
+        <EditNameModal
+          currentName={user.full_name}
+          userId={user.id}
+          lang={lang}
+          onClose={() => setEditOpen(false)}
+          onSaved={async () => { await refreshSelf(); setEditOpen(false); }}
+        />
       )}
 
       <nav style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
