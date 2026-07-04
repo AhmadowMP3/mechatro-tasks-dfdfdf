@@ -55,7 +55,6 @@ function ReportsPage() {
       <PageHeader
         title={t("reportsHub")}
         subtitle={t("reportsHubDesc")}
-        icon={FileText}
         actions={
           <Link
             to="/reports-history"
@@ -66,6 +65,7 @@ function ReportsPage() {
           </Link>
         }
       />
+
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 16, padding: "0 20px 20px" }}>
         {/* Excel card */}
