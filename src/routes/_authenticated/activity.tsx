@@ -383,20 +383,20 @@ function ActivityPage() {
         </FilterSection>
         <FilterSection label={t("filterAction")}>
           <ChipMultiSelect
-            value={search.action ? [search.action] : []}
-            onChange={(v) => patchSearch({ action: (v[v.length - 1] ?? "") as typeof search.action })}
+            value={actionArr}
+            onChange={(v) => patchSearch({ action: joinCSV(v) })}
             options={ACTIONS.map((a) => ({ value: a, label: t(`act_${a}` as DictKey) }))}
           />
         </FilterSection>
         <FilterSection label={t("filterEntity")}>
           <ChipMultiSelect
-            value={search.entity ? [search.entity] : []}
-            onChange={(v) => patchSearch({ entity: (v[v.length - 1] ?? "") as typeof search.entity })}
+            value={entityArr}
+            onChange={(v) => patchSearch({ entity: joinCSV(v) })}
             options={ENTITIES.map((e) => ({ value: e, label: t(`entity_${e}` as DictKey) }))}
           />
         </FilterSection>
         <FilterSection label={t("dateRange")}>
-          <DateRangeControl preset={datePreset} from="" to="" onChange={({ preset }) => setDatePreset(preset)} />
+          <DateRangeControl preset={datePreset} from={search.from} to={search.to} onChange={onDateChange} />
         </FilterSection>
       </FilterDrawer>
 
