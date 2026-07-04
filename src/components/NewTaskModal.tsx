@@ -61,8 +61,17 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
       : duration <= 7 ? "#F1C40F"
       : "#3ECF8E";
 
+  const isValid =
+    form.title.trim().length > 0 &&
+    form.description.trim().length > 0 &&
+    form.project_id !== "" &&
+    form.assignee_id !== "" &&
+    form.due_date !== "" &&
+    !!form.priority &&
+    (!isAdmin || (Number(form.points) > 0 && Number(form.points) <= 1000));
+
   const submit = async () => {
-    if (!form.title || !form.project_id) { toast.error(t("title")); return; }
+    if (!isValid) return;
     const startISO = new Date().toISOString();
     const { data, error } = await supabase.from("tasks").insert({
       title: form.title, description: form.description || null,
@@ -230,7 +239,18 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
       </Field>
 
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <button onClick={submit} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", flex: 1 }}>{t("create")}</button>
+        <button
+          onClick={submit}
+          disabled={!isValid}
+          className="brand-btn"
+          style={{
+            background: isValid ? "var(--grad-blue)" : "var(--surface-2)",
+            color: isValid ? "#fff" : "var(--muted)",
+            flex: 1,
+            cursor: isValid ? "pointer" : "not-allowed",
+            opacity: isValid ? 1 : 0.6,
+          }}
+        >{t("create")}</button>
         <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
       </div>
     </ModalShell>

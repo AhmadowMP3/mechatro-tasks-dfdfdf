@@ -72,8 +72,18 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     return sum;
   }, 0);
 
+  const editValid =
+    (merged.title ?? "").trim().length > 0 &&
+    (merged.description ?? "").trim().length > 0 &&
+    !!merged.project_id &&
+    !!merged.assignee_id &&
+    !!merged.due_date &&
+    !!merged.priority &&
+    (!canEditAll || merged.points_awarded_at ? true : (Number(merged.points) > 0 && Number(merged.points) <= 1000));
+
   const saveChanges = async () => {
     if (Object.keys(dirty).length === 0) return;
+    if (!editValid) { toast.error(lang === "ar" ? "يرجى ملء جميع الحقول" : "Please fill in all fields"); return; }
     const patch: Record<string, unknown> = { ...dirty };
     const approvingNow = dirty.status === "done" && task.status !== "done";
     if (approvingNow) patch.completed_at = new Date().toISOString();
@@ -287,7 +297,18 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
 
         {/* Save button */}
         {canEdit && Object.keys(dirty).length > 0 && (
-          <button onClick={saveChanges} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", marginBottom: 16 }}>
+          <button
+            onClick={saveChanges}
+            disabled={!editValid}
+            className="brand-btn"
+            style={{
+              background: editValid ? "var(--grad-blue)" : "var(--surface-2)",
+              color: editValid ? "#fff" : "var(--muted)",
+              marginBottom: 16,
+              cursor: editValid ? "pointer" : "not-allowed",
+              opacity: editValid ? 1 : 0.6,
+            }}
+          >
             <Save size={18} /> {t("save")}
           </button>
         )}
