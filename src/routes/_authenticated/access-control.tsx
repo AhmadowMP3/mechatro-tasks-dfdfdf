@@ -930,7 +930,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const rowCard: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 14, padding: 14, flexWrap: "wrap",
-  background: "#0F2033", border: "1px solid var(--border)", borderRadius: 12,
+  background: "var(--card)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: 12,
 };
 
 const primaryBtn: React.CSSProperties = {
