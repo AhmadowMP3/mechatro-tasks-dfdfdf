@@ -274,10 +274,21 @@ function ActivityPage() {
   };
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const datePreset: Preset = search.range === "24h" ? "today" : search.range === "7d" ? "7d" : search.range === "30d" ? "30d" : "all";
-  const setDatePreset = (p: Preset) => {
-    const map: Record<Preset, Range> = { all: "all", today: "24h", "7d": "7d", "30d": "30d", custom: "all" };
-    patchSearch({ range: map[p] });
+  const actionArr = useMemo(() => splitCSV(search.action), [search.action]);
+  const entityArr = useMemo(() => splitCSV(search.entity), [search.entity]);
+  const hasCustom = !!(search.from || search.to);
+  const datePreset: Preset = hasCustom ? "custom"
+    : search.range === "24h" ? "today"
+    : search.range === "7d" ? "7d"
+    : search.range === "30d" ? "30d"
+    : "all";
+  const onDateChange = ({ preset, from, to }: { preset: Preset; from: string; to: string }) => {
+    if (preset === "custom") {
+      patchSearch({ range: "all", from, to });
+    } else {
+      const map: Record<Preset, Range> = { all: "all", today: "24h", "7d": "7d", "30d": "30d", custom: "all" };
+      patchSearch({ range: map[preset], from: "", to: "" });
+    }
   };
   void resolveDateRange;
 
@@ -288,11 +299,32 @@ function ActivityPage() {
       const u = users.find((x) => x.id === search.user);
       c.push({ key: "u", label: u?.full_name ?? search.user, onRemove: () => patchSearch({ user: "" }) });
     }
-    if (search.action) c.push({ key: "a", label: t(`act_${search.action}` as DictKey), onRemove: () => patchSearch({ action: "" }) });
-    if (search.entity) c.push({ key: "e", label: t(`entity_${search.entity}` as DictKey), onRemove: () => patchSearch({ entity: "" }) });
-    if (search.range !== "all") c.push({ key: "r", label: search.range === "24h" ? t("dateLast24h") : search.range === "7d" ? t("dateLast7d") : t("dateLast30d"), onRemove: () => patchSearch({ range: "all" }) });
+    for (const a of actionArr) {
+      c.push({
+        key: `a:${a}`,
+        label: t(`act_${a}` as DictKey) || a,
+        onRemove: () => patchSearch({ action: joinCSV(actionArr.filter((x) => x !== a)) }),
+      });
+    }
+    for (const e of entityArr) {
+      c.push({
+        key: `e:${e}`,
+        label: t(`entity_${e}` as DictKey) || e,
+        onRemove: () => patchSearch({ entity: joinCSV(entityArr.filter((x) => x !== e)) }),
+      });
+    }
+    if (hasCustom) {
+      const label = `${search.from || "…"} → ${search.to || "…"}`;
+      c.push({ key: "r", label, onRemove: () => patchSearch({ from: "", to: "", range: "7d" }) });
+    } else if (search.range !== "all") {
+      c.push({
+        key: "r",
+        label: search.range === "24h" ? t("dateLast24h") : search.range === "7d" ? t("dateLast7d") : t("dateLast30d"),
+        onRemove: () => patchSearch({ range: "all" }),
+      });
+    }
     return c;
-  }, [search, users, t]);
+  }, [search, users, t, actionArr, entityArr, hasCustom]);
 
   const activeCount = chips.length;
 
