@@ -32,8 +32,51 @@ function SettingsPage() {
         </div>
       </section>
 
+      {isMasterAdmin && <SeedTestUsersSection />}
       <BackupsSection />
     </div>
+  );
+}
+
+function SeedTestUsersSection() {
+  const provision = useServerFn(provisionTestUsers);
+  const [running, setRunning] = useState(false);
+  const [creds, setCreds] = useState<null | Array<{ email: string; password: string; role: string }>>(null);
+
+  const run = async () => {
+    setRunning(true);
+    try {
+      const res = await provision();
+      setCreds(res.results.map((r) => ({ email: r.email, password: r.password, role: r.role })));
+      toast.success("Test users ready");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <section className="brand-card" style={{ padding: 20 }}>
+      <h2 style={{ margin: 0, marginBottom: 8, fontSize: 18 }}>Test users</h2>
+      <p style={{ margin: 0, marginBottom: 12, color: "var(--muted)", fontSize: 13 }}>
+        Create/reset two test accounts: one admin, one member. Passwords are reset each run.
+      </p>
+      <button onClick={run} disabled={running} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
+        <UserPlus size={18} /> {running ? "Working…" : "Seed test users"}
+      </button>
+      {creds && (
+        <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+          {creds.map((c) => (
+            <div key={c.email} style={{ padding: 10, border: "1px solid var(--border)", borderRadius: 8, fontFamily: "monospace", fontSize: 13 }}>
+              <div><b>{c.role.toUpperCase()}</b></div>
+              <div>Email: {c.email}</div>
+              <div>Password: {c.password}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
