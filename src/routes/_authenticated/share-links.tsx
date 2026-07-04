@@ -5,6 +5,7 @@ import { Copy, Trash2, Ban, Pencil, Plus, Link2, Eye, RefreshCw, Lock, Calendar,
 
 import { useApp } from "@/lib/app-context";
 import { shareApi, SHARE_PAGES, type ShareLinkRow } from "@/lib/share-links";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/share-links")({
   beforeLoad: ({ context }) => {
