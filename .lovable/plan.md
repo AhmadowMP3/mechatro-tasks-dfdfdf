@@ -1,54 +1,56 @@
-## Goal
+# Fix blank PDF pages + logo everywhere
 
-Polish icons and small UI details across the app so both mobile and desktop feel more crafted and "alive" — without changing any functionality.
+## What's actually broken
 
-## Icon polish
+I opened `Mechatro_Report_zaven_2026-07-04.pdf`:
 
-- **Consistent sizing** across the app: 16px inline, 18px in buttons, 20px in headers, 22–26px in feature cards. Set a uniform `strokeWidth={1.75}` on Lucide icons so they read lighter and more premium than the default 2.
-- **Colored icon tiles** (small rounded-square with soft gradient behind the icon) for the sidebar nav, page-header actions, empty-states, and card headers — replacing bare mono icons. Each nav item gets a tinted tile in its brand color that lights up on hover / active.
-- **Active-state glow**: sidebar active item icon gets a subtle drop-shadow + brighter tile. Hover: gentle scale (1.05) + tile brighten. Focus-visible: ring in `--primary`.
-- **Semantic color pass**: status icons (done/overdue/paused) always resolve from tokens, never hardcoded hex.
-- **Empty-state icons**: bigger (56–64px), inside a soft gradient circle, with subtle float animation.
+- Page 1 → cover renders correctly.
+- Page 2 → completely white.
+- Page 3 → completely **black**.
+- Page 4 → white.
 
-## Desktop polish
+A solid black canvas from html2canvas is a signature of one specific bug: capturing elements that live outside the initial viewport of the iframe with `foreignObjectRendering: true` enabled. Our current pipeline builds one long iframe (`pageCount × 1123px`), stacks every `.pdf-page` section inside it, then loops and calls `html2canvas(section)` on each. Sections 2+ start at y=1123, 2246, … outside the initial 794×1123 window — html2canvas returns blank / black canvases for those.
 
-- **Sidebar**: item chips with icon tile + label, hover slide-in accent bar on the leading edge, active item gets `--grad-blue` tile + soft glow. Divider between sections. Collapsed rail tooltip on hover.
-- **Page headers**: title + subtitle spacing tuned, action buttons unified to `brand-btn-sm`, gradient underline accent under the title.
-- **Cards**: hover lift (translateY -2px + shadow-glow), gradient hairline on top edge in dark mode.
-- **Buttons**: unified hover (brightness 1.06 + translateY -1px), active (translateY 0 + brightness .96), disabled dim. Consistent icon+label gap.
-- **Inputs / selects**: focus ring uses `--primary`, subtle inset shadow in light mode.
-- **Toasts**: match card style (backdrop blur, gradient icon tile per severity).
+The HTML itself is correct: `buildReportHtml` in `src/lib/report/report-html.ts` produces cover + 3 content sections, joined into 4 `.pdf-page` blocks. The bug is purely in the renderer at `src/lib/report/generator.ts`.
 
-## Mobile polish
+## Fix (technical)
 
-- **Bottom tab bar** (already present, if applicable): larger tap targets (min 48px), active pill behind icon+label, safe-area padding.
-- **Sticky mobile header** with condensed page title + inline search icon button.
-- **Filter chips**: horizontal snap scroller with fade edges; active chip in gradient blue.
-- **Cards**: full-bleed on small screens, tighter padding, single-column stacks.
-- **Icons scale up 10%** on mobile so they don't feel weak next to larger tap targets.
-- **Haptic-feeling press states**: scale .97 on tap for buttons and cards.
+Rewrite `renderHtmlToPdfBlob` in `src/lib/report/generator.ts` so each `.pdf-page` is rendered in isolation:
 
-## Micro-interactions
+1. Parse the incoming HTML once, extract every `<section class="pdf-page">` node.
+2. For each section, create a **fresh 794×1123 iframe**, write only that section into its body (`position:absolute; inset:0`) — so the element html2canvas captures is at (0,0) of its own viewport.
+3. Wait for fonts + images to load in that iframe, then capture with:
+   - `foreignObjectRendering: false` (root cause of the black page)
+   - `scale: 2`, `useCORS: true`, `backgroundColor: "#ffffff"`
+4. If the resulting canvas is taller than A4 (long tasks/activity lists), slice it into multiple A4-sized image tiles and add each as a new PDF page — no more clipped content.
+5. Preload the Mechatro logo once as a **base64 data URL**, and replace `src="…/mechatro-logo.png"` in the HTML before rendering. This guarantees the logo shows up regardless of asset CDN CORS behavior in html2canvas.
+6. Remove each temporary iframe in a `finally` block.
 
-- Page-header title: subtle fade+slide-in on mount.
-- Sidebar active item icon: 250ms color transition.
-- Card hover glow: 200ms ease.
-- Skeleton loaders on Reports Hub cards while data is fetching (if applicable).
-- Language toggle: swap fonts and `dir` with a 300ms crossfade.
+Apply the same renderer to team, member, bilingual, and comparison flows — they all funnel through `renderHtmlToPdfBlob`, so one fix covers everything.
 
-## Files likely touched
+## Logo everywhere ("cool" polish)
 
-- `src/styles.css` — icon tile utility, hover/active transitions, mobile bottom-bar polish, focus rings.
-- `src/components/layout/Sidebar.tsx` — icon tiles + active state + hover accent.
-- `src/components/layout/PageHeader.tsx` — spacing, gradient accent, action button sizing.
-- `src/components/layout/BottomTabBar.tsx` (if present) or mobile nav — active pill.
-- `src/components/ui/button.tsx`, card, badge — unified icon sizes + press states.
-- Icon usages across routes get a light sweep to standardize `size` and `strokeWidth`.
+- Excel already embeds the logo on Summary, Tasks, and each member sheet — leave that alone.
+- PDF: keep the current cover logo + top-of-page header logo, and add a subtle **watermark logo** in `contentPage()` (bottom-right, 60px, 8% opacity) so every internal page is branded without competing with content.
+- Add a thin gold underline (`th.gold`) under the header logo lockup to match the cover style.
+
+## Verification
+
+After the change I'll render a fresh member report with the same range as the uploaded one, convert every page to a JPEG with `pdftoppm`, and view all pages to confirm:
+
+- Cover intact
+- Pages 2-N show real content (profile, KPIs, charts, tasks, sessions, activity)
+- Watermark logo visible bottom-right on every content page
+- No black frames, no clipping
+
+## Files to touch
+
+- `src/lib/report/generator.ts` — new isolated-iframe renderer, canvas slicing, logo → data URL preload
+- `src/lib/report/report-html.ts` — add watermark logo + gold underline in `contentPage()`
+- `src/lib/report/team-report.ts` — same watermark in the team page footer (small)
 
 ## Out of scope
 
-- Redesigning any route's layout or IA.
-- Replacing the icon library.
-- New illustrations or 3D assets.
-- Changing colors from the just-approved light/dark polish.
-- Backend or business-logic changes.
+- Redesigning report themes/layouts
+- Changing Excel export (logo already works there)
+- Comparison page visual layout (only the render pipeline is fixed)

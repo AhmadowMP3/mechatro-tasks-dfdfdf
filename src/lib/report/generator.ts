@@ -31,13 +31,122 @@ const PDF_STYLE = `
   html,body{margin:0;padding:0;background:#ffffff;color:#0F1B2D;font-family:'Montserrat Arabic','Montserrat','Cairo','Segoe UI',Tahoma,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
   *{box-sizing:border-box;font-family:inherit;letter-spacing:0 !important;word-spacing:normal !important}
   [dir="rtl"],[lang="ar"],[dir="rtl"] *{font-family:'Montserrat Arabic','Cairo',Tahoma,Arial,sans-serif;unicode-bidi:isolate}
-  .pdf-page{width:794px;min-height:1123px;box-sizing:border-box;overflow:hidden;display:block;background:#ffffff;page-break-after:always}
-  .pdf-page:last-child{page-break-after:auto}
+  .pdf-page{width:794px;min-height:1123px;box-sizing:border-box;overflow:hidden;display:block;background:#ffffff;position:relative}
   table{border-collapse:collapse;font-family:inherit}
   svg{display:block;max-width:100%}
   img{max-width:100%;display:block}
 `;
 
+const A4_W = 794;
+const A4_H = 1123;
+
+// Cache the logo as a data URL so html2canvas never has to hit the CDN.
+let LOGO_DATA_URL: string | null = null;
+async function getLogoDataUrl(): Promise<string | null> {
+  if (LOGO_DATA_URL) return LOGO_DATA_URL;
+  try {
+    const mod = await import("@/assets/mechatro-logo.png.asset.json");
+    const url = (mod.default as { url: string }).url;
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    LOGO_DATA_URL = await new Promise<string>((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result));
+      fr.onerror = () => reject(fr.error);
+      fr.readAsDataURL(blob);
+    });
+    return LOGO_DATA_URL;
+  } catch {
+    return null;
+  }
+}
+
+/** Inline the Mechatro logo so html2canvas paints it deterministically. */
+async function inlineLogo(html: string): Promise<string> {
+  const dataUrl = await getLogoDataUrl();
+  if (!dataUrl) return html;
+  return html.replace(
+    /src="([^"]*mechatro-logo\.png[^"]*)"/g,
+    `src="${dataUrl}"`
+  );
+}
+
+/** Render one already-parsed section into a canvas via an isolated iframe. */
+async function renderSectionToCanvas(
+  sectionHtml: string,
+  html2canvas: typeof import("html2canvas").default,
+): Promise<HTMLCanvasElement> {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.cssText = [
+    "position:fixed",
+    "left:-10000px",
+    "top:0",
+    `width:${A4_W}px`,
+    `height:${A4_H}px`,
+    "border:0",
+    "opacity:1",
+    "pointer-events:none",
+    "background:#ffffff",
+  ].join(";");
+  document.body.appendChild(iframe);
+  try {
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+      <style>${PDF_STYLE}</style>
+      </head><body>${sectionHtml}</body></html>`);
+    doc.close();
+
+    await waitForImages(doc);
+    const fonts = (doc as unknown as { fonts?: { ready: Promise<unknown> } }).fonts;
+    if (fonts?.ready) { try { await fonts.ready; } catch { /* noop */ } }
+    await new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 150)));
+
+    const el = doc.querySelector<HTMLElement>(".pdf-page") ?? doc.body;
+    const naturalH = Math.max(A4_H, el.scrollHeight);
+    iframe.style.height = `${naturalH}px`;
+    el.style.minHeight = `${naturalH}px`;
+
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      windowWidth: A4_W,
+      windowHeight: naturalH,
+      foreignObjectRendering: false,
+    });
+    return canvas;
+  } finally {
+    iframe.remove();
+  }
+}
+
+/** Split a tall canvas into A4-sized tile canvases. */
+function sliceCanvasToPages(source: HTMLCanvasElement): HTMLCanvasElement[] {
+  const pageHpx = Math.round((source.width * A4_H) / A4_W);
+  if (source.height <= pageHpx + 4) return [source];
+  const out: HTMLCanvasElement[] = [];
+  let y = 0;
+  while (y < source.height) {
+    const h = Math.min(pageHpx, source.height - y);
+    const tile = document.createElement("canvas");
+    tile.width = source.width;
+    tile.height = h;
+    const ctx = tile.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, tile.width, tile.height);
+    ctx.drawImage(source, 0, y, source.width, h, 0, 0, source.width, h);
+    out.push(tile);
+    y += pageHpx;
+  }
+  return out;
+}
 
 async function renderHtmlToPdfBlob(
   html: string,
@@ -49,75 +158,35 @@ async function renderHtmlToPdfBlob(
   ]);
   const JsPDF = (jspdfMod as unknown as { jsPDF: typeof import("jspdf").jsPDF }).jsPDF;
 
-  const iframe = document.createElement("iframe");
-  iframe.setAttribute("aria-hidden", "true");
-  iframe.style.cssText = [
-    "position:fixed",
-    "left:-10000px",
-    "top:0",
-    "width:794px",
-    "height:1123px",
-    "border:0",
-    "opacity:1",
-    "pointer-events:none",
-    "background:#ffffff",
-  ].join(";");
-  document.body.appendChild(iframe);
+  const inlined = await inlineLogo(html);
 
-  try {
-    const doc = iframe.contentDocument!;
-    doc.open();
-    doc.write(`<!doctype html><html><head><meta charset="utf-8">
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
-      <style>${PDF_STYLE}</style>
-      </head><body>${html}</body></html>`);
-    doc.close();
+  const parser = new DOMParser();
+  const parsed = parser.parseFromString(`<!doctype html><html><body>${inlined}</body></html>`, "text/html");
+  const sectionEls = Array.from(parsed.querySelectorAll<HTMLElement>("section.pdf-page"));
+  const sections: string[] = sectionEls.length
+    ? sectionEls.map((s) => s.outerHTML)
+    : [inlined];
 
-    // Size iframe to full content so html2canvas has room
-    const pages = Array.from(doc.querySelectorAll<HTMLElement>(".pdf-page"));
-    const pageCount = Math.max(1, pages.length);
-    iframe.style.height = `${pageCount * 1123}px`;
+  const pdf = new JsPDF({ unit: "pt", format: "a4", orientation: "portrait", compress: true });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
 
-    // Wait for fonts + images + a settle frame
-    await waitForImages(doc);
-    const fonts = (doc as unknown as { fonts?: { ready: Promise<unknown> } }).fonts;
-    if (fonts?.ready) { try { await fonts.ready; } catch { /* noop */ } }
-    await new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 200)));
-
-    const pdf = new JsPDF({ unit: "pt", format: "a4", orientation: "portrait", compress: true });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-
-    const targets: HTMLElement[] = pages.length ? pages : [doc.body];
-
-    for (let i = 0; i < targets.length; i++) {
-      const canvas = await html2canvas(targets[i], {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        windowWidth: 794,
-        windowHeight: 1123,
-        foreignObjectRendering: true,
-      });
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      if (i > 0) pdf.addPage();
-      // Fit width, preserve aspect
-      const imgH = (canvas.height * pageW) / canvas.width;
+  let pdfPageCount = 0;
+  for (let i = 0; i < sections.length; i++) {
+    const canvas = await renderSectionToCanvas(sections[i], html2canvas);
+    const tiles = sliceCanvasToPages(canvas);
+    for (const tile of tiles) {
+      if (pdfPageCount > 0) pdf.addPage();
+      const imgH = (tile.height * pageW) / tile.width;
       const drawH = Math.min(imgH, pageH);
-      pdf.addImage(imgData, "JPEG", 0, 0, pageW, drawH, undefined, "FAST");
+      pdf.addImage(tile.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, pageW, drawH, undefined, "FAST");
+      pdfPageCount++;
     }
-
-    const blob = pdf.output("blob");
-    return { blob, pageCount: targets.length };
-  } finally {
-    iframe.remove();
   }
-  // filename retained by caller for download
+
+  const blob = pdf.output("blob");
   void filename;
+  return { blob, pageCount: pdfPageCount };
 }
 
 
