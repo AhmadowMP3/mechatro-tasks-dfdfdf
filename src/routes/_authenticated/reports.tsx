@@ -390,7 +390,7 @@ function StepTheme({ value, onChange }: { value: ThemeId; onChange: (v: ThemeId)
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
         <Palette size={18} /> <div style={{ fontSize: 15, fontWeight: 700 }}>{t("chooseStyle")}</div>
       </div>
-      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{lang === "ar" ? "اختر النمط البصري للتقرير" : "Pick the visual style"}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("chooseStyleHint")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
         {cards.map((c) => (
           <button key={c.id} onClick={() => onChange(c.id)} className="brand-btn" style={{
