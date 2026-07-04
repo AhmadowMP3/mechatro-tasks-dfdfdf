@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, FileText, Loader2, RefreshCw, X } from "lucide-react";
+import { Download, Eye, FileText, Loader2, RefreshCw, X, Check } from "lucide-react";
 import { toast } from "sonner";
 import { ModalShell } from "@/routes/_authenticated/projects";
 import { useApp, type Profile } from "@/lib/app-context";
