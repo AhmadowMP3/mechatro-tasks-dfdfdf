@@ -1,6 +1,7 @@
 // Master-admin API for invite links.
 // Actions: create | list | revoke
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import bcrypt from "https://esm.sh/bcryptjs@2.4.3";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
