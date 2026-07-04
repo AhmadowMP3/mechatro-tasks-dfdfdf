@@ -29,7 +29,7 @@ function ReportsPage() {
   if (!isAdmin) {
     return (
       <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-        {lang === "ar" ? "هذه الصفحة للمديرين فقط" : "Admins only"}
+        {t("adminsOnly")}
       </div>
     );
   }
@@ -39,9 +39,9 @@ function ReportsPage() {
     try {
       await exportBrandedWorkbook({
         lang: targetLang,
-        generatedBy: user?.full_name ?? "Admin",
+        generatedBy: user?.full_name ?? t("admin"),
       });
-      toast.success(lang === "ar" ? "تم تحميل الملف" : "Workbook downloaded");
+      toast.success(t("workbookDownloaded"));
     } catch (e) {
       console.error(e);
       toast.error((e as Error).message);
@@ -81,10 +81,10 @@ function ReportsPage() {
           </div>
 
           <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8, fontSize: 13, color: "var(--muted)" }}>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "ورقة ملخص + مؤشرات" : "Summary sheet + KPIs"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "كل المهام مع فلترة" : "All tasks with filters"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "ورقة منفصلة لكل عضو" : "One sheet per member"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "شارات حالة وأولوية ملونة" : "Color status + priority pills"}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelSummaryKpis")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelAllTasksFilters")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelOneSheetPerMember")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelColorPills")}</li>
           </ul>
 
           <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
@@ -110,10 +110,10 @@ function ReportsPage() {
           </div>
 
           <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8, fontSize: 13, color: "var(--muted)" }}>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "الفريق كاملاً أو عضو محدد" : "Whole team or single member"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "3 أنماط مصممة بعناية" : "3 crafted themes"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "معاينة قبل التحميل" : "Preview before download"}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {lang === "ar" ? "عربي وإنجليزي وثنائي اللغة" : "AR / EN / bilingual"}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfTeamOrMember")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfThreeThemes")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfPreviewBeforeDownload")}</li>
+            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfArEnBilingual")}</li>
           </ul>
 
           <button onClick={() => setWizardOpen(true)} className="brand-btn" style={{ background: "linear-gradient(135deg,#7C5CD1,#42C2EE)", color: "#fff", marginTop: "auto" }}>
@@ -268,7 +268,7 @@ function StepScope({ scope, setScope, memberId, setMemberId, users }: { scope: S
   return (
     <div>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t("reportScope")}</div>
-      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{lang === "ar" ? "اختر إن كان التقرير للفريق كاملاً أو لعضو محدد" : "Pick whether to report on the whole team or a specific member"}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("pickScopeHint")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
         <ScopeCard active={scope === "team"} onClick={() => setScope("team")} icon={<Users2 size={22} />} title={t("scopeTeam")} desc={t("scopeTeamDesc")} />
         <ScopeCard active={scope === "member"} onClick={() => setScope("member")} icon={<User size={22} />} title={t("scopeMember")} desc={t("scopeMemberDesc")} />
@@ -315,16 +315,16 @@ function ScopeCard({ active, onClick, icon, title, desc }: { active: boolean; on
 }
 
 function StepLanguage({ value, onChange }: { value: ReportLangChoice; onChange: (v: ReportLangChoice) => void }) {
-  const { t, lang } = useApp();
+  const { t } = useApp();
   const opts: Array<{ id: ReportLangChoice; label: string; desc: string }> = [
-    { id: "bilingual", label: lang === "ar" ? "ثنائي اللغة" : "Bilingual", desc: lang === "ar" ? "عربي + إنجليزي معاً" : "AR + EN together" },
-    { id: "ar", label: lang === "ar" ? "عربي فقط" : "Arabic only", desc: "العربية" },
-    { id: "en", label: lang === "ar" ? "إنجليزي فقط" : "English only", desc: "English" },
+    { id: "bilingual", label: t("langBilingualShort"), desc: t("langBilingualDesc") },
+    { id: "ar", label: t("langArOnly"), desc: "العربية" },
+    { id: "en", label: t("langEnOnly"), desc: "English" },
   ];
   return (
     <div>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t("reportLanguage")}</div>
-      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{lang === "ar" ? "لغة التقرير" : "Report language"}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("reportLanguage")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
         {opts.map((o) => (
           <button key={o.id} onClick={() => onChange(o.id)} className="brand-btn" style={{
@@ -343,7 +343,7 @@ function StepLanguage({ value, onChange }: { value: ReportLangChoice; onChange: 
 }
 
 function StepPeriod({ rangeKey, setRangeKey, from, to, setFrom, setTo, today }: { rangeKey: "7d"|"30d"|"90d"|"all"|"custom"; setRangeKey: (k: "7d"|"30d"|"90d"|"all"|"custom") => void; from: string; to: string; setFrom: (v: string) => void; setTo: (v: string) => void; today: string }) {
-  const { t, lang } = useApp();
+  const { t } = useApp();
   const opts: Array<{ id: "7d"|"30d"|"90d"|"all"|"custom"; label: string }> = [
     { id: "7d", label: t("rangeLast7d") },
     { id: "30d", label: t("rangeLast30d") },
@@ -354,7 +354,7 @@ function StepPeriod({ rangeKey, setRangeKey, from, to, setFrom, setTo, today }: 
   return (
     <div>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t("reportRange")}</div>
-      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{lang === "ar" ? "الفترة الزمنية للتقرير" : "Time period"}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("reportTimePeriodHint")}</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
         {opts.map((o) => (
           <button key={o.id} onClick={() => setRangeKey(o.id)} className="brand-btn" style={{
@@ -390,7 +390,7 @@ function StepTheme({ value, onChange }: { value: ThemeId; onChange: (v: ThemeId)
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
         <Palette size={18} /> <div style={{ fontSize: 15, fontWeight: 700 }}>{t("chooseStyle")}</div>
       </div>
-      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{lang === "ar" ? "اختر النمط البصري للتقرير" : "Pick the visual style"}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("chooseStyleHint")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
         {cards.map((c) => (
           <button key={c.id} onClick={() => onChange(c.id)} className="brand-btn" style={{
@@ -405,7 +405,7 @@ function StepTheme({ value, onChange }: { value: ThemeId; onChange: (v: ThemeId)
               </div>
               <div>
                 <div style={{ fontSize: c.id === "minimal" ? 22 : 14, fontWeight: 900, lineHeight: 1 }}>
-                  {c.id === "minimal" ? "Report" : "Sample Title"}
+                  {c.id === "minimal" ? t("reportLabel") : t("sampleTitle")}
                 </div>
                 <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
                   {[0,1,2].map((i) => (

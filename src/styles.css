@@ -79,10 +79,39 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --shadow-brand: 0 6px 20px rgba(0, 0, 0, 0.38);
+  --shadow-brand: 0 10px 30px -12px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.25);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px -18px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 0 1px rgba(24, 159, 209, 0.18), 0 8px 30px -8px rgba(24, 159, 209, 0.35);
   --grad-blue: linear-gradient(135deg, #189FD1 0%, #39C0EC 100%);
   --grad-orange: linear-gradient(135deg, #E8732E 0%, #FF9C5A 100%);
   --grad-green: linear-gradient(135deg, #3F782A 0%, #67BD42 100%);
+  --grad-card: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 60%);
+}
+
+.light {
+  --background: #F4F7FB;
+  --card: #FFFFFF;
+  --surface-2: #EEF3F8;
+  --surface-3: #E4EBF3;
+  --border: #DAE2EB;
+  --border-2: #C4CFDA;
+  --foreground: #0F1B2D;
+  --muted: #55677C;
+  --primary: #1487B4;
+  --primary-foreground: #ffffff;
+  --accent: #DB6524;
+  --destructive: #D9484B;
+  --shadow-brand: 0 4px 14px -4px rgba(15, 27, 45, 0.10), 0 1px 3px rgba(15, 27, 45, 0.06);
+  --shadow-card: 0 1px 2px rgba(15, 27, 45, 0.04), 0 8px 24px -14px rgba(15, 27, 45, 0.14);
+  --shadow-glow: 0 0 0 1px rgba(20, 135, 180, 0.15), 0 8px 24px -10px rgba(20, 135, 180, 0.30);
+  --grad-card: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(244,247,251,0.55) 100%);
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F1B2D;
+  --sidebar-primary: #1487B4;
+  --sidebar-accent: #EEF3F8;
+  --sidebar-accent-foreground: #0F1B2D;
+  --sidebar-border: #DAE2EB;
 }
 
 /* Branded scrollbars — apply to every scrollable surface */
@@ -105,25 +134,6 @@
 }
 *::-webkit-scrollbar-corner { background: transparent; }
 
-.light {
-  --background: #F0F4F8;
-  --card: #FFFFFF;
-  --surface-2: #F5F7FA;
-  --surface-3: #ECF1F6;
-  --border: #D7DEE5;
-  --border-2: #C4CFDA;
-  --foreground: #1A2332;
-  --muted: #5A6B7D;
-  --destructive: #D9484B;
-  --shadow-brand: 0 2px 12px rgba(0, 0, 0, 0.08);
-
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #1A2332;
-  --sidebar-accent: #ECF1F6;
-  --sidebar-accent-foreground: #1A2332;
-  --sidebar-border: #D7DEE5;
-}
-
 @layer base {
   * { border-color: var(--border); }
   html, body { margin: 0; padding: 0; }
@@ -134,17 +144,22 @@
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
     background-image:
-      radial-gradient(1100px 560px at 100% -8%, rgba(24,159,209,.13), transparent 58%),
-      radial-gradient(900px 480px at -5% 108%, rgba(232,115,46,.10), transparent 55%);
+      radial-gradient(1100px 560px at 100% -8%, rgba(24,159,209,.16), transparent 58%),
+      radial-gradient(900px 480px at -5% 108%, rgba(232,115,46,.12), transparent 55%),
+      radial-gradient(700px 400px at 50% 140%, rgba(24,159,209,.06), transparent 60%);
     background-attachment: fixed;
+    transition: background-color .35s ease, color .35s ease;
   }
   .light body {
     background-image:
-      radial-gradient(1100px 560px at 100% -8%, rgba(24,159,209,.08), transparent 58%),
-      radial-gradient(900px 480px at -5% 108%, rgba(232,115,46,.05), transparent 55%);
+      radial-gradient(1100px 560px at 100% -8%, rgba(20,135,180,.10), transparent 58%),
+      radial-gradient(900px 480px at -5% 108%, rgba(219,101,36,.07), transparent 55%),
+      radial-gradient(700px 380px at 50% 140%, rgba(20,135,180,.05), transparent 60%);
   }
   h1, h2, h3, h4 { font-weight: 800; }
-  ::selection { background: rgba(24,159,209,.35); }
+  ::selection { background: rgba(24,159,209,.35); color: #fff; }
+  .light ::selection { background: rgba(20,135,180,.25); color: var(--foreground); }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 8px; }
 }
 
 /* Brand utilities */
@@ -152,10 +167,13 @@
 @utility grad-orange { background: var(--grad-orange); color: #fff; }
 @utility grad-green { background: var(--grad-green); color: #fff; }
 @utility brand-card {
+  position: relative;
   background-color: var(--card);
+  background-image: var(--grad-card);
   border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: var(--shadow-brand);
+  box-shadow: var(--shadow-card);
+  transition: background-color .3s ease, border-color .3s ease, box-shadow .3s ease;
 }
 @utility brand-btn {
   min-height: 52px;

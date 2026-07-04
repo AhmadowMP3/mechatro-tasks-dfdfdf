@@ -501,6 +501,26 @@ export const dict = {
   buildPreview: { ar: "بناء المعاينة", en: "Build preview" },
   buildingPreview: { ar: "جاري بناء المعاينة...", en: "Building preview..." },
   reportsHistoryLink: { ar: "سجل التقارير", en: "Report history" },
+  // Reports hub — extras
+  adminsOnly: { ar: "هذه الصفحة للمديرين فقط", en: "Admins only" },
+  excelSummaryKpis: { ar: "ورقة ملخص + مؤشرات", en: "Summary sheet + KPIs" },
+  excelAllTasksFilters: { ar: "كل المهام مع فلترة", en: "All tasks with filters" },
+  excelOneSheetPerMember: { ar: "ورقة منفصلة لكل عضو", en: "One sheet per member" },
+  excelColorPills: { ar: "شارات حالة وأولوية ملونة", en: "Color status + priority pills" },
+  pdfTeamOrMember: { ar: "الفريق كاملاً أو عضو محدد", en: "Whole team or single member" },
+  pdfThreeThemes: { ar: "3 أنماط مصممة بعناية", en: "3 crafted themes" },
+  pdfPreviewBeforeDownload: { ar: "معاينة قبل التحميل", en: "Preview before download" },
+  pdfArEnBilingual: { ar: "عربي وإنجليزي وثنائي اللغة", en: "AR / EN / bilingual" },
+  workbookDownloaded: { ar: "تم تحميل الملف", en: "Workbook downloaded" },
+  pickScopeHint: { ar: "اختر إن كان التقرير للفريق كاملاً أو لعضو محدد", en: "Pick whether to report on the whole team or a specific member" },
+  langBilingualShort: { ar: "ثنائي اللغة", en: "Bilingual" },
+  langArOnly: { ar: "عربي فقط", en: "Arabic only" },
+  langEnOnly: { ar: "إنجليزي فقط", en: "English only" },
+  langBilingualDesc: { ar: "عربي + إنجليزي معاً", en: "AR + EN together" },
+  reportTimePeriodHint: { ar: "الفترة الزمنية للتقرير", en: "Time period" },
+  chooseStyleHint: { ar: "اختر النمط البصري للتقرير", en: "Pick the visual style" },
+  sampleTitle: { ar: "نموذج", en: "Sample" },
+  reportLabel: { ar: "تقرير", en: "Report" },
 } as const;
 
 
