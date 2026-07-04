@@ -115,22 +115,36 @@ function ActivityPage() {
   useEffect(() => { if (user && !isAdmin) navigate({ to: "/" }); }, [user, isAdmin, navigate]);
 
   // Reset when filters change
-  useEffect(() => { setRows([]); setPage(0); setDone(false); }, [search.q, search.user, search.action, search.entity, search.range]);
+  useEffect(() => { setRows([]); setPage(0); setDone(false); }, [search.q, search.user, search.action, search.entity, search.range, search.from, search.to]);
 
   useEffect(() => {
     if (!isAdmin) return;
     void fetchPage(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search.q, search.user, search.action, search.entity, search.range, isAdmin]);
+  }, [page, search.q, search.user, search.action, search.entity, search.range, search.from, search.to, isAdmin]);
 
   const fetchPage = async (p: number) => {
     setLoading(true);
     let q = supabase.from("activity_log").select("*").order("created_at", { ascending: false });
-    const since = rangeSince(search.range);
-    if (since) q = q.gte("created_at", since);
-    if (search.user)   q = q.eq("actor_id", search.user);
-    if (search.action) q = q.eq("action", search.action);
-    if (search.entity) q = q.eq("entity_type", search.entity);
+
+    // Date range: custom (from/to) takes priority
+    if (search.from) q = q.gte("created_at", new Date(search.from).toISOString());
+    if (search.to) {
+      const u = new Date(search.to); u.setHours(23, 59, 59, 999);
+      q = q.lte("created_at", u.toISOString());
+    }
+    if (!search.from && !search.to) {
+      const since = rangeSince(search.range);
+      if (since) q = q.gte("created_at", since);
+    }
+
+    if (search.user) q = q.eq("actor_id", search.user);
+    const actionArr = splitCSV(search.action);
+    const entityArr = splitCSV(search.entity);
+    if (actionArr.length === 1) q = q.eq("action", actionArr[0]);
+    else if (actionArr.length > 1) q = q.in("action", actionArr);
+    if (entityArr.length === 1) q = q.eq("entity_type", entityArr[0]);
+    else if (entityArr.length > 1) q = q.in("entity_type", entityArr);
     const from = p * PAGE_SIZE;
     const { data } = await q.range(from, from + PAGE_SIZE - 1);
     let batch = (data ?? []) as ActivityRow[];
