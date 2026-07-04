@@ -19,7 +19,7 @@ function SettingsPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <h1 style={{ fontSize: 28, margin: 0 }}>{t("settings")}</h1>
+      <PageHeader title={t("settings")} />
 
       <section className="brand-card" style={{ padding: 20 }}>
         <h2 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>{t("companyInfo")}</h2>
