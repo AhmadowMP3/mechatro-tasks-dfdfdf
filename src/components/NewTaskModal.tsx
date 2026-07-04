@@ -239,7 +239,6 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
       </Field>
 
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
         <button
           onClick={submit}
           disabled={!isValid}
