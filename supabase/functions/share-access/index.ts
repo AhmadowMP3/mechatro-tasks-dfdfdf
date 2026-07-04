@@ -210,18 +210,19 @@ Deno.serve(async (req) => {
 
   if (action === "data") {
     const token = String(body.token ?? "");
+    const password = body.password != null ? String(body.password) : null;
     const resource = String(body.resource ?? "");
     if (!token || !resource) return json(400, { error: "missing params" });
     if (!ALLOWED.has(resource)) return json(400, { error: "bad resource" });
 
-    const { data: link } = await admin.from("share_links").select("*").eq("token", token).maybeSingle();
-    if (!link || link.revoked) return json(403, { error: "forbidden" });
-    if (link.expires_at && new Date(link.expires_at).getTime() < Date.now()) {
-      return json(403, { error: "expired" });
-    }
+    const r = await resolveLink(admin, token, password);
+    if ("error" in r) return json(r.status, { error: r.error });
+    const link = r.link;
     if (!Array.isArray(link.allowed_pages) || !link.allowed_pages.includes(resource)) {
       return json(403, { error: "not_allowed" });
     }
+
+
 
     try {
       // Common lookups reused across resources
