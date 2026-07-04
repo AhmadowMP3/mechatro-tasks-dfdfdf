@@ -315,16 +315,16 @@ function ScopeCard({ active, onClick, icon, title, desc }: { active: boolean; on
 }
 
 function StepLanguage({ value, onChange }: { value: ReportLangChoice; onChange: (v: ReportLangChoice) => void }) {
-  const { t, lang } = useApp();
+  const { t } = useApp();
   const opts: Array<{ id: ReportLangChoice; label: string; desc: string }> = [
-    { id: "bilingual", label: lang === "ar" ? "ثنائي اللغة" : "Bilingual", desc: lang === "ar" ? "عربي + إنجليزي معاً" : "AR + EN together" },
-    { id: "ar", label: lang === "ar" ? "عربي فقط" : "Arabic only", desc: "العربية" },
-    { id: "en", label: lang === "ar" ? "إنجليزي فقط" : "English only", desc: "English" },
+    { id: "bilingual", label: t("langBilingualShort"), desc: t("langBilingualDesc") },
+    { id: "ar", label: t("langArOnly"), desc: "العربية" },
+    { id: "en", label: t("langEnOnly"), desc: "English" },
   ];
   return (
     <div>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t("reportLanguage")}</div>
-      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{lang === "ar" ? "لغة التقرير" : "Report language"}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("reportLanguage")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
         {opts.map((o) => (
           <button key={o.id} onClick={() => onChange(o.id)} className="brand-btn" style={{
