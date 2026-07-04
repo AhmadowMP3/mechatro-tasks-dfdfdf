@@ -20,6 +20,7 @@ import {
 import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import { toast } from "sonner";
 import type { DictKey } from "@/i18n/dict";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
 
