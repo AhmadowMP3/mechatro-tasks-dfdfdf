@@ -288,6 +288,10 @@ function Dashboard() {
         <WorkloadCard title={t("workloadByOwner")} rows={workload} unassigned={unassigned} lang={lang} />
       </div>
 
+      {/* League podium */}
+      <LeaguePodiumCard />
+
+
       {/* Activity */}
       <div className="brand-card" style={{ padding: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
