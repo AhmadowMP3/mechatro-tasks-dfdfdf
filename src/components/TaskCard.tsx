@@ -9,6 +9,7 @@ export type TaskRow = {
   id: string; title: string; project_id: string; status: string; priority: string;
   progress: number; due_date: string | null; assignee_id: string | null;
   start_date?: string | null;
+  points?: number | null; points_awarded_at?: string | null;
 };
 
 
