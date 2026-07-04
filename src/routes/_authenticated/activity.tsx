@@ -21,6 +21,7 @@ import {
 } from "@/components/filters/FilterDrawer";
 import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 
 const ACTIONS = ["created","updated","status_changed","deleted","archived","commented","file_added","assigned","signed_in","signed_out"] as const;
