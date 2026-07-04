@@ -124,8 +124,8 @@ function AccessControlPage() {
   return (
     <div style={{ padding: "clamp(16px,3vw,32px)", maxWidth: 1100, margin: "0 auto" }}>
       <PageHeader
-        title={l ? "التحكم بالصلاحيات" : "Access Control"}
-        subtitle={l ? "الموافقة على الطلبات وإدارة الأدوار" : "Approve access requests and assign roles"}
+        title={l ? "الأعضاء والدعوات" : "People & Invites"}
+        subtitle={l ? "ادعُ أعضاء برابط، وافق على الطلبات، وأدر الأدوار" : "Invite people by link, approve requests, and manage roles"}
         adornment={
           <div style={{
             width: 44, height: 44, borderRadius: 12,
