@@ -15,6 +15,7 @@ type Task = {
   assignee_id: string | null; priority: string; status: string; progress: number;
   due_date: string | null; completed_at: string | null; created_at: string;
   start_date: string | null;
+  points: number; points_awarded_at: string | null; points_awarded_amount: number | null;
 };
 
 
