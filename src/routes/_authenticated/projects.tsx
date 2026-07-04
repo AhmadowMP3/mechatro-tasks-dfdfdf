@@ -8,6 +8,7 @@ import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { Avatar } from "@/components/Avatar";
 import { formatDate, toLocalDigits } from "@/lib/format";
 import { toast } from "sonner";
+import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 
 import {
   FilterDrawer, FilterSection, ChipMultiSelect, FilterSelect,
@@ -383,14 +384,11 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
   );
 }
 
-export function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+export function ModalShell({ title, onClose, children, size = "md" }: { title: string; onClose: () => void; children: React.ReactNode; size?: "md" | "lg" }) {
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 300, display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 12, overflow: "auto" }}>
-      <div onClick={(e) => e.stopPropagation()} className="brand-card" style={{ maxWidth: 520, width: "100%", padding: "clamp(16px, 3vw, 24px)", marginTop: "max(12px, 4vh)", maxHeight: "calc(100dvh - 24px)", overflowY: "auto" }}>
-        <h2 style={{ margin: 0, marginBottom: 16 }}>{title}</h2>
-        {children}
-      </div>
-    </div>
+    <ResponsiveModal title={title} onClose={onClose} size={size}>
+      {children}
+    </ResponsiveModal>
   );
 }
 

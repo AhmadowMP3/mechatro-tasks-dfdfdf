@@ -7,6 +7,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger,
 } from "@/components/ui/sheet";
 import { useApp } from "@/lib/app-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 /* ---------------- Trigger button ---------------- */
 
@@ -83,11 +84,12 @@ export function FilterDrawer({
   children: React.ReactNode;
 }) {
   const { t, lang } = useApp();
+  const isMobile = useIsMobile();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        side={lang === "ar" ? "left" : "right"}
-        className="w-full sm:max-w-md overflow-y-auto"
+        side={isMobile ? "bottom" : (lang === "ar" ? "left" : "right")}
+        className={isMobile ? "w-full max-h-[92dvh] overflow-y-auto rounded-t-2xl" : "w-full sm:max-w-md overflow-y-auto"}
         style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}
       >
         <SheetHeader>
