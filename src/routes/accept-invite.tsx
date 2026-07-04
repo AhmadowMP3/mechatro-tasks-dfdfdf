@@ -96,6 +96,11 @@ function AcceptInvitePage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!peek) return;
+    const name = fullName.trim();
+    if (name.length < 2 || name.length > 80) {
+      toast.error(l ? "الاسم الكامل يجب أن يكون بين 2 و 80 حرفًا." : "Full name must be between 2 and 80 characters.");
+      return;
+    }
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("redeem-invite", {
