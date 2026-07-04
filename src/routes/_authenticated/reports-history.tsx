@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FileText, Download, Eye, Trash2, GitCompareArrows, X, CheckCircle2, ArrowLeftRight, Users2 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const Route = createFileRoute("/_authenticated/reports-history")({
   component: ReportsHistoryPage,
