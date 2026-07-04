@@ -67,53 +67,53 @@ function ReportsPage() {
       />
 
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 16, padding: "0 20px 20px" }}>
+      <div className="reports-hub-grid">
         {/* Excel card */}
-        <div className="brand-card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 56, height: 56, borderRadius: 14, background: "linear-gradient(135deg,#166534,#22C55E)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-              <FileSpreadsheet size={26} />
+        <div className="brand-card reports-card" style={{ ["--card-accent" as never]: "linear-gradient(90deg,#22C55E,#0F5FFF)" }}>
+          <div className="reports-card-head">
+            <div className="reports-tile-lg reports-tile-green">
+              <FileSpreadsheet size={24} />
             </div>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "var(--foreground)" }}>{t("excelWorkbook")}</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4, lineHeight: 1.5 }}>{t("excelWorkbookDesc")}</div>
+            <div style={{ minWidth: 0 }}>
+              <div className="reports-card-title">{t("excelWorkbook")}</div>
+              <div className="reports-card-sub">{t("excelWorkbookDesc")}</div>
             </div>
           </div>
 
-          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8, fontSize: 13, color: "var(--muted)" }}>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelSummaryKpis")}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelAllTasksFilters")}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelOneSheetPerMember")}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("excelColorPills")}</li>
+          <ul className="reports-check-list">
+            <li><Check size={14} /> {t("excelSummaryKpis")}</li>
+            <li><Check size={14} /> {t("excelAllTasksFilters")}</li>
+            <li><Check size={14} /> {t("excelOneSheetPerMember")}</li>
+            <li><Check size={14} /> {t("excelColorPills")}</li>
           </ul>
 
-          <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
-            <button onClick={() => downloadExcel("en")} disabled={!!busy} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", flex: 1, opacity: busy ? 0.7 : 1 }}>
+          <div style={{ display: "flex", gap: 8, marginTop: "auto", flexWrap: "wrap" }}>
+            <button onClick={() => downloadExcel("en")} disabled={!!busy} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", flex: "1 1 140px", opacity: busy ? 0.7 : 1 }}>
               {busy === "en" ? <><Loader2 size={16} className="spin" /> ...</> : <><Download size={16} /> {t("downloadExcelEN")}</>}
             </button>
-            <button onClick={() => downloadExcel("ar")} disabled={!!busy} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)", flex: 1, opacity: busy ? 0.7 : 1 }}>
+            <button onClick={() => downloadExcel("ar")} disabled={!!busy} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)", flex: "1 1 140px", opacity: busy ? 0.7 : 1 }}>
               {busy === "ar" ? <><Loader2 size={16} className="spin" /> ...</> : <><Download size={16} /> {t("downloadExcelAR")}</>}
             </button>
           </div>
         </div>
 
         {/* PDF card */}
-        <div className="brand-card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 56, height: 56, borderRadius: 14, background: "linear-gradient(135deg,#7c2d12,#F0676A)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-              <FileText size={26} />
+        <div className="brand-card reports-card" style={{ ["--card-accent" as never]: "linear-gradient(90deg,#7C5CD1,#42C2EE)" }}>
+          <div className="reports-card-head">
+            <div className="reports-tile-lg reports-tile-pdf">
+              <FileText size={24} />
             </div>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "var(--foreground)" }}>{t("pdfReports")}</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4, lineHeight: 1.5 }}>{t("pdfReportsDesc")}</div>
+            <div style={{ minWidth: 0 }}>
+              <div className="reports-card-title">{t("pdfReports")}</div>
+              <div className="reports-card-sub">{t("pdfReportsDesc")}</div>
             </div>
           </div>
 
-          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8, fontSize: 13, color: "var(--muted)" }}>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfTeamOrMember")}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfThreeThemes")}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfPreviewBeforeDownload")}</li>
-            <li style={{ display: "flex", alignItems: "center", gap: 8 }}><Check size={14} style={{ color: "#22C55E" }} /> {t("pdfArEnBilingual")}</li>
+          <ul className="reports-check-list">
+            <li><Check size={14} /> {t("pdfTeamOrMember")}</li>
+            <li><Check size={14} /> {t("pdfThreeThemes")}</li>
+            <li><Check size={14} /> {t("pdfPreviewBeforeDownload")}</li>
+            <li><Check size={14} /> {t("pdfArEnBilingual")}</li>
           </ul>
 
           <button onClick={() => setWizardOpen(true)} className="brand-btn" style={{ background: "linear-gradient(135deg,#7C5CD1,#42C2EE)", color: "#fff", marginTop: "auto" }}>
@@ -121,6 +121,7 @@ function ReportsPage() {
           </button>
         </div>
       </div>
+
 
       {wizardOpen && <PdfWizard onClose={() => setWizardOpen(false)} />}
       <style>{`.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -269,10 +270,11 @@ function StepScope({ scope, setScope, memberId, setMemberId, users }: { scope: S
     <div>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t("reportScope")}</div>
       <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("pickScopeHint")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+      <div className="wizard-scope-grid" style={{ marginBottom: 20 }}>
         <ScopeCard active={scope === "team"} onClick={() => setScope("team")} icon={<Users2 size={22} />} title={t("scopeTeam")} desc={t("scopeTeamDesc")} />
         <ScopeCard active={scope === "member"} onClick={() => setScope("member")} icon={<User size={22} />} title={t("scopeMember")} desc={t("scopeMemberDesc")} />
       </div>
+
       {scope === "member" && (
         <div>
           <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>{t("pickMember")}</div>
@@ -325,7 +327,8 @@ function StepLanguage({ value, onChange }: { value: ReportLangChoice; onChange: 
     <div>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t("reportLanguage")}</div>
       <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("reportLanguage")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+      <div className="wizard-lang-grid">
+
         {opts.map((o) => (
           <button key={o.id} onClick={() => onChange(o.id)} className="brand-btn" style={{
             flexDirection: "column", padding: 20, gap: 6, minHeight: 96,
@@ -391,7 +394,7 @@ function StepTheme({ value, onChange }: { value: ThemeId; onChange: (v: ThemeId)
         <Palette size={18} /> <div style={{ fontSize: 15, fontWeight: 700 }}>{t("chooseStyle")}</div>
       </div>
       <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("chooseStyleHint")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+      <div className="wizard-theme-grid">
         {cards.map((c) => (
           <button key={c.id} onClick={() => onChange(c.id)} className="brand-btn" style={{
             flexDirection: "column", padding: 0, overflow: "hidden", gap: 0,

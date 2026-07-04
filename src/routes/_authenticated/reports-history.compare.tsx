@@ -113,7 +113,7 @@ function CompareReportsPage() {
   const both = projA.filter(p => bIds.has(p.id));
 
   return (
-    <div style={{ padding: "16px 24px 40px", maxWidth: 1200, margin: "0 auto" }}>
+    <div style={{ padding: "16px clamp(12px, 3vw, 24px) 40px", maxWidth: 1200, margin: "0 auto" }}>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
           <button onClick={() => navigate({ to: "/reports-history" })} className="brand-btn"
@@ -134,13 +134,12 @@ function CompareReportsPage() {
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 90% 10%, rgba(245,179,1,.25), transparent 40%)" }} />
           <div style={{ position: "relative", zIndex: 1 }}>
             <div style={{ fontSize: 11, letterSpacing: 3, fontWeight: 800, color: "var(--brand-gold)", textTransform: "uppercase" }}>{t("headToHead")}</div>
-            <div style={{
-              display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 16, alignItems: "center", marginTop: 18,
-            }}>
+            <div className="compare-hero-grid" style={{ marginTop: 18 }}>
               <ReportHeader label={t("reportA")} row={A} accent="var(--brand-blue)" />
-              <div style={{ fontSize: 36, color: "var(--brand-gold)", fontWeight: 900 }}><ArrowLeftRight /></div>
+              <div className="compare-hero-arrow" style={{ fontSize: 36, color: "var(--brand-gold)", fontWeight: 900, display: "inline-flex" }}><ArrowLeftRight /></div>
               <ReportHeader label={t("reportB")} row={B} accent="var(--brand-gold)" />
             </div>
+
           </div>
         </div>
 
@@ -188,15 +187,15 @@ function CompareReportsPage() {
         {/* Projects venn */}
         <div style={{ marginBottom: 20 }}>
           <SectionTitle>{t("projectsTouched")}</SectionTitle>
-          <div style={{
+          <div className="compare-projects-grid" style={{
             background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18,
-            display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14,
           }}>
             <VennColumn title={`${t("onlyIn")} A`} items={onlyA} accent="var(--brand-blue)" lang={lang} />
             <VennColumn title={t("shared")} items={both} accent="var(--foreground)" lang={lang} />
             <VennColumn title={`${t("onlyIn")} B`} items={onlyB} accent="var(--brand-gold)" lang={lang} />
           </div>
         </div>
+
       <style>{`.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );

@@ -182,14 +182,15 @@ function ReportsHistoryPage() {
 
         {!loading && filtered.length === 0 && (
           <div style={{
-            padding: 60, textAlign: "center", background: "var(--surface-2)",
+            padding: 40, textAlign: "center", background: "var(--surface-2)",
             border: "1px dashed var(--border)", borderRadius: 16,
           }}>
-            <FileText size={48} style={{ opacity: 0.4, marginBottom: 12 }} />
+            <div className="empty-halo" style={{ marginBottom: 12 }}><FileText size={36} /></div>
             <div style={{ fontSize: 18, fontWeight: 800, color: "var(--foreground)" }}>{t("noReports")}</div>
             <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6 }}>{t("noReportsDesc")}</div>
           </div>
         )}
+
 
         {grouped.map(([day, items]) => (
           <div key={day} style={{ marginBottom: 20 }}>
@@ -203,12 +204,13 @@ function ReportsHistoryPage() {
                 const isSelected = selected.includes(r.id);
                 const isComparison = r.kind === "comparison";
                 return (
-                  <div key={r.id} style={{
+                  <div key={r.id} className="history-row" style={{
                     background: "var(--surface)", border: `1px solid ${isSelected ? "var(--brand-gold)" : "var(--border)"}`,
-                    borderRadius: 14, padding: 14, display: "flex", gap: 14, alignItems: "center",
+                    borderRadius: 14,
                     boxShadow: isSelected ? "0 0 0 3px rgba(245,179,1,.18)" : "none",
                     transition: "all .15s",
                   }}>
+
                     <button
                       onClick={() => toggleSelect(r.id)}
                       title={isSelected ? t("selectedForCompare") : t("selectForCompare")}
@@ -249,7 +251,7 @@ function ReportsHistoryPage() {
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div className="history-row-actions">
                       <button onClick={() => openSignedUrl(r.pdf_path, false)} title={t("preview")}
                         style={iconBtn}><Eye size={16} /></button>
                       <button onClick={() => openSignedUrl(r.pdf_path, true)} title={t("download")}
@@ -257,6 +259,7 @@ function ReportsHistoryPage() {
                       <button onClick={() => setConfirmDel(r)} title={t("deleteReport")}
                         style={{ ...iconBtn, color: "var(--danger)" }}><Trash2 size={16} /></button>
                     </div>
+
                   </div>
                 );
               })}
@@ -267,14 +270,14 @@ function ReportsHistoryPage() {
 
       {selected.length > 0 && (
         <div style={{
-          position: "fixed", bottom: 20, insetInline: 20, zIndex: 40,
+          position: "fixed", bottom: 20, insetInline: 12, zIndex: 40,
           maxWidth: 720, margin: "0 auto",
           background: "var(--surface)", border: "2px solid var(--brand-gold)",
-          borderRadius: 16, padding: "14px 18px",
-          display: "flex", alignItems: "center", gap: 14,
+          borderRadius: 16, padding: "12px 14px",
+          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
           boxShadow: "0 20px 60px rgba(0,0,0,.35)",
         }}>
-          <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: "var(--foreground)" }}>
+          <div style={{ flex: "1 1 200px", fontSize: 13, fontWeight: 700, color: "var(--foreground)", minWidth: 0 }}>
             {selected.length === 1 ? t("selectOneMore") : `${t("reportA")} · ${t("reportB")} ✓`}
           </div>
           <button onClick={() => setSelected([])} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
@@ -286,6 +289,7 @@ function ReportsHistoryPage() {
           </button>
         </div>
       )}
+
 
       {confirmDel && (
         <div onClick={() => setConfirmDel(null)} style={{
