@@ -74,15 +74,33 @@ Deno.serve(async (req) => {
   }
 
   // Redeem: create the user, wire up the profile, and mark used.
-  const emailInput = String(body.email ?? "").trim().toLowerCase();
   const passwordInput = String(body.password ?? "");
   const full_name = String(body.full_name ?? "").trim() || inv.full_name || null;
+  if (!full_name || full_name.length < 2) return json(400, { error: "invalid_invite" });
 
-  const email = inv.email ? inv.email : emailInput;
-  if (!email) return json(400, { error: "email_required" });
-  if (inv.email && emailInput && emailInput !== inv.email) {
-    return json(400, { error: "email_mismatch" });
+  // Derive a unique username from the accepted name.
+  const baseUsername = full_name
+    .toLowerCase()
+    .replace(/\s+/g, ".")
+    .replace(/[^a-z0-9._-]/g, "")
+    || `user-${inv.id.slice(0, 8)}`;
+
+  let username = baseUsername;
+  let suffix = 1;
+  while (true) {
+    const { data: clash } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("username", username)
+      .maybeSingle();
+    if (!clash) break;
+    suffix += 1;
+    username = `${baseUsername}${suffix}`;
+    if (suffix > 200) return json(500, { error: "name_taken" });
   }
+
+  // Synthesize a hidden email for auth. Reuse the invite's email if present (legacy).
+  const email = inv.email || `${username}@users.mechatro.local`;
 
   // Preset-password gate.
   if (inv.password_hash) {
@@ -115,15 +133,16 @@ Deno.serve(async (req) => {
   });
   if (createErr || !created.user) {
     const msg = createErr?.message ?? "create_failed";
-    if (/already/i.test(msg)) return json(409, { error: "email_taken" });
+    if (/already/i.test(msg)) return json(409, { error: "name_taken" });
     return json(500, { error: msg });
   }
 
   const uid = created.user.id;
 
-  // handle_new_user() already inserted a profile row; upgrade role/status here.
+  // handle_new_user() already inserted a profile row; upgrade role/status + username here.
   const { error: profErr } = await admin.from("profiles").update({
-    full_name: full_name ?? email.split("@")[0],
+    full_name,
+    username,
     role: inv.role,
     status: "active",
     active: true,
@@ -139,5 +158,6 @@ Deno.serve(async (req) => {
   }).eq("id", inv.id);
   if (markErr) console.warn("invite mark failed", markErr.message);
 
-  return json(200, { ok: true, email });
+  return json(200, { ok: true, email, username });
 });
+
