@@ -3,11 +3,13 @@ import { buildReportHtml, buildBilingualHtml } from "./report-html";
 import type { Lang } from "@/i18n/dict";
 import { supabase } from "@/integrations/supabase/client";
 import montArabic from "@/assets/MontserratArabic-Regular.ttf.asset.json";
+import type { ThemeId } from "./themes";
 
 import { buildKpiSnapshot } from "./snapshot";
 
 
 export type ReportLangChoice = "ar" | "en" | "bilingual";
+
 
 async function waitForImages(root: Document | HTMLElement) {
   const imgs = Array.from(root.querySelectorAll("img"));
