@@ -33,11 +33,16 @@ type Range = typeof RANGES[number];
 const searchSchema = z.object({
   q:      z.string().catch("").default(""),
   user:   z.string().catch("").default(""),
-  action: z.enum(["", ...ACTIONS]).catch("").default(""),
-  entity: z.enum(["", ...ENTITIES]).catch("").default(""),
+  action: z.string().catch("").default(""), // comma-separated list
+  entity: z.string().catch("").default(""), // comma-separated list
   range:  z.enum(RANGES).catch("7d").default("7d"),
+  from:   z.string().catch("").default(""), // ISO date (YYYY-MM-DD)
+  to:     z.string().catch("").default(""),
 });
 type Search = z.infer<typeof searchSchema>;
+
+const splitCSV = (s: string): string[] => s ? s.split(",").filter(Boolean) : [];
+const joinCSV = (arr: string[]): string => arr.filter(Boolean).join(",");
 
 export const Route = createFileRoute("/_authenticated/activity")({
   validateSearch: (s: Record<string, unknown>) => searchSchema.parse(s),
@@ -110,22 +115,36 @@ function ActivityPage() {
   useEffect(() => { if (user && !isAdmin) navigate({ to: "/" }); }, [user, isAdmin, navigate]);
 
   // Reset when filters change
-  useEffect(() => { setRows([]); setPage(0); setDone(false); }, [search.q, search.user, search.action, search.entity, search.range]);
+  useEffect(() => { setRows([]); setPage(0); setDone(false); }, [search.q, search.user, search.action, search.entity, search.range, search.from, search.to]);
 
   useEffect(() => {
     if (!isAdmin) return;
     void fetchPage(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search.q, search.user, search.action, search.entity, search.range, isAdmin]);
+  }, [page, search.q, search.user, search.action, search.entity, search.range, search.from, search.to, isAdmin]);
 
   const fetchPage = async (p: number) => {
     setLoading(true);
     let q = supabase.from("activity_log").select("*").order("created_at", { ascending: false });
-    const since = rangeSince(search.range);
-    if (since) q = q.gte("created_at", since);
-    if (search.user)   q = q.eq("actor_id", search.user);
-    if (search.action) q = q.eq("action", search.action);
-    if (search.entity) q = q.eq("entity_type", search.entity);
+
+    // Date range: custom (from/to) takes priority
+    if (search.from) q = q.gte("created_at", new Date(search.from).toISOString());
+    if (search.to) {
+      const u = new Date(search.to); u.setHours(23, 59, 59, 999);
+      q = q.lte("created_at", u.toISOString());
+    }
+    if (!search.from && !search.to) {
+      const since = rangeSince(search.range);
+      if (since) q = q.gte("created_at", since);
+    }
+
+    if (search.user) q = q.eq("actor_id", search.user);
+    const actionArr = splitCSV(search.action);
+    const entityArr = splitCSV(search.entity);
+    if (actionArr.length === 1) q = q.eq("action", actionArr[0]);
+    else if (actionArr.length > 1) q = q.in("action", actionArr);
+    if (entityArr.length === 1) q = q.eq("entity_type", entityArr[0]);
+    else if (entityArr.length > 1) q = q.in("entity_type", entityArr);
     const from = p * PAGE_SIZE;
     const { data } = await q.range(from, from + PAGE_SIZE - 1);
     let batch = (data ?? []) as ActivityRow[];
@@ -206,7 +225,7 @@ function ActivityPage() {
   const patchSearch = (partial: Partial<z.infer<typeof searchSchema>>) => {
     navigate({ search: (prev: Search) => ({ ...prev, ...partial }) });
   };
-  const resetFilters = () => navigate({ search: { q: "", user: "", action: "", entity: "", range: "7d" } });
+  const resetFilters = () => navigate({ search: { q: "", user: "", action: "", entity: "", range: "7d", from: "", to: "" } });
 
   // Group rows by day
   const groups = useMemo(() => {
@@ -255,10 +274,21 @@ function ActivityPage() {
   };
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const datePreset: Preset = search.range === "24h" ? "today" : search.range === "7d" ? "7d" : search.range === "30d" ? "30d" : "all";
-  const setDatePreset = (p: Preset) => {
-    const map: Record<Preset, Range> = { all: "all", today: "24h", "7d": "7d", "30d": "30d", custom: "all" };
-    patchSearch({ range: map[p] });
+  const actionArr = useMemo(() => splitCSV(search.action), [search.action]);
+  const entityArr = useMemo(() => splitCSV(search.entity), [search.entity]);
+  const hasCustom = !!(search.from || search.to);
+  const datePreset: Preset = hasCustom ? "custom"
+    : search.range === "24h" ? "today"
+    : search.range === "7d" ? "7d"
+    : search.range === "30d" ? "30d"
+    : "all";
+  const onDateChange = ({ preset, from, to }: { preset: Preset; from: string; to: string }) => {
+    if (preset === "custom") {
+      patchSearch({ range: "all", from, to });
+    } else {
+      const map: Record<Preset, Range> = { all: "all", today: "24h", "7d": "7d", "30d": "30d", custom: "all" };
+      patchSearch({ range: map[preset], from: "", to: "" });
+    }
   };
   void resolveDateRange;
 
@@ -269,11 +299,32 @@ function ActivityPage() {
       const u = users.find((x) => x.id === search.user);
       c.push({ key: "u", label: u?.full_name ?? search.user, onRemove: () => patchSearch({ user: "" }) });
     }
-    if (search.action) c.push({ key: "a", label: t(`act_${search.action}` as DictKey), onRemove: () => patchSearch({ action: "" }) });
-    if (search.entity) c.push({ key: "e", label: t(`entity_${search.entity}` as DictKey), onRemove: () => patchSearch({ entity: "" }) });
-    if (search.range !== "all") c.push({ key: "r", label: search.range === "24h" ? t("dateLast24h") : search.range === "7d" ? t("dateLast7d") : t("dateLast30d"), onRemove: () => patchSearch({ range: "all" }) });
+    for (const a of actionArr) {
+      c.push({
+        key: `a:${a}`,
+        label: t(`act_${a}` as DictKey) || a,
+        onRemove: () => patchSearch({ action: joinCSV(actionArr.filter((x) => x !== a)) }),
+      });
+    }
+    for (const e of entityArr) {
+      c.push({
+        key: `e:${e}`,
+        label: t(`entity_${e}` as DictKey) || e,
+        onRemove: () => patchSearch({ entity: joinCSV(entityArr.filter((x) => x !== e)) }),
+      });
+    }
+    if (hasCustom) {
+      const label = `${search.from || "…"} → ${search.to || "…"}`;
+      c.push({ key: "r", label, onRemove: () => patchSearch({ from: "", to: "", range: "7d" }) });
+    } else if (search.range !== "all") {
+      c.push({
+        key: "r",
+        label: search.range === "24h" ? t("dateLast24h") : search.range === "7d" ? t("dateLast7d") : t("dateLast30d"),
+        onRemove: () => patchSearch({ range: "all" }),
+      });
+    }
     return c;
-  }, [search, users, t]);
+  }, [search, users, t, actionArr, entityArr, hasCustom]);
 
   const activeCount = chips.length;
 
@@ -332,20 +383,20 @@ function ActivityPage() {
         </FilterSection>
         <FilterSection label={t("filterAction")}>
           <ChipMultiSelect
-            value={search.action ? [search.action] : []}
-            onChange={(v) => patchSearch({ action: (v[v.length - 1] ?? "") as typeof search.action })}
+            value={actionArr}
+            onChange={(v) => patchSearch({ action: joinCSV(v) })}
             options={ACTIONS.map((a) => ({ value: a, label: t(`act_${a}` as DictKey) }))}
           />
         </FilterSection>
         <FilterSection label={t("filterEntity")}>
           <ChipMultiSelect
-            value={search.entity ? [search.entity] : []}
-            onChange={(v) => patchSearch({ entity: (v[v.length - 1] ?? "") as typeof search.entity })}
+            value={entityArr}
+            onChange={(v) => patchSearch({ entity: joinCSV(v) })}
             options={ENTITIES.map((e) => ({ value: e, label: t(`entity_${e}` as DictKey) }))}
           />
         </FilterSection>
         <FilterSection label={t("dateRange")}>
-          <DateRangeControl preset={datePreset} from="" to="" onChange={({ preset }) => setDatePreset(preset)} />
+          <DateRangeControl preset={datePreset} from={search.from} to={search.to} onChange={onDateChange} />
         </FilterSection>
       </FilterDrawer>
 
