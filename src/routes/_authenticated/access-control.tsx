@@ -402,15 +402,33 @@ function InviteModal({ lang, onClose, onInvited }: {
   const l = lang === "ar";
   const [role, setRole] = useState<"member" | "admin">("member");
   const [mode, setMode] = useState<"open" | "locked">("open");
+  const [access, setAccess] = useState<"self_serve" | "preset">("self_serve");
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
+  const [presetPassword, setPresetPassword] = useState("");
+  const [showPreset, setShowPreset] = useState(false);
   const [expiry, setExpiry] = useState<"24h" | "7d" | "30d" | "never">("7d");
   const [busy, setBusy] = useState(false);
-  const [generated, setGenerated] = useState<{ url: string; expires_at: string | null } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [generated, setGenerated] = useState<{
+    url: string; expires_at: string | null; preset_password: string | null; full_name: string | null;
+  } | null>(null);
+  const [copied, setCopied] = useState<"link" | "pw" | "both" | null>(null);
+
+  function genReadablePassword() {
+    const words = ["swift","calm","brave","sunny","clever","brisk","gentle","lucky","noble","quiet","rapid","royal","witty","zesty","cosmic","mellow"];
+    const animals = ["otter","tiger","falcon","panda","eagle","koala","lion","wolf","fox","hawk","lynx","seal","yak","zebra"];
+    const w = words[Math.floor(Math.random() * words.length)];
+    const a = animals[Math.floor(Math.random() * animals.length)];
+    const n = Math.floor(10 + Math.random() * 90);
+    return `${w}-${a}-${n}`;
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (access === "preset" && presetPassword.trim().length < 8) {
+      toast.error(l ? "كلمة المرور يجب أن تكون ٨ أحرف على الأقل" : "Password must be at least 8 characters");
+      return;
+    }
     setBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-invites", {
@@ -419,16 +437,26 @@ function InviteModal({ lang, onClose, onInvited }: {
           role,
           expires_in: expiry,
           email: mode === "locked" ? email.trim().toLowerCase() : null,
-          full_name: mode === "locked" ? fullName.trim() : null,
+          full_name: (mode === "locked" || access === "preset") ? fullName.trim() : null,
+          preset_password: access === "preset" ? presetPassword.trim() : null,
         },
       });
       if (error) throw new Error(error.message);
-      const res = (data ?? {}) as { invite?: { token: string; expires_at: string | null }; error?: string };
+      const res = (data ?? {}) as {
+        invite?: { token: string; expires_at: string | null; full_name: string | null };
+        preset_password?: string | null;
+        error?: string;
+      };
       if (res.error) throw new Error(res.error);
       const invite = res.invite;
       if (!invite?.token) throw new Error("No token returned");
       const url = `${window.location.origin}/accept-invite?token=${invite.token}`;
-      setGenerated({ url, expires_at: invite.expires_at ?? null });
+      setGenerated({
+        url,
+        expires_at: invite.expires_at ?? null,
+        preset_password: res.preset_password ?? null,
+        full_name: invite.full_name ?? (fullName.trim() || null),
+      });
       onInvited();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -440,9 +468,28 @@ function InviteModal({ lang, onClose, onInvited }: {
     if (!generated) return;
     try {
       await navigator.clipboard.writeText(generated.url);
-      setCopied(true);
+      setCopied("link");
       toast.success(l ? "تم نسخ الرابط" : "Link copied");
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(null), 2000);
+    } catch { /* noop */ }
+  }
+  async function copyPassword() {
+    if (!generated?.preset_password) return;
+    try {
+      await navigator.clipboard.writeText(generated.preset_password);
+      setCopied("pw");
+      toast.success(l ? "تم نسخ كلمة المرور" : "Password copied");
+      setTimeout(() => setCopied(null), 2000);
+    } catch { /* noop */ }
+  }
+  async function copyBoth() {
+    if (!generated?.preset_password) return;
+    const block = `${l ? "الرابط" : "Link"}: ${generated.url}\n${l ? "كلمة المرور" : "Password"}: ${generated.preset_password}`;
+    try {
+      await navigator.clipboard.writeText(block);
+      setCopied("both");
+      toast.success(l ? "تم النسخ" : "Copied");
+      setTimeout(() => setCopied(null), 2000);
     } catch { /* noop */ }
   }
 
