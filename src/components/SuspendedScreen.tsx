@@ -78,7 +78,7 @@ export function SuspendedScreen() {
 
       <div style={{
         position: "relative", width: "100%", maxWidth: 620,
-        background: "linear-gradient(180deg,#0F2033 0%, #0B1A2B 100%)",
+        background: "linear-gradient(180deg,var(--card) 0%, #0B1A2B 100%)",
         border: "1px solid rgba(240,103,106,.35)",
         borderRadius: 24,
         padding: "36px 28px 28px",

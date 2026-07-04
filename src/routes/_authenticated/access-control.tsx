@@ -297,7 +297,7 @@ function UserMenu({ user, lang, busy, onAction }: {
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
           <div style={{
             position: "absolute", top: "calc(100% + 6px)", insetInlineEnd: 0, zIndex: 41,
-            background: "#0F2033", border: "1px solid var(--border)",
+            background: "var(--card)", border: "1px solid var(--border)",
             borderRadius: 12, padding: 6, minWidth: 200,
             boxShadow: "0 12px 28px rgba(0,0,0,.45)",
           }}>
@@ -325,7 +325,7 @@ function UserMenu({ user, lang, busy, onAction }: {
           display: "grid", placeItems: "center", padding: 20,
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            width: "100%", maxWidth: 460, background: "#0F2033",
+            width: "100%", maxWidth: 460, background: "var(--card)",
             border: "1px solid rgba(240,103,106,.35)", borderRadius: 18,
             padding: 22, color: "var(--foreground)",
             boxShadow: "0 24px 60px rgba(0,0,0,.55)",
@@ -499,7 +499,7 @@ function InviteModal({ lang, onClose, onInvited }: {
       zIndex: 100, display: "grid", placeItems: "center", padding: 16,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: "#0F2033", border: "1px solid var(--border)",
+        background: "var(--card)", border: "1px solid var(--border)",
         borderRadius: 16, padding: "clamp(16px, 3vw, 22px)", width: "100%", maxWidth: 500,
         maxHeight: "calc(100dvh - 32px)", overflowY: "auto",
       }}>
@@ -930,7 +930,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const rowCard: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 14, padding: 14, flexWrap: "wrap",
-  background: "#0F2033", border: "1px solid var(--border)", borderRadius: 12,
+  background: "var(--card)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: 12,
 };
 
 const primaryBtn: React.CSSProperties = {
