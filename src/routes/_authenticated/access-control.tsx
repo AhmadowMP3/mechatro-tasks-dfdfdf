@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ShieldCheck, LinkIcon, Link2, MoreVertical, Trash2, Pause, Play, Check, Crown, User as UserIcon, X,
-  Copy, Clock, Mail, Sparkles, RefreshCw, Ban,
+  Copy, Clock, Mail, Sparkles, RefreshCw, Ban, Share2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
