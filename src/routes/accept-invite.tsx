@@ -28,6 +28,7 @@ type PeekResult = {
   full_name: string | null;
   expires_at: string | null;
   is_email_locked: boolean;
+  has_password: boolean;
 };
 
 const ERROR_MAP: Record<string, { ar: string; en: string }> = {
@@ -39,6 +40,9 @@ const ERROR_MAP: Record<string, { ar: string; en: string }> = {
   email_mismatch:   { ar: "البريد لا يطابق الدعوة.",      en: "Email does not match the invite." },
   email_taken:      { ar: "هذا البريد مسجّل مسبقًا.",     en: "This email is already registered." },
   password_too_short: { ar: "كلمة المرور قصيرة (٨ أحرف على الأقل).", en: "Password must be at least 8 characters." },
+  password_required: { ar: "كلمة المرور مطلوبة.",         en: "Password is required." },
+  password_mismatch: { ar: "كلمة المرور غير صحيحة.",       en: "That password is incorrect." },
+  too_many_attempts: { ar: "محاولات كثيرة. حاول لاحقًا.",  en: "Too many attempts. Try again later." },
   token_required:   { ar: "الرابط ناقص.",                 en: "Invite link is incomplete." },
 };
 
