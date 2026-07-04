@@ -208,7 +208,7 @@ function AccessControlPage() {
                 )}
                 <StatusPill status={u.status} lang={lang} />
               </div>
-              <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }} dir="ltr">{u.email ?? "—"}</div>
+              <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }} dir="ltr">{u.username ? `@${u.username}` : "—"}</div>
               <div style={{ fontSize: 11.5, color: "#7A94A9", marginTop: 3 }}>
                 {u.last_sign_in_at
                   ? (l ? "آخر دخول: " : "Last sign-in: ") + relativeTime(u.last_sign_in_at, lang)
