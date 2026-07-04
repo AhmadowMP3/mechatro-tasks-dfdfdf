@@ -113,7 +113,7 @@ function CompareReportsPage() {
   const both = projA.filter(p => bIds.has(p.id));
 
   return (
-    <div style={{ padding: "16px 24px 40px", maxWidth: 1200, margin: "0 auto" }}>
+    <div style={{ padding: "16px clamp(12px, 3vw, 24px) 40px", maxWidth: 1200, margin: "0 auto" }}>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
           <button onClick={() => navigate({ to: "/reports-history" })} className="brand-btn"
