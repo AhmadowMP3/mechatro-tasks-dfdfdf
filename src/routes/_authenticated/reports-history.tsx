@@ -270,14 +270,14 @@ function ReportsHistoryPage() {
 
       {selected.length > 0 && (
         <div style={{
-          position: "fixed", bottom: 20, insetInline: 20, zIndex: 40,
+          position: "fixed", bottom: 20, insetInline: 12, zIndex: 40,
           maxWidth: 720, margin: "0 auto",
           background: "var(--surface)", border: "2px solid var(--brand-gold)",
-          borderRadius: 16, padding: "14px 18px",
-          display: "flex", alignItems: "center", gap: 14,
+          borderRadius: 16, padding: "12px 14px",
+          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
           boxShadow: "0 20px 60px rgba(0,0,0,.35)",
         }}>
-          <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: "var(--foreground)" }}>
+          <div style={{ flex: "1 1 200px", fontSize: 13, fontWeight: 700, color: "var(--foreground)", minWidth: 0 }}>
             {selected.length === 1 ? t("selectOneMore") : `${t("reportA")} · ${t("reportB")} ✓`}
           </div>
           <button onClick={() => setSelected([])} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
@@ -289,6 +289,7 @@ function ReportsHistoryPage() {
           </button>
         </div>
       )}
+
 
       {confirmDel && (
         <div onClick={() => setConfirmDel(null)} style={{
