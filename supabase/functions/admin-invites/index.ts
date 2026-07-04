@@ -61,12 +61,27 @@ Deno.serve(async (req) => {
         const emailRaw = String(body.email ?? "").trim().toLowerCase();
         const email = emailRaw || null;
         const full_name = String(body.full_name ?? "").trim() || null;
+        const presetPasswordRaw = typeof body.preset_password === "string" ? body.preset_password : "";
+        const preset_password = presetPasswordRaw.trim() ? presetPasswordRaw : null;
+        if (preset_password !== null && preset_password.length < 8) {
+          return json(400, { error: "password_too_short" });
+        }
+        const password_hash = preset_password ? await bcrypt.hash(preset_password, 10) : null;
+
         // expires_in: "24h" | "7d" | "30d" | "never"
         const expiresIn = String(body.expires_in ?? "7d");
         const hoursMap: Record<string, number> = { "24h": 24, "7d": 24 * 7, "30d": 24 * 30 };
         const expires_at = expiresIn === "never"
           ? null
           : new Date(Date.now() + (hoursMap[expiresIn] ?? 168) * 3600 * 1000).toISOString();
+
+        const t = newToken();
+        const { data: row, error } = await admin.from("invites").insert({
+          token: t, role, email, full_name, expires_at, created_by: me!.id, password_hash,
+        }).select("*").single();
+        if (error) throw error;
+        return json(200, { invite: row, preset_password });
+      }
 
         const t = newToken();
         const { data: row, error } = await admin.from("invites").insert({
