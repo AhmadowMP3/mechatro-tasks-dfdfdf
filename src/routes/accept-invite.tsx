@@ -36,15 +36,14 @@ const ERROR_MAP: Record<string, { ar: string; en: string }> = {
   invite_revoked:   { ar: "تم إلغاء هذه الدعوة.",         en: "This invite has been revoked." },
   invite_used:      { ar: "تم استخدام هذه الدعوة مسبقًا.", en: "This invite has already been used." },
   invite_expired:   { ar: "انتهت صلاحية الدعوة.",         en: "This invite has expired." },
-  email_required:   { ar: "البريد الإلكتروني مطلوب.",     en: "Email is required." },
-  email_mismatch:   { ar: "البريد لا يطابق الدعوة.",      en: "Email does not match the invite." },
-  email_taken:      { ar: "هذا البريد مسجّل مسبقًا.",     en: "This email is already registered." },
+  name_taken:       { ar: "هذا الاسم مستخدم مسبقًا.",      en: "This name is already taken." },
   password_too_short: { ar: "كلمة المرور قصيرة (٨ أحرف على الأقل).", en: "Password must be at least 8 characters." },
   password_required: { ar: "كلمة المرور مطلوبة.",         en: "Password is required." },
   password_mismatch: { ar: "كلمة المرور غير صحيحة.",       en: "That password is incorrect." },
   too_many_attempts: { ar: "محاولات كثيرة. حاول لاحقًا.",  en: "Too many attempts. Try again later." },
   token_required:   { ar: "الرابط ناقص.",                 en: "Invite link is incomplete." },
 };
+
 
 function translate(code: string | undefined, l: boolean): string {
   if (!code) return l ? "حدث خطأ." : "Something went wrong.";
