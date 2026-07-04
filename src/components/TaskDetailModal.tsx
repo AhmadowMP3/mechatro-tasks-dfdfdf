@@ -72,8 +72,18 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     return sum;
   }, 0);
 
+  const editValid =
+    (merged.title ?? "").trim().length > 0 &&
+    (merged.description ?? "").trim().length > 0 &&
+    !!merged.project_id &&
+    !!merged.assignee_id &&
+    !!merged.due_date &&
+    !!merged.priority &&
+    (!canEditAll || merged.points_awarded_at ? true : (Number(merged.points) > 0 && Number(merged.points) <= 1000));
+
   const saveChanges = async () => {
     if (Object.keys(dirty).length === 0) return;
+    if (!editValid) { toast.error(t("fillAllFields") as string); return; }
     const patch: Record<string, unknown> = { ...dirty };
     const approvingNow = dirty.status === "done" && task.status !== "done";
     if (approvingNow) patch.completed_at = new Date().toISOString();
