@@ -187,15 +187,15 @@ function CompareReportsPage() {
         {/* Projects venn */}
         <div style={{ marginBottom: 20 }}>
           <SectionTitle>{t("projectsTouched")}</SectionTitle>
-          <div style={{
+          <div className="compare-projects-grid" style={{
             background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18,
-            display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14,
           }}>
             <VennColumn title={`${t("onlyIn")} A`} items={onlyA} accent="var(--brand-blue)" lang={lang} />
             <VennColumn title={t("shared")} items={both} accent="var(--foreground)" lang={lang} />
             <VennColumn title={`${t("onlyIn")} B`} items={onlyB} accent="var(--brand-gold)" lang={lang} />
           </div>
         </div>
+
       <style>{`.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
