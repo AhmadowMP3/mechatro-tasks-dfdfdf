@@ -53,10 +53,12 @@ export function PageHeader({
       {adornment}
       <div style={{ minWidth: 0, flex: 1 }}>
         <h1
+          className="ph-title-accent"
           style={{
             fontSize: titleSize,
             fontWeight: 900,
             margin: 0,
+            marginBottom: subtitle ? 10 : 6,
             lineHeight: 1.15,
             whiteSpace: "nowrap",
             overflow: "hidden",
