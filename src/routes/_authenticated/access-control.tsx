@@ -435,8 +435,8 @@ function InviteModal({ lang, onClose, onInvited }: {
           action: "create",
           role,
           expires_in: expiry,
-          email: mode === "locked" ? email.trim().toLowerCase() : null,
-          full_name: (mode === "locked" || access === "preset") ? fullName.trim() : null,
+          full_name: fullName.trim() || null,
+
           preset_password: access === "preset" ? presetPassword.trim() : null,
         },
       });
