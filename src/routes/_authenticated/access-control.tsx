@@ -30,6 +30,7 @@ type UserRow = {
   avatar_url: string | null;
   job_title: string | null;
   email: string | null;
+  username: string | null;
   role: "admin" | "member" | "manager" | "viewer";
   status: "pending" | "active" | "suspended";
   is_master_admin: boolean;
@@ -37,6 +38,7 @@ type UserRow = {
   last_sign_in_at: string | null;
   created_at: string;
 };
+
 
 async function call(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("admin-users", { body });
