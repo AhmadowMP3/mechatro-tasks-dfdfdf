@@ -305,13 +305,12 @@ function ActivityPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-        <ScrollText size={26} />
-        <div style={{ flex: 1 }}>
-          <h1 style={{ fontSize: 26, margin: 0 }}>{t("activityLog")}</h1>
-          <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>{t("activityLogSubtitle")}</div>
-        </div>
-      </div>
+      <PageHeader
+        title={t("activityLog")}
+        subtitle={t("activityLogSubtitle")}
+        adornment={<ScrollText size={22} />}
+      />
+
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
         <SearchField value={search.q} onChange={(v) => patchSearch({ q: v })} />
