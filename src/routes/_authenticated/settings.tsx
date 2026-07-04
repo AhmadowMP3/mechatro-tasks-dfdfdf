@@ -39,6 +39,7 @@ type Backup = { name: string; size: number; created_at: string; };
 
 function BackupsSection() {
   const { t, lang } = useApp();
+  const isMobile = useIsMobile();
   const [running, setRunning] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<Backup | null>(null);
 
