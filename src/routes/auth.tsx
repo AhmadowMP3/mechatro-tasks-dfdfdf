@@ -133,9 +133,10 @@ function AuthPage() {
         </div>
 
         <form onSubmit={handleSignIn} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Field label={l ? "البريد الإلكتروني" : "Email"}>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} dir="ltr" />
+          <Field label={l ? "الاسم" : "Name"}>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="username" style={inputStyle} dir="ltr" />
           </Field>
+
           <Field label={l ? "كلمة المرور" : "Password"}>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} style={inputStyle} dir="ltr" />
           </Field>
