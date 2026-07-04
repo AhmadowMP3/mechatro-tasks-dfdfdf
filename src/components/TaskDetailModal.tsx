@@ -75,11 +75,22 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
   const saveChanges = async () => {
     if (Object.keys(dirty).length === 0) return;
     const patch: Record<string, unknown> = { ...dirty };
-    if (dirty.status === "done" && task.status !== "done") patch.completed_at = new Date().toISOString();
+    const approvingNow = dirty.status === "done" && task.status !== "done";
+    if (approvingNow) patch.completed_at = new Date().toISOString();
     if (dirty.status && dirty.status !== "done") patch.completed_at = null;
     const { error } = await supabase.from("tasks").update(patch as never).eq("id", taskId);
     if (error) { toast.error(error.message); return; }
     toast.success(t("saved"));
+
+    if (approvingNow && (merged.points ?? 0) > 0) {
+      // Celebrate! Fire confetti burst.
+      try {
+        confetti({ particleCount: 120, spread: 75, origin: { y: 0.6 }, colors: ["#FFD700", "#42C2EE", "#3ECF8E", "#F0676A"] });
+        setTimeout(() => confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0 } }), 150);
+        setTimeout(() => confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1 } }), 300);
+      } catch { /* noop */ }
+      toast.success(`⭐ +${merged.points} ${t("points")}`);
+    }
 
     if (dirty.assignee_id && dirty.assignee_id !== task.assignee_id) {
       await notify(dirty.assignee_id as string, "task_assigned", `تم تكليفك بمهمة: ${task.title}`, `Assigned to task: ${task.title}`, undefined, taskId);
