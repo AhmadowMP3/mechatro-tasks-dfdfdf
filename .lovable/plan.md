@@ -1,56 +1,69 @@
-# Fix blank PDF pages + logo everywhere
+## What's actually going on
 
-## What's actually broken
+The invite system already exists and works:
 
-I opened `Mechatro_Report_zaven_2026-07-04.pdf`:
+- Admin page: `/access-control` — approve pending users, change roles, kick users, generate invite links, view/revoke active links.
+- Public accept page: `/accept-invite?token=…` — invitee lands here, signs up / signs in, gets auto-approved with the role from the invite.
+- Backend: `admin-invites` + `redeem-invite` edge functions (already deployed).
 
-- Page 1 → cover renders correctly.
-- Page 2 → completely white.
-- Page 3 → completely **black**.
-- Page 4 → white.
+You can't find it because:
 
-A solid black canvas from html2canvas is a signature of one specific bug: capturing elements that live outside the initial viewport of the iframe with `foreignObjectRendering: true` enabled. Our current pipeline builds one long iframe (`pageCount × 1123px`), stacks every `.pdf-page` section inside it, then loops and calls `html2canvas(section)` on each. Sections 2+ start at y=1123, 2246, … outside the initial 794×1123 window — html2canvas returns blank / black canvases for those.
+1. In the sidebar it's gated to **master admin only** (regular admins don't see it).
+2. It's not surfaced anywhere on mobile beyond the hamburger sidebar, so it feels hidden.
+3. There's no shortcut from the pages where you'd actually think of inviting someone (Team page).
 
-The HTML itself is correct: `buildReportHtml` in `src/lib/report/report-html.ts` produces cover + 3 content sections, joined into 4 `.pdf-page` blocks. The bug is purely in the renderer at `src/lib/report/generator.ts`.
+## Plan
 
-## Fix (technical)
+### 1. Surface "People & Invites" everywhere it belongs
 
-Rewrite `renderHtmlToPdfBlob` in `src/lib/report/generator.ts` so each `.pdf-page` is rendered in isolation:
+- Rename the sidebar entry from "Access Control" to **"People & Invites"** with a `UserPlus` icon (both AR/EN). Keep route as `/access-control`.
+- Show it for **all admins** (not just master). The `admin-invites` / `admin-users` edge functions already enforce master-admin for destructive ops, so admins get a read + invite-generate experience; sensitive controls stay gated server-side.
+- Add a prominent **"Invite by link"** button on the **Team** page header for admins — opens the same `InviteModal` used in Access Control.
+- Add an **"Invite people"** quick tile on the Dashboard for admins (small card, gold accent, opens the modal).
 
-1. Parse the incoming HTML once, extract every `<section class="pdf-page">` node.
-2. For each section, create a **fresh 794×1123 iframe**, write only that section into its body (`position:absolute; inset:0`) — so the element html2canvas captures is at (0,0) of its own viewport.
-3. Wait for fonts + images to load in that iframe, then capture with:
-   - `foreignObjectRendering: false` (root cause of the black page)
-   - `scale: 2`, `useCORS: true`, `backgroundColor: "#ffffff"`
-4. If the resulting canvas is taller than A4 (long tasks/activity lists), slice it into multiple A4-sized image tiles and add each as a new PDF page — no more clipped content.
-5. Preload the Mechatro logo once as a **base64 data URL**, and replace `src="…/mechatro-logo.png"` in the HTML before rendering. This guarantees the logo shows up regardless of asset CDN CORS behavior in html2canvas.
-6. Remove each temporary iframe in a `finally` block.
+### 2. Mobile discoverability
 
-Apply the same renderer to team, member, bilingual, and comparison flows — they all funnel through `renderHtmlToPdfBlob`, so one fix covers everything.
+- Add a floating **"+ Invite"** entry inside the mobile sidebar top area (right under the profile block) for admins — one tap → invite modal, no need to scroll the nav.
+- Ensure the mobile tab bar's overflow ("More") lists People & Invites for admins.
 
-## Logo everywhere ("cool" polish)
+### 3. Polish the invite modal + link screen
 
-- Excel already embeds the logo on Summary, Tasks, and each member sheet — leave that alone.
-- PDF: keep the current cover logo + top-of-page header logo, and add a subtle **watermark logo** in `contentPage()` (bottom-right, 60px, 8% opacity) so every internal page is branded without competing with content.
-- Add a thin gold underline (`th.gold`) under the header logo lockup to match the cover style.
+Desktop + mobile:
+- Full-height sheet on mobile (bottom-sheet style), centered dialog on desktop.
+- Role picker as segmented buttons (Member / Admin) with icons.
+- Expiry chips: 24h · 7d · 30d · Never.
+- Optional "lock to email" field with a hint.
+- Generated-link view: big monospace pill, one-tap **Copy** + **Share** (uses `navigator.share` on mobile), QR code toggle for in-person handoff, and expiry countdown.
+- Active invites list: cleaner rows on mobile (stacked), copy/revoke inline, "expires in Xd" badge.
 
-## Verification
+### 4. Accept-invite page polish
 
-After the change I'll render a fresh member report with the same range as the uploaded one, convert every page to a JPEG with `pdftoppm`, and view all pages to confirm:
+- Branded header with Mechatro logo lockup.
+- Clear "You've been invited as **Member/Admin**" hero.
+- Sign-in vs. sign-up toggle preserved; on success, auto-navigate to `/`.
+- Better error states for revoked/expired/used (already localized — just restyle).
 
-- Cover intact
-- Pages 2-N show real content (profile, KPIs, charts, tasks, sessions, activity)
-- Watermark logo visible bottom-right on every content page
-- No black frames, no clipping
+### 5. Kick / role change UX (already exists — just polish)
+
+- Confirm dialog for kick with the user's name.
+- Role dropdown → segmented control on desktop rows; sheet picker on mobile rows.
+- Toast on success ("Kicked Ahmed", "Ahmed is now Admin").
 
 ## Files to touch
 
-- `src/lib/report/generator.ts` — new isolated-iframe renderer, canvas slicing, logo → data URL preload
-- `src/lib/report/report-html.ts` — add watermark logo + gold underline in `contentPage()`
-- `src/lib/report/team-report.ts` — same watermark in the team page footer (small)
+- `src/components/layout/Sidebar.tsx` — rename entry, change gate to `isAdmin`, add mobile "Invite" shortcut block.
+- `src/components/layout/MobileTabBar.tsx` — add to More menu for admins.
+- `src/routes/_authenticated/access-control.tsx` — modal + list polish, mobile layout.
+- `src/routes/_authenticated/team.tsx` — add "Invite by link" header button.
+- `src/routes/_authenticated/index.tsx` (dashboard) — add "Invite people" tile for admins.
+- `src/routes/accept-invite.tsx` — visual polish only.
+- `src/styles.css` — utility classes for the invite sheet + QR block.
 
-## Out of scope
+No schema, edge-function, or RLS changes. Existing `admin-invites` and `redeem-invite` functions handle everything.
 
-- Redesigning report themes/layouts
-- Changing Excel export (logo already works there)
-- Comparison page visual layout (only the render pipeline is fixed)
+## One thing to confirm
+
+Right now regular admins can't open Access Control at all. Do you want:
+
+- **A**: Regular admins can open the page and generate invite links, but only master admin can approve/kick/change roles (recommended — backend already enforces this).
+- **B**: Keep it master-admin-only, just make it easier to find on mobile.

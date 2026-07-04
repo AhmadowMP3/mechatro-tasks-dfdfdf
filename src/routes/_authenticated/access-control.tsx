@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ShieldCheck, LinkIcon, Link2, MoreVertical, Trash2, Pause, Play, Check, Crown, User as UserIcon, X,
-  Copy, Clock, Mail, Sparkles, RefreshCw, Ban,
+  Copy, Clock, Mail, Sparkles, RefreshCw, Ban, Share2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
@@ -17,8 +17,9 @@ export const Route = createFileRoute("/_authenticated/access-control")({
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
-    const { data: prof } = await supabase.from("profiles").select("is_master_admin").eq("id", data.user.id).maybeSingle();
-    if (!prof?.is_master_admin) throw redirect({ to: "/" });
+    const { data: prof } = await supabase.from("profiles").select("role, is_master_admin").eq("id", data.user.id).maybeSingle();
+    const isAdmin = prof?.is_master_admin || prof?.role === "admin";
+    if (!isAdmin) throw redirect({ to: "/" });
   },
   component: AccessControlPage,
 });
@@ -123,8 +124,8 @@ function AccessControlPage() {
   return (
     <div style={{ padding: "clamp(16px,3vw,32px)", maxWidth: 1100, margin: "0 auto" }}>
       <PageHeader
-        title={l ? "التحكم بالصلاحيات" : "Access Control"}
-        subtitle={l ? "الموافقة على الطلبات وإدارة الأدوار" : "Approve access requests and assign roles"}
+        title={l ? "الأعضاء والدعوات" : "People & Invites"}
+        subtitle={l ? "ادعُ أعضاء برابط، وافق على الطلبات، وأدر الأدوار" : "Invite people by link, approve requests, and manage roles"}
         adornment={
           <div style={{
             width: 44, height: 44, borderRadius: 12,
@@ -489,19 +490,43 @@ function InviteModal({ lang, onClose, onInvited }: {
               border: "1px solid #1E364D", fontFamily: "monospace",
               fontSize: 12.5, color: "#EAF2F9", wordBreak: "break-all", direction: "ltr",
             }}>{generated.url}</div>
-            <button onClick={copyLink} style={{
-              minHeight: 48, borderRadius: 12, border: "none", cursor: "pointer",
-              background: copied
-                ? "linear-gradient(135deg,#14A86E,#0E7B4F)"
-                : "linear-gradient(135deg,#F0B429,#F09F26)",
-              color: copied ? "#fff" : "#1A1408", fontWeight: 900, fontSize: 14,
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-              boxShadow: copied ? "0 8px 24px rgba(20,168,110,.35)" : "0 8px 24px rgba(240,180,41,.35)",
-              transition: "all .2s",
-            }}>
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-              {copied ? (l ? "تم النسخ" : "Copied!") : (l ? "نسخ الرابط" : "Copy link")}
-            </button>
+            <div style={{ display: "grid", gridTemplateColumns: typeof navigator !== "undefined" && "share" in navigator ? "1fr 1fr" : "1fr", gap: 10 }}>
+              <button onClick={copyLink} style={{
+                minHeight: 48, borderRadius: 12, border: "none", cursor: "pointer",
+                background: copied
+                  ? "linear-gradient(135deg,#14A86E,#0E7B4F)"
+                  : "linear-gradient(135deg,#F0B429,#F09F26)",
+                color: copied ? "#fff" : "#1A1408", fontWeight: 900, fontSize: 14,
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                boxShadow: copied ? "0 8px 24px rgba(20,168,110,.35)" : "0 8px 24px rgba(240,180,41,.35)",
+                transition: "all .2s",
+              }}>
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? (l ? "تم النسخ" : "Copied!") : (l ? "نسخ الرابط" : "Copy link")}
+              </button>
+              {typeof navigator !== "undefined" && "share" in navigator && (
+                <button
+                  onClick={async () => {
+                    if (!generated) return;
+                    try {
+                      await (navigator as Navigator & { share: (d: ShareData) => Promise<void> }).share({
+                        title: l ? "دعوة إلى Mechatro" : "Mechatro invite",
+                        text: l ? "لقد تمّت دعوتك للانضمام" : "You've been invited to join",
+                        url: generated.url,
+                      });
+                    } catch { /* user dismissed */ }
+                  }}
+                  style={{
+                    minHeight: 48, borderRadius: 12, cursor: "pointer",
+                    background: "transparent", border: "1.5px solid #1D9BF0",
+                    color: "#1D9BF0", fontWeight: 900, fontSize: 14,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  }}
+                >
+                  <Share2 size={16} />{l ? "مشاركة" : "Share"}
+                </button>
+              )}
+            </div>
             {generated.expires_at && (
               <div style={{ fontSize: 12, color: "#7A94A9", textAlign: "center" }}>
                 <Clock size={11} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />

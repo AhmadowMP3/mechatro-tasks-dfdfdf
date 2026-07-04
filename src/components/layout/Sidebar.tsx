@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2, Eye, Pencil, Crown } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2, Eye, Pencil, Crown, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,10 +49,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });
       nav.push({ to: "/reports", icon: FileText, key: "reports" });
       nav.push({ to: "/reports-history", icon: ScrollText, key: "reportHistory" });
+      nav.push({ to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } });
     }
 
     if (isMasterAdmin) {
-      nav.push({ to: "/access-control", icon: ShieldCheck, key: null, label: { ar: "التحكم بالصلاحيات", en: "Access Control" } });
       nav.push({ to: "/share-links", icon: Share2, key: null, label: { ar: "روابط المشاركة", en: "Share Links" } });
     }
   } else if (shareLink) {

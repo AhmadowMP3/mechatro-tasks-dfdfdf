@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, UserPlus } from "lucide-react";
 import { GenerateReportDialog } from "@/components/team/GenerateReportDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
@@ -136,9 +136,18 @@ function TeamPage() {
         title={t("team")}
         actions={
           isAdmin ? (
-            <button onClick={() => setAdd(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
-              <Plus size={18} /> {t("addMember")}
-            </button>
+            <div style={{ display: "inline-flex", gap: 8, flexWrap: "wrap" }}>
+              <Link
+                to="/access-control"
+                className="brand-btn"
+                style={{ background: "transparent", color: "#EAF2F9", border: "1.5px solid #1E364D", textDecoration: "none" }}
+              >
+                <UserPlus size={18} /> {lang === "ar" ? "دعوة برابط" : "Invite by link"}
+              </Link>
+              <button onClick={() => setAdd(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
+                <Plus size={18} /> {t("addMember")}
+              </button>
+            </div>
           ) : null
         }
       />
