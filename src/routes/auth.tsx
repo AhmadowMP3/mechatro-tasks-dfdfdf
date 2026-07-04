@@ -20,7 +20,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { t, lang, setLang, theme, setTheme } = useApp();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -36,8 +36,22 @@ function AuthPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      const trimmed = name.trim();
+      if (!trimmed) throw new Error(l ? "الاسم مطلوب" : "Name is required");
+
+      const { data: resolved, error: rpcErr } = await supabase
+        .rpc("resolve_login_email", { p_name: trimmed });
+      if (rpcErr) throw rpcErr;
+      const loginEmail = typeof resolved === "string" ? resolved : null;
+      if (!loginEmail) {
+        throw new Error(l ? "الاسم أو كلمة المرور غير صحيحة" : "Invalid name or password");
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
+      if (error) {
+        // Mask provider error to avoid confirming which half was wrong.
+        throw new Error(l ? "الاسم أو كلمة المرور غير صحيحة" : "Invalid name or password");
+      }
       if (data.user) {
         const recentWindow = new Date(Date.now() - 30 * 60 * 1000).toISOString();
         const { data: recentLogin } = await supabase
@@ -62,6 +76,7 @@ function AuthPage() {
       setBusy(false);
     }
   }
+
 
   return (
     <div
