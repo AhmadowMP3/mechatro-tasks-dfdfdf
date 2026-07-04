@@ -1,40 +1,24 @@
-## Goal
-Provision two ready-to-use test accounts with known passwords so you can log in and see the "New Project" / "New Task" buttons (Admin) and the member view (Member).
+## Problem
 
-## Why the buttons are hidden today
-The "New Project" and "New Task" buttons are gated by `isAdmin` in `src/routes/_authenticated/projects.tsx` and `.../tasks.tsx`. The screenshots show "My Tasks" and no create button — that means the account you're signed in with resolves to `role = 'member'`. Your Master Admin account (`minimamba1608@gmail.com`) does have `role = 'admin'` in the DB, so signing into that one already works. The fix here is to give you fresh, guaranteed test credentials for both roles.
+"Invalid login credentials" appears because `admin.test@mechatro.test` and `member.test@mechatro.test` don't exist yet — the seed function was written, but it's gated behind the Settings page which requires being signed in as the Master Admin. You're locked out.
 
-## Test accounts to create
+## Fix
 
-| Role   | Email                          | Password       | Full name        |
-|--------|--------------------------------|----------------|------------------|
-| Admin  | `admin.test@mechatro.test`     | `Admin!2026`   | Admin Test       |
-| Member | `member.test@mechatro.test`    | `Member!2026`  | Member Test      |
+Run the seed once as the Master Admin (`minimamba1608@gmail.com`), then sign in as the test users.
 
-(Passwords can be changed later from Settings.)
+### Steps
 
-## Implementation
+1. **Sign in as Master Admin** at `/auth` with `minimamba1608@gmail.com` and your existing password.
+2. **Go to Settings** → scroll to the "Seed test users" section (only visible to Master Admin).
+3. **Click "Seed test users"** — this calls `provisionTestUsers` which creates both auth users + profiles with correct roles.
+4. **Sign out**, then sign in with:
+   - Admin: `admin.test@mechatro.test` / `Admin!2026`
+   - Member: `member.test@mechatro.test` / `Member!2026`
 
-1. **Clean up orphan profile rows** — the `profiles` table already has duplicate rows for those two emails from earlier experiments but no matching `auth.users`. A migration will delete profile rows whose `id` isn't in `auth.users` for those two emails so the trigger can re-create clean ones.
+### If you don't remember the Master Admin password
 
-2. **Provision auth users via a one-shot admin server function** (`src/lib/provision-test-users.functions.ts`):
-   - `createServerFn` guarded by `requireSupabaseAuth` + master-admin check.
-   - Loads `supabaseAdmin` inside the handler (`await import('@/integrations/supabase/client.server')`).
-   - Uses `supabase.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name } })` for each account.
-   - After creation, updates each `profiles` row: sets `role = 'admin'` / `'member'`, `status = 'active'`, `active = true`.
-   - Idempotent: if the email already exists, updates password + metadata via `admin.updateUserById` instead.
+I'll add a one-time public seed path — a `/seed-test-users` route that calls a server function guarded by a hardcoded seed token you'd pass as `?token=...`. After running once, you'd sign in as the admin test user. I'd remove this route in a follow-up turn.
 
-3. **Trigger it once** — add a small "Seed test users" button on Settings visible only to the Master Admin. Clicking it calls the server fn and toasts the two credentials. Removed later or left behind a dev flag.
-
-4. **After running** — sign out, sign in as `admin.test@mechatro.test / Admin!2026` and you'll see:
-   - Sidebar → **Projects** → top-right **"+ New Project"** button
-   - Sidebar → **Tasks** → top-right **"+ New Task"** button
-
-## Files touched
-
-- `supabase/migrations/<ts>_cleanup_orphan_test_profiles.sql` (new)
-- `src/lib/provision-test-users.functions.ts` (new)
-- `src/routes/_authenticated/settings.tsx` (add master-admin-only "Seed test users" button)
-
-## Not touched
-RLS, existing roles, invite flow, or your Master Admin account.
+Tell me which option you want:
+- **A** — you have the Master Admin password, just run the seed from Settings (no code changes needed)
+- **B** — you don't have it, add the temporary `/seed-test-users` route
