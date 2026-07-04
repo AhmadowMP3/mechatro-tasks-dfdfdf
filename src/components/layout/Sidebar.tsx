@@ -167,9 +167,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               key={to}
               to={to}
               onClick={onClose}
+              className={`side-item ${active ? "is-active" : ""}`}
               style={{
                 display: "flex", alignItems: "center", gap: 12,
-                padding: "12px 14px", marginBottom: 4,
+                padding: "10px 12px", marginBottom: 4,
                 borderRadius: 12,
                 minHeight: 48,
                 background: active ? "var(--grad-blue)" : "transparent",
@@ -181,7 +182,12 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               }}
             >
               <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>{label}</span>
-              <Icon size={20} />
+              <span
+                className={`icon-tile icon-tile-sm ${active ? "is-active" : ""}`}
+                style={active ? { background: "rgba(255,255,255,0.18)", color: "#fff", borderColor: "transparent", boxShadow: "none" } : undefined}
+              >
+                <Icon size={16} />
+              </span>
             </Link>
           );
         })}

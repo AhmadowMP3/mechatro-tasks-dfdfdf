@@ -175,6 +175,9 @@
   box-shadow: var(--shadow-card);
   transition: background-color .3s ease, border-color .3s ease, box-shadow .3s ease;
 }
+@utility brand-card-hover {
+  transition: transform .2s ease, box-shadow .25s ease, border-color .25s ease;
+}
 @utility brand-btn {
   min-height: 52px;
   padding: 14px 28px;
@@ -185,10 +188,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: transform .1s ease, filter .15s ease, background .15s;
+  transition: transform .12s ease, filter .18s ease, background .18s, box-shadow .2s ease;
   cursor: pointer;
   border: none;
+  will-change: transform;
 }
+.brand-btn:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+.brand-btn:active:not(:disabled) { transform: translateY(0); filter: brightness(.96); }
+.brand-btn:disabled { opacity: .55; cursor: not-allowed; }
 @utility brand-btn-sm {
   min-height: 44px;
   padding: 10px 18px;
@@ -201,7 +208,130 @@
   gap: 6px;
   cursor: pointer;
   border: none;
+  transition: transform .12s ease, filter .18s ease, background .18s;
 }
+.brand-btn-sm:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+.brand-btn-sm:active:not(:disabled) { transform: translateY(0); filter: brightness(.96); }
+
+/* Card hover lift */
+.brand-card { transition: transform .2s ease, box-shadow .25s ease, border-color .25s ease, background-color .3s ease; }
+.brand-card.is-interactive:hover,
+a.brand-card:hover,
+button.brand-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow), var(--shadow-card);
+  border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
+}
+
+/* Icon tile — a soft rounded tile behind a Lucide icon */
+.icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  color: var(--primary);
+  border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
+  transition: background .2s ease, color .2s ease, transform .2s ease, box-shadow .25s ease, border-color .2s ease;
+  flex-shrink: 0;
+}
+.icon-tile-sm { width: 30px; height: 30px; border-radius: 8px; }
+.icon-tile-lg { width: 44px; height: 44px; border-radius: 12px; }
+.icon-tile.is-active,
+.icon-tile-primary { background: var(--grad-blue); color: #fff; border-color: transparent; box-shadow: 0 4px 14px -4px color-mix(in oklab, var(--primary) 55%, transparent); }
+.icon-tile-orange { background: var(--grad-orange); color: #fff; border-color: transparent; box-shadow: 0 4px 14px -4px rgba(232,115,46,.5); }
+.icon-tile-green { background: var(--grad-green); color: #fff; border-color: transparent; box-shadow: 0 4px 14px -4px rgba(63,120,42,.5); }
+.icon-tile-danger { background: color-mix(in oklab, var(--destructive) 14%, transparent); color: var(--destructive); border-color: color-mix(in oklab, var(--destructive) 28%, transparent); }
+.icon-tile-muted { background: var(--surface-2); color: var(--muted); border-color: var(--border); }
+a:hover > .icon-tile,
+button:hover > .icon-tile { transform: scale(1.06); }
+
+/* Sidebar nav item — hover slide accent + active glow */
+.side-item {
+  position: relative;
+  overflow: hidden;
+  transition: background .2s ease, color .2s ease;
+}
+.side-item::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 12%;
+  bottom: 12%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--grad-blue);
+  opacity: 0;
+  transform: scaleY(0.4);
+  transition: opacity .25s ease, transform .25s ease;
+}
+.side-item:not(.is-active):hover { background: color-mix(in oklab, var(--primary) 8%, transparent); color: #EAF2F9; }
+.side-item:not(.is-active):hover::before { opacity: 1; transform: scaleY(1); }
+.side-item.is-active { box-shadow: 0 6px 22px -8px color-mix(in oklab, var(--primary) 55%, transparent); }
+
+/* Page-header title accent */
+.ph-title-accent { position: relative; display: inline-block; }
+.ph-title-accent::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  bottom: -6px;
+  width: 42px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--grad-blue);
+  opacity: .9;
+}
+
+/* Empty-state icon halo */
+.empty-halo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px; height: 84px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%);
+  color: var(--primary);
+  animation: emptyFloat 3.6s ease-in-out infinite;
+}
+@keyframes emptyFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Mobile tab bar — active pill under icon */
+.mtab {
+  position: relative;
+  transition: color .2s ease;
+}
+.mtab-pill {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.6);
+  width: 44px;
+  height: 30px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--primary) 14%, transparent);
+  opacity: 0;
+  transition: opacity .22s ease, transform .22s ease;
+  z-index: 0;
+}
+.mtab.is-active .mtab-pill { opacity: 1; transform: translateX(-50%) scale(1); }
+.mtab > * { position: relative; z-index: 1; }
+
+/* Global input focus polish */
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: none;
+  border-color: color-mix(in oklab, var(--primary) 55%, var(--border)) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 20%, transparent);
+}
+
+/* Standardize Lucide stroke for a lighter, premium feel */
+.lucide { stroke-width: 1.75; }
+
+
 
 /* Responsive visibility helpers */
 @media (max-width: 640px) {
