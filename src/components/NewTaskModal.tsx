@@ -61,8 +61,17 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
       : duration <= 7 ? "#F1C40F"
       : "#3ECF8E";
 
+  const isValid =
+    form.title.trim().length > 0 &&
+    form.description.trim().length > 0 &&
+    form.project_id !== "" &&
+    form.assignee_id !== "" &&
+    form.due_date !== "" &&
+    !!form.priority &&
+    (!isAdmin || (Number(form.points) > 0 && Number(form.points) <= 1000));
+
   const submit = async () => {
-    if (!form.title || !form.project_id) { toast.error(t("title")); return; }
+    if (!isValid) return;
     const startISO = new Date().toISOString();
     const { data, error } = await supabase.from("tasks").insert({
       title: form.title, description: form.description || null,
