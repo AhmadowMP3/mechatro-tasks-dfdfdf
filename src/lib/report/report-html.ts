@@ -513,4 +513,3 @@ export function buildBilingualHtml(data: ReportData, theme?: ThemeId): string {
   return buildReportHtml(data, "ar", theme) + `<div class="html2pdf__page-break"></div>` + buildReportHtml(data, "en", theme);
 }
 
-}
