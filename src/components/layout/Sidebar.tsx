@@ -47,8 +47,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   if (!shareMode) {
     if (isAdmin) {
       nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });
-      nav.push({ to: "/reports-history", icon: FileText, key: "reportHistory" });
+      nav.push({ to: "/reports", icon: FileText, key: "reports" });
+      nav.push({ to: "/reports-history", icon: ScrollText, key: "reportHistory" });
     }
+
     if (isMasterAdmin) {
       nav.push({ to: "/access-control", icon: ShieldCheck, key: null, label: { ar: "التحكم بالصلاحيات", en: "Access Control" } });
       nav.push({ to: "/share-links", icon: Share2, key: null, label: { ar: "روابط المشاركة", en: "Share Links" } });
