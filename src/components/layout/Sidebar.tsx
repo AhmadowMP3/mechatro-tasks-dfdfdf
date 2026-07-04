@@ -215,3 +215,100 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     </aside>
   );
 }
+
+function EditNameModal({
+  currentName, userId, lang, onClose, onSaved,
+}: {
+  currentName: string;
+  userId: string;
+  lang: "ar" | "en";
+  onClose: () => void;
+  onSaved: () => Promise<void> | void;
+}) {
+  const [name, setName] = useState(currentName);
+  const [busy, setBusy] = useState(false);
+  const l = lang === "ar";
+
+  async function save() {
+    const trimmed = name.trim();
+    if (trimmed.length < 2 || trimmed.length > 80) {
+      toast.error(l ? "الاسم يجب أن يكون بين 2 و 80 حرفًا." : "Name must be between 2 and 80 characters.");
+      return;
+    }
+    if (trimmed === currentName) { onClose(); return; }
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("profiles").update({ full_name: trimmed }).eq("id", userId);
+      if (error) throw error;
+      toast.success(l ? "تم تحديث الاسم" : "Name updated");
+      await onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,.55)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 1000, padding: 16,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        dir={l ? "rtl" : "ltr"}
+        style={{
+          width: "100%", maxWidth: 400,
+          background: "#0A1A2B", border: "1px solid #1E364D", borderRadius: 16,
+          padding: 20, color: "#EAF2F9",
+          boxShadow: "0 24px 60px rgba(0,0,0,.5)",
+        }}
+      >
+        <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 14 }}>
+          {l ? "تعديل الاسم" : "Edit name"}
+        </div>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, color: "#9FB7C9", fontWeight: 700 }}>
+            {l ? "الاسم الكامل" : "Full name"}
+          </span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoFocus
+            maxLength={80}
+            style={{
+              width: "100%", padding: "12px 14px", borderRadius: 10,
+              background: "#13283D", color: "#EAF2F9",
+              border: "1px solid #1E364D", fontSize: 14, minHeight: 44, outline: "none",
+            }}
+          />
+        </label>
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <button
+            onClick={save}
+            disabled={busy}
+            style={{
+              flex: 1, minHeight: 44, borderRadius: 10,
+              background: "linear-gradient(135deg,#1D9BF0,#0F6BB8)",
+              color: "#fff", border: "none", fontWeight: 800, cursor: busy ? "wait" : "pointer",
+              opacity: busy ? 0.6 : 1,
+            }}
+          >{busy ? "…" : (l ? "حفظ" : "Save")}</button>
+          <button
+            onClick={onClose}
+            disabled={busy}
+            style={{
+              flex: 1, minHeight: 44, borderRadius: 10,
+              background: "transparent", color: "#EAF2F9",
+              border: "1px solid #1E364D", fontWeight: 700, cursor: "pointer",
+            }}
+          >{l ? "إلغاء" : "Cancel"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
