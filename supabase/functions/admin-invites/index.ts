@@ -86,11 +86,15 @@ Deno.serve(async (req) => {
       case "list": {
         const { data, error } = await admin
           .from("invites")
-          .select("id, token, role, email, full_name, created_by, created_at, expires_at, revoked_at, used_at, used_by")
+          .select("id, token, role, email, full_name, created_by, created_at, expires_at, revoked_at, used_at, used_by, password_hash")
           .order("created_at", { ascending: false })
           .limit(100);
         if (error) throw error;
-        return json(200, { invites: data ?? [] });
+        const invites = (data ?? []).map((r: Record<string, unknown>) => {
+          const { password_hash, ...rest } = r;
+          return { ...rest, has_password: !!password_hash };
+        });
+        return json(200, { invites });
       }
 
       case "revoke": {
