@@ -23,6 +23,7 @@ export function TableView({
   onOpen: (id: string) => void;
 }) {
   const { t, lang } = useApp();
+  const isMobile = useIsMobile();
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "due_date", dir: "asc" });
 
   const sorted = useMemo(() => {
