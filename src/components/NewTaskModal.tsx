@@ -29,7 +29,7 @@ function daysBetween(fromISO: string, toISO: string): number {
 }
 
 export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose: () => void; onCreated: () => void; defaultProjectId?: string }) {
-  const { t, lang, user, users } = useApp();
+  const { t, lang, user, users, isAdmin } = useApp();
   const { data: projects } = useQuery({
     queryKey: ["projects-mini"],
     queryFn: async () => (await supabase.from("projects").select("id,name_ar,name_en").eq("archived", false)).data ?? [],
@@ -37,6 +37,7 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
   const [form, setForm] = useState({
     title: "", description: "", project_id: defaultProjectId ?? "",
     assignee_id: "", priority: "normal", status: "todo", due_date: "",
+    points: 25,
   });
 
   // Live clock — updates every second while modal is open.
