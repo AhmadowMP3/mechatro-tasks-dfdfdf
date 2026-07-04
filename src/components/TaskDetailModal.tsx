@@ -215,6 +215,23 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
             ) : <PriorityPill priority={merged.priority} />}
           </Field>
 
+          <Field label={`⭐ ${t("taskPoints")}`}>
+            {canEditAll && !merged.points_awarded_at ? (
+              <input
+                type="number" min={0} max={1000}
+                value={merged.points ?? 0}
+                onChange={(e) => setField("points" as never, Number(e.target.value) as never)}
+                style={{ ...selectStyle, fontWeight: 800, background: "linear-gradient(135deg, rgba(255,215,0,.12), rgba(255,165,0,.08))" }}
+              />
+            ) : (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, background: "linear-gradient(135deg,#F5A623,#F0676A)", color: "#fff", fontWeight: 800 }}>
+                <Star size={14} fill="#fff" />
+                {toLocalDigits(merged.points_awarded_amount ?? merged.points ?? 0, lang)} {t("points")}
+                {merged.points_awarded_at && <span style={{ fontSize: 10, opacity: .85, marginInlineStart: 4 }}>✓</span>}
+              </div>
+            )}
+          </Field>
+
           <Field label={t("dueDate")}>
             {canEditAll ? (
               <input type="date" value={merged.due_date ?? ""} onChange={(e) => setField("due_date", e.target.value || null)} style={selectStyle} />
