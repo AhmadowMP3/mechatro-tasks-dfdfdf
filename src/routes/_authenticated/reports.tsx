@@ -327,7 +327,8 @@ function StepLanguage({ value, onChange }: { value: ReportLangChoice; onChange: 
     <div>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{t("reportLanguage")}</div>
       <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("reportLanguage")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+      <div className="wizard-lang-grid">
+
         {opts.map((o) => (
           <button key={o.id} onClick={() => onChange(o.id)} className="brand-btn" style={{
             flexDirection: "column", padding: 20, gap: 6, minHeight: 96,
