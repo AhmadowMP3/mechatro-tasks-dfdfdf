@@ -85,7 +85,6 @@ function AcceptInvitePage() {
           else {
             setPeek(p);
             setFullName(p.full_name ?? "");
-            setEmail(p.email ?? "");
           }
         }
       } catch (e) {
@@ -110,7 +109,6 @@ function AcceptInvitePage() {
         body: {
           mode: "redeem",
           token,
-          email: peek.is_email_locked ? peek.email : email.trim().toLowerCase(),
           full_name: fullName.trim(),
           password,
         },
@@ -121,8 +119,10 @@ function AcceptInvitePage() {
         try { if (ctx) code = ((await ctx.json()) as { error?: string })?.error ?? code; } catch { /* noop */ }
         throw new Error(translate(code, l));
       }
-      const finalEmail = (data as { email?: string })?.email ?? (peek.email ?? email.trim().toLowerCase());
+      const finalEmail = (data as { email?: string })?.email;
+      if (!finalEmail) throw new Error(translate("invalid_invite", l));
       const { error: signInErr } = await supabase.auth.signInWithPassword({
+
         email: finalEmail, password,
       });
       if (signInErr) throw signInErr;
