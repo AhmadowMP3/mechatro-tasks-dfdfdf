@@ -1,52 +1,54 @@
-## Fix: Dark/Light mode contrast bugs
+## Goal
 
-### Root cause
-The theme system works (CSS tokens on `:root` / `.light` in `src/styles.css`), but many route/component files use **hardcoded dark hex colors** in inline `style={{ ... }}` instead of the CSS variables. They stay dark navy even after `.light` is applied to `<html>`. Screenshot shows this on the People & Invites card (unreadable dark card + dark text on light background).
+Sign-in shows only **Name** and **Password** — no email field, no email errors. The invite/accept flow follows the same rule.
 
-### Scope
-Highest offenders (by count of hardcoded dark hex literals):
-```
-access-control.tsx : 49   ← the visible bug
-Sidebar.tsx        : 18
-auth.tsx           : 13
-accept-invite.tsx  : 13
-share.$token       :  6
-SuspendedScreen    :  6
-reset-password     :  4
-DatePickerField    :  4
-+ smaller (1-3 each): index, activity, team, tasks, reports, reports-history.compare, __root, GenerateReportDialog, KanbanView, FilterBar
-```
+Lovable Cloud auth requires each account to have an email under the hood, so we keep a hidden email on the account but the user never types or sees it — it's generated automatically from the name.
 
-### Fix approach (mechanical token swap)
-Replace hardcoded dark colors with existing CSS tokens so they respond to `.light`:
+## What changes for the user
 
-| Hardcoded | Replace with |
-|---|---|
-| `#081320`, `#0A1A2B` (bg) | `var(--background)` |
-| `#0F2031` (card) | `var(--card)` |
-| `#0B1A2A` | `var(--surface-2)` |
-| `#13283D` (inputs, tags) | `var(--surface-3)` |
-| `#1E364D` (border) | `var(--border)` |
-| `#274560` | `var(--border-2)` |
-| `#EAF2F9` (text) | `var(--foreground)` |
-| `#9FB7C9`, `#86A1B7`, `#8AA3B8`, `#B9CBDA` (muted text) | `var(--muted)` |
-| `#189FD1` | `var(--primary)` |
-| `#E8732E` | `var(--accent)` |
+- **/auth**: two fields only — **Name** and **Password**. No email input, no email validation errors.
+- **/accept-invite**: **Name** (locked to the invite's name when set) + **Password**. No email input.
+- Existing accounts keep working — anyone who already has a real email can sign in by typing their **full name** (or the name the admin set) instead of the email.
 
-Also normalize `rgba(255,255,255,.04)` style washes to `var(--surface-2)` or a token that flips in light mode.
+## How it works under the hood (technical)
 
-### Files edited
-Priority order (all in one pass):
-1. `src/routes/_authenticated/access-control.tsx` — invite cards, modals, buttons (fixes the screenshot)
-2. `src/components/layout/Sidebar.tsx` — user card, badges, edit-name modal
-3. `src/routes/auth.tsx`, `src/routes/accept-invite.tsx`, `src/routes/reset-password.tsx` — public auth pages
-4. `src/routes/share.$token.index.tsx`, `src/components/SuspendedScreen.tsx`
-5. `src/components/DatePickerField.tsx`
-6. Remaining files with 1-3 hits (quick pass)
+1. **`profiles.username`** — add a `citext` column with a unique index. Backfill from `full_name` (lowercase, spaces → `.`, non-alnum stripped); collisions get a numeric suffix. Kept in sync with `full_name` only until the user has a custom username.
 
-### Verification
-- Toggle theme, visit each page, confirm text + card + input contrast in both modes.
-- Playwright screenshot of `/access-control` in `.light` + `.dark` to verify the invite card matches theme.
-- No functional changes; pure visual token swap.
+2. **Synthetic email bridge** — every account still has an email in `auth.users`. New accounts get `"<username>@users.mechatro.local"`. Existing real emails stay untouched; login resolves username → email.
 
-Estimated 120-160 targeted line replacements, no logic changes.
+3. **RPC `resolve_login_email(p_name text) returns text`** — SECURITY DEFINER, `search_path = public`. Matches `lower(username) = lower($1) OR lower(full_name) = lower($1)`, returns the email only when `status = 'active'`. Returns NULL otherwise (client shows a single generic "Invalid name or password" — no user enumeration). `GRANT EXECUTE TO anon, authenticated`.
+
+4. **Sign-in flow** (`src/routes/auth.tsx`):
+   - Replace the email input with a **Name** input (`autoComplete="username"`, LTR).
+   - On submit: `supabase.rpc("resolve_login_email", { p_name: name })` → if it returns a string, call `signInWithPassword({ email, password })`; otherwise show the generic error.
+   - Drop `type="email"` and email-only strings. AR/EN labels: "الاسم" / "Name".
+
+5. **Invite acceptance** (`src/routes/accept-invite.tsx` + `supabase/functions/admin-invites/index.ts`):
+   - Remove the email input. Use the invite's `full_name` as the name; if the invite has no name, ask for one on the accept screen.
+   - The edge function derives `username` from the accepted name and creates the auth user with `"<username>@users.mechatro.local"`. On collision, append a numeric suffix and return the final name so the UI can show it.
+   - Delete `is_email_locked`, `email_required`, `email_mismatch`, `email_taken` strings and branches.
+
+6. **Access-Control admin UX** — where the pending/active list currently prints the email as a subtitle, show `@username` instead (fallback to nothing when unset). No policy changes.
+
+7. **Master-admin bootstrap** — `app_config.master_admin_email` stays for server-side identification. The master signs in the same way: types their name, RPC resolves to their email.
+
+## Files touched
+
+- `supabase/migrations/*` — `username` column + unique index, backfill, `resolve_login_email` RPC + grants.
+- `src/routes/auth.tsx` — name field, RPC call, error handling.
+- `src/routes/accept-invite.tsx` — remove email UI + related strings.
+- `supabase/functions/admin-invites/index.ts` — derive username, synthesize email, drop email from the create-invite payload.
+- `src/routes/_authenticated/access-control.tsx` — subtitle uses `@username`.
+
+## Not in scope
+
+Password reset via email link. Once emails are hidden, "forgot password" needs an admin-driven reset (admin sets a new password from Access Control). Small follow-up if you want it.
+
+## One question before I build
+
+The invite dialog currently lets admins optionally type an email for the invitee. Do you want me to:
+
+- **(A)** Remove the email field completely — invites are name-only, synthetic email generated automatically; or
+- **(B)** Keep it as an *optional* admin note (hidden from the invitee, used only if the admin later wants a real recovery email).
+
+Reply "A" or "B" and I'll implement.

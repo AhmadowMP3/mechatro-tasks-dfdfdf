@@ -30,6 +30,7 @@ type UserRow = {
   avatar_url: string | null;
   job_title: string | null;
   email: string | null;
+  username: string | null;
   role: "admin" | "member" | "manager" | "viewer";
   status: "pending" | "active" | "suspended";
   is_master_admin: boolean;
@@ -37,6 +38,7 @@ type UserRow = {
   last_sign_in_at: string | null;
   created_at: string;
 };
+
 
 async function call(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("admin-users", { body });
@@ -206,7 +208,7 @@ function AccessControlPage() {
                 )}
                 <StatusPill status={u.status} lang={lang} />
               </div>
-              <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }} dir="ltr">{u.email ?? "—"}</div>
+              <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }} dir="ltr">{u.username ? `@${u.username}` : "—"}</div>
               <div style={{ fontSize: 11.5, color: "#7A94A9", marginTop: 3 }}>
                 {u.last_sign_in_at
                   ? (l ? "آخر دخول: " : "Last sign-in: ") + relativeTime(u.last_sign_in_at, lang)
@@ -401,11 +403,10 @@ function InviteModal({ lang, onClose, onInvited }: {
 }) {
   const l = lang === "ar";
   const [role, setRole] = useState<"member" | "admin">("member");
-  const [mode, setMode] = useState<"open" | "locked">("open");
   const [access, setAccess] = useState<"self_serve" | "preset">("self_serve");
-  const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [presetPassword, setPresetPassword] = useState("");
+
   const [showPreset, setShowPreset] = useState(false);
   const [expiry, setExpiry] = useState<"24h" | "7d" | "30d" | "never">("7d");
   const [busy, setBusy] = useState(false);
@@ -436,8 +437,8 @@ function InviteModal({ lang, onClose, onInvited }: {
           action: "create",
           role,
           expires_in: expiry,
-          email: mode === "locked" ? email.trim().toLowerCase() : null,
-          full_name: (mode === "locked" || access === "preset") ? fullName.trim() : null,
+          full_name: fullName.trim() || null,
+
           preset_password: access === "preset" ? presetPassword.trim() : null,
         },
       });
@@ -661,32 +662,6 @@ function InviteModal({ lang, onClose, onInvited }: {
               </div>
             </Field>
 
-            <Field label={l ? "نوع الرابط" : "Link binding"}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8 }}>
-                {[
-                  { v: "open",   ar: "مفتوح للجميع", en: "Open link", desc: l ? "أول من يفتحه يستخدمه" : "First to open claims it" },
-                  { v: "locked", ar: "مقيّد ببريد",  en: "Email-locked", desc: l ? "يُقبل من بريد محدد فقط" : "Only a specific email may sign up" },
-                ].map(({ v, ar, en, desc }) => (
-                  <button key={v} type="button" onClick={() => setMode(v as "open" | "locked")} style={{
-                    padding: 12, borderRadius: 10, cursor: "pointer",
-                    border: `1.5px solid ${mode === v ? "#F0B429" : "var(--border)"}`,
-                    background: mode === v ? "rgba(240,180,41,.08)" : "transparent",
-                    color: "var(--foreground)", textAlign: "start",
-                    display: "flex", flexDirection: "column", gap: 4,
-                  }}>
-                    <div style={{ fontWeight: 800, fontSize: 13.5 }}>{l ? ar : en}</div>
-                    <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{desc}</div>
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            {mode === "locked" && (
-              <Field label={l ? "البريد الإلكتروني" : "Email"}>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputCss} dir="ltr" />
-              </Field>
-            )}
-
             <Field label={l ? "طريقة الدخول" : "Access"}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
                 {[
@@ -707,13 +682,12 @@ function InviteModal({ lang, onClose, onInvited }: {
               </div>
             </Field>
 
-            {(access === "preset" || mode === "locked") && (
-              <Field label={l ? "الاسم الكامل" + (access === "preset" ? "" : " (اختياري)") : "Full name" + (access === "preset" ? "" : " (optional)")}>
-                <input value={fullName} onChange={(e) => setFullName(e.target.value)}
-                  placeholder={l ? "مثال: أحمد محمود" : "e.g. Ahmed Mahmoud"}
-                  required={access === "preset"} style={inputCss} />
-              </Field>
-            )}
+            <Field label={l ? "الاسم الكامل" : "Full name"}>
+              <input value={fullName} onChange={(e) => setFullName(e.target.value)}
+                placeholder={l ? "مثال: أحمد محمود" : "e.g. Ahmed Mahmoud"}
+                required style={inputCss} />
+            </Field>
+
 
             {access === "preset" && (
               <Field label={l ? "كلمة المرور (٨ أحرف على الأقل)" : "Password (min 8 characters)"}>

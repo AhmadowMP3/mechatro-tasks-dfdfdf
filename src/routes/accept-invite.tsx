@@ -4,7 +4,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
-import { ShieldCheck, User as UserIcon, Sparkles, Lock, Mail, Loader2, AlertTriangle } from "lucide-react";
+import { ShieldCheck, User as UserIcon, Sparkles, Lock, Loader2, AlertTriangle } from "lucide-react";
 import logo from "@/assets/mechatro-logo.png";
 
 const searchSchema = z.object({ token: z.string().catch("").default("") });
@@ -36,15 +36,14 @@ const ERROR_MAP: Record<string, { ar: string; en: string }> = {
   invite_revoked:   { ar: "تم إلغاء هذه الدعوة.",         en: "This invite has been revoked." },
   invite_used:      { ar: "تم استخدام هذه الدعوة مسبقًا.", en: "This invite has already been used." },
   invite_expired:   { ar: "انتهت صلاحية الدعوة.",         en: "This invite has expired." },
-  email_required:   { ar: "البريد الإلكتروني مطلوب.",     en: "Email is required." },
-  email_mismatch:   { ar: "البريد لا يطابق الدعوة.",      en: "Email does not match the invite." },
-  email_taken:      { ar: "هذا البريد مسجّل مسبقًا.",     en: "This email is already registered." },
+  name_taken:       { ar: "هذا الاسم مستخدم مسبقًا.",      en: "This name is already taken." },
   password_too_short: { ar: "كلمة المرور قصيرة (٨ أحرف على الأقل).", en: "Password must be at least 8 characters." },
   password_required: { ar: "كلمة المرور مطلوبة.",         en: "Password is required." },
   password_mismatch: { ar: "كلمة المرور غير صحيحة.",       en: "That password is incorrect." },
   too_many_attempts: { ar: "محاولات كثيرة. حاول لاحقًا.",  en: "Too many attempts. Try again later." },
   token_required:   { ar: "الرابط ناقص.",                 en: "Invite link is incomplete." },
 };
+
 
 function translate(code: string | undefined, l: boolean): string {
   if (!code) return l ? "حدث خطأ." : "Something went wrong.";
@@ -63,8 +62,8 @@ function AcceptInvitePage() {
   const [loading, setLoading] = useState(true);
 
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -86,7 +85,6 @@ function AcceptInvitePage() {
           else {
             setPeek(p);
             setFullName(p.full_name ?? "");
-            setEmail(p.email ?? "");
           }
         }
       } catch (e) {
@@ -111,7 +109,6 @@ function AcceptInvitePage() {
         body: {
           mode: "redeem",
           token,
-          email: peek.is_email_locked ? peek.email : email.trim().toLowerCase(),
           full_name: fullName.trim(),
           password,
         },
@@ -122,8 +119,10 @@ function AcceptInvitePage() {
         try { if (ctx) code = ((await ctx.json()) as { error?: string })?.error ?? code; } catch { /* noop */ }
         throw new Error(translate(code, l));
       }
-      const finalEmail = (data as { email?: string })?.email ?? (peek.email ?? email.trim().toLowerCase());
+      const finalEmail = (data as { email?: string })?.email;
+      if (!finalEmail) throw new Error(translate("invalid_invite", l));
       const { error: signInErr } = await supabase.auth.signInWithPassword({
+
         email: finalEmail, password,
       });
       if (signInErr) throw signInErr;
@@ -259,13 +258,8 @@ function AcceptInvitePage() {
                 <input value={fullName} onChange={(e) => setFullName(e.target.value)}
                   required style={inputStyle} placeholder={l ? "مثال: أحمد محمود" : "e.g. Ahmed Mahmoud"} />
               </Field>
-              <Field label={l ? "البريد الإلكتروني" : "Email"} icon={Mail}>
-                <input type="email" value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required readOnly={peek.is_email_locked}
-                  style={{ ...inputStyle, opacity: peek.is_email_locked ? 0.75 : 1, cursor: peek.is_email_locked ? "not-allowed" : "text" }}
-                  dir="ltr" />
-              </Field>
+
+
               <Field
                 label={peek.has_password
                   ? (l ? "كلمة المرور المُرسَلة إليك" : "Password from your admin")
