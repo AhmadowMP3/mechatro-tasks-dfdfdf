@@ -10,13 +10,15 @@ import {
   type PreparedMemberReport,
   type ReportLangChoice,
 } from "@/lib/report/generator";
+import type { ThemeId } from "@/lib/report/themes";
 
 type RangeKey = "all" | "7d" | "30d" | "90d" | "custom";
 
 export function GenerateReportDialog({ member, onClose }: { member: Profile; onClose: () => void }) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const [langChoice, setLangChoice] = useState<ReportLangChoice>("bilingual");
   const [rangeKey, setRangeKey] = useState<RangeKey>("30d");
+  const [theme, setTheme] = useState<ThemeId>("aurora");
   const today = new Date().toISOString().slice(0, 10);
   const monthAgo = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
   const [from, setFrom] = useState(monthAgo);
@@ -33,8 +35,9 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
         rangeKey === "all" ? { kind: "all" } :
         { kind: rangeKey };
       const data = await loadMemberReportData(member.id, range);
-      const p = await buildMemberReportPdf(data, langChoice);
+      const p = await buildMemberReportPdf(data, langChoice, theme);
       setPrepared(p);
+
     } catch (e: unknown) {
       console.error(e);
       toast.error((e as Error).message || t("reportError"));
