@@ -203,12 +203,13 @@ function ReportsHistoryPage() {
                 const isSelected = selected.includes(r.id);
                 const isComparison = r.kind === "comparison";
                 return (
-                  <div key={r.id} style={{
+                  <div key={r.id} className="history-row" style={{
                     background: "var(--surface)", border: `1px solid ${isSelected ? "var(--brand-gold)" : "var(--border)"}`,
-                    borderRadius: 14, padding: 14, display: "flex", gap: 14, alignItems: "center",
+                    borderRadius: 14,
                     boxShadow: isSelected ? "0 0 0 3px rgba(245,179,1,.18)" : "none",
                     transition: "all .15s",
                   }}>
+
                     <button
                       onClick={() => toggleSelect(r.id)}
                       title={isSelected ? t("selectedForCompare") : t("selectForCompare")}
