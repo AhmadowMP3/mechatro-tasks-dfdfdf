@@ -78,9 +78,10 @@ Deno.serve(async (req) => {
         const t = newToken();
         const { data: row, error } = await admin.from("invites").insert({
           token: t, role, email, full_name, expires_at, created_by: me!.id, password_hash,
-        }).select("*").single();
+        }).select("id, token, role, email, full_name, created_by, created_at, expires_at, revoked_at, used_at, used_by").single();
         if (error) throw error;
-        return json(200, { invite: row, preset_password });
+        const invite = { ...row, has_password: !!password_hash };
+        return json(200, { invite, preset_password });
       }
 
       case "list": {

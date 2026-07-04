@@ -1,93 +1,42 @@
-## Goal
+## Access Control – Full End-to-End Audit
 
-Let the admin set a **name + password** when generating an invite link. The admin then shares the link + password with the invitee. The invitee opens the link, is greeted by name, enters the password, and their account is created & signed in — no picking their own password.
+Goal: verify the invite + preset-password + access-control flow works with zero errors, across DB, edge functions, and UI. No feature changes — audit + fix only what's broken.
 
-## UX flow
+### 1. Database layer
+- Inspect `public.invites` columns: confirm `password_hash TEXT NULL` and `has_password` generated column exist and are correct.
+- Confirm RLS policies + GRANTs on `invites` still match (admin manage, anon peek by token if applicable).
+- Run `supabase--linter` to catch missing RLS / grant regressions.
+- Spot-check `profiles`, `user_roles` (if any), `app_config` for master-admin logic still consistent.
 
-**Admin — Generate link (Access Control → Generate invite link)**
+### 2. Edge functions
+- `admin-invites`: verify
+  - Auth check (admin/master admin only)
+  - Accepts `preset_password` (≥8) + `full_name`
+  - Bcrypt hash stored; plaintext never persisted
+  - Returns password once in response
+  - CORS + error shapes
+- `redeem-invite`: verify
+  - `peek` returns `has_password`, `full_name`, expiry, used state
+  - `redeem` branches: preset → `bcrypt.compare`; self-serve → min length
+  - Returns `password_mismatch`, `expired`, `already_used`, `not_found` cleanly
+  - Rate limiting present (or note as gap)
+- `admin-users`: confirm the earlier 403 "master admin only" regression is resolved for admins that should have access.
+- Deploy status + recent logs via `supabase--edge_function_logs`.
 
-New "Access" section in the invite modal, added under Role / Link binding:
+### 3. Frontend flows (Playwright against localhost:8080)
+- Sign in as master admin (using injected session).
+- **Generate invite – self-serve**: create link, verify modal shows link only, copy works.
+- **Generate invite – preset password**: set name + password (manual + 🎲 Gen), submit, verify reveal-once screen shows link + password + "Copy both".
+- **Accept invite – preset**: open link in fresh context, verify password-gate UI shows admin-set name, submit correct password → account created + signed in; submit wrong password → `password_mismatch` error surfaces.
+- **Accept invite – self-serve**: verify original choose-your-own-password path still works.
+- **Expired / used / bad token**: verify error states render (no blank screen).
+- **Access-control page**: list, revoke, regenerate actions; team page role changes.
+- Capture screenshots at each step; check console + network for errors.
 
-```text
-┌─ Access ────────────────────────────────────┐
-│ ( ) Self-serve — invitee sets own password  │
-│ (•) Preset password — I'll share it manually│
-│                                              │
-│   Full name        [ Ahmed Hassan         ]  │
-│   Password         [ ••••••••••    ] 🎲 Gen  │
-│   (min 8 chars, shown once after creation)   │
-└──────────────────────────────────────────────┘
-```
+### 4. Report
+- Table of checks: pass / fail / gap.
+- For each failure: root cause + minimal fix proposal (separate follow-up plan; not applied in this audit unless trivial).
+- Confirm no plaintext password is ever logged, stored, or returned after the one-time reveal.
 
-- "🎲 Gen" fills a readable random password (e.g. `swift-otter-84`).
-- Email-locked mode stays as-is; preset password works with both open and email-locked.
-- Role and expiry stay as-is.
-
-**Admin — Link ready screen** (after Generate)
-
-Show link **and** password side-by-side, with:
-- Copy link button (existing)
-- Copy password button (new)
-- "Copy both" convenience button that copies a ready-to-send block:
-  ```
-  Link: https://…/accept-invite?token=…
-  Password: swift-otter-84
-  ```
-- One-time reveal warning: *"Save this password now — it can't be shown again."*
-
-**Invitee — Accept page**
-
-When `has_preset_password = true`, replace the current "choose your password" form with a branded gate:
-
-```text
-        Welcome, Ahmed 👋
-   You've been invited to Mechatro Tasks
-
-   Email     [ ahmed@… ]   ← readonly if email-locked, else empty
-   Password  [ ••••••••• ]
-
-           [  Activate account  ]
-```
-
-On submit → account is created with that email + the preset password, session is set, redirect to `/`.
-
-## Technical details
-
-**DB migration** — add to `public.invites`:
-- `password_hash TEXT NULL` (bcrypt/scrypt hash of preset password; nullable = self-serve invite)
-- `has_password BOOLEAN GENERATED ALWAYS AS (password_hash IS NOT NULL) STORED` (for cheap peek)
-
-Grants/RLS unchanged; invites are only touched by edge functions using the service role.
-
-**Edge function: `admin-invites` (action `create`)**
-- Accept optional `preset_password` (string, ≥8 chars) and `full_name`.
-- Hash with `bcrypt` (`https://esm.sh/bcryptjs`) and store in `password_hash`.
-- Response returns `preset_password` **once** (echoed back so the UI can show it) — never stored in plaintext.
-
-**Edge function: `redeem-invite`**
-- `peek` response: add `has_password: boolean`.
-- `redeem`: if `password_hash` is set, require `body.password` and verify with `bcrypt.compare`; on match, create the auth user with that same password as the login password. If no `password_hash`, keep current behavior (invitee-chosen password ≥ 8 chars).
-- Return `password_mismatch` error code when the invitee types the wrong password.
-
-**Frontend**
-- `src/routes/_authenticated/access-control.tsx` — extend `InviteModal`:
-  - Add `access` state (`self_serve | preset`), `presetPassword`, generator helper.
-  - Pass to `admin-invites` create.
-  - In the "generated" view, render the password block + copy handlers when preset was used.
-- `src/routes/accept-invite.tsx` — extend peek result with `has_password`, and when true:
-  - Hide the "choose password" copy; show "Enter the password your admin sent you".
-  - Add `password_mismatch` to `ERROR_MAP`.
-  - On success, sign in with the entered email + password (already the flow after redeem).
-
-**Security notes**
-- Password stored only as bcrypt hash; plaintext returned once at creation time and never again.
-- Rate-limit password attempts on redeem: 5 tries per token per hour (simple counter column `password_attempts` + `password_locked_until`) to stop brute force.
-- All checks stay server-side in the edge function; client never sees the hash.
-
-## Files touched
-
-- `supabase/migrations/<new>.sql` — add columns
-- `supabase/functions/admin-invites/index.ts` — accept + hash preset password
-- `supabase/functions/redeem-invite/index.ts` — verify preset password on redeem, expose `has_password` on peek
-- `src/routes/_authenticated/access-control.tsx` — Access section in modal + reveal-once password UI
-- `src/routes/accept-invite.tsx` — password-gate variant of the accept form
+### Deliverable
+A pass/fail report with screenshots and, for anything broken, a concrete fix list to approve before I touch code.
