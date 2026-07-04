@@ -465,15 +465,20 @@ function activitySection(data: ReportData, lang: Lang): string {
 }
 
 function contentPage(data: ReportData, lang: Lang, s: Stats, blocks: string[], pageNum: number, totalPages: number): string {
+  const th = getTheme();
   return `<section class="pdf-page" dir="${lang === 'ar' ? 'rtl' : 'ltr'}" style="background:${C.paper};color:${C.ink};padding:40px 44px;position:relative">
-    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${C.line};padding-bottom:12px;margin-bottom:20px">
+    <img src="${logo}" style="position:absolute;bottom:56px;${lang === 'ar' ? 'left' : 'right'}:44px;width:70px;height:70px;object-fit:contain;opacity:0.06;pointer-events:none"/>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:12px;margin-bottom:20px;border-bottom:1px solid ${C.line};position:relative">
       <div style="display:flex;align-items:center;gap:10px">
-        <img src="${logo}" style="width:24px;height:24px;object-fit:contain"/>
-        <div style="font-size:12px;font-weight:800;color:${C.ink}">${esc(t("appName", lang))} · ${esc(t("memberReport", lang))}</div>
+        <img src="${logo}" style="width:26px;height:26px;object-fit:contain"/>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:${C.ink};line-height:1.1">${esc(t("appName", lang))} · ${esc(t("memberReport", lang))}</div>
+          <div style="width:36px;height:2px;background:${th.gold};margin-top:4px;border-radius:2px"></div>
+        </div>
       </div>
       <div style="font-size:11px;color:${C.muted}">${esc(data.member.full_name)} · ${esc(rangeLabel(data, lang))}</div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:20px;position:relative">
       ${blocks.join("")}
     </div>
     <div style="position:absolute;bottom:18px;left:44px;right:44px;display:flex;justify-content:space-between;font-size:10.5px;color:${C.muted};border-top:1px solid ${C.line};padding-top:8px">
