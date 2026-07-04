@@ -182,14 +182,15 @@ function ReportsHistoryPage() {
 
         {!loading && filtered.length === 0 && (
           <div style={{
-            padding: 60, textAlign: "center", background: "var(--surface-2)",
+            padding: 40, textAlign: "center", background: "var(--surface-2)",
             border: "1px dashed var(--border)", borderRadius: 16,
           }}>
-            <FileText size={48} style={{ opacity: 0.4, marginBottom: 12 }} />
+            <div className="empty-halo" style={{ marginBottom: 12 }}><FileText size={36} /></div>
             <div style={{ fontSize: 18, fontWeight: 800, color: "var(--foreground)" }}>{t("noReports")}</div>
             <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6 }}>{t("noReportsDesc")}</div>
           </div>
         )}
+
 
         {grouped.map(([day, items]) => (
           <div key={day} style={{ marginBottom: 20 }}>
