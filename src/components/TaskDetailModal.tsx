@@ -83,7 +83,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
 
   const saveChanges = async () => {
     if (Object.keys(dirty).length === 0) return;
-    if (!editValid) { toast.error(t("fillAllFields") as string); return; }
+    if (!editValid) { toast.error(lang === "ar" ? "يرجى ملء جميع الحقول" : "Please fill in all fields"); return; }
     const patch: Record<string, unknown> = { ...dirty };
     const approvingNow = dirty.status === "done" && task.status !== "done";
     if (approvingNow) patch.completed_at = new Date().toISOString();
