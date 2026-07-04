@@ -1,44 +1,54 @@
 ## Goal
 
-Do a full audit + polish pass on (1) Arabic/English translations across the app and (2) light/dark mode styling, so both feel consistent and premium.
+Polish icons and small UI details across the app so both mobile and desktop feel more crafted and "alive" — without changing any functionality.
 
-## Part 1 — i18n audit (AR + EN)
+## Icon polish
 
-Sweep every user-facing string and fix gaps:
+- **Consistent sizing** across the app: 16px inline, 18px in buttons, 20px in headers, 22–26px in feature cards. Set a uniform `strokeWidth={1.75}` on Lucide icons so they read lighter and more premium than the default 2.
+- **Colored icon tiles** (small rounded-square with soft gradient behind the icon) for the sidebar nav, page-header actions, empty-states, and card headers — replacing bare mono icons. Each nav item gets a tinted tile in its brand color that lights up on hover / active.
+- **Active-state glow**: sidebar active item icon gets a subtle drop-shadow + brighter tile. Hover: gentle scale (1.05) + tile brighten. Focus-visible: ring in `--primary`.
+- **Semantic color pass**: status icons (done/overdue/paused) always resolve from tokens, never hardcoded hex.
+- **Empty-state icons**: bigger (56–64px), inside a soft gradient circle, with subtle float animation.
 
-- **Scan targets**: all routes under `src/routes/`, components under `src/components/`, dialogs/modals (Task, Member, Report, PdfWizard, ThemePicker), sidebar/nav, toasts, empty states, buttons, form labels/placeholders, table headers, badges (status/priority), report + Excel export labels.
-- **Find hardcoded strings**: any literal English text in JSX or `toast(...)` calls that isn't going through the i18n dict.
-- **Extend `src/i18n/dict.ts`**: add every missing key in both `en` and `ar`. Group by area (nav, tasks, members, reports, exports, wizard, toasts, common).
-- **RTL correctness**:
-  - `dir="rtl"` applied on `<html>` when lang is Arabic.
-  - Fix icon/chevron directions, margins (`ms-*`/`me-*` instead of `ml-*`/`mr-*` where they flip meaning), text alignment, and flex ordering for RTL.
-  - Numerals: keep Latin digits for stats (`ar-EG-u-nu-latn`) but Arabic labels.
-- **Language switcher check**: make sure toggling instantly re-renders everything, persists choice, and applies `dir` + font swap.
-- **Exports**: verify Excel sheet titles, headers, member sheet names, and PDF report sections all translate (including the 3 themes' cover pages, footers, KPI labels, chart captions).
+## Desktop polish
 
-Deliverable: no visible English text when AR is selected, no visible Arabic text when EN is selected, and RTL layout is clean.
+- **Sidebar**: item chips with icon tile + label, hover slide-in accent bar on the leading edge, active item gets `--grad-blue` tile + soft glow. Divider between sections. Collapsed rail tooltip on hover.
+- **Page headers**: title + subtitle spacing tuned, action buttons unified to `brand-btn-sm`, gradient underline accent under the title.
+- **Cards**: hover lift (translateY -2px + shadow-glow), gradient hairline on top edge in dark mode.
+- **Buttons**: unified hover (brightness 1.06 + translateY -1px), active (translateY 0 + brightness .96), disabled dim. Consistent icon+label gap.
+- **Inputs / selects**: focus ring uses `--primary`, subtle inset shadow in light mode.
+- **Toasts**: match card style (backdrop blur, gradient icon tile per severity).
 
-## Part 2 — Light / dark mode polish
+## Mobile polish
 
-Audit both modes and elevate the weaker one:
+- **Bottom tab bar** (already present, if applicable): larger tap targets (min 48px), active pill behind icon+label, safe-area padding.
+- **Sticky mobile header** with condensed page title + inline search icon button.
+- **Filter chips**: horizontal snap scroller with fade edges; active chip in gradient blue.
+- **Cards**: full-bleed on small screens, tighter padding, single-column stacks.
+- **Icons scale up 10%** on mobile so they don't feel weak next to larger tap targets.
+- **Haptic-feeling press states**: scale .97 on tap for buttons and cards.
 
-- **Token audit in `src/styles.css`**: review `--background`, `--foreground`, `--card`, `--muted`, `--border`, `--primary`, `--accent`, ring, and shadow tokens for both `:root` and `.dark`. Ensure contrast ratios pass, and that the dark palette isn't just an inverted light mode — give it depth (layered surfaces, subtle gradient on top-level backgrounds, soft glow on primary).
-- **Hunt hardcoded colors**: grep for `text-white`, `bg-black`, `bg-white`, `text-black`, `bg-[#…]`, `text-[#…]` in components and replace with semantic tokens.
-- **Component sweep**: sidebar, top bar, cards (task/member/project), dialogs, dropdowns, tables, badges, buttons, inputs, toasts, empty states, tooltips, Reports hub, PdfWizard preview, ThemePicker cards. Check hover / focus / active / disabled states in both modes.
-- **Theme toggle**: verify smooth transition (no flashes), persisted, and that system preference is respected on first load.
-- **Charts + report previews**: ensure recharts + embedded PNG charts (Excel) read well in both modes when viewed inside the app preview.
-- **Focus rings + selection**: consistent ring color per mode, visible on both.
+## Micro-interactions
 
-Deliverable: both light and dark feel intentional and polished, no orphaned hardcoded colors, no low-contrast text.
+- Page-header title: subtle fade+slide-in on mount.
+- Sidebar active item icon: 250ms color transition.
+- Card hover glow: 200ms ease.
+- Skeleton loaders on Reports Hub cards while data is fetching (if applicable).
+- Language toggle: swap fonts and `dir` with a 300ms crossfade.
 
-## Technical notes
+## Files likely touched
 
-- Files likely touched: `src/i18n/dict.ts`, `src/i18n/*`, `src/styles.css`, `src/routes/_authenticated/*.tsx`, `src/components/**`, `src/lib/report/themes.ts` (label strings), `src/lib/export/xlsx-workbook.ts` (sheet/header labels), `src/lib/report/team-report.ts` + `report-html.ts` (section titles).
-- No DB / backend / schema changes.
-- No new dependencies expected.
+- `src/styles.css` — icon tile utility, hover/active transitions, mobile bottom-bar polish, focus rings.
+- `src/components/layout/Sidebar.tsx` — icon tiles + active state + hover accent.
+- `src/components/layout/PageHeader.tsx` — spacing, gradient accent, action button sizing.
+- `src/components/layout/BottomTabBar.tsx` (if present) or mobile nav — active pill.
+- `src/components/ui/button.tsx`, card, badge — unified icon sizes + press states.
+- Icon usages across routes get a light sweep to standardize `size` and `strokeWidth`.
 
 ## Out of scope
 
-- Adding a third language.
-- Rebuilding the theme system or introducing new named themes (the 3 report themes stay as-is).
-- Redesigning components beyond color/spacing/direction fixes.
+- Redesigning any route's layout or IA.
+- Replacing the icon library.
+- New illustrations or 3D assets.
+- Changing colors from the just-approved light/dark polish.
+- Backend or business-logic changes.
