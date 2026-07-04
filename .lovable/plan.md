@@ -1,24 +1,23 @@
 ## Problem
+The buttons are not showing because backend reads are failing with:
 
-"Invalid login credentials" appears because `admin.test@mechatro.test` and `member.test@mechatro.test` don't exist yet — the seed function was written, but it's gated behind the Settings page which requires being signed in as the Master Admin. You're locked out.
+`permission denied for function is_admin`
 
-## Fix
+That means the test admin logs in successfully, but the app cannot run the admin-check function used by the database policies. Because profile/projects/tasks fail to load, the UI cannot confirm the user is admin, so it hides the create buttons.
 
-Run the seed once as the Master Admin (`minimamba1608@gmail.com`), then sign in as the test users.
+## Plan
+1. **Fix backend permission**
+   - Add a database migration that grants execute permission on `private.is_admin(uuid)` to authenticated users and service role.
+   - Keep the function private and security-definer; only restore the permission needed for RLS policies to evaluate.
 
-### Steps
+2. **Verify admin profile access**
+   - Confirm `admin.test@mechatro.test` can read its profile and is recognized as `admin` / active.
+   - Confirm projects and tasks reads no longer return 403.
 
-1. **Sign in as Master Admin** at `/auth` with `minimamba1608@gmail.com` and your existing password.
-2. **Go to Settings** → scroll to the "Seed test users" section (only visible to Master Admin).
-3. **Click "Seed test users"** — this calls `provisionTestUsers` which creates both auth users + profiles with correct roles.
-4. **Sign out**, then sign in with:
-   - Admin: `admin.test@mechatro.test` / `Admin!2026`
-   - Member: `member.test@mechatro.test` / `Member!2026`
+3. **Verify UI buttons**
+   - Check `/projects` as the test admin: top-right should show `+ New Project`.
+   - Check `/tasks` as the test admin: top-right should show `+ New Task`.
 
-### If you don't remember the Master Admin password
-
-I'll add a one-time public seed path — a `/seed-test-users` route that calls a server function guarded by a hardcoded seed token you'd pass as `?token=...`. After running once, you'd sign in as the admin test user. I'd remove this route in a follow-up turn.
-
-Tell me which option you want:
-- **A** — you have the Master Admin password, just run the seed from Settings (no code changes needed)
-- **B** — you don't have it, add the temporary `/seed-test-users` route
+4. **No permission broadening**
+   - Keep creation admin-only as requested.
+   - Do not make members able to create projects or tasks.
