@@ -85,6 +85,9 @@ export type Database = {
           expires_at: string | null
           full_name: string | null
           id: string
+          password_attempts: number
+          password_hash: string | null
+          password_locked_until: string | null
           revoked_at: string | null
           role: Database["public"]["Enums"]["app_role"]
           token: string
@@ -98,6 +101,9 @@ export type Database = {
           expires_at?: string | null
           full_name?: string | null
           id?: string
+          password_attempts?: number
+          password_hash?: string | null
+          password_locked_until?: string | null
           revoked_at?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           token: string
@@ -111,6 +117,9 @@ export type Database = {
           expires_at?: string | null
           full_name?: string | null
           id?: string
+          password_attempts?: number
+          password_hash?: string | null
+          password_locked_until?: string | null
           revoked_at?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           token?: string
