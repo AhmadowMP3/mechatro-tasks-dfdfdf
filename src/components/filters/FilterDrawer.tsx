@@ -7,6 +7,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger,
 } from "@/components/ui/sheet";
 import { useApp } from "@/lib/app-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 /* ---------------- Trigger button ---------------- */
 
