@@ -1,16 +1,24 @@
 import type { ReportData } from "./data";
 import { dict, type Lang } from "@/i18n/dict";
 import logo from "@/assets/mechatro-logo.png";
+import { getTheme, setTheme, type ThemeId } from "./themes";
 
-// ---------- Palette ----------
-const C = {
-  blue: "#189FD1", blueDark: "#0B6E96", green: "#22C55E", orange: "#FF8A3D", red: "#F0676A",
-  ink: "#0F1B2D", ink2: "#1A2942", muted: "#6B7A93", line: "#E4E9F2",
-  paper: "#FFFFFF", soft: "#F5F8FC",
+// ---------- Palette (derived from current theme) ----------
+const themeC = () => {
+  const th = getTheme();
+  return {
+    blue: th.blue, blueDark: th.blueDark, green: th.green, orange: th.orange, red: th.red,
+    ink: th.ink, ink2: th.ink2, muted: th.muted, line: th.line,
+    paper: th.paper, soft: th.soft, card: th.card, gold: th.gold,
+  };
 };
+let C = themeC();
 
-const STATUS_COLOR: Record<string, string> = { todo: "#9FB7C9", in_progress: C.blue, paused: C.orange, done: C.green };
-const PRIO_COLOR: Record<string, string> = { low: "#9FB7C9", normal: C.blue, high: C.orange, urgent: C.red };
+const statusColors = () => ({ todo: C.muted, in_progress: C.blue, paused: C.orange, in_review: "#A855F7", done: C.green });
+const prioColors = () => ({ low: C.muted, normal: C.blue, high: C.orange, urgent: C.red });
+let STATUS_COLOR: Record<string, string> = statusColors();
+let PRIO_COLOR: Record<string, string> = prioColors();
+
 
 // ---------- Helpers ----------
 const t = (k: keyof typeof dict, lang: Lang) => dict[k]?.[lang] ?? String(k);
