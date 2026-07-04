@@ -30,10 +30,12 @@ const NAV: NavItem[] = [
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
-  const { t, user, lang, signOut, isMasterAdmin, isAdmin } = useApp();
+  const { t, user, session, lang, signOut, isMasterAdmin, isAdmin, refreshSelf } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const shareMode = isShareMode();
   const shareLink = getShareLink();
+  const [editOpen, setEditOpen] = useState(false);
+  const email = user?.email ?? session?.user?.email ?? "";
 
   const PAGE_TO_KEY: Record<string, string> = {
     "/": "dashboard", "/projects": "projects", "/tasks": "tasks",
