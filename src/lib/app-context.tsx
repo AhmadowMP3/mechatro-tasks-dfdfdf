@@ -51,6 +51,7 @@ type Ctx = {
   users: Profile[];              // full profiles — populated for admins only
   directory: DirectoryEntry[];   // name + avatar for everyone (safe for members)
   refreshUsers: () => Promise<void>;
+  refreshSelf: () => Promise<void>;
   can: (perm: Permission) => boolean;
   isMasterAdmin: boolean;
   isAdmin: boolean;              // true for both Master Admin and Admin
