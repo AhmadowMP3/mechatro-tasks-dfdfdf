@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Trophy, Flame, Plus, Calendar, Star, Award, Medal } from "lucide-react";
+import { Trophy, Flame, Plus, Calendar, Award, Medal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
