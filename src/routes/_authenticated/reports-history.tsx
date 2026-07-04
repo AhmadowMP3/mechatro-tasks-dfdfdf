@@ -250,7 +250,7 @@ function ReportsHistoryPage() {
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div className="history-row-actions">
                       <button onClick={() => openSignedUrl(r.pdf_path, false)} title={t("preview")}
                         style={iconBtn}><Eye size={16} /></button>
                       <button onClick={() => openSignedUrl(r.pdf_path, true)} title={t("download")}
@@ -258,6 +258,7 @@ function ReportsHistoryPage() {
                       <button onClick={() => setConfirmDel(r)} title={t("deleteReport")}
                         style={{ ...iconBtn, color: "var(--danger)" }}><Trash2 size={16} /></button>
                     </div>
+
                   </div>
                 );
               })}
