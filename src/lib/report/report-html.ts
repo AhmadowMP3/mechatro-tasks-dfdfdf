@@ -250,11 +250,12 @@ function coverPage(data: ReportData, lang: Lang, s: Stats): string {
 }
 
 
-const bigStat = (label: string, value: string) => `
-  <div style="background:rgba(255,255,255,.14);backdrop-filter:blur(6px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,.18)">
+const bigStat = (label: string, value: string, bg = "rgba(255,255,255,.14)", border = "rgba(255,255,255,.18)", labelColor = "rgba(255,255,255,.75)") => `
+  <div style="background:${bg};backdrop-filter:blur(6px);border-radius:14px;padding:14px 16px;border:1px solid ${border}">
     <div style="font-size:28px;font-weight:800;line-height:1">${esc(value)}</div>
-    <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:4px;text-transform:uppercase;letter-spacing:1px">${esc(label)}</div>
+    <div style="font-size:11px;color:${labelColor};margin-top:4px;text-transform:uppercase;letter-spacing:1px">${esc(label)}</div>
   </div>`;
+
 
 function sectionHeader(title: string, accent = C.blue): string {
   return `<div style="display:flex;align-items:center;gap:10px;margin:0 0 14px 0">
