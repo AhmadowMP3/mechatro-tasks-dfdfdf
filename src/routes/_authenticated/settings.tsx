@@ -7,6 +7,7 @@ import { useApp } from "@/lib/app-context";
 import { formatDate, toLocalDigits } from "@/lib/format";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
