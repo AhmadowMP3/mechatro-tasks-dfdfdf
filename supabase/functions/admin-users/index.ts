@@ -44,11 +44,9 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { /* ignore */ }
   const action = String(body.action ?? "");
 
-  // Only master admin can mutate (approve/reject/set_role/suspend/delete).
-  // Regular admins get read-only access ("list") plus invite generation via admin-invites.
-  if (action !== "list" && !me?.is_master_admin) {
-    return json(403, { error: "master admin only" });
-  }
+  // Any admin (regular or master) can perform admin actions.
+  // Target-level checks below still prevent mutating the master admin.
+
 
   try {
     switch (action) {
