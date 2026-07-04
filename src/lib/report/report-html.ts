@@ -484,8 +484,17 @@ function contentPage(data: ReportData, lang: Lang, s: Stats, blocks: string[], p
   void s;
 }
 
+// Refresh derived palette maps after a theme change.
+function refreshPalette() {
+  C = themeC();
+  STATUS_COLOR = statusColors();
+  PRIO_COLOR = prioColors();
+}
+
 // ---------- Public: build one full report as HTML ----------
-export function buildReportHtml(data: ReportData, lang: Lang): string {
+export function buildReportHtml(data: ReportData, lang: Lang, theme?: ThemeId): string {
+  if (theme) setTheme(theme);
+  refreshPalette();
   const s = computeStats(data);
   const contentPages: string[][] = [
     [profileSection(data, lang), kpiGrid(s, lang), chartsSection(data, s, lang)],
@@ -499,7 +508,9 @@ export function buildReportHtml(data: ReportData, lang: Lang): string {
   return rendered.join("");
 }
 
-export function buildBilingualHtml(data: ReportData): string {
+export function buildBilingualHtml(data: ReportData, theme?: ThemeId): string {
   // Two full docs stacked (AR first then EN). Each has its own cover + pages.
-  return buildReportHtml(data, "ar") + `<div class="html2pdf__page-break"></div>` + buildReportHtml(data, "en");
+  return buildReportHtml(data, "ar", theme) + `<div class="html2pdf__page-break"></div>` + buildReportHtml(data, "en", theme);
+}
+
 }
