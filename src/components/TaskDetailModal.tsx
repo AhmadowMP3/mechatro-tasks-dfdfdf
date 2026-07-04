@@ -142,8 +142,8 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
   const overdue = isOverdue(merged.due_date, merged.status);
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 300, display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 12, overflow: "auto" }}>
-      <div onClick={(e) => e.stopPropagation()} className="brand-card" style={{ maxWidth: 820, width: "100%", padding: "clamp(16px, 3vw, 24px)", marginTop: 12, marginBottom: 12, maxHeight: "calc(100dvh - 24px)", overflowY: "auto" }}>
+    <ResponsiveModal onClose={onClose} size="lg">
+
 
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
           <div style={{ flex: 1 }}>
