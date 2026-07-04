@@ -183,15 +183,20 @@ function TasksPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 28, margin: 0, flex: 1 }}>{isAdmin ? t("tasks") : (lang === "ar" ? "مهامي" : "My Tasks")}</h1>
-        <ViewSwitcher value={view} onChange={setView} />
-        {isAdmin && (
-          <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
-            <Plus size={18} /> {t("newTask")}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title={isAdmin ? t("tasks") : (lang === "ar" ? "مهامي" : "My Tasks")}
+        actions={
+          <>
+            <ViewSwitcher value={view} onChange={setView} />
+            {isAdmin && (
+              <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
+                <Plus size={18} /> {t("newTask")}
+              </button>
+            )}
+          </>
+        }
+      />
+
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
         <SearchField value={f.q} onChange={(v) => patch({ q: v })} />
