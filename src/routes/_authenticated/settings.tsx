@@ -14,7 +14,7 @@ import { provisionTestUsers } from "@/lib/provision-test-users.functions";
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
 function SettingsPage() {
-  const { t, user, isAdmin } = useApp();
+  const { t, user, isAdmin, isMasterAdmin } = useApp();
 
   if (!isAdmin) {
     return <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("cannotEdit")}</div>;
