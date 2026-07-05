@@ -88,13 +88,12 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryPersistProvider client={queryClient}>
       <AppProvider>
         <Outlet />
         <CustomCursor />
         <Toaster position="top-center" richColors />
       </AppProvider>
-
-    </QueryClientProvider>
+    </QueryPersistProvider>
   );
 }
