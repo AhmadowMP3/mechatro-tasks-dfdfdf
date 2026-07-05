@@ -32,6 +32,7 @@ function LayoutComponent() {
   
   return (
     <AppShell>
+      <NetworkStatus />
       <Outlet />
     </AppShell>
   );
