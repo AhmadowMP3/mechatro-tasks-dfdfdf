@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useServerFn } from "@tanstack/react-start";
 import { provisionTestUsers } from "@/lib/provision-test-users.functions";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
