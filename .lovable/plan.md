@@ -1,21 +1,33 @@
-# Change project status from the detail page
+## Goal
+Before any file export (xlsx or pdf), show a popup asking the user for the filename. The entered text becomes the file name (extension appended automatically).
 
-## Change
+## New file
+**`src/components/FilenamePrompt.tsx`** — a reusable async prompt:
+- `promptFilename({ defaultName, extension, title? }): Promise<string | null>`
+- Renders a modal (using existing `ModalShell` styling) with a text input pre-filled with `defaultName`, a hint showing the final `.ext`, and two buttons: `t("cancel")` / `t("export")`.
+- Resolves with the sanitized filename (strip illegal chars `\ / : * ? " < > |`, trim, fallback to default if empty) plus extension, or `null` if cancelled.
+- Implemented via a mounted root portal + promise (imperative API so we don't refactor every call site into stateful modals).
 
-Replace the static status label on `src/routes/_authenticated/projects.$id.tsx` (line 72) with an inline `<select>` for admins. Members keep the read-only label.
+## Wire into every export site
+For each call, wrap the export in `const name = await promptFilename(...); if (!name) return;` and pass `fileName: name` (xlsx) or use `name` as the download filename (pdf).
 
-- Options: `active`, `on_hold`, `done`, `archived` — labels via `t(...)`.
-- Selecting `archived` sets `{ status: "archived", archived: true }`.
-- Selecting any other value on a currently archived project sets `{ status, archived: false }` (unarchive).
-- Otherwise just update `status`.
-- On success: toast + `refetch()`. On error: `explainSupabaseError` toast (same pattern as delete).
-- Styled to match the surrounding meta row (small pill-shaped select using `var(--surface-2)` / `var(--border)`).
+1. **`src/routes/_authenticated/projects.index.tsx`** (line 158) — xlsx export.
+2. **`src/routes/_authenticated/team.tsx`** (line 119) — xlsx export.
+3. **`src/routes/_authenticated/tasks.tsx`** (line 260) — xlsx export.
+4. **`src/routes/_authenticated/activity.tsx`** (line 386) — xlsx export.
+5. **`src/routes/_authenticated/reports.tsx`** (line 198) — pdf download (`a.download = prepared.filename` → use prompted name).
+6. **`src/routes/_authenticated/reports-history.compare.tsx`** (line 86) — pdf comparison export.
+
+Default filenames keep today's existing patterns (e.g. `Mechatro_Projects_2026-07-05_1430`); the popup pre-fills that so a user can just hit Enter.
+
+## i18n
+Add keys to `src/i18n/dict.ts`: `filenamePromptTitle`, `filenameLabel`, `filenameHint` (ar + en).
 
 ## Out of scope
-
-No changes to the projects list, filters, or export. No new fields (due_date / description editing stays out of this turn). No RLS changes — existing admin-manage policies already allow the update.
+- No change to xlsx/pdf content or column logic.
+- No change to who can export (permissions unchanged).
+- Status change / archive logic untouched.
 
 ## Verification
-
-- As admin: open a project → change status via the dropdown → label updates, list page reflects new status, and toggling to/from "archived" also flips the archive tab correctly.
-- As member: same row renders as plain text (no dropdown).
+- Trigger each of the 6 export entry points; confirm popup appears, default name shown, cancel aborts (no download), confirm downloads file with the exact typed name + correct extension.
+- Illegal characters stripped; empty input falls back to default.

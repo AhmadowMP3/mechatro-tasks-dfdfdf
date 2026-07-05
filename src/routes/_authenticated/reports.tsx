@@ -12,6 +12,7 @@ import { loadMemberReportData, type ReportRange } from "@/lib/report/data";
 import { buildMemberReportPdf, buildTeamReportPdf, persistMemberReportPdf, type PreparedMemberReport, type ReportLangChoice } from "@/lib/report/generator";
 import { buildTeamReportHtml, loadTeamReportData } from "@/lib/report/team-report";
 import type { Lang } from "@/i18n/dict";
+import { promptFilename } from "@/components/FilenamePrompt";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   component: ReportsPage,
@@ -35,11 +36,23 @@ function ReportsPage() {
   }
 
   const downloadExcel = async (targetLang: Lang) => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const fileName = await promptFilename({
+      defaultName: `Mechatro_Report_${targetLang.toUpperCase()}_${stamp}`,
+      extension: "xlsx",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("exportXlsx"),
+      cancelLabel: t("cancel"),
+    });
+    if (!fileName) return;
     setBusy(targetLang === "ar" ? "ar" : "en");
     try {
       await exportBrandedWorkbook({
         lang: targetLang,
         generatedBy: user?.full_name ?? t("admin"),
+        fileName,
       });
       toast.success(t("workbookDownloaded"));
     } catch (e) {
@@ -189,13 +202,23 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
 
   const download = async () => {
     if (!prepared) return;
+    const fileName = await promptFilename({
+      defaultName: prepared.filename.replace(/\.pdf$/i, ""),
+      extension: "pdf",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("download"),
+      cancelLabel: t("cancel"),
+    });
+    if (!fileName) return;
     setConfirming(true);
     try {
       if (prepared.kind === "member" && prepared.memberReport) {
-        await persistMemberReportPdf(prepared.memberReport);
+        await persistMemberReportPdf({ ...prepared.memberReport, filename: fileName });
       } else {
         const url = URL.createObjectURL(prepared.blob);
-        const a = document.createElement("a"); a.href = url; a.download = prepared.filename;
+        const a = document.createElement("a"); a.href = url; a.download = fileName;
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }

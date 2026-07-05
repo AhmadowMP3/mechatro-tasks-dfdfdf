@@ -21,6 +21,7 @@ import {
   SearchField, FilterBarCluster, type Preset,
 } from "@/components/filters/FilterDrawer";
 import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
+import { promptFilename } from "@/components/FilenamePrompt";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
@@ -248,7 +249,17 @@ function ActivityPage() {
     return formatDate(iso, lang);
   };
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
+    const fileName = await promptFilename({
+      defaultName: `activity-${new Date().toISOString().slice(0, 10)}`,
+      extension: "csv",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("exportXlsx"),
+      cancelLabel: t("cancel"),
+    });
+    if (!fileName) return;
     const header = ["created_at", "actor", "action", "entity_type", "entity_id", "entity_name", "meta"];
     const csv = [header.join(",")].concat(
       rows.map((r) => [
@@ -264,7 +275,7 @@ function ActivityPage() {
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `activity-${Date.now()}.csv`; a.click();
+    a.href = url; a.download = fileName; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -282,7 +293,17 @@ function ActivityPage() {
           id: "export",
           label: lang === "ar" ? "تصدير CSV" : "Export CSV",
           icon: <Download size={14} />,
-          onRun: () => {
+          onRun: async () => {
+            const fileName = await promptFilename({
+              defaultName: `activity-selection-${new Date().toISOString().slice(0, 10)}`,
+              extension: "csv",
+              title: t("filenamePromptTitle"),
+              label: t("filenameLabel"),
+              hint: t("filenameHint"),
+              confirmLabel: t("exportXlsx"),
+              cancelLabel: t("cancel"),
+            });
+            if (!fileName) return;
             const selRows = rows.filter((r) => sel.includes(r.id));
             const header = ["created_at", "actor", "action", "entity_type", "entity_id", "entity_name", "meta"];
             const csv = [header.join(",")].concat(
@@ -299,7 +320,7 @@ function ActivityPage() {
             const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = url; a.download = `activity-selection-${Date.now()}.csv`; a.click();
+            a.href = url; a.download = fileName; a.click();
             URL.revokeObjectURL(url);
             toast.success(lang === "ar" ? `تم تصدير ${sel.length} حدث` : `Exported ${sel.length} row${sel.length === 1 ? "" : "s"}`);
             clearSel();
@@ -374,6 +395,17 @@ function ActivityPage() {
   const activeCount = chips.length;
 
   const doExport = async () => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const fileName = await promptFilename({
+      defaultName: `Mechatro_Activity_${stamp}`,
+      extension: "xlsx",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("exportXlsx"),
+      cancelLabel: t("cancel"),
+    });
+    if (!fileName) return;
     try {
       const cols: XlsxColumn<ActivityRow>[] = [
         { key: "when", header: lang === "ar" ? "التاريخ" : "When", width: 22, kind: "datetime", get: (r) => r.created_at },
@@ -388,7 +420,7 @@ function ActivityPage() {
         title: `${t("reportTitle")} · ${t("activityLog")}`,
         filtersSummary: chips.map((c) => c.label).join(" · ") || (lang === "ar" ? "بدون فلاتر" : "No filters"),
         generatedBy: user?.full_name,
-        lang, columns: cols, rows,
+        lang, columns: cols, rows, fileName,
       });
       toast.success(t("exported"));
     } catch (e) {

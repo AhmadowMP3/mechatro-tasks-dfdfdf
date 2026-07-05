@@ -18,6 +18,7 @@ import {
   SearchField, FilterBarCluster, type Preset,
 } from "@/components/filters/FilterDrawer";
 import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
+import { promptFilename } from "@/components/FilenamePrompt";
 import { toast } from "sonner";
 import type { DictKey } from "@/i18n/dict";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -242,6 +243,17 @@ function TasksPage() {
   const activeCount = chips.length;
 
   const doExport = async () => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const fileName = await promptFilename({
+      defaultName: `Mechatro_Tasks_${stamp}`,
+      extension: "xlsx",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("exportXlsx"),
+      cancelLabel: t("cancel"),
+    });
+    if (!fileName) return;
     try {
       const cols: XlsxColumn<typeof filtered[number]>[] = [
         { key: "title", header: t("taskTitle"), width: 42, get: (r) => r.title },
@@ -262,7 +274,7 @@ function TasksPage() {
         title: `${t("reportTitle")} · ${t("tasks")}`,
         filtersSummary: chips.map((c) => c.label).join(" · ") || (lang === "ar" ? "بدون فلاتر" : "No filters"),
         generatedBy: user?.full_name,
-        lang, columns: cols, rows: filtered,
+        lang, columns: cols, rows: filtered, fileName,
       });
       toast.success(t("exported"));
     } catch (e) {

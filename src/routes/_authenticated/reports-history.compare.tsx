@@ -9,6 +9,7 @@ import { Avatar } from "@/components/Avatar";
 import type { KpiSnapshot } from "@/lib/report/snapshot";
 import { buildComparisonHtml } from "@/lib/report/comparison-html";
 import { persistComparisonPdf } from "@/lib/report/generator";
+import { promptFilename } from "@/components/FilenamePrompt";
 
 type CompareSearch = { a: string; b: string };
 
@@ -74,6 +75,17 @@ function CompareReportsPage() {
 
   const exportPdf = async () => {
     if (!A || !B) return;
+    const defaultBase = `Mechatro_Comparison_${A.member_name_snapshot?.replace(/\s+/g, "_")}_vs_${B.member_name_snapshot?.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}`;
+    const filename = await promptFilename({
+      defaultName: defaultBase,
+      extension: "pdf",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("download"),
+      cancelLabel: t("cancel"),
+    });
+    if (!filename) return;
     setExporting(true);
     try {
       const { data: u } = await supabase.auth.getUser();
@@ -83,7 +95,6 @@ function CompareReportsPage() {
       const html = buildComparisonHtml(A.kpi_snapshot, B.kpi_snapshot, {
         labelA, labelB, generated_by: generatedBy, language: lang === "ar" ? "ar" : "en",
       });
-      const filename = `Mechatro_Comparison_${A.member_name_snapshot?.replace(/\s+/g, "_")}_vs_${B.member_name_snapshot?.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
       await persistComparisonPdf({
         html, filename,
         memberAId: A.member_id, memberBId: B.member_id,
