@@ -131,6 +131,75 @@ function TasksPage() {
     return out;
   }, [data, f, fileCounts]);
 
+  // Global "N" shortcut / palette "New task" action.
+  useEffect(() => {
+    if (!isAdmin) return;
+    const openNew = () => setNewOpen(true);
+    window.addEventListener("app:new-task", openNew);
+    return () => window.removeEventListener("app:new-task", openNew);
+  }, [isAdmin]);
+
+  // Bulk selection — admins only.
+  const { isSelected, toggle, ids: selectedIds } = useBulkSelection({
+    pageId: "tasks",
+    items: filtered as Array<{ id: string }>,
+    deps: [filtered.length, isAdmin, lang],
+    buildBar: isAdmin
+      ? (sel, clearSel) => {
+          const runBulk = async (payload: Record<string, unknown>) => {
+            const { error } = await supabase.from("tasks").update(payload).in("id", sel);
+            if (error) { toast.error(error.message); return; }
+            toast.success(t("saved"));
+            clearSel();
+            refetch();
+          };
+          return {
+            count: sel.length,
+            totalLabel: lang === "ar"
+              ? `${sel.length} مهمة محددة`
+              : `${sel.length} task${sel.length === 1 ? "" : "s"} selected`,
+            actions: [
+              {
+                id: "todo", label: lang === "ar" ? "قيد الانتظار" : "To do",
+                icon: <CircleDot size={14} />, onRun: () => runBulk({ status: "todo" }),
+              },
+              {
+                id: "in_progress", label: lang === "ar" ? "قيد التنفيذ" : "In progress",
+                icon: <CircleDot size={14} />, onRun: () => runBulk({ status: "in_progress" }),
+              },
+              {
+                id: "done", label: lang === "ar" ? "مكتمل" : "Done",
+                icon: <CircleDot size={14} />, onRun: () => runBulk({ status: "done" }),
+              },
+              {
+                id: "priority-high", label: lang === "ar" ? "أولوية عالية" : "High priority",
+                icon: <CircleDot size={14} />, onRun: () => runBulk({ priority: "high" }),
+              },
+              {
+                id: "delete",
+                label: lang === "ar" ? "حذف" : "Delete",
+                icon: <Trash2 size={14} />,
+                destructive: true,
+                confirm: lang === "ar"
+                  ? `حذف ${sel.length} مهمة؟`
+                  : `Delete ${sel.length} task${sel.length === 1 ? "" : "s"}?`,
+                onRun: async () => {
+                  const { error } = await supabase.from("tasks").delete().in("id", sel);
+                  if (error) { toast.error(error.message); return; }
+                  toast.success(lang === "ar" ? "تم الحذف" : "Deleted");
+                  clearSel();
+                  refetch();
+                },
+              },
+            ],
+          };
+        }
+      : () => null,
+  });
+  const bulkMode = selectedIds.length > 0;
+
+
+
   // Active-filter chips
   const chips = useMemo(() => {
     const c: { key: string; label: string; onRemove: () => void }[] = [];
