@@ -28,6 +28,7 @@ import { Route as AuthenticatedLeagueRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
 import { Route as ShareTokenIndexRouteImport } from './routes/share.$token.index'
+import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as ShareTokenPageRouteImport } from './routes/share.$token.$page'
 import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history.compare'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
@@ -129,6 +130,12 @@ const ShareTokenIndexRoute = ShareTokenIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ShareTokenRoute,
 } as any)
+const AuthenticatedProjectsIndexRoute =
+  AuthenticatedProjectsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedProjectsRoute,
+  } as any)
 const ShareTokenPageRoute = ShareTokenPageRouteImport.update({
   id: '/$page',
   path: '/$page',
@@ -167,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/share/$token/': typeof ShareTokenIndexRoute
 }
 export interface FileRoutesByTo {
@@ -177,7 +185,6 @@ export interface FileRoutesByTo {
   '/activity': typeof AuthenticatedActivityRoute
   '/league': typeof AuthenticatedLeagueRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
-  '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/references': typeof AuthenticatedReferencesRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
@@ -189,6 +196,7 @@ export interface FileRoutesByTo {
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/projects': typeof AuthenticatedProjectsIndexRoute
   '/share/$token': typeof ShareTokenIndexRoute
 }
 export interface FileRoutesById {
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/share/$token/': typeof ShareTokenIndexRoute
 }
 export interface FileRouteTypes {
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/reports-history/compare'
     | '/share/$token/$page'
+    | '/projects/'
     | '/share/$token/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -249,7 +259,6 @@ export interface FileRouteTypes {
     | '/activity'
     | '/league'
     | '/notifications'
-    | '/projects'
     | '/references'
     | '/reports'
     | '/reports-history'
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/reports-history/compare'
     | '/share/$token/$page'
+    | '/projects'
     | '/share/$token'
   id:
     | '__root__'
@@ -285,6 +295,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$id'
     | '/_authenticated/reports-history/compare'
     | '/share/$token/$page'
+    | '/_authenticated/projects/'
     | '/share/$token/'
   fileRoutesById: FileRoutesById
 }
@@ -431,6 +442,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShareTokenIndexRouteImport
       parentRoute: typeof ShareTokenRoute
     }
+    '/_authenticated/projects/': {
+      id: '/_authenticated/projects/'
+      path: '/'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof AuthenticatedProjectsIndexRouteImport
+      parentRoute: typeof AuthenticatedProjectsRoute
+    }
     '/share/$token/$page': {
       id: '/share/$token/$page'
       path: '/$page'
@@ -457,10 +475,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedProjectsRouteChildren {
   AuthenticatedProjectsIdRoute: typeof AuthenticatedProjectsIdRoute
+  AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
 }
 
 const AuthenticatedProjectsRouteChildren: AuthenticatedProjectsRouteChildren = {
   AuthenticatedProjectsIdRoute: AuthenticatedProjectsIdRoute,
+  AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
 }
 
 const AuthenticatedProjectsRouteWithChildren =

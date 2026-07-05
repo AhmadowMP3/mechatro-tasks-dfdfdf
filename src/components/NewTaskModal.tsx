@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { notify } from "@/lib/activity";
-import { ModalShell, Field, inp } from "@/routes/_authenticated/projects";
+import { ModalShell, Field, inp } from "@/routes/_authenticated/projects.index";
 import { useQuery } from "@tanstack/react-query";
 import { formatDate, toLocalDigits } from "@/lib/format";
 

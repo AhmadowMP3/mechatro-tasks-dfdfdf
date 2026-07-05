@@ -7,7 +7,7 @@ import { useApp } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { toLocalDigits, formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { ModalShell, Field, inp } from "@/routes/_authenticated/projects";
+import { ModalShell, Field, inp } from "@/routes/_authenticated/projects.index";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/league")({ component: LeaguePage });
