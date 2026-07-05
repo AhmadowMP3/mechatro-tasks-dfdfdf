@@ -1,15 +1,20 @@
 ## Goal
-Task cards without a points badge appear slightly shorter than cards with one, breaking the grid alignment. Make all task cards render at the same height.
+Show the task's creation date on the outside of the task card (list view), alongside the existing due date.
 
 ## Change (single file)
-**`src/components/TaskCard.tsx`** — line 58-66, the conditional points pill:
-- Keep the visible pill when `(task.points ?? 0) > 0`.
-- When there are no points, render an invisible placeholder span with the same padding, font-size, and border-radius as the points pill (`visibility: hidden`, `aria-hidden`, `marginInlineStart: "auto"`), containing a non-breaking space "⭐ 0", so the pills row reserves the same height/width contribution.
+
+**`src/components/TaskCard.tsx`**
+1. Extend `TaskRow` with `created_at?: string`.
+2. In the footer row (currently shows assignee + due date, lines 74-80), add a small muted line above the due-date row showing:
+   `t("createdAt") + ": " + formatDate(task.created_at, lang)` when `task.created_at` exists.
+   Style: same 12px `var(--muted)` font, aligned to the trailing edge (same `justifyContent: "flex-end"`), no icon, so it doesn't compete with the due date.
+
+Data is already available — `tasks.tsx` queries `select("*")` so `created_at` flows through without any query changes.
 
 ## Out of scope
-- No changes to points logic, colors, or the visible pill for tasks that do have points.
-- No changes to grid layout on `tasks.tsx`.
+- No changes to the tasks list query, filters, sort, table view, or detail modal.
+- No new i18n keys (reusing existing `createdAt`).
 
 ## Verification
-- On `/tasks`, cards with and without points sit at identical heights across the grid.
-- Points pill still shows correctly for tasks that have points.
+- On `/tasks`, every card shows "تاريخ الإنشاء: <date>" above the due-date/assignee row.
+- Cards without a due date still render the created date.
