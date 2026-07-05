@@ -19,6 +19,7 @@ import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import { promptFilename } from "@/components/FilenamePrompt";
 import type { DictKey } from "@/i18n/dict";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_authenticated/team/")({ component: TeamPage });
 
