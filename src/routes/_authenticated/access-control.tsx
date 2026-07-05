@@ -42,11 +42,27 @@ type UserRow = {
 
 async function call(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("admin-users", { body });
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Supabase FunctionsHttpError attaches the Response on `context` — read its JSON body to surface the real error.
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.text === "function") {
+      try {
+        const txt = await ctx.clone().text();
+        const parsed = JSON.parse(txt) as { error?: string };
+        if (parsed?.error) throw new Error(parsed.error);
+      } catch (parseErr) {
+        if (parseErr instanceof Error && parseErr.message && parseErr.message !== "Unexpected end of JSON input") {
+          throw parseErr;
+        }
+      }
+    }
+    throw new Error(error.message);
+  }
   const payload = data as { error?: string };
   if (payload?.error) throw new Error(payload.error);
   return data;
 }
+
 
 function AccessControlPage() {
   const { lang } = useApp();
