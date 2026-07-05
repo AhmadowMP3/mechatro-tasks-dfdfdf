@@ -59,7 +59,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           dir={isAr ? "rtl" : "ltr"}
           className="brand-card"
           style={{
-            background: "var(--surface)",
+            background: "var(--card)",
             border: "1px solid var(--border)",
             color: "var(--foreground)",
             borderRadius: 16,
@@ -92,7 +92,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               onClick={() => settle(true)}
               className="brand-btn"
               style={{
-                background: danger ? "var(--grad-red, linear-gradient(135deg,#d9484b,#a83236))" : "var(--grad-blue)",
+                background: danger ? "linear-gradient(135deg,#d9484b,#a83236)" : "var(--grad-blue)",
                 color: "#fff",
                 border: "none",
                 fontWeight: 700,
