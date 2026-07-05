@@ -287,6 +287,9 @@ function BackupsSection() {
                 <button onClick={() => setRestoreTarget(b)} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)" }}>
                   <RotateCcw size={14} /> {t("restore")}
                 </button>
+                <button onClick={() => deleteBackup(b)} disabled={actingId === b.name} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "rgba(217,72,75,.15)", color: "#F0676A", border: "1px solid rgba(217,72,75,.4)", opacity: actingId === b.name ? 0.6 : 1 }}>
+                  <Trash2 size={14} /> {t("delete")}
+                </button>
               </div>
             </div>
           ))}
