@@ -20,7 +20,7 @@ import { promptFilename } from "@/components/FilenamePrompt";
 import type { DictKey } from "@/i18n/dict";
 import { PageHeader } from "@/components/layout/PageHeader";
 
-export const Route = createFileRoute("/_authenticated/team")({ component: TeamPage });
+export const Route = createFileRoute("/_authenticated/team/")({ component: TeamPage });
 
 const ROLES = ["admin", "manager", "member", "viewer"] as const;
 
