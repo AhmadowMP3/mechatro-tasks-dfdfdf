@@ -21,6 +21,18 @@ function json(status: number, body: unknown) {
   });
 }
 
+function errMsg(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object") {
+    const o = e as Record<string, unknown>;
+    const parts = [o.message, o.details, o.hint, o.code].filter(Boolean);
+    if (parts.length) return parts.join(" — ");
+    try { return JSON.stringify(o); } catch { /* ignore */ }
+  }
+  return String(e);
+}
+
+
 // FK-safe insert order (parents first). Delete goes in reverse.
 const TABLES = [
   "app_config",
