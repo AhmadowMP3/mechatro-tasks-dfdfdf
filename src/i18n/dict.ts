@@ -211,6 +211,8 @@ export const dict = {
   backupRequestPending: { ar: "طلبك قيد المراجعة من المسؤول الرئيسي", en: "Your request is pending master admin approval" },
   backupRequestSent: { ar: "تم إرسال الطلب للمسؤول الرئيسي", en: "Request sent to master admin" },
   backupsMasterOnlyNote: { ar: "إدارة النسخ الاحتياطية متاحة للمسؤول الرئيسي فقط", en: "Backup management is restricted to the master admin" },
+  confirmDeleteBackup: { ar: "هل تريد حذف هذه النسخة الاحتياطية نهائياً؟", en: "Delete this backup permanently?" },
+  backupDeleted: { ar: "تم حذف النسخة", en: "Backup deleted" },
   download: { ar: "تنزيل", en: "Download" },
   restore: { ar: "استعادة", en: "Restore" },
   restoreWarn: {
