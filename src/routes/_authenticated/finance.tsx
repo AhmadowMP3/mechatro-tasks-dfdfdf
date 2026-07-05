@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
-import { BarChart3, FileText, Building2, TrendingDown, TrendingUp, Settings as SettingsIcon } from "lucide-react";
+import { BarChart3, FileText, Building2, TrendingDown, TrendingUp, Settings as SettingsIcon, Wallet, Repeat } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/finance")({
   ssr: false,
