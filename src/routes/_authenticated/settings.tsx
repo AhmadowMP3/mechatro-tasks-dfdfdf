@@ -82,10 +82,18 @@ function SeedTestUsersSection() {
 
 type Backup = { name: string; size: number; created_at: string; };
 
+type BackupRequest = {
+  id: string;
+  status: "pending" | "approved" | "rejected" | "completed" | "failed" | "expired";
+  requested_by: string | null;
+  requested_at: string;
+};
+
 function BackupsSection() {
-  const { t, lang } = useApp();
+  const { t, lang, isMasterAdmin } = useApp();
   const isMobile = useIsMobile();
   const [running, setRunning] = useState(false);
+  const [actingId, setActingId] = useState<string | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<Backup | null>(null);
 
   const { data, refetch } = useQuery({
@@ -96,6 +104,19 @@ function BackupsSection() {
     },
   });
 
+  const { data: pending, refetch: refetchPending } = useQuery({
+    queryKey: ["backup_requests", "pending"],
+    enabled: !!isMasterAdmin,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as unknown as (t: string) => any)("backup_requests")
+        .select("id, status, requested_by, requested_at")
+        .eq("status", "pending")
+        .order("requested_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as BackupRequest[];
+    },
+  });
+
   const runBackup = async () => {
     setRunning(true);
     const { error } = await supabase.functions.invoke("backup-snapshot", { body: { manual: true } });
@@ -103,6 +124,24 @@ function BackupsSection() {
     if (error) { toast.error(error.message); return; }
     toast.success(t("saved"));
     refetch();
+  };
+
+  const approveRequest = async (r: BackupRequest) => {
+    setActingId(r.id);
+    const { error } = await supabase.functions.invoke("backup-snapshot", { body: { approve_request_id: r.id } });
+    setActingId(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("backupApproved"));
+    refetch(); refetchPending();
+  };
+
+  const rejectRequest = async (r: BackupRequest) => {
+    setActingId(r.id);
+    const { error } = await supabase.functions.invoke("backup-snapshot", { body: { reject_request_id: r.id } });
+    setActingId(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("backupRejected"));
+    refetchPending();
   };
 
   const download = async (b: Backup) => {
@@ -119,6 +158,58 @@ function BackupsSection() {
           <Play size={16} /> {t("backupNow")}
         </button>
       </div>
+
+      {isMasterAdmin && (
+        <div style={{
+          marginBottom: 16, padding: 14, borderRadius: 12,
+          border: "1px solid rgba(231,176,58,.45)",
+          background: "rgba(231,176,58,.08)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontWeight: 700, fontSize: 14 }}>
+            <AlertTriangle size={16} color="#E7B03A" />
+            {t("pendingBackupRequests")}
+          </div>
+          {(pending ?? []).length === 0 ? (
+            <div style={{ color: "var(--muted)", fontSize: 13 }}>{t("noPendingBackups")}</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {pending!.map((r) => (
+                <div key={r.id} style={{
+                  padding: 12, borderRadius: 10,
+                  background: "var(--surface-2)", border: "1px solid var(--border)",
+                  display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center",
+                }}>
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>
+                      {r.requested_by ? t("byUser") : t("bySystem")}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--muted)" }}>
+                      {t("backupRequestedAt")}: {formatDate(r.requested_at, lang)}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => approveRequest(r)}
+                    disabled={actingId === r.id}
+                    className="brand-btn-sm"
+                    style={{ background: "var(--grad-green)", color: "#fff", opacity: actingId === r.id ? 0.6 : 1 }}
+                  >
+                    <Play size={14} /> {t("approveAndRun")}
+                  </button>
+                  <button
+                    onClick={() => rejectRequest(r)}
+                    disabled={actingId === r.id}
+                    className="brand-btn-sm"
+                    style={{ background: "var(--surface-3)", color: "var(--foreground)", border: "1px solid var(--border)" }}
+                  >
+                    {t("rejectRequest")}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {isMobile ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {(data ?? []).length === 0 ? (
