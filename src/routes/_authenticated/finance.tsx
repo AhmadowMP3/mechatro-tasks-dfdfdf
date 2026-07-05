@@ -25,6 +25,8 @@ const TABS = [
   { to: "/finance/customers", label: { ar: "العملاء", en: "Customers" }, icon: Building2 },
   { to: "/finance/expenses", label: { ar: "المصاريف", en: "Expenses" }, icon: TrendingDown },
   { to: "/finance/income", label: { ar: "الدخل", en: "Income" }, icon: TrendingUp },
+  { to: "/finance/payroll", label: { ar: "الرواتب", en: "Payroll" }, icon: Wallet },
+  { to: "/finance/subscriptions", label: { ar: "الاشتراكات", en: "Subscriptions" }, icon: Repeat },
   { to: "/finance/settings", label: { ar: "إعدادات", en: "Settings" }, icon: SettingsIcon },
 ];
 
