@@ -54,6 +54,7 @@ const DEFAULTS: Filters = {
 function ProjectsPage() {
   const { t, lang, isAdmin, user, users } = useApp();
   const [modal, setModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<P | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [f, setF] = useState<Filters>(DEFAULTS);
   const patch = (p: Partial<Filters>) => setF((c) => ({ ...c, ...p }));
