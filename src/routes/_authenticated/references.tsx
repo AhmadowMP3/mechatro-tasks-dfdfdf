@@ -12,6 +12,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_authenticated/references")({ component: ReferencesPage });
 
