@@ -530,7 +530,20 @@ function EmptyState({ canManage, onAdd, t }: { canManage: boolean; onAdd: () => 
 
 /* --------------------------- Modal --------------------------- */
 
-function RefModal({ initial, onClose, onSaved, userId, t, categories }: {
+const DEFAULT_CATEGORIES: { ar: string; en: string }[] = [
+  { ar: "توثيق", en: "Documentation" },
+  { ar: "أدوات", en: "Tools" },
+  { ar: "قوالب", en: "Templates" },
+  { ar: "مراجع", en: "References" },
+  { ar: "تصميم", en: "Design" },
+  { ar: "تطوير", en: "Development" },
+  { ar: "تعلّم", en: "Learning" },
+  { ar: "فيديو", en: "Video" },
+  { ar: "مقالات", en: "Articles" },
+  { ar: "روابط مهمة", en: "Important links" },
+];
+
+function RefModal({ initial, onClose, onSaved, userId, t, lang, categories }: {
   initial: RefRow | null;
   onClose: () => void;
   onSaved: () => void;
