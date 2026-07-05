@@ -14,6 +14,16 @@ import { GlobalShortcuts } from "@/lib/shortcuts";
 import { BulkActionHost } from "@/lib/bulk-selection";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <BulkActionHost>
+      <AppShellInner>{children}</AppShellInner>
+      <CommandPalette />
+      <GlobalShortcuts />
+    </BulkActionHost>
+  );
+}
+
+function AppShellInner({ children }: { children: React.ReactNode }) {
   const { lang, setLang, theme, setTheme, user } = useApp();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
