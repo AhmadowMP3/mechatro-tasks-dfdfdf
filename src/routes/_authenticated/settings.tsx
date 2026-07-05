@@ -170,7 +170,7 @@ function BackupsSection() {
   };
 
   const deleteBackup = async (b: Backup) => {
-    if (!confirm(t("confirmDeleteBackup"))) return;
+    if (!(await confirm({ message: t("confirmDeleteBackup"), danger: true, confirmText: t("delete") }))) return;
     setActingId(b.name);
     const { data: resp, error } = await supabase.functions.invoke("backup-snapshot", { body: { delete: true, file: b.name } });
     setActingId(null);
