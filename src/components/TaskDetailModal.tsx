@@ -154,13 +154,29 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
 
   const deleteLink = async (id: string) => { await supabase.from("task_files").delete().eq("id", id); load(); };
 
-  const shareMessage = () => t("shareTemplate", {
-    title: task.title,
-    project: projectName || "—",
-    assignee: assignee?.full_name || "—",
-    due: task.due_date ? formatDate(task.due_date, lang) : "—",
-    status: t(task.status as never),
-  });
+  const taskUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/tasks?task=${task.id}`
+    : `/tasks?task=${task.id}`;
+
+  const shareMessage = () => {
+    const base = t("shareTemplate", {
+      title: task.title,
+      project: projectName || "—",
+      assignee: assignee?.full_name || "—",
+      due: task.due_date ? formatDate(task.due_date, lang) : "—",
+      status: t(task.status as never),
+    });
+    return `${base}\n\n${t("shareViewLink")}: ${taskUrl}`;
+  };
+
+  const copyTaskLink = async () => {
+    try {
+      await navigator.clipboard.writeText(taskUrl);
+      toast.success(t("linkCopied"));
+    } catch {
+      toast.error(t("copyLink"));
+    }
+  };
 
   const overdue = isOverdue(merged.due_date, merged.status);
 
