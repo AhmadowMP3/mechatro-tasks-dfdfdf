@@ -272,6 +272,82 @@ function FinanceReports() {
     downloadCsv(`client_balances_${todayIso()}.csv`, rows);
   };
 
+  const exportAllXlsx = async () => {
+    try {
+      const rangeSubtitle = `${range.from} → ${range.to}`;
+      const sheets: FinanceSheetSpec[] = [
+        {
+          name: t("profitAndLoss"),
+          title: t("profitAndLoss"),
+          subtitle: rangeSubtitle,
+          columns: [
+            { header: t("financeItem") || t("reportProject"), key: "item", width: 32 },
+            { header: t("amount"), key: "amount", kind: "money", width: 22 },
+          ],
+          rows: [
+            { item: t("grossRevenue"), amount: pnl.revenue },
+            { item: t("operatingExpenses"), amount: pnl.expTotal },
+            { item: t("netProfit"), amount: pnl.net },
+          ],
+        },
+        {
+          name: t("accountsReceivable") || "A/R Aging",
+          title: t("accountsReceivable") || "A/R Aging",
+          subtitle: `${t("agingBuckets") || "Aging buckets"} · ${todayIso()}`,
+          columns: [
+            { header: t("reportClient"), key: "customer", width: 28 },
+            { header: t("invoice"), key: "number", width: 14 },
+            { header: t("dueDate"), key: "due", kind: "date", width: 14 },
+            { header: t("days"), key: "days", kind: "number", width: 10 },
+            { header: t("reportBalance"), key: "balance", kind: "money", width: 20 },
+          ],
+          rows: aging.rows.map((r) => ({ customer: r.customer, number: r.number, due: r.due ?? "", days: r.days, balance: r.balance })),
+          totalsRow: { customer: t("totalOutstanding"), balance: aging.total },
+        },
+        {
+          name: t("projectProfitability") || "Projects",
+          title: t("projectProfitability") || "Project profitability",
+          subtitle: rangeSubtitle,
+          columns: [
+            { header: t("reportProject"), key: "name", width: 30 },
+            { header: t("reportRevenue"), key: "revenue", kind: "money", width: 20 },
+            { header: t("reportCost"), key: "cost", kind: "money", width: 20 },
+            { header: t("reportMargin"), key: "margin", kind: "money", width: 20 },
+          ],
+          rows: projectPnl.map((r) => ({ name: r.name, revenue: r.revenue, cost: r.cost, margin: r.margin })),
+          totalsRow: {
+            name: t("total") || "Total",
+            revenue: projectPnl.reduce((s, r) => s + r.revenue, 0),
+            cost: projectPnl.reduce((s, r) => s + r.cost, 0),
+            margin: projectPnl.reduce((s, r) => s + r.margin, 0),
+          },
+        },
+        {
+          name: t("clientBalances") || "Clients",
+          title: t("clientBalances") || "Client balances",
+          subtitle: todayIso(),
+          columns: [
+            { header: t("reportClient"), key: "name", width: 30 },
+            { header: t("reportInvoiced"), key: "invoiced", kind: "money", width: 20 },
+            { header: t("reportPaid"), key: "paid", kind: "money", width: 20 },
+            { header: t("reportBalance"), key: "balance", kind: "money", width: 20 },
+          ],
+          rows: clientBalances.map((r) => ({ name: r.name, invoiced: r.invoiced, paid: r.paid, balance: r.balance })),
+          totalsRow: {
+            name: t("totalOutstanding"),
+            invoiced: clientBalances.reduce((s, r) => s + r.invoiced, 0),
+            paid: clientBalances.reduce((s, r) => s + r.paid, 0),
+            balance: clientBalances.reduce((s, r) => s + r.balance, 0),
+          },
+        },
+      ];
+      await exportFinanceWorkbook(sheets, lang, displayCurrency, `finance-reports-${range.from}_${range.to}.xlsx`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+
   const th: React.CSSProperties = {
     textAlign: ar ? "right" : "left",
     padding: "10px 12px",
