@@ -8,19 +8,36 @@
 //
 // The trigger's `style` prop is merged into the default trigger style so
 // existing call sites that pass `inp` or `selectStyle` keep working.
+//
+// When the options list is longer than 6, a sticky search field is rendered
+// at the top of the popup so the user can filter items by typing. Can be
+// forced on/off via the `searchable` prop.
 
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Search as SearchIcon } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 
 const NONE = "__none__";
+const SEARCH_THRESHOLD = 6;
 
 export type ThemedOption = {
   value: string;
   label: React.ReactNode;
   disabled?: boolean;
 };
+
+function labelToText(label: React.ReactNode): string {
+  if (typeof label === "string" || typeof label === "number") return String(label);
+  if (label == null || typeof label === "boolean") return "";
+  if (Array.isArray(label)) return label.map(labelToText).join(" ");
+  // React element fallback: try to read children
+  if (typeof label === "object" && "props" in (label as object)) {
+    const children = (label as { props?: { children?: React.ReactNode } }).props?.children;
+    return labelToText(children);
+  }
+  return "";
+}
 
 export function ThemedSelect({
   value,
@@ -30,6 +47,7 @@ export function ThemedSelect({
   disabled,
   style,
   ariaLabel,
+  searchable,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -38,9 +56,26 @@ export function ThemedSelect({
   disabled?: boolean;
   style?: React.CSSProperties;
   ariaLabel?: string;
+  searchable?: boolean;
 }) {
   const { lang } = useApp();
   const dir: "rtl" | "ltr" = lang === "ar" ? "rtl" : "ltr";
+
+  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
+  const searchRef = React.useRef<HTMLInputElement | null>(null);
+
+  React.useEffect(() => {
+    if (!open) setQuery("");
+  }, [open]);
+
+  const showSearch = searchable ?? options.length > SEARCH_THRESHOLD;
+
+  const filtered = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => labelToText(o.label).toLowerCase().includes(q));
+  }, [query, options]);
 
   const triggerStyle: React.CSSProperties = {
     display: "inline-flex",
@@ -66,11 +101,15 @@ export function ThemedSelect({
   };
 
   const selected = options.find((o) => o.value === value);
+  const searchPlaceholder = lang === "ar" ? "بحث…" : "Search…";
+  const emptyText = lang === "ar" ? "لا نتائج" : "No results";
 
   return (
     <SelectPrimitive.Root
       value={value === "" ? NONE : value}
       onValueChange={(v) => onChange(v === NONE ? "" : v)}
+      open={open}
+      onOpenChange={setOpen}
       disabled={disabled}
       dir={dir}
     >
@@ -101,20 +140,105 @@ export function ThemedSelect({
             border: "1px solid var(--border)",
             borderRadius: 12,
             boxShadow: "0 20px 40px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.2)",
-            padding: 6,
+            display: "flex",
+            flexDirection: "column",
           }}
+          onCloseAutoFocus={() => setQuery("")}
         >
-          <SelectPrimitive.Viewport style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {showSearch && (
+            <div
+              style={{
+                position: "sticky",
+                top: 0,
+                padding: 8,
+                borderBottom: "1px solid var(--border)",
+                background: "var(--card)",
+                zIndex: 1,
+              }}
+              // Keep focus inside the input; stop Radix's typeahead from stealing key events.
+              onKeyDown={(e) => {
+                const k = e.key;
+                if (
+                  k.length === 1 ||
+                  k === "Backspace" ||
+                  k === "Delete" ||
+                  k === " " ||
+                  k === "Home" ||
+                  k === "End"
+                ) {
+                  e.stopPropagation();
+                }
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div style={{ position: "relative" }}>
+                <SearchIcon
+                  size={14}
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    insetInlineStart: 10,
+                    transform: "translateY(-50%)",
+                    color: "var(--muted)",
+                    pointerEvents: "none",
+                  }}
+                />
+                <input
+                  ref={searchRef}
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={searchPlaceholder}
+                  style={{
+                    width: "100%",
+                    minHeight: 36,
+                    background: "var(--surface-2)",
+                    color: "var(--foreground)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    paddingInlineStart: 30,
+                    paddingInlineEnd: 10,
+                    fontSize: 13,
+                    fontFamily: "inherit",
+                    outline: "none",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          <SelectPrimitive.Viewport
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              padding: 6,
+              overflowY: "auto",
+              flex: 1,
+            }}
+          >
             {placeholder !== undefined && (
               <ThemedItem value={NONE}>
                 <span style={{ color: "var(--muted)" }}>{placeholder}</span>
               </ThemedItem>
             )}
-            {options.map((o) => (
+            {filtered.map((o) => (
               <ThemedItem key={o.value} value={o.value} disabled={o.disabled}>
                 {o.label}
               </ThemedItem>
             ))}
+            {filtered.length === 0 && (
+              <div
+                style={{
+                  padding: "16px 12px",
+                  textAlign: "center",
+                  color: "var(--muted)",
+                  fontSize: 13,
+                }}
+              >
+                {emptyText}
+              </div>
+            )}
           </SelectPrimitive.Viewport>
         </SelectPrimitive.Content>
       </SelectPrimitive.Portal>
