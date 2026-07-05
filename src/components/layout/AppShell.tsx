@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, Moon, Sun, Eye, RefreshCw, Bell } from "lucide-react";
+import { Menu, Moon, Sun, Eye, RefreshCw, Bell, Search } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,9 @@ import { Sidebar } from "./Sidebar";
 import { MobileTabBar } from "./MobileTabBar";
 import logo from "@/assets/mechatro-logo.png";
 import { isShareMode, getShareLink } from "@/lib/share-mode";
+import { CommandPalette, openCommandPalette } from "@/lib/command-palette";
+import { GlobalShortcuts } from "@/lib/shortcuts";
+import { BulkActionHost } from "@/lib/bulk-selection";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { lang, setLang, theme, setTheme, user } = useApp();
