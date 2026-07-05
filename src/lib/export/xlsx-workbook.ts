@@ -354,6 +354,6 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
 
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-  const fileName = `Mechatro-Report-${lang.toUpperCase()}-${stamp()}.xlsx`;
+  const fileName = opts.fileName ?? `Mechatro-Report-${lang.toUpperCase()}-${stamp()}.xlsx`;
   saveAs(blob, fileName);
 }
