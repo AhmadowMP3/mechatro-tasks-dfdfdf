@@ -92,8 +92,8 @@ export function FilterDrawer({
         className={isMobile ? "w-full max-h-[92dvh] overflow-y-auto rounded-t-2xl" : "w-full sm:max-w-md overflow-y-auto"}
         style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}
       >
-        <SheetHeader>
-          <SheetTitle style={{ color: "var(--foreground)", display: "flex", alignItems: "center", gap: 10 }}>
+        <SheetHeader style={{ paddingInlineStart: lang === "ar" ? 36 : 0, paddingInlineEnd: lang === "ar" ? 0 : 36, textAlign: lang === "ar" ? "right" : "left" }}>
+          <SheetTitle style={{ color: "var(--foreground)", display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-start" }}>
             <Filter size={20} /> {t("filtersTitle")}
             {activeCount > 0 && (
               <span style={{
