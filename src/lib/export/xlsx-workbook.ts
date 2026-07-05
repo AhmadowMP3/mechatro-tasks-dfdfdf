@@ -128,6 +128,7 @@ export type WorkbookOptions = {
   periodLabel?: string;
   from?: Date | null;
   to?: Date | null;
+  fileName?: string;
 };
 
 export async function exportBrandedWorkbook(opts: WorkbookOptions) {
