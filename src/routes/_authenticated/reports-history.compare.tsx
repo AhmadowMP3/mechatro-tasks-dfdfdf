@@ -9,6 +9,7 @@ import { Avatar } from "@/components/Avatar";
 import type { KpiSnapshot } from "@/lib/report/snapshot";
 import { buildComparisonHtml } from "@/lib/report/comparison-html";
 import { persistComparisonPdf } from "@/lib/report/generator";
+import { promptFilename } from "@/components/FilenamePrompt";
 
 type CompareSearch = { a: string; b: string };
 
