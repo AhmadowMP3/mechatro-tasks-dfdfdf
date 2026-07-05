@@ -219,7 +219,7 @@ function FinanceReports() {
     const rows = Array.from(map.entries()).map(([cid, v]) => {
       const c = (customers ?? []).find((x) => x.id === cid);
       return {
-        name: c ? (ar ? c.name_ar || c.name_en : c.name_en || c.name_ar) : "—",
+        name: c ? ((ar ? c.name_ar || c.name_en : c.name_en || c.name_ar) ?? "—") : "—",
         invoiced: v.invoiced,
         paid: v.paid,
         balance: v.invoiced - v.paid,
