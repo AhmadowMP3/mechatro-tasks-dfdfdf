@@ -1,44 +1,13 @@
-## المشاكل في الـ PDF
+## المشكلة
+html2canvas يرسم النص حرف حرف بدون Arabic shaping engine، فحروف "إجمالي المهام" تطلع منفصلة "إج مل ال مه ما م". هذي مشكلة معروفة في html2canvas.
 
-بعد فحص كود توليد التقرير، وجدت مشكلتين أساسيتين:
+## الحل
+تفعيل `foreignObjectRendering: true` في `renderSectionToCanvas` بدل `false` الحالي (سطر 122 في `src/lib/report/generator.ts`). هذا الوضع يستخدم SVG `<foreignObject>` اللي يخلي المتصفح نفسه يرسم النص، فيحافظ على ربط الحروف العربية بالكامل.
 
-### 1. الألوان (السبب الحقيقي للـ"الوان مضروبة")
-ثيم Aurora الداكن يعرّف `paper: #0B1728` (خلفية داكنة) و `ink: #EAF2F9` (نص شبه أبيض للثيم الداكن).
-لكن دوال البطاقات والجداول في `report-html.ts` تستخدم خلفية بيضاء ثابتة `#fff` مع نفس متغير النص `C.ink`:
-- `kpiCard` (سطر 268): `background:#fff` + `color:${C.ink}` → أرقام بيضاء على بطاقة بيضاء (لهيك الصفر مختفي في صورتك).
-- `profileSection`, `tableWrap`, `chartsSection`, `commentsFilesSection`: نفس الخطأ.
-النتيجة: بطاقات بيضاء فوق صفحة داكنة مع نص بلون فاتح = يختفي.
+### مخاطر ومعالجة
+- `foreignObjectRendering` قد يفشل تحميل الصور cross-origin. الحل: نحن أصلاً نحوّل الشعار إلى data URL (`inlineLogo`)، والـ SVG charts inline بالكامل، فما في تبعية على شبكة داخل الـ foreignObject.
+- بعض المتصفحات القديمة ما تدعمها بشكل ممتاز. Chrome/Edge/Safari الحديث يدعمها.
+- إذا فشل الرندر نضيف fallback بسيط: نجرب `foreignObjectRendering: true` أولاً، وإذا رمى خطأ نعيد المحاولة بـ `false`.
 
-### 2. المحاذاة في صفحة الغلاف
-- عنصر الغلاف (`<section class="pdf-page cover">`) ما بيحدد `dir` → النص المختلط عربي/لاتيني ينفلت (الفوتر: الفترة/التاريخ/بواسطة يطلع بترتيب مقلوب).
-- قاعدة CSS `[dir="rtl"] *{font-family:'Montserrat Arabic'...}` بتفرض الخط العربي على كل شيء بما فيه اسم "Audit Test" اللاتيني → المسافة بين الكلمتين ضاقت لأن glyph المسافة بالخط العربي ضيق، فطلع "AuditTest".
-- ولما ما في `job_title`، الكود بيقع على `t(role)` وبعدين نفس القيمة "عضو فريق" تتكرر كـ pill تحتها → تكرار مزعج.
-
----
-
-## الخطة (تعديلات على `src/lib/report/report-html.ts` فقط)
-
-### أ) إصلاح الألوان
-- استبدال كل `background:#fff` في `kpiCard` و `profileSection` و `tableWrap` و `chartsSection` و `commentsFilesSection` بـ `background:${C.card}` (بيصير `#101E31` بـ Aurora و `#FFFFFF` بـ Executive → كل ثيم يبقى منسجم مع نفسه).
-- إضافة لون نص صريح داكن للـ pills اللي خلفيتها فاتحة (badges في `tasksSection`) إذا لزم.
-- خلفية دوائر SVG الفاضية (`donutSVG` circle الأساسي بلون `C.line`) تفضل مربوطة بالثيم — بس نتأكد إن الأرقام داخل الدونات تلبس لون `C.ink` الصح.
-
-### ب) إصلاح صفحة الغلاف
-- إضافة `dir="${lang === 'ar' ? 'rtl' : 'ltr'}"` على `<section class="pdf-page cover">` (سطر 172 و 212).
-- تخصيص خط لاتيني للاسم عندما يحتوي حروف لاتينية: إضافة `font-family:'Montserrat','Segoe UI',Tahoma,sans-serif` على عنصر الاسم (سطر 189 و 227) → المسافة ترجع طبيعية.
-- إزالة تكرار "job title" لما تكون نفس قيمة الـ role: عرض `job_title` فقط إذا كان مختلف عن ترجمة الـ role، وإلا نخفي السطر ونكتفي بالـ pill.
-- ضبط CSS العام: تخصيص قاعدة الخط العربي على عناصر لها class معين بدل `*`، مثلاً بإضافة `<span class="ar">` حول النصوص العربية أو باستخدام `:lang(ar)` بدل `[dir="rtl"] *`.
-
-### ج) تخفيف قواعد CSS الصارمة
-- إزالة `letter-spacing:0 !important;word-spacing:normal !important` من `*` في `PDF_STYLE` (سطر 32) — هذي كانت `!important` وممكن تعارض مع بعض العناوين. الاحتفاظ بها فقط للطبقات اللي تحتاجها.
-
-### د) التحقق
-- بناء المشروع والتأكد من عدم كسر أنواع TypeScript.
-- طلب من المستخدم توليد PDF لعضو ما (بثيم Aurora + Executive) والتأكد بصريًا:
-  - الأرقام بالبطاقات ظاهرة بوضوح.
-  - "Audit Test" يظهر بمسافة.
-  - الفوتر منسق يمين لليسار عند العربي.
-  - عدم تكرار "عضو فريق" فوق الـ pill.
-
-## ملفات ستُعدَّل
-- `src/lib/report/report-html.ts` فقط (لا حاجة لتعديل `themes.ts` أو `generator.ts`).
+## الملفات المعدَّلة
+- `src/lib/report/generator.ts` فقط — تغيير خيار واحد في `html2canvas()` مع try/catch fallback.

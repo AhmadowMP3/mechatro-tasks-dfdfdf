@@ -112,7 +112,7 @@ async function renderSectionToCanvas(
     iframe.style.height = `${naturalH}px`;
     el.style.minHeight = `${naturalH}px`;
 
-    const canvas = await html2canvas(el, {
+    const baseOpts = {
       scale: 2,
       useCORS: true,
       allowTaint: true,
@@ -120,9 +120,19 @@ async function renderSectionToCanvas(
       logging: false,
       windowWidth: A4_W,
       windowHeight: naturalH,
-      foreignObjectRendering: false,
-    });
+    };
+    let canvas: HTMLCanvasElement;
+    try {
+      canvas = await html2canvas(el, { ...baseOpts, foreignObjectRendering: true });
+      // foreignObjectRendering can silently produce a blank canvas in some engines.
+      const probe = canvas.getContext("2d")?.getImageData(1, 1, 1, 1).data;
+      const blank = probe && probe[0] === 0 && probe[1] === 0 && probe[2] === 0 && probe[3] === 0;
+      if (blank) throw new Error("blank foreignObject canvas");
+    } catch {
+      canvas = await html2canvas(el, { ...baseOpts, foreignObjectRendering: false });
+    }
     return canvas;
+
   } finally {
     iframe.remove();
   }
