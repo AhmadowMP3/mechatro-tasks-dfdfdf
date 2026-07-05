@@ -430,8 +430,8 @@ function UserMenu({ user, lang, busy, onAction }: {
                 onClick={() => { setOpen(false); onAction("activate"); }} />
             )}
             <MenuItem icon={Trash2} danger label={l ? "حذف نهائي" : "Delete permanently"}
-              onClick={() => {
-                if (confirm(l ? "حذف هذا المستخدم نهائيًا؟" : "Delete this user permanently?")) {
+              onClick={async () => {
+                if (await confirm({ message: l ? "حذف هذا المستخدم نهائيًا؟" : "Delete this user permanently?", danger: true, confirmText: l ? "حذف" : "Delete" })) {
                   setOpen(false); onAction("delete");
                 }
               }} />
