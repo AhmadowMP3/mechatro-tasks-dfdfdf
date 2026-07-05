@@ -21,6 +21,8 @@ import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import { toast } from "sonner";
 import type { DictKey } from "@/i18n/dict";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
+import { Trash2, CircleDot } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
 
@@ -128,6 +130,75 @@ function TasksPage() {
     });
     return out;
   }, [data, f, fileCounts]);
+
+  // Global "N" shortcut / palette "New task" action.
+  useEffect(() => {
+    if (!isAdmin) return;
+    const openNew = () => setNewOpen(true);
+    window.addEventListener("app:new-task", openNew);
+    return () => window.removeEventListener("app:new-task", openNew);
+  }, [isAdmin]);
+
+  // Bulk selection — admins only.
+  const { isSelected, toggle, ids: selectedIds } = useBulkSelection({
+    pageId: "tasks",
+    items: filtered as Array<{ id: string }>,
+    deps: [filtered.length, isAdmin, lang],
+    buildBar: isAdmin
+      ? (sel, clearSel) => {
+          const runBulk = async (payload: Record<string, string>) => {
+            const { error } = await supabase.from("tasks").update(payload as never).in("id", sel);
+            if (error) { toast.error(error.message); return; }
+            toast.success(t("saved"));
+            clearSel();
+            refetch();
+          };
+          return {
+            count: sel.length,
+            totalLabel: lang === "ar"
+              ? `${sel.length} مهمة محددة`
+              : `${sel.length} task${sel.length === 1 ? "" : "s"} selected`,
+            actions: [
+              {
+                id: "todo", label: lang === "ar" ? "قيد الانتظار" : "To do",
+                icon: <CircleDot size={14} />, onRun: () => runBulk({ status: "todo" }),
+              },
+              {
+                id: "in_progress", label: lang === "ar" ? "قيد التنفيذ" : "In progress",
+                icon: <CircleDot size={14} />, onRun: () => runBulk({ status: "in_progress" }),
+              },
+              {
+                id: "done", label: lang === "ar" ? "مكتمل" : "Done",
+                icon: <CircleDot size={14} />, onRun: () => runBulk({ status: "done" }),
+              },
+              {
+                id: "priority-high", label: lang === "ar" ? "أولوية عالية" : "High priority",
+                icon: <CircleDot size={14} />, onRun: () => runBulk({ priority: "high" }),
+              },
+              {
+                id: "delete",
+                label: lang === "ar" ? "حذف" : "Delete",
+                icon: <Trash2 size={14} />,
+                destructive: true,
+                confirm: lang === "ar"
+                  ? `حذف ${sel.length} مهمة؟`
+                  : `Delete ${sel.length} task${sel.length === 1 ? "" : "s"}?`,
+                onRun: async () => {
+                  const { error } = await supabase.from("tasks").delete().in("id", sel);
+                  if (error) { toast.error(error.message); return; }
+                  toast.success(lang === "ar" ? "تم الحذف" : "Deleted");
+                  clearSel();
+                  refetch();
+                },
+              },
+            ],
+          };
+        }
+      : () => null,
+  });
+  const bulkMode = selectedIds.length > 0;
+
+
 
   // Active-filter chips
   const chips = useMemo(() => {
@@ -319,12 +390,47 @@ function TasksPage() {
           <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noTasks")}</div>
         ) : view === "cards" ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px),1fr))", gap: 14 }}>
-            {filtered.map((tk) => (
-              <TaskCard key={tk.id} task={tk}
-                project={projects.find((p) => p.id === tk.project_id) ?? null}
-                assignee={displayUsers.find((u) => u.id === tk.assignee_id) ?? null}
-                onClick={() => setSelected(tk.id)} />
-            ))}
+            {filtered.map((tk) => {
+              const checked = isSelected(tk.id);
+              return (
+                <div
+                  key={tk.id}
+                  style={{
+                    position: "relative",
+                    borderRadius: 16,
+                    outline: checked ? "2px solid var(--primary, #189FD1)" : "none",
+                    outlineOffset: 2,
+                    transition: "outline .12s",
+                  }}
+                  onClick={(e) => {
+                    if (bulkMode && isAdmin) { e.stopPropagation(); toggle(tk.id); }
+                  }}
+                >
+                  {isAdmin && (
+                    <div
+                      onClick={(e) => { e.stopPropagation(); toggle(tk.id); }}
+                      className="ref-bulk-check"
+                      style={{
+                        position: "absolute",
+                        top: 10,
+                        insetInlineStart: 10,
+                        zIndex: 5,
+                        opacity: checked || bulkMode ? 1 : 0,
+                        transition: "opacity .12s",
+                      }}
+                    >
+                      <BulkCheckbox checked={checked} onChange={() => toggle(tk.id)} label={lang === "ar" ? "تحديد" : "Select"} />
+                    </div>
+                  )}
+                  <div style={{ pointerEvents: bulkMode ? "none" : "auto" }}>
+                    <TaskCard task={tk}
+                      project={projects.find((p) => p.id === tk.project_id) ?? null}
+                      assignee={displayUsers.find((u) => u.id === tk.assignee_id) ?? null}
+                      onClick={() => setSelected(tk.id)} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : view === "kanban" ? (
           <KanbanView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} onChanged={refetch} />

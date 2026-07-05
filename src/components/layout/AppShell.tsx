@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, Moon, Sun, Eye, RefreshCw, Bell } from "lucide-react";
+import { Menu, Moon, Sun, Eye, RefreshCw, Bell, Search } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,8 +9,21 @@ import { Sidebar } from "./Sidebar";
 import { MobileTabBar } from "./MobileTabBar";
 import logo from "@/assets/mechatro-logo.png";
 import { isShareMode, getShareLink } from "@/lib/share-mode";
+import { CommandPalette, openCommandPalette } from "@/lib/command-palette";
+import { GlobalShortcuts } from "@/lib/shortcuts";
+import { BulkActionHost } from "@/lib/bulk-selection";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <BulkActionHost>
+      <AppShellInner>{children}</AppShellInner>
+      <CommandPalette />
+      <GlobalShortcuts />
+    </BulkActionHost>
+  );
+}
+
+function AppShellInner({ children }: { children: React.ReactNode }) {
   const { lang, setLang, theme, setTheme, user } = useApp();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -190,6 +203,50 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
               )}
             </Link>
+          )}
+
+          {!shareMode && (
+            <button
+              onClick={() => openCommandPalette()}
+              aria-label={lang === "ar" ? "بحث شامل" : "Global search"}
+              title={lang === "ar" ? "بحث (⌘K)" : "Search (⌘K)"}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                height: isMobile ? 40 : 44,
+                padding: isMobile ? "0 10px" : "0 14px",
+                borderRadius: 999,
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                color: "var(--muted)",
+                cursor: "pointer",
+                minWidth: isMobile ? 40 : 200,
+                justifyContent: isMobile ? "center" : "flex-start",
+                fontSize: 13,
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              <Search size={16} />
+              {!isMobile && (
+                <>
+                  <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>
+                    {lang === "ar" ? "بحث…" : "Search…"}
+                  </span>
+                  <kbd
+                    style={{
+                      fontSize: 10, fontWeight: 800, letterSpacing: 0.4,
+                      padding: "3px 6px", borderRadius: 5,
+                      background: "var(--card)", border: "1px solid var(--border)",
+                      color: "var(--foreground)", fontFamily: "ui-monospace, monospace",
+                    }}
+                  >
+                    ⌘K
+                  </kbd>
+                </>
+              )}
+            </button>
           )}
 
           <div

@@ -568,3 +568,19 @@ img, svg, video { max-width: 100%; }
   .compare-projects-grid { grid-template-columns: 1fr; }
 }
 
+
+/* Bulk selection: hover reveals per-row checkboxes on cards */
+.ref-bulk-check { opacity: 0; }
+[class*="brand-card"]:hover .ref-bulk-check,
+.ref-bulk-check:hover { opacity: 1 !important; }
+
+/* Spin used inside BulkActionBar */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+
+/* Reveal per-row bulk checkbox on hover */
+.row-bulk-check { opacity: 0; }
+[class*="brand-card"] > div:hover > .row-bulk-check,
+[class*="brand-card"] :hover > .row-bulk-check,
+[class*="brand-card"] a:hover > div > .row-bulk-check,
+[class*="brand-card"] > div > div:hover .row-bulk-check { opacity: 1 !important; }

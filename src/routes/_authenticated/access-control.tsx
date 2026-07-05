@@ -10,6 +10,7 @@ import { useApp } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { relativeTime } from "@/lib/format";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 
 
 export const Route = createFileRoute("/_authenticated/access-control")({
@@ -139,6 +140,80 @@ function AccessControlPage() {
   const shown = (users ?? []).filter((u) => tab === "all" ? true : u.status === "pending");
   const pendingCount = (users ?? []).filter((u) => u.status === "pending").length;
 
+  // Bulk mode — master admins are always excluded from the selectable set.
+  const bulkableItems = shown.filter((u) => !u.is_master_admin);
+  const { isSelected, toggle, ids: selectedIds } = useBulkSelection<UserRow>({
+    pageId: "access-control",
+    items: bulkableItems,
+    deps: [bulkableItems.length, tab, lang],
+    buildBar: (sel, clearSel) => {
+      const runBulk = async (action: string, extra?: Record<string, unknown>) => {
+        let ok = 0; let fail = 0;
+        for (const id of sel) {
+          try { await call({ action, user_id: id, ...extra }); ok++; }
+          catch { fail++; }
+        }
+        await load();
+        clearSel();
+        if (fail === 0) toast.success(l ? `تم على ${ok}` : `${ok} updated`);
+        else toast.error(l ? `فشل ${fail} من ${sel.length}` : `${fail} of ${sel.length} failed`);
+      };
+      const pendingOnly = sel.every((id) => shown.find((u) => u.id === id)?.status === "pending");
+      const suspendedOnly = sel.every((id) => shown.find((u) => u.id === id)?.status === "suspended");
+      return {
+        count: sel.length,
+        totalLabel: l
+          ? `${sel.length} مستخدم محدد`
+          : `${sel.length} user${sel.length === 1 ? "" : "s"} selected`,
+        actions: [
+          ...(pendingOnly ? [{
+            id: "approve-member",
+            label: l ? "قبول كأعضاء" : "Approve as members",
+            icon: <Check size={14} />,
+            onRun: () => runBulk("approve", { role: "member" }),
+          }] : []),
+          ...(!pendingOnly && !suspendedOnly ? [
+            {
+              id: "make-admin",
+              label: l ? "ترقية إلى مشرف" : "Make admin",
+              icon: <Crown size={14} />,
+              onRun: () => runBulk("set_role", { role: "admin" }),
+            },
+            {
+              id: "make-member",
+              label: l ? "تخفيض إلى عضو" : "Make member",
+              icon: <UserIcon size={14} />,
+              onRun: () => runBulk("set_role", { role: "member" }),
+            },
+            {
+              id: "suspend",
+              label: l ? "تعليق" : "Suspend",
+              icon: <Pause size={14} />,
+              onRun: () => runBulk("suspend"),
+            },
+          ] : []),
+          ...(suspendedOnly ? [{
+            id: "activate",
+            label: l ? "تفعيل" : "Activate",
+            icon: <Play size={14} />,
+            onRun: () => runBulk("activate"),
+          }] : []),
+          {
+            id: "delete",
+            label: l ? "حذف" : "Delete",
+            icon: <Trash2 size={14} />,
+            destructive: true,
+            confirm: l
+              ? `حذف ${sel.length} مستخدم؟ لا يمكن التراجع.`
+              : `Delete ${sel.length} user${sel.length === 1 ? "" : "s"}? This cannot be undone.`,
+            onRun: () => runBulk("delete"),
+          },
+        ],
+      };
+    },
+  });
+  const bulkMode = selectedIds.length > 0;
+
   return (
     <div style={{ padding: "clamp(16px,3vw,32px)", maxWidth: 1100, margin: "0 auto" }}>
       <PageHeader
@@ -209,8 +284,29 @@ function AccessControlPage() {
       )}
 
       <div style={{ display: "grid", gap: 10 }}>
-        {shown.map((u) => (
-          <div key={u.id} style={rowCard}>
+        {shown.map((u) => {
+          const checked = isSelected(u.id);
+          const selectable = !u.is_master_admin;
+          return (
+          <div
+            key={u.id}
+            onClick={() => { if (bulkMode && selectable) toggle(u.id); }}
+            style={{
+              ...rowCard,
+              cursor: bulkMode && selectable ? "pointer" : (rowCard as React.CSSProperties).cursor,
+              background: checked ? "rgba(24,159,209,.10)" : (rowCard as React.CSSProperties).background,
+              outline: checked ? "1.5px solid var(--primary,#189FD1)" : (rowCard as React.CSSProperties).outline,
+            }}
+          >
+            {selectable && (
+              <div
+                onClick={(e) => { e.stopPropagation(); toggle(u.id); }}
+                className="row-bulk-check"
+                style={{ opacity: checked || bulkMode ? 1 : 0, transition: "opacity .12s", flexShrink: 0 }}
+              >
+                <BulkCheckbox checked={checked} onChange={() => toggle(u.id)} label={l ? "تحديد" : "Select"} />
+              </div>
+            )}
             <Avatar id={u.id} name={u.full_name} size={44} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -261,7 +357,8 @@ function AccessControlPage() {
               <UserMenu user={u} lang={lang} busy={busyId === u.id} onAction={(a, extra) => act(a, u.id, extra)} />
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <PendingInvitesList lang={lang} refreshKey={String(invitesBump)} />

@@ -10,6 +10,7 @@ import {
   Library, Plus, Search, Pin, PinOff, ExternalLink, Copy, Edit3, Trash2, X, MoreVertical, Tag as TagIcon, Filter,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 
 export const Route = createFileRoute("/_authenticated/references")({ component: ReferencesPage });
 
@@ -81,6 +82,57 @@ function ReferencesPage() {
     else arr = [...arr].sort((a, b) => Number(b.pinned) - Number(a.pinned) || +new Date(b.created_at) - +new Date(a.created_at));
     return arr;
   }, [rows, search, onlyPinned, selectedCategory, selectedTags, sort]);
+
+  const { isSelected, toggle, ids: selectedIds } = useBulkSelection<RefRow>({
+    pageId: "references",
+    items: filtered,
+    deps: [filtered.length, canManage, lang],
+    buildBar: canManage
+      ? (sel, clearSel) => ({
+          count: sel.length,
+          totalLabel: lang === "ar"
+            ? `${sel.length} مرجع محدد`
+            : `${sel.length} reference${sel.length === 1 ? "" : "s"} selected`,
+          actions: [
+            {
+              id: "pin",
+              label: lang === "ar" ? "تثبيت" : "Pin",
+              icon: <Pin size={14} />,
+              onRun: async () => {
+                await (supabase.from as unknown as (t: string) => any)("references").update({ pinned: true }).in("id", sel);
+                clearSel(); refetch();
+                toast.success(lang === "ar" ? "تم التثبيت" : "Pinned");
+              },
+            },
+            {
+              id: "unpin",
+              label: lang === "ar" ? "إلغاء التثبيت" : "Unpin",
+              icon: <PinOff size={14} />,
+              onRun: async () => {
+                await (supabase.from as unknown as (t: string) => any)("references").update({ pinned: false }).in("id", sel);
+                clearSel(); refetch();
+              },
+            },
+            {
+              id: "delete",
+              label: lang === "ar" ? "حذف" : "Delete",
+              icon: <Trash2 size={14} />,
+              destructive: true,
+              confirm: lang === "ar"
+                ? `حذف ${sel.length} مرجع؟`
+                : `Delete ${sel.length} reference${sel.length === 1 ? "" : "s"}?`,
+              onRun: async () => {
+                const { error } = await (supabase.from as unknown as (t: string) => any)("references").delete().in("id", sel);
+                if (error) { toast.error(error.message); return; }
+                toast.success(lang === "ar" ? "تم الحذف" : "Deleted");
+                clearSel(); refetch();
+              },
+            },
+          ],
+        })
+      : () => null,
+  });
+  const bulkMode = selectedIds.length > 0;
 
   const togglePin = async (r: RefRow) => {
     await (supabase.from as unknown as (t: string) => any)("references").update({ pinned: !r.pinned }).eq("id", r.id);
@@ -213,18 +265,54 @@ function ReferencesPage() {
           gap: 16,
           gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))",
         }}>
-          {filtered.map((r) => (
-            <RefCard
-              key={r.id}
-              row={r}
-              canManage={!!canManage}
-              onPin={() => togglePin(r)}
-              onEdit={() => openEdit(r)}
-              onDelete={() => remove(r)}
-              t={t}
-              lang={lang}
-            />
-          ))}
+          {filtered.map((r) => {
+            const checked = isSelected(r.id);
+            return (
+              <div
+                key={r.id}
+                style={{
+                  position: "relative",
+                  borderRadius: 16,
+                  outline: checked ? "2px solid var(--primary, #189FD1)" : "none",
+                  outlineOffset: 2,
+                  transition: "outline .12s",
+                }}
+                onClick={(e) => {
+                  if (!bulkMode || !canManage) return;
+                  e.stopPropagation();
+                  toggle(r.id);
+                }}
+              >
+                {canManage && (
+                  <div
+                    onClick={(e) => { e.stopPropagation(); toggle(r.id); }}
+                    style={{
+                      position: "absolute",
+                      top: 10,
+                      insetInlineStart: 10,
+                      zIndex: 5,
+                      opacity: checked || bulkMode ? 1 : 0,
+                      transition: "opacity .12s",
+                    }}
+                    className="ref-bulk-check"
+                  >
+                    <BulkCheckbox checked={checked} onChange={() => toggle(r.id)} label={lang === "ar" ? "تحديد" : "Select"} />
+                  </div>
+                )}
+                <div style={{ pointerEvents: bulkMode ? "none" : "auto" }}>
+                  <RefCard
+                    row={r}
+                    canManage={!!canManage}
+                    onPin={() => togglePin(r)}
+                    onEdit={() => openEdit(r)}
+                    onDelete={() => remove(r)}
+                    t={t}
+                    lang={lang}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

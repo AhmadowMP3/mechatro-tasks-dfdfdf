@@ -12,6 +12,7 @@ import {
   ScrollText, Filter,
   Plus, Pencil, Trash2, ArrowRightLeft, MessageSquare, Paperclip,
   UserPlus, Archive as ArchiveIcon, LogIn, LogOut, Activity as ActivityIcon,
+  Download,
 } from "lucide-react";
 
 import {
@@ -22,6 +23,7 @@ import {
 import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 
 
 const ACTIONS = ["created","updated","status_changed","deleted","archived","commented","file_added","assigned","signed_in","signed_out"] as const;
@@ -266,6 +268,49 @@ function ActivityPage() {
     URL.revokeObjectURL(url);
   };
 
+  const { isSelected, toggle, ids: selectedIds } = useBulkSelection<ActivityRow>({
+    pageId: "activity",
+    items: rows,
+    deps: [rows.length, lang, actors, entityNames],
+    buildBar: (sel, clearSel) => ({
+      count: sel.length,
+      totalLabel: lang === "ar"
+        ? `${sel.length} حدث محدد`
+        : `${sel.length} event${sel.length === 1 ? "" : "s"} selected`,
+      actions: [
+        {
+          id: "export",
+          label: lang === "ar" ? "تصدير CSV" : "Export CSV",
+          icon: <Download size={14} />,
+          onRun: () => {
+            const selRows = rows.filter((r) => sel.includes(r.id));
+            const header = ["created_at", "actor", "action", "entity_type", "entity_id", "entity_name", "meta"];
+            const csv = [header.join(",")].concat(
+              selRows.map((r) => [
+                r.created_at,
+                actors[r.actor_id ?? ""]?.full_name ?? "",
+                r.action,
+                r.entity_type,
+                r.entity_id ?? "",
+                (r.entity_id && entityNames[r.entity_id]) || "",
+                r.meta ? JSON.stringify(r.meta) : "",
+              ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")),
+            ).join("\n");
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = `activity-selection-${Date.now()}.csv`; a.click();
+            URL.revokeObjectURL(url);
+            toast.success(lang === "ar" ? `تم تصدير ${sel.length} حدث` : `Exported ${sel.length} row${sel.length === 1 ? "" : "s"}`);
+            clearSel();
+          },
+        },
+      ],
+    }),
+  });
+  const bulkMode = selectedIds.length > 0;
+
+
   const entityHref = (r: ActivityRow): string | null => {
     if (!r.entity_id) return null;
     if (r.entity_type === "project") return `/projects/${r.entity_id}`;
@@ -431,13 +476,27 @@ function ActivityPage() {
                   const from = typeof meta.from === "string" ? meta.from : null;
                   const to   = typeof meta.to   === "string" ? meta.to   : null;
                   const href = entityHref(r);
+                  const checked = isSelected(r.id);
 
                   const row = (
                     <div style={{
                       display: "flex", gap: 12, alignItems: "flex-start",
                       padding: "12px 18px",
                       borderBottom: "1px solid var(--border)",
+                      background: checked ? "rgba(24,159,209,.10)" : "transparent",
+                      transition: "background .12s",
                     }}>
+                      <div
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(r.id); }}
+                        style={{
+                          marginTop: 6,
+                          opacity: checked || bulkMode ? 1 : 0,
+                          transition: "opacity .12s",
+                        }}
+                        className="row-bulk-check"
+                      >
+                        <BulkCheckbox checked={checked} onChange={() => toggle(r.id)} label={lang === "ar" ? "تحديد" : "Select"} />
+                      </div>
                       <div style={{
                         width: 34, height: 34, borderRadius: 10,
                         display: "grid", placeItems: "center",
@@ -465,11 +524,15 @@ function ActivityPage() {
                     </div>
                   );
 
-                  return href ? (
+                  return href && !bulkMode ? (
                     <Link key={r.id} to={href} style={{ display: "block", color: "inherit", textDecoration: "none" }}>
                       {row}
                     </Link>
-                  ) : <div key={r.id}>{row}</div>;
+                  ) : (
+                    <div key={r.id} onClick={() => bulkMode && toggle(r.id)} style={{ cursor: bulkMode ? "pointer" : "default" }}>
+                      {row}
+                    </div>
+                  );
                 })}
               </div>
             ))}
