@@ -447,9 +447,16 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
       <Field label={`${t("fullName")} (EN)`}><input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} style={inp} /></Field>
       <Field label={t("description")}><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ ...inp, minHeight: 70 }} /></Field>
       <Field label={t("color")}>
-        <select value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} style={inp}>
-          <option value="blue">Blue</option><option value="orange">Orange</option><option value="green">Green</option><option value="red">Red</option>
-        </select>
+        <ThemedSelect
+          value={form.color}
+          onChange={(v) => setForm({ ...form, color: v })}
+          options={[
+            { value: "blue", label: "Blue" },
+            { value: "orange", label: "Orange" },
+            { value: "green", label: "Green" },
+            { value: "red", label: "Red" },
+          ]}
+        />
       </Field>
       <Field label={t("dueDate")}><input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} style={inp} /></Field>
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
