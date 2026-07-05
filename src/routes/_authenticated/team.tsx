@@ -305,9 +305,11 @@ function MemberModal({ member, onClose, onSaved }: { member?: Profile; onClose: 
       <Field label={t("jobTitle")}><input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} style={inp} /></Field>
       <Field label={t("phone")}><input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} style={inp} /></Field>
       <Field label={t("role")}>
-        <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as never })} style={inp}>
-          {["admin", "manager", "member", "viewer"].map((r) => <option key={r} value={r}>{t(r as never)}</option>)}
-        </select>
+        <ThemedSelect
+          value={form.role}
+          onChange={(v) => setForm({ ...form, role: v as never })}
+          options={["admin", "manager", "member", "viewer"].map((r) => ({ value: r, label: t(r as never) }))}
+        />
       </Field>
       <label style={{ display: "flex", gap: 8, alignItems: "center", minHeight: 44, marginBottom: 12 }}>
         <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} style={{ width: 18, height: 18 }} />
