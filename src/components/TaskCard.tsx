@@ -9,6 +9,7 @@ export type TaskRow = {
   id: string; title: string; project_id: string; status: string; priority: string;
   progress: number; due_date: string | null; assignee_id: string | null;
   start_date?: string | null;
+  created_at?: string | null;
   points?: number | null; points_awarded_at?: string | null;
 };
 
@@ -79,6 +80,11 @@ export function TaskCard({ task, project, assignee, onClick }: {
         </div>
       )}
       <div style={{ marginTop: 10 }}>
+        {task.created_at && (
+          <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 11, color: "var(--muted)" }}>
+            {t("createdAt")}: {formatDate(task.created_at, lang)}
+          </div>
+        )}
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8, fontSize: 12, color: "var(--muted)", alignItems: "center", gap: 8 }}>
           {assignee && <Avatar id={assignee.id} name={assignee.full_name} size={24} />}
           <span style={{ color: overdue ? "#F0676A" : "var(--muted)", fontWeight: overdue ? 700 : 500 }}>
