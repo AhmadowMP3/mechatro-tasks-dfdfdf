@@ -161,6 +161,12 @@ function BackupsSection() {
     refetchPending();
   };
 
+  const download = async (b: Backup) => {
+    const { data, error } = await supabase.storage.from("backups").createSignedUrl(b.name, 300);
+    if (error || !data) { toast.error(error?.message ?? "err"); return; }
+    window.open(data.signedUrl, "_blank");
+  };
+
   const requestBackup = async () => {
     if (!user?.id) return;
     setRunning(true);
