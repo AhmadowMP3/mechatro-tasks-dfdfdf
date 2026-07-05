@@ -9,6 +9,7 @@ import {
 } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useApp } from "@/lib/app-context";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export type BulkAction = {
   id: string;
