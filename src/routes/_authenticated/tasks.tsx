@@ -146,8 +146,8 @@ function TasksPage() {
     deps: [filtered.length, isAdmin, lang],
     buildBar: isAdmin
       ? (sel, clearSel) => {
-          const runBulk = async (payload: Record<string, unknown>) => {
-            const { error } = await supabase.from("tasks").update(payload).in("id", sel);
+          const runBulk = async (payload: Record<string, string>) => {
+            const { error } = await supabase.from("tasks").update(payload as never).in("id", sel);
             if (error) { toast.error(error.message); return; }
             toast.success(t("saved"));
             clearSel();
