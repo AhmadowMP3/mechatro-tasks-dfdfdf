@@ -250,8 +250,8 @@ function FinanceReports() {
   };
   const exportAgingCsv = () => {
     const rows: (string | number)[][] = [
-      [t("reportClient"), t("invoice"), t("dueDate"), t("age"), t("reportBalance")],
-      ...aging.rows.map((r) => [r.customer, r.number, r.due ?? "—", r.days, r.balance.toFixed(2)]),
+      [t("reportClient"), t("invoice"), t("dueDate"), t("days"), t("reportBalance")],
+      ...aging.rows.map((r) => [r.customer, r.number, r.due ?? "", r.days, r.balance.toFixed(2)]),
     ];
     downloadCsv(`ar_aging_${todayIso()}.csv`, rows);
   };
@@ -414,7 +414,7 @@ function FinanceReports() {
                   <th style={th}>{t("reportClient")}</th>
                   <th style={th}>{t("invoice")}</th>
                   <th style={th}>{t("dueDate")}</th>
-                  <th style={{ ...th, textAlign: ar ? "left" : "right" }}>{t("age")}</th>
+                  <th style={{ ...th, textAlign: ar ? "left" : "right" }}>{t("days")}</th>
                   <th style={{ ...th, textAlign: ar ? "left" : "right" }}>{t("reportBalance")}</th>
                 </tr>
               </thead>
