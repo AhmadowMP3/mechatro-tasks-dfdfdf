@@ -90,7 +90,7 @@ type BackupRequest = {
 };
 
 function BackupsSection() {
-  const { t, lang, isMasterAdmin } = useApp();
+  const { t, lang, isMasterAdmin, user } = useApp();
   const isMobile = useIsMobile();
   const [running, setRunning] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
@@ -98,6 +98,7 @@ function BackupsSection() {
 
   const { data, refetch } = useQuery({
     queryKey: ["backups"],
+    enabled: !!isMasterAdmin,
     queryFn: async () => {
       const { data } = await supabase.storage.from("backups").list("", { limit: 100, sortBy: { column: "created_at", order: "desc" } });
       return (data ?? []).filter((f) => f.name.endsWith(".json")) as unknown as Backup[];
@@ -116,6 +117,22 @@ function BackupsSection() {
       return (data ?? []) as BackupRequest[];
     },
   });
+
+  const { data: myPending, refetch: refetchMyPending } = useQuery({
+    queryKey: ["backup_requests", "mine", user?.id],
+    enabled: !isMasterAdmin && !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as unknown as (t: string) => any)("backup_requests")
+        .select("id, status, requested_at")
+        .eq("requested_by", user!.id)
+        .eq("status", "pending")
+        .order("requested_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data ?? []) as BackupRequest[];
+    },
+  });
+
 
   const runBackup = async () => {
     setRunning(true);
@@ -150,14 +167,42 @@ function BackupsSection() {
     window.open(data.signedUrl, "_blank");
   };
 
+  const requestBackup = async () => {
+    if (!user?.id) return;
+    setRunning(true);
+    const { error } = await supabase.from("backup_requests").insert({
+      status: "pending",
+      requested_by: user.id,
+    } as never);
+    setRunning(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("backupRequestSent"));
+    refetchMyPending();
+  };
+
+  const hasMyPending = (myPending ?? []).length > 0;
+
   return (
     <section className="brand-card" style={{ padding: 20 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
         <h2 style={{ margin: 0, flex: 1, fontSize: 18 }}>{t("backups")}</h2>
-        <button onClick={runBackup} disabled={running} className="brand-btn" style={{ background: "var(--grad-green)", color: "#fff", opacity: running ? 0.6 : 1 }}>
-          <Play size={16} /> {t("backupNow")}
-        </button>
+        {isMasterAdmin ? (
+          <button onClick={runBackup} disabled={running} className="brand-btn" style={{ background: "var(--grad-green)", color: "#fff", opacity: running ? 0.6 : 1 }}>
+            <Play size={16} /> {t("backupNow")}
+          </button>
+        ) : (
+          <button onClick={requestBackup} disabled={running || hasMyPending} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", opacity: (running || hasMyPending) ? 0.6 : 1 }}>
+            <Play size={16} /> {t("requestBackup")}
+          </button>
+        )}
       </div>
+
+      {!isMasterAdmin && (
+        <div style={{ padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-2)", fontSize: 13, color: "var(--muted)" }}>
+          {hasMyPending ? t("backupRequestPending") : t("backupsMasterOnlyNote")}
+        </div>
+      )}
+
 
       {isMasterAdmin && (
         <div style={{
@@ -210,7 +255,7 @@ function BackupsSection() {
         </div>
       )}
 
-      {isMobile ? (
+      {isMasterAdmin && (isMobile ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {(data ?? []).length === 0 ? (
             <div style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>—</div>
@@ -265,7 +310,7 @@ function BackupsSection() {
           </tbody>
         </table>
       </div>
-      )}
+      ))}
       {restoreTarget && <RestoreDialog backup={restoreTarget} onClose={() => setRestoreTarget(null)} onDone={() => { setRestoreTarget(null); refetch(); }} />}
     </section>
   );

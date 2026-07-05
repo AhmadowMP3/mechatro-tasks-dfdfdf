@@ -207,6 +207,10 @@ export const dict = {
   byUser: { ar: "طلب يدوي", en: "Manual request" },
   backupApproved: { ar: "تمت الموافقة وتشغيل النسخة", en: "Approved and backup completed" },
   backupRejected: { ar: "تم رفض الطلب", en: "Request rejected" },
+  requestBackup: { ar: "طلب نسخة احتياطية", en: "Request backup" },
+  backupRequestPending: { ar: "طلبك قيد المراجعة من المسؤول الرئيسي", en: "Your request is pending master admin approval" },
+  backupRequestSent: { ar: "تم إرسال الطلب للمسؤول الرئيسي", en: "Request sent to master admin" },
+  backupsMasterOnlyNote: { ar: "إدارة النسخ الاحتياطية متاحة للمسؤول الرئيسي فقط", en: "Backup management is restricted to the master admin" },
   download: { ar: "تنزيل", en: "Download" },
   restore: { ar: "استعادة", en: "Restore" },
   restoreWarn: {
