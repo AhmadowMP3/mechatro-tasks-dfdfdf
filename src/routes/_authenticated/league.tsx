@@ -440,8 +440,9 @@ function NewSeasonModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
 function ManageSeasonsModal({ seasons, onClose, onCloseEnded, onChanged }: { seasons: Season[]; onClose: () => void; onCloseEnded: () => void; onChanged: () => void }) {
   const { t, lang } = useApp();
+  const confirm = useConfirm();
   const del = async (id: string) => {
-    if (!confirm("Delete season?")) return;
+    if (!(await confirm({ message: t("confirmDeleteSeason"), danger: true, confirmText: t("delete") }))) return;
     const { error } = await supabase.from("league_seasons").delete().eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success(t("saved")); onChanged(); }
