@@ -255,7 +255,7 @@ function BackupsSection() {
         </div>
       )}
 
-      {isMobile ? (
+      {isMasterAdmin && (isMobile ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {(data ?? []).length === 0 ? (
             <div style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>—</div>
