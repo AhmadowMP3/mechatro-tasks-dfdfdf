@@ -268,6 +268,49 @@ function ActivityPage() {
     URL.revokeObjectURL(url);
   };
 
+  const { isSelected, toggle, ids: selectedIds } = useBulkSelection<ActivityRow>({
+    pageId: "activity",
+    items: rows,
+    deps: [rows.length, lang, actors, entityNames],
+    buildBar: (sel, clearSel) => ({
+      count: sel.length,
+      totalLabel: lang === "ar"
+        ? `${sel.length} حدث محدد`
+        : `${sel.length} event${sel.length === 1 ? "" : "s"} selected`,
+      actions: [
+        {
+          id: "export",
+          label: lang === "ar" ? "تصدير CSV" : "Export CSV",
+          icon: <Download size={14} />,
+          onRun: () => {
+            const selRows = rows.filter((r) => sel.includes(r.id));
+            const header = ["created_at", "actor", "action", "entity_type", "entity_id", "entity_name", "meta"];
+            const csv = [header.join(",")].concat(
+              selRows.map((r) => [
+                r.created_at,
+                actors[r.actor_id ?? ""]?.full_name ?? "",
+                r.action,
+                r.entity_type,
+                r.entity_id ?? "",
+                (r.entity_id && entityNames[r.entity_id]) || "",
+                r.meta ? JSON.stringify(r.meta) : "",
+              ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")),
+            ).join("\n");
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = `activity-selection-${Date.now()}.csv`; a.click();
+            URL.revokeObjectURL(url);
+            toast.success(lang === "ar" ? `تم تصدير ${sel.length} حدث` : `Exported ${sel.length} row${sel.length === 1 ? "" : "s"}`);
+            clearSel();
+          },
+        },
+      ],
+    }),
+  });
+  const bulkMode = selectedIds.length > 0;
+
+
   const entityHref = (r: ActivityRow): string | null => {
     if (!r.entity_id) return null;
     if (r.entity_type === "project") return `/projects/${r.entity_id}`;
