@@ -10,6 +10,7 @@ import { Avatar } from "@/components/Avatar";
 import logo from "@/assets/mechatro-logo.png";
 import type { DictKey } from "@/i18n/dict";
 import { isShareMode, getShareLink } from "@/lib/share-mode";
+import { InstallAppButton } from "@/components/InstallAppButton";
 
 
 type NavItem = {
