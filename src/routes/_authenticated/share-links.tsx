@@ -112,7 +112,8 @@ function SharePage() {
 
 
 function LinkCard({ link, onEdit, onChanged }: { link: ShareLinkRow; onEdit: () => void; onChanged: () => void }) {
-  const { lang } = useApp();
+  const { lang, t } = useApp();
+  const confirm = useConfirm();
   const ar = lang === "ar";
   const url = shareUrl(link.token);
   const expired = link.expires_at ? new Date(link.expires_at).getTime() < Date.now() : false;
