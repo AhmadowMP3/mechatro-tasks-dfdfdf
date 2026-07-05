@@ -145,6 +145,17 @@ function ProjectsPage() {
 
 
   const doExport = async () => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const fileName = await promptFilename({
+      defaultName: `Mechatro_Projects_${stamp}`,
+      extension: "xlsx",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("exportXlsx"),
+      cancelLabel: t("cancel"),
+    });
+    if (!fileName) return;
     try {
       const cols: XlsxColumn<typeof filtered[number]>[] = [
         { key: "name", header: lang === "ar" ? "المشروع" : "Project", width: 40, get: (r) => lang === "ar" ? r.p.name_ar : r.p.name_en },
@@ -161,7 +172,7 @@ function ProjectsPage() {
         title: `${t("reportTitle")} · ${t("projects")}`,
         filtersSummary: chips.map((c) => c.label).join(" · ") || (lang === "ar" ? "بدون فلاتر" : "No filters"),
         generatedBy: user?.full_name,
-        lang, columns: cols, rows: filtered,
+        lang, columns: cols, rows: filtered, fileName,
       });
       toast.success(t("exported"));
     } catch (e) {
