@@ -226,8 +226,9 @@ function coverPage(data: ReportData, lang: Lang, s: Stats): string {
         <div style="display:flex;gap:24px;align-items:center;margin-top:8px">
           ${avatar}
           <div>
-            <div style="font-size:44px;font-weight:800;line-height:1.1">${esc(m.full_name)}</div>
-            <div style="font-size:16px;color:${softSubtle};margin-top:8px">${esc(m.job_title ?? t(m.role as never, lang))}</div>
+            <div style="font-size:44px;font-weight:800;line-height:1.1;font-family:'Montserrat','Segoe UI',Tahoma,'Montserrat Arabic',sans-serif">${esc(m.full_name)}</div>
+            ${m.job_title && m.job_title !== t(m.role as never, lang) ? `<div style="font-size:16px;color:${softSubtle};margin-top:8px">${esc(m.job_title)}</div>` : ""}
+
             <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
               <span style="background:${softOverlay};padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700">${esc(t(m.role as never, lang))}</span>
               ${m.is_master_admin ? `<span style="background:${th.gold};color:#1a1a1a;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700">${esc(t("masterAdmin", lang))}</span>` : ""}
