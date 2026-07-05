@@ -284,8 +284,29 @@ function AccessControlPage() {
       )}
 
       <div style={{ display: "grid", gap: 10 }}>
-        {shown.map((u) => (
-          <div key={u.id} style={rowCard}>
+        {shown.map((u) => {
+          const checked = isSelected(u.id);
+          const selectable = !u.is_master_admin;
+          return (
+          <div
+            key={u.id}
+            onClick={() => { if (bulkMode && selectable) toggle(u.id); }}
+            style={{
+              ...rowCard,
+              cursor: bulkMode && selectable ? "pointer" : (rowCard as React.CSSProperties).cursor,
+              background: checked ? "rgba(24,159,209,.10)" : (rowCard as React.CSSProperties).background,
+              outline: checked ? "1.5px solid var(--primary,#189FD1)" : (rowCard as React.CSSProperties).outline,
+            }}
+          >
+            {selectable && (
+              <div
+                onClick={(e) => { e.stopPropagation(); toggle(u.id); }}
+                className="row-bulk-check"
+                style={{ opacity: checked || bulkMode ? 1 : 0, transition: "opacity .12s", flexShrink: 0 }}
+              >
+                <BulkCheckbox checked={checked} onChange={() => toggle(u.id)} label={l ? "تحديد" : "Select"} />
+              </div>
+            )}
             <Avatar id={u.id} name={u.full_name} size={44} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
