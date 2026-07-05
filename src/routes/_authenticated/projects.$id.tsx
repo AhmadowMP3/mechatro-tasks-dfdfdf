@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ArrowRight, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,7 @@ function ProjectDetail() {
   const { id } = Route.useParams();
   const { t, lang, users, isAdmin, user } = useApp();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<string | null>(null);
   useEffect(() => {
     if (typeof window === "undefined") return;
