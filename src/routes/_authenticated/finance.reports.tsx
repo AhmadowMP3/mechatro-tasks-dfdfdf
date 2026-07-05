@@ -281,7 +281,7 @@ function FinanceReports() {
           title: t("profitAndLoss"),
           subtitle: rangeSubtitle,
           columns: [
-            { header: t("financeItem") || t("reportProject"), key: "item", width: 32 },
+            { header: t("reportProject"), key: "item", width: 32 },
             { header: t("amount"), key: "amount", kind: "money", width: 22 },
           ],
           rows: [
@@ -293,7 +293,7 @@ function FinanceReports() {
         {
           name: t("accountsReceivable") || "A/R Aging",
           title: t("accountsReceivable") || "A/R Aging",
-          subtitle: `${t("agingBuckets") || "Aging buckets"} · ${todayIso()}`,
+          subtitle: `${"Aging buckets"} · ${todayIso()}`,
           columns: [
             { header: t("reportClient"), key: "customer", width: 28 },
             { header: t("invoice"), key: "number", width: 14 },
@@ -316,7 +316,7 @@ function FinanceReports() {
           ],
           rows: projectPnl.map((r) => ({ name: r.name, revenue: r.revenue, cost: r.cost, margin: r.margin })),
           totalsRow: {
-            name: t("total") || "Total",
+            name: t("totalOutstanding"),
             revenue: projectPnl.reduce((s, r) => s + r.revenue, 0),
             cost: projectPnl.reduce((s, r) => s + r.cost, 0),
             margin: projectPnl.reduce((s, r) => s + r.margin, 0),
