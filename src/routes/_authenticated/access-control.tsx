@@ -343,15 +343,17 @@ function AccessControlPage() {
             )}
 
             {u.status !== "pending" && !u.is_master_admin && (
-              <select
-                disabled={busyId === u.id}
-                value={u.role === "admin" ? "admin" : "member"}
-                onChange={(e) => changeRole(u.id, e.target.value as "admin" | "member")}
-                style={selectStyle}
-              >
-                <option value="member">{l ? "عضو" : "Member"}</option>
-                <option value="admin">{l ? "نائب مدير" : "Admin"}</option>
-              </select>
+              <div style={{ minWidth: 140 }}>
+                <ThemedSelect
+                  disabled={busyId === u.id}
+                  value={u.role === "admin" ? "admin" : "member"}
+                  onChange={(v) => changeRole(u.id, v as "admin" | "member")}
+                  options={[
+                    { value: "member", label: l ? "عضو" : "Member" },
+                    { value: "admin", label: l ? "نائب مدير" : "Admin" },
+                  ]}
+                />
+              </div>
             )}
 
             {!u.is_master_admin && (
