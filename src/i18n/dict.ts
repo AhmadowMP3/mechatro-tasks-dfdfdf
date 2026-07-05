@@ -747,7 +747,7 @@ export const dict = {
   confirmReopenPayroll: { ar: "إعادة فتح الدورة للتعديل؟", en: "Reopen period for editing?" },
   entriesCount: { ar: "عدد البنود", en: "Entries" },
   totalNet: { ar: "إجمالي الصافي", en: "Total Net" },
-  member: { ar: "العضو", en: "Member" },
+  
 
   // Subscriptions
   subscriptions: { ar: "الاشتراكات", en: "Subscriptions" },
