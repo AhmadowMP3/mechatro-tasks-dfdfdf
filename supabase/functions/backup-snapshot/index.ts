@@ -64,6 +64,7 @@ Deno.serve(async (req) => {
   let body: {
     manual?: boolean;
     restore?: boolean;
+    delete?: boolean;
     file?: string;
     approve_request_id?: string;
     reject_request_id?: string;
