@@ -249,31 +249,35 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             </button>
           )}
 
-          <div
-            style={{
-              display: "inline-flex",
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
-              borderRadius: 999,
-              padding: 3,
-              flexShrink: 0,
-            }}
-          >
-            <button onClick={() => setLang("ar")} style={langBtnStyle(lang === "ar")}>
-              عربي
-            </button>
-            <button onClick={() => setLang("en")} style={langBtnStyle(lang === "en")}>
-              EN
-            </button>
-          </div>
+          {!isMobile && (
+            <>
+              <div
+                style={{
+                  display: "inline-flex",
+                  background: "var(--surface-2)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 999,
+                  padding: 3,
+                  flexShrink: 0,
+                }}
+              >
+                <button onClick={() => setLang("ar")} style={langBtnStyle(lang === "ar")}>
+                  عربي
+                </button>
+                <button onClick={() => setLang("en")} style={langBtnStyle(lang === "en")}>
+                  EN
+                </button>
+              </div>
 
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label="theme"
-            style={iconBtn}
-          >
-            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label="theme"
+                style={iconBtn}
+              >
+                {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+            </>
+          )}
         </header>
 
         <main
