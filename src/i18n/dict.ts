@@ -808,6 +808,11 @@ export const dict = {
   reportBalance: { ar: "الرصيد", en: "Balance" },
   reportCurrent: { ar: "قيد التحصيل", en: "Current" },
   reportOverdue: { ar: "متأخر", en: "Overdue" },
+  paymentReceipt: { ar: "إيصال دفع", en: "Payment receipt" },
+  downloadBrandedPdf: { ar: "تحميل PDF مصمم", en: "Download branded PDF" },
+  reminderInvoiceDueSoon: { ar: "فاتورة قريبة الاستحقاق", en: "Invoice due soon" },
+  reminderInvoiceOverdue: { ar: "فاتورة متأخرة", en: "Invoice overdue" },
+  reminderSubscriptionDueSoon: { ar: "اشتراك قريب التجديد", en: "Subscription renewal soon" },
 } as const;
 
 

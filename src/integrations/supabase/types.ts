@@ -278,6 +278,33 @@ export type Database = {
           },
         ]
       }
+      finance_reminders_log: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          reminder_type: string
+          sent_on: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          reminder_type: string
+          sent_on?: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          reminder_type?: string
+          sent_on?: string
+        }
+        Relationships: []
+      }
       financial_settings: {
         Row: {
           bank_details_ar: string | null
