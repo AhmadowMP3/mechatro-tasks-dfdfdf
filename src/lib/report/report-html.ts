@@ -265,11 +265,12 @@ function sectionHeader(title: string, accent = C.blue): string {
 }
 
 function kpiCard(label: string, value: string, accent: string): string {
-  return `<div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:14px 16px;border-top:3px solid ${accent}">
+  return `<div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:14px 16px;border-top:3px solid ${accent}">
     <div style="font-size:26px;font-weight:800;color:${C.ink};line-height:1">${esc(value)}</div>
     <div style="font-size:11px;color:${C.muted};margin-top:6px;text-transform:uppercase;letter-spacing:.5px">${esc(label)}</div>
   </div>`;
 }
+
 
 function profileSection(data: ReportData, lang: Lang): string {
   const m = data.member;
