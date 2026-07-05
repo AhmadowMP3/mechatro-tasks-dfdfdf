@@ -228,74 +228,115 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       )}
 
       <nav style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
-        {sections.map((section, sIdx) => (
-          <div key={section.titleKey} style={{ marginBottom: 14 }}>
-            <div
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "10px 12px 6px",
-                marginTop: sIdx === 0 ? 0 : 2,
-              }}
-            >
-              <span
-                aria-hidden
+        {sections.map((section, sIdx) => {
+          const SectionIcon = section.icon;
+          const hasActive = section.items.some(({ to }) =>
+            to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/"),
+          );
+          const isCollapsed = !!collapsed[section.titleKey] && !hasActive;
+          const sectionLabel = t(section.titleKey);
+          return (
+            <div key={section.titleKey} style={{ marginBottom: 10 }}>
+              <button
+                type="button"
+                onClick={() => toggleSection(section.titleKey)}
+                aria-expanded={!isCollapsed}
+                aria-label={`${sectionLabel} — ${isCollapsed ? (lang === "ar" ? "إظهار" : "expand") : (lang === "ar" ? "إخفاء" : "collapse")}`}
                 style={{
-                  width: 18, height: 2, borderRadius: 2,
-                  background: "var(--grad-blue)",
-                  boxShadow: "0 0 10px rgba(29,155,240,.5)",
-                  flexShrink: 0,
+                  width: "100%",
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "8px 10px",
+                  marginTop: sIdx === 0 ? 0 : 2,
+                  marginBottom: 4,
+                  background: "transparent",
+                  border: "none",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                  color: hasActive ? "var(--foreground)" : "var(--muted)",
+                  flexDirection: lang === "ar" ? "row-reverse" : "row",
                 }}
-              />
-              <span
-                style={{
-                  fontSize: 10.5, fontWeight: 800,
-                  letterSpacing: ".14em", textTransform: "uppercase",
-                  color: "var(--muted)",
-                  flex: 1,
-                  textAlign: lang === "ar" ? "right" : "left",
-                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               >
-                {t(section.titleKey)}
-              </span>
-            </div>
-
-            {section.items.map((item) => {
-              const { to, icon: Icon } = item;
-              const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
-              const label = "label" in item && item.label
-                ? item.label[lang]
-                : t(item.key as DictKey);
-              return (
-                <Link
-                  key={to}
-                  to={to}
-                  onClick={onClose}
-                  className={`side-item ${active ? "is-active" : ""}`}
+                <span
+                  aria-hidden
                   style={{
-                    display: "flex", alignItems: "center", gap: 12,
-                    padding: "10px 12px", marginBottom: 4,
-                    borderRadius: 12,
-                    minHeight: 48,
-                    background: active ? "var(--grad-blue)" : "transparent",
-                    color: active ? "#fff" : "var(--muted)",
-                    fontWeight: 700, fontSize: 14.5,
-                    textDecoration: "none",
-                    flexDirection: lang === "ar" ? "row-reverse" : "row",
-                    justifyContent: "flex-end",
+                    width: 22, height: 22, borderRadius: 7,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    background: hasActive
+                      ? "var(--grad-blue)"
+                      : "linear-gradient(135deg,rgba(29,155,240,.14),rgba(29,155,240,.05))",
+                    color: hasActive ? "#fff" : "rgba(29,155,240,.9)",
+                    border: hasActive ? "1px solid transparent" : "1px solid rgba(29,155,240,.25)",
+                    flexShrink: 0,
+                    boxShadow: hasActive ? "0 0 12px rgba(29,155,240,.35)" : "none",
                   }}
                 >
-                  <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>{label}</span>
-                  <span
-                    className={`icon-tile icon-tile-sm ${active ? "is-active" : ""}`}
-                    style={active ? { background: "rgba(255,255,255,0.18)", color: "#fff", borderColor: "transparent", boxShadow: "none" } : undefined}
+                  <SectionIcon size={12} />
+                </span>
+                <span
+                  style={{
+                    fontSize: 10.5, fontWeight: 800,
+                    letterSpacing: ".14em", textTransform: "uppercase",
+                    flex: 1,
+                    textAlign: lang === "ar" ? "right" : "left",
+                  }}
+                >
+                  {sectionLabel}
+                </span>
+                <ChevronDown
+                  size={14}
+                  aria-hidden
+                  style={{
+                    transition: "transform .2s ease",
+                    transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                    opacity: 0.7,
+                    flexShrink: 0,
+                  }}
+                />
+              </button>
+
+              {!isCollapsed && section.items.map((item) => {
+                const { to, icon: Icon } = item;
+                const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
+                const label = "label" in item && item.label
+                  ? item.label[lang]
+                  : t(item.key as DictKey);
+                return (
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={onClose}
+                    className={`side-item ${active ? "is-active" : ""}`}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "10px 12px", marginBottom: 4,
+                      borderRadius: 12,
+                      minHeight: 48,
+                      background: active ? "var(--grad-blue)" : "transparent",
+                      color: active ? "#fff" : "var(--muted)",
+                      fontWeight: 700, fontSize: 14.5,
+                      textDecoration: "none",
+                      flexDirection: lang === "ar" ? "row-reverse" : "row",
+                      justifyContent: "flex-end",
+                      boxShadow: active ? "0 6px 20px rgba(29,155,240,.35)" : "none",
+                      border: active ? "1px solid rgba(255,255,255,.08)" : "1px solid transparent",
+                      transition: "background .15s ease, color .15s ease",
+                    }}
                   >
-                    <Icon size={16} />
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+                    <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>{label}</span>
+                    <span
+                      className={`icon-tile icon-tile-sm ${active ? "is-active" : ""}`}
+                      style={active ? { background: "rgba(255,255,255,0.18)", color: "#fff", borderColor: "transparent", boxShadow: "none" } : undefined}
+                    >
+                      <Icon size={16} />
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
       </nav>
 
       <div style={{ padding: 12, borderTop: "1px solid var(--border)" }}>
