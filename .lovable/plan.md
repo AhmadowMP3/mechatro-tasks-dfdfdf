@@ -1,20 +1,17 @@
 ## Goal
-Show the task's creation date on the outside of the task card (list view), alongside the existing due date.
+On mobile, the "Table" view of tasks currently renders `TaskCard`s — identical to the "Cards" view. Make the Table view stay a real table on mobile so the two view modes are visually distinct.
 
 ## Change (single file)
 
-**`src/components/TaskCard.tsx`**
-1. Extend `TaskRow` with `created_at?: string`.
-2. In the footer row (currently shows assignee + due date, lines 74-80), add a small muted line above the due-date row showing:
-   `t("createdAt") + ": " + formatDate(task.created_at, lang)` when `task.created_at` exists.
-   Style: same 12px `var(--muted)` font, aligned to the trailing edge (same `justifyContent: "flex-end"`), no icon, so it doesn't compete with the due date.
-
-Data is already available — `tasks.tsx` queries `select("*")` so `created_at` flows through without any query changes.
+**`src/components/tasks/TableView.tsx`**
+- Remove the mobile `TaskCard` fallback (lines 26 + 68-88): drop `useIsMobile` import/usage and the `if (isMobile) { return ... }` branch.
+- Keep the existing horizontally-scrollable table (`overflowX: "auto"` on the wrapper, `minWidth: 720` on the table) so on narrow screens the user swipes sideways to see all columns.
+- To make the compact table friendlier on mobile without changing the desktop look, tighten only cell padding at the mobile breakpoint via inline media in a small `<style>` block scoped to the table wrapper, OR keep as-is if legibility is acceptable — proposal: keep padding as-is; the horizontal scroll is enough to differentiate views.
 
 ## Out of scope
-- No changes to the tasks list query, filters, sort, table view, or detail modal.
-- No new i18n keys (reusing existing `createdAt`).
+- No changes to the Cards view, Kanban view, filters, sort, or `TaskCard` itself.
+- No column removal — all columns remain accessible by horizontal scroll.
 
 ## Verification
-- On `/tasks`, every card shows "تاريخ الإنشاء: <date>" above the due-date/assignee row.
-- Cards without a due date still render the created date.
+- On mobile (`/tasks` with view=Table): a real table renders with horizontal scroll; view=Cards renders the card grid. The two look clearly different.
+- Desktop table view is unchanged.
