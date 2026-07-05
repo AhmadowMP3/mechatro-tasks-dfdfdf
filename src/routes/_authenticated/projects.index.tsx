@@ -133,7 +133,11 @@ function ProjectsPage() {
   }, [f, users, t]);
 
   const toggleArchive = async (p: P) => {
-    await supabase.from("projects").update({ archived: !p.archived }).eq("id", p.id);
+    const nextArchived = !p.archived;
+    await supabase.from("projects").update({
+      archived: nextArchived,
+      status: nextArchived ? "archived" : "active",
+    }).eq("id", p.id);
     toast.success(t("saved"));
     refetch();
   };

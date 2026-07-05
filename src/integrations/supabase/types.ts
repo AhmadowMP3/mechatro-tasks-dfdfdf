@@ -1047,7 +1047,7 @@ export type Database = {
         | "failed"
         | "expired"
       profile_status: "pending" | "active" | "suspended"
-      project_status: "active" | "on_hold" | "done"
+      project_status: "active" | "on_hold" | "done" | "archived"
       season_scope: "global" | "project"
       season_status: "upcoming" | "active" | "ended"
       task_priority: "low" | "normal" | "high" | "urgent"
@@ -1189,7 +1189,7 @@ export const Constants = {
         "expired",
       ],
       profile_status: ["pending", "active", "suspended"],
-      project_status: ["active", "on_hold", "done"],
+      project_status: ["active", "on_hold", "done", "archived"],
       season_scope: ["global", "project"],
       season_status: ["upcoming", "active", "ended"],
       task_priority: ["low", "normal", "high", "urgent"],
