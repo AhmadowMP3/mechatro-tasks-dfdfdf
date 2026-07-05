@@ -77,6 +77,45 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          error: string | null
+          id: string
+          requested_at: string
+          requested_by: string | null
+          result_file: string | null
+          status: Database["public"]["Enums"]["backup_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          error?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          result_file?: string | null
+          status?: Database["public"]["Enums"]["backup_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          error?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          result_file?: string | null
+          status?: Database["public"]["Enums"]["backup_request_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invites: {
         Row: {
           created_at: string
@@ -1000,6 +1039,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "member" | "viewer"
+      backup_request_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "completed"
+        | "failed"
+        | "expired"
       profile_status: "pending" | "active" | "suspended"
       project_status: "active" | "on_hold" | "done"
       season_scope: "global" | "project"
@@ -1134,6 +1180,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "member", "viewer"],
+      backup_request_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "completed",
+        "failed",
+        "expired",
+      ],
       profile_status: ["pending", "active", "suspended"],
       project_status: ["active", "on_hold", "done"],
       season_scope: ["global", "project"],
