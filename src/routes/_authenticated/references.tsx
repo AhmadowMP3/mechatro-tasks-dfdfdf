@@ -424,9 +424,10 @@ function RefCard({ row, canManage, onPin, onEdit, onDelete, t, lang }: {
                 <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 30 }} />
                 <div style={{
                   position: "absolute", top: 38, insetInlineEnd: 0, zIndex: 31,
-                  minWidth: 160, background: "var(--surface)",
+                  minWidth: 160, background: "var(--surface-3)",
                   border: "1px solid var(--border)", borderRadius: 10,
-                  boxShadow: "0 12px 40px rgba(0,0,0,.4)",
+                  boxShadow: "0 12px 40px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.3)",
+                  backdropFilter: "blur(8px)",
                   padding: 4, color: "var(--foreground)",
                 }}>
                   <MenuItem icon={isPinned ? <PinOff size={14}/> : <Pin size={14}/>} label={isPinned ? (t as (k: string) => string)("unpin") : (t as (k: string) => string)("pin")} onClick={() => { setMenuOpen(false); onPin(); }} />
