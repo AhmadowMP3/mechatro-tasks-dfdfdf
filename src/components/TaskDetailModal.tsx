@@ -35,6 +35,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
   const [newComment, setNewComment] = useState("");
   const [linkName, setLinkName] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [savingLink, setSavingLink] = useState(false);
   const [dirty, setDirty] = useState<Partial<Task>>({});
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
