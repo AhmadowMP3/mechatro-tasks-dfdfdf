@@ -14,6 +14,37 @@ export type ExpenseCategory = Database["public"]["Tables"]["expense_categories"]
 export type IncomeEntry = Database["public"]["Tables"]["income_entries"]["Row"];
 export type FxRate = Database["public"]["Tables"]["fx_rates"]["Row"];
 export type FinancialSettings = Database["public"]["Tables"]["financial_settings"]["Row"];
+export type MemberSalarySettings = Database["public"]["Tables"]["member_salary_settings"]["Row"];
+export type PayrollPeriod = Database["public"]["Tables"]["payroll_periods"]["Row"];
+export type PayrollEntry = Database["public"]["Tables"]["payroll_entries"]["Row"];
+export type SubscriptionExpense = Database["public"]["Tables"]["subscriptions_expense"]["Row"];
+export type SubscriptionIncome = Database["public"]["Tables"]["subscriptions_income"]["Row"];
+export type SubscriptionCycle = Database["public"]["Enums"]["subscription_cycle"];
+export type SubscriptionStatus = Database["public"]["Enums"]["subscription_status"];
+export type PayrollPeriodStatus = Database["public"]["Enums"]["payroll_period_status"];
+
+export function subscriptionCycleKey(c: SubscriptionCycle): "cycleMonthly" | "cycleQuarterly" | "cycleSemiannual" | "cycleAnnual" {
+  switch (c) {
+    case "monthly": return "cycleMonthly";
+    case "quarterly": return "cycleQuarterly";
+    case "semiannual": return "cycleSemiannual";
+    case "annual": return "cycleAnnual";
+  }
+}
+
+export function payrollStatusKey(s: PayrollPeriodStatus): "payrollDraft" | "payrollFinalized" | "payrollPaid" {
+  switch (s) {
+    case "draft": return "payrollDraft";
+    case "finalized": return "payrollFinalized";
+    case "paid": return "payrollPaid";
+  }
+}
+
+export function monthLabel(month: number, lang: "ar" | "en"): string {
+  const ar = ["كانون الثاني","شباط","آذار","نيسان","أيار","حزيران","تموز","آب","أيلول","تشرين الأول","تشرين الثاني","كانون الأول"];
+  const en = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return (lang === "ar" ? ar : en)[Math.max(0, Math.min(11, month - 1))];
+}
 
 /** Format money with thousands separators, Arabic-Indic digits when RTL. */
 export function formatMoney(amount: number | string | null | undefined, currency: Currency, lang: "ar" | "en" = "en"): string {
