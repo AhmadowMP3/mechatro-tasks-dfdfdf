@@ -382,7 +382,7 @@ function StatusPill({ status, lang, label }: { status: string; lang: "ar" | "en"
       style={{
         position: "absolute",
         top: 14,
-        insetInlineStart: 14,
+        insetInlineEnd: 14,
         padding: "3px 12px",
         borderRadius: 999,
         fontSize: 11,
