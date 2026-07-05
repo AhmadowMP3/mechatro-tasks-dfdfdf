@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
+import { ThemedSelect } from "@/components/ui/ThemedSelect";
 
 export const Route = createFileRoute("/_authenticated/references")({ component: ReferencesPage });
 
