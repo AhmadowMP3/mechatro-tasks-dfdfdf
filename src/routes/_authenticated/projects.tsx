@@ -318,9 +318,19 @@ function ProjectsPage() {
                   </div>
                 </div>
                 {isAdmin && (
-                  <button onClick={() => toggleArchive(p)} style={{ marginTop: 12, width: "100%", minHeight: 40, borderRadius: 10, background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--border)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, fontWeight: 700 }}>
-                    {p.archived ? <><ArchiveRestore size={16} /> {t("unarchive")}</> : <><Archive size={16} /> {t("archive")}</>}
-                  </button>
+                  <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+                    <button onClick={() => toggleArchive(p)} style={{ flex: 1, minHeight: 40, borderRadius: 10, background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--border)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, fontWeight: 700 }}>
+                      {p.archived ? <><ArchiveRestore size={16} /> {t("unarchive")}</> : <><Archive size={16} /> {t("archive")}</>}
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(p)}
+                      aria-label={t("deleteProject")}
+                      title={t("deleteProject")}
+                      style={{ width: 44, minHeight: 40, borderRadius: 10, background: "var(--surface-2)", color: "#ff6b6b", border: "1px solid var(--border)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
