@@ -143,7 +143,7 @@ function ReferencesPage() {
   };
 
   const remove = async (r: RefRow) => {
-    if (!confirm(t("confirmDeleteRef"))) return;
+    if (!(await confirm({ message: t("confirmDeleteRef"), danger: true, confirmText: t("delete") }))) return;
     await (supabase.from as unknown as (t: string) => any)("references").delete().eq("id", r.id);
     toast.success(t("deleteReference"));
     refetch();
