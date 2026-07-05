@@ -8,6 +8,7 @@ import { useApp, type Profile } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { RoleBadge } from "@/components/Pills";
 import { toLocalDigits, formatMinutes, formatDate } from "@/lib/format";
+import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { toast } from "sonner";
 import { ModalShell, Field, inp } from "@/routes/_authenticated/projects.index";
 import {
