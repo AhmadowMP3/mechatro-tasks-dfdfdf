@@ -836,7 +836,13 @@ function CategoryCombobox({
 
       {/* Row 2: chip cloud */}
       {(filtered.length > 0 || canCreate) && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {showSuggestedLabel && (
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, color: "var(--muted)", textTransform: "uppercase" }}>
+              {suggestedLabel}
+            </div>
+          )}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
           {canCreate && (
             <button
               type="button"
