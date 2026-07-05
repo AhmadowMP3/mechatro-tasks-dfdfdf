@@ -90,7 +90,7 @@ type BackupRequest = {
 };
 
 function BackupsSection() {
-  const { t, lang, isMasterAdmin } = useApp();
+  const { t, lang, isMasterAdmin, user } = useApp();
   const isMobile = useIsMobile();
   const [running, setRunning] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
@@ -98,6 +98,7 @@ function BackupsSection() {
 
   const { data, refetch } = useQuery({
     queryKey: ["backups"],
+    enabled: !!isMasterAdmin,
     queryFn: async () => {
       const { data } = await supabase.storage.from("backups").list("", { limit: 100, sortBy: { column: "created_at", order: "desc" } });
       return (data ?? []).filter((f) => f.name.endsWith(".json")) as unknown as Backup[];
@@ -116,6 +117,22 @@ function BackupsSection() {
       return (data ?? []) as BackupRequest[];
     },
   });
+
+  const { data: myPending, refetch: refetchMyPending } = useQuery({
+    queryKey: ["backup_requests", "mine", user?.id],
+    enabled: !isMasterAdmin && !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as unknown as (t: string) => any)("backup_requests")
+        .select("id, status, requested_at")
+        .eq("requested_by", user!.id)
+        .eq("status", "pending")
+        .order("requested_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data ?? []) as BackupRequest[];
+    },
+  });
+
 
   const runBackup = async () => {
     setRunning(true);
