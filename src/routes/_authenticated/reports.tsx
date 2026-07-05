@@ -233,7 +233,7 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(4,10,22,0.72)", backdropFilter: "blur(6px)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(920px,100%)", maxHeight: "94vh", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 30px 80px rgba(0,0,0,.5)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(920px,100%)", maxHeight: "94vh", background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 30px 80px rgba(0,0,0,.5)" }}>
         {/* Header with step indicator */}
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -256,10 +256,10 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
         </div>
 
         <div style={{ padding: 16, borderTop: "1px solid var(--border)", background: "var(--surface-2)", display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)" }}>{t("cancel")}</button>
+          <button onClick={onClose} className="brand-btn" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}>{t("cancel")}</button>
           <div style={{ display: "flex", gap: 8 }}>
             {step > 1 && step < 5 && (
-              <button onClick={() => setStep((s) => (s - 1) as WizardStep)} className="brand-btn" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
+              <button onClick={() => setStep((s) => (s - 1) as WizardStep)} className="brand-btn" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
                 <ArrowLeft size={16} /> {t("back")}
               </button>
             )}
@@ -332,7 +332,7 @@ function ScopeCard({ active, onClick, icon, title, desc }: { active: boolean; on
       border: `1px solid ${active ? "transparent" : "var(--border)"}`,
       minHeight: 120,
     }}>
-      <div style={{ width: 44, height: 44, borderRadius: 12, background: active ? "rgba(255,255,255,.2)" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</div>
+      <div style={{ width: 44, height: 44, borderRadius: 12, background: active ? "rgba(255,255,255,.2)" : "var(--card)", display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</div>
       <div style={{ fontSize: 15, fontWeight: 800 }}>{title}</div>
       <div style={{ fontSize: 11.5, opacity: 0.75 }}>{desc}</div>
     </button>
@@ -393,10 +393,10 @@ function StepPeriod({ rangeKey, setRangeKey, from, to, setFrom, setTo, today }: 
       {rangeKey === "custom" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <label style={{ fontSize: 12, color: "var(--muted)" }}>{t("fromDate")}
-            <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} style={{ width: "100%", padding: 10, marginTop: 4, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--foreground)" }} />
+            <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} style={{ width: "100%", padding: 10, marginTop: 4, borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
           </label>
           <label style={{ fontSize: 12, color: "var(--muted)" }}>{t("toDate")}
-            <input type="date" value={to} min={from} max={today} onChange={(e) => setTo(e.target.value)} style={{ width: "100%", padding: 10, marginTop: 4, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--foreground)" }} />
+            <input type="date" value={to} min={from} max={today} onChange={(e) => setTo(e.target.value)} style={{ width: "100%", padding: 10, marginTop: 4, borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }} />
           </label>
         </div>
       )}

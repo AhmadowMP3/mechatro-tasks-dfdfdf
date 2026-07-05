@@ -1,13 +1,13 @@
 ## المشكلة
-html2canvas يرسم النص حرف حرف بدون Arabic shaping engine، فحروف "إجمالي المهام" تطلع منفصلة "إج مل ال مه ما م". هذي مشكلة معروفة في html2canvas.
+البطاقات والنافذة في معالج تقرير PDF تبيّن الخلفية اللي وراها لأن `var(--surface)` غير معرّف في تعريف الثيم — المعرّف فقط `--background` و`--card` و`--surface-2` و`--surface-3`. أي عنصر يستعمل `var(--surface)` بدون قيمة احتياطية يصير شفاف.
 
 ## الحل
-تفعيل `foreignObjectRendering: true` في `renderSectionToCanvas` بدل `false` الحالي (سطر 122 في `src/lib/report/generator.ts`). هذا الوضع يستخدم SVG `<foreignObject>` اللي يخلي المتصفح نفسه يرسم النص، فيحافظ على ربط الحروف العربية بالكامل.
+استبدال `var(--surface)` بـ `var(--card)` (لون داكن متين `#0F2031`) في `src/routes/_authenticated/reports.tsx` بالأسطر التالية:
 
-### مخاطر ومعالجة
-- `foreignObjectRendering` قد يفشل تحميل الصور cross-origin. الحل: نحن أصلاً نحوّل الشعار إلى data URL (`inlineLogo`)، والـ SVG charts inline بالكامل، فما في تبعية على شبكة داخل الـ foreignObject.
-- بعض المتصفحات القديمة ما تدعمها بشكل ممتاز. Chrome/Edge/Safari الحديث يدعمها.
-- إذا فشل الرندر نضيف fallback بسيط: نجرب `foreignObjectRendering: true` أولاً، وإذا رمى خطأ نعيد المحاولة بـ `false`.
+- سطر 236: خلفية بطاقة المودال الرئيسية
+- سطر 259: زر "إلغاء"
+- سطر 262: زر "رجوع"
+- سطر 335: خلفية أيقونة ScopeCard غير النشطة
+- سطر 396 و 399: حقول التاريخ
 
-## الملفات المعدَّلة
-- `src/lib/report/generator.ts` فقط — تغيير خيار واحد في `html2canvas()` مع try/catch fallback.
+النتيجة: نافذة المعالج وبطاقات النطاق تصير بخلفية داكنة متينة بدل الشفافة.
