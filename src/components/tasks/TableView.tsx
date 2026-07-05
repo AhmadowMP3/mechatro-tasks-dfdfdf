@@ -6,8 +6,6 @@ import { Avatar } from "@/components/Avatar";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 import type { TaskRow } from "@/components/TaskCard";
-import { TaskCard } from "@/components/TaskCard";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 type Project = { id: string; name_ar: string; name_en: string; color: string };
 type SortKey = "title" | "due_date" | "priority" | "status" | "progress";
