@@ -59,7 +59,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           dir={isAr ? "rtl" : "ltr"}
           className="brand-card"
           style={{
-            background: "var(--surface)",
+            background: "var(--card)",
             border: "1px solid var(--border)",
             color: "var(--foreground)",
             borderRadius: 16,
