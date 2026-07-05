@@ -173,6 +173,16 @@ Deno.serve(async (req) => {
 
     // ---- Delete a backup file ----
     if (body.delete && body.file) {
+      // Protect the latest backup from deletion
+      const { data: files, error: listErr } = await sb.storage.from("backups").list("", {
+        limit: 1000,
+        sortBy: { column: "name", order: "desc" },
+      });
+      if (listErr) throw new Error(listErr.message);
+      const latest = files?.[0]?.name;
+      if (latest && latest === body.file) {
+        return json(400, { error: "cannot_delete_latest" });
+      }
       const { error: rmErr } = await sb.storage.from("backups").remove([body.file]);
       if (rmErr) throw new Error(rmErr.message);
       return json(200, { ok: true, deleted: body.file });
