@@ -888,6 +888,57 @@ export type Database = {
           },
         ]
       }
+      member_salary_settings: {
+        Row: {
+          base_salary: number
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          notes: string | null
+          other_fixed_allowance: number
+          points_bonus_rate: number
+          transport_allowance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_salary?: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          notes?: string | null
+          other_fixed_allowance?: number
+          points_bonus_rate?: number
+          transport_allowance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_salary?: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          notes?: string | null
+          other_fixed_allowance?: number
+          points_bonus_rate?: number
+          transport_allowance?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_salary_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_salary_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
@@ -933,6 +984,148 @@ export type Database = {
           {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_entries: {
+        Row: {
+          base_salary: number
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          deductions: number
+          id: string
+          manual_bonus: number
+          net_amount: number
+          notes: string | null
+          other_allowance: number
+          paid_at: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          period_id: string
+          points_bonus: number
+          points_snapshot: number
+          streak_bonus: number
+          tasks_done_snapshot: number
+          transport_allowance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_salary?: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          deductions?: number
+          id?: string
+          manual_bonus?: number
+          net_amount?: number
+          notes?: string | null
+          other_allowance?: number
+          paid_at?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          period_id: string
+          points_bonus?: number
+          points_snapshot?: number
+          streak_bonus?: number
+          tasks_done_snapshot?: number
+          transport_allowance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_salary?: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          deductions?: number
+          id?: string
+          manual_bonus?: number
+          net_amount?: number
+          notes?: string | null
+          other_allowance?: number
+          paid_at?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          period_id?: string
+          points_bonus?: number
+          points_snapshot?: number
+          streak_bonus?: number
+          tasks_done_snapshot?: number
+          transport_allowance?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_entries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_periods: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          finalized_at: string | null
+          id: string
+          month: number
+          notes: string | null
+          paid_at: string | null
+          status: Database["public"]["Enums"]["payroll_period_status"]
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          finalized_at?: string | null
+          id?: string
+          month: number
+          notes?: string | null
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["payroll_period_status"]
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          finalized_at?: string | null
+          id?: string
+          month?: number
+          notes?: string | null
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["payroll_period_status"]
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_periods_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_periods_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "team_directory"
             referencedColumns: ["id"]
@@ -1246,6 +1439,157 @@ export type Database = {
           },
         ]
       }
+      subscriptions_expense: {
+        Row: {
+          amount: number
+          auto_create_expense: boolean
+          category: string | null
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          cycle: Database["public"]["Enums"]["subscription_cycle"]
+          id: string
+          name: string
+          next_renewal_date: string
+          notes: string | null
+          reminder_days: number
+          start_date: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          amount?: number
+          auto_create_expense?: boolean
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          cycle?: Database["public"]["Enums"]["subscription_cycle"]
+          id?: string
+          name: string
+          next_renewal_date: string
+          notes?: string | null
+          reminder_days?: number
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          amount?: number
+          auto_create_expense?: boolean
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          cycle?: Database["public"]["Enums"]["subscription_cycle"]
+          id?: string
+          name?: string
+          next_renewal_date?: string
+          notes?: string | null
+          reminder_days?: number
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_expense_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_expense_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions_income: {
+        Row: {
+          amount: number
+          auto_create_invoice: boolean
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          customer_id: string
+          cycle: Database["public"]["Enums"]["subscription_cycle"]
+          description: string | null
+          id: string
+          next_invoice_date: string
+          notes: string | null
+          plan_name: string
+          reminder_days: number
+          start_date: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          auto_create_invoice?: boolean
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          customer_id: string
+          cycle?: Database["public"]["Enums"]["subscription_cycle"]
+          description?: string | null
+          id?: string
+          next_invoice_date: string
+          notes?: string | null
+          plan_name: string
+          reminder_days?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          auto_create_invoice?: boolean
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          customer_id?: string
+          cycle?: Database["public"]["Enums"]["subscription_cycle"]
+          description?: string | null
+          id?: string
+          next_invoice_date?: string
+          notes?: string | null
+          plan_name?: string
+          reminder_days?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_income_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_income_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_income_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_comments: {
         Row: {
           author_id: string | null
@@ -1535,6 +1879,13 @@ export type Database = {
       }
     }
     Functions: {
+      advance_subscription_date: {
+        Args: {
+          base_date: string
+          c: Database["public"]["Enums"]["subscription_cycle"]
+        }
+        Returns: string
+      }
       close_ended_seasons: { Args: never; Returns: number }
       next_invoice_number: { Args: never; Returns: string }
       resolve_login_email: { Args: { p_name: string }; Returns: string }
@@ -1559,10 +1910,13 @@ export type Database = {
         | "overdue"
         | "void"
       payment_method: "cash" | "bank_transfer" | "cheque" | "card" | "other"
+      payroll_period_status: "draft" | "finalized" | "paid"
       profile_status: "pending" | "active" | "suspended"
       project_status: "active" | "on_hold" | "done" | "archived"
       season_scope: "global" | "project"
       season_status: "upcoming" | "active" | "ended"
+      subscription_cycle: "monthly" | "quarterly" | "semiannual" | "annual"
+      subscription_status: "active" | "paused" | "canceled"
       task_priority: "low" | "normal" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "paused" | "in_review" | "done"
     }
@@ -1712,10 +2066,13 @@ export const Constants = {
         "void",
       ],
       payment_method: ["cash", "bank_transfer", "cheque", "card", "other"],
+      payroll_period_status: ["draft", "finalized", "paid"],
       profile_status: ["pending", "active", "suspended"],
       project_status: ["active", "on_hold", "done", "archived"],
       season_scope: ["global", "project"],
       season_status: ["upcoming", "active", "ended"],
+      subscription_cycle: ["monthly", "quarterly", "semiannual", "annual"],
+      subscription_status: ["active", "paused", "canceled"],
       task_priority: ["low", "normal", "high", "urgent"],
       task_status: ["todo", "in_progress", "paused", "in_review", "done"],
     },

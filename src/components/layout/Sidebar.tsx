@@ -74,6 +74,8 @@ const NAV_SECTIONS: NavSection[] = [
       { to: "/finance/customers", icon: Building2,    key: null, label: { ar: "العملاء", en: "Customers" } },
       { to: "/finance/expenses",  icon: TrendingDown, key: null, label: { ar: "المصاريف", en: "Expenses" } },
       { to: "/finance/income",    icon: TrendingUp,   key: null, label: { ar: "الدخل", en: "Income" } },
+      { to: "/finance/payroll",   icon: Wallet,       key: null, label: { ar: "الرواتب", en: "Payroll" } },
+      { to: "/finance/subscriptions", icon: Receipt,  key: null, label: { ar: "الاشتراكات", en: "Subscriptions" } },
     ],
   },
   {
