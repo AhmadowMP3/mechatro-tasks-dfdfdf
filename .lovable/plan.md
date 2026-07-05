@@ -1,25 +1,18 @@
 ## Goal
-Show the project status as a colored pill badge on the top-right of each project card (grid view), matching the empty area circled in red on the uploaded reference.
+The status filter in the archived tab currently offers `active` / `on_hold` / `done` (which don't match archived projects, since their status is `archived`). In the archived tab, the status filter should offer only `archived`.
 
 ## Change (single file)
 
-**`src/routes/_authenticated/projects.index.tsx`** — grid card (around line 307):
-- Add a small status pill absolutely positioned at the top-inline-start (LTR: top-left; RTL: top-right — since UI is RTL, this lands on the top-left corner in the RTL layout, matching the circled area in the screenshot).
-- Pill content: `t(p.status)` (already localized: `active` / `on_hold` / `done` / `archived`).
-- Color mapping (semantic tokens, works in dark mode):
-  - `active` → green (`var(--success)` / green gradient)
-  - `on_hold` → amber/gold (`var(--brand-gold)`)
-  - `done` → blue (`var(--primary)` or `var(--grad-blue)`)
-  - `archived` → muted gray (`var(--surface-3)` bg, `var(--muted)` text)
-- Style: pill with padding `2px 10px`, `border-radius: 999px`, font-size 11, bold, uppercase-off, subtle border, `color:#fff` for colored states.
-- The card wrapper gets `position: relative` so the pill can absolute-position inside it under the colored top bar.
+**`src/routes/_authenticated/projects.index.tsx`** — around line 241 where `ChipMultiSelect` for status is rendered:
+- When `f.archived === true`: pass `options = [{ value: "archived", label: t("archived") }]`.
+- When `f.archived === false`: keep current `PROJECT_STATUSES.map(...)` (active / on_hold / done).
 
-Also mirror the same pill in the table/list view (if present in this route) — will inspect and add there too during the edit for consistency.
+Also, when the user switches tabs (line 211 `patch({ archived: val })`), clear `statuses: []` so a stale status selection from the other tab doesn't hide all rows.
 
 ## Out of scope
-- No changes to the status dropdown on the detail page.
-- No changes to filters, export, or data model.
+- Any other filter behavior, colors, cards, or data logic.
 
 ## Verification
-- Grid view: each card shows a colored status badge in the top corner; colors distinct per status; readable in dark theme.
-- Switching a project's status on the detail page reflects the new color/label after list refetch.
+- Active tab: status filter shows active / on_hold / done as today.
+- Archived tab: status filter shows only "archived".
+- Switching tabs resets the status chip selection.
