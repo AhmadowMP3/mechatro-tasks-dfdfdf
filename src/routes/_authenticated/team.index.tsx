@@ -315,7 +315,7 @@ function MemberModal({ member, onClose, onSaved }: { member?: Profile; onClose: 
   };
   const remove = async () => {
     if (!member) return;
-    if (!confirm(t("deleteMemberConfirm"))) return;
+    if (!(await confirm({ message: t("deleteMemberConfirm"), danger: true, confirmText: t("delete") }))) return;
     const { error } = await supabase.from("profiles").delete().eq("id", member.id);
     if (error) { toast.error(error.message); return; }
     toast.success(t("memberDeleted"));
