@@ -105,6 +105,17 @@ function TeamPage() {
   const activeCount = chips.length;
 
   const doExport = async () => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const fileName = await promptFilename({
+      defaultName: `Mechatro_Team_${stamp}`,
+      extension: "xlsx",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("exportXlsx"),
+      cancelLabel: t("cancel"),
+    });
+    if (!fileName) return;
     try {
       const cols: XlsxColumn<typeof filtered[number]>[] = [
         { key: "name", header: t("fullName"), width: 30, get: (r) => r.u.full_name },
@@ -122,7 +133,7 @@ function TeamPage() {
         title: `${t("reportTitle")} · ${t("team")}`,
         filtersSummary: chips.map((c) => c.label).join(" · ") || (lang === "ar" ? "بدون فلاتر" : "No filters"),
         generatedBy: user?.full_name,
-        lang, columns: cols, rows: filtered,
+        lang, columns: cols, rows: filtered, fileName,
       });
       toast.success(t("exported"));
     } catch (e) {
