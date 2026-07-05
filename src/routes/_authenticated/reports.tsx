@@ -202,13 +202,23 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
 
   const download = async () => {
     if (!prepared) return;
+    const fileName = await promptFilename({
+      defaultName: prepared.filename.replace(/\.pdf$/i, ""),
+      extension: "pdf",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("download"),
+      cancelLabel: t("cancel"),
+    });
+    if (!fileName) return;
     setConfirming(true);
     try {
       if (prepared.kind === "member" && prepared.memberReport) {
-        await persistMemberReportPdf(prepared.memberReport);
+        await persistMemberReportPdf({ ...prepared.memberReport, filename: fileName });
       } else {
         const url = URL.createObjectURL(prepared.blob);
-        const a = document.createElement("a"); a.href = url; a.download = prepared.filename;
+        const a = document.createElement("a"); a.href = url; a.download = fileName;
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
