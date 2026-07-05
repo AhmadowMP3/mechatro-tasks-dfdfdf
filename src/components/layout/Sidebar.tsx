@@ -466,6 +466,7 @@ function EditNameModal({
           >{l ? "إلغاء" : "Cancel"}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
