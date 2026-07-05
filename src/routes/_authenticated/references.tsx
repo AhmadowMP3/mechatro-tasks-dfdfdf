@@ -785,8 +785,11 @@ function CategoryCombobox({
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "6px 10px 6px 8px", borderRadius: 999,
-              background: selectedFromList ? "var(--grad-blue)" : "var(--grad-gold)",
-              color: selectedFromList ? "#fff" : "#0A1626",
+              background: selectedFromList
+                ? "var(--grad-blue)"
+                : "linear-gradient(135deg, #F5A623 0%, #F0676A 100%)",
+              color: "#fff",
+              border: selectedFromList ? "none" : "1px solid rgba(255,255,255,.15)",
               fontSize: 13, fontWeight: 800, letterSpacing: 0.2,
               boxShadow: "0 4px 14px -6px rgba(0,0,0,.35)",
             }}
@@ -849,15 +852,25 @@ function CategoryCombobox({
               onMouseDown={(e) => { e.preventDefault(); commit(query); }}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "5px 10px", borderRadius: 999,
-                background: "var(--grad-gold)", color: "#0A1626",
-                border: "none", cursor: "pointer",
+                padding: "6px 12px", borderRadius: 999,
+                background: "linear-gradient(135deg, #F5A623 0%, #F0676A 100%)",
+                color: "#FFFFFF",
+                border: "1px solid rgba(255,255,255,.15)", cursor: "pointer",
                 fontSize: 12, fontWeight: 800, letterSpacing: 0.2,
-                boxShadow: "0 4px 14px -6px rgba(200,162,75,.6)",
+                boxShadow: "0 6px 18px -6px rgba(240,103,106,.55)",
+                transition: "transform .12s ease, box-shadow .12s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 8px 22px -6px rgba(240,103,106,.7)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 6px 18px -6px rgba(240,103,106,.55)";
               }}
             >
-              <Plus size={12} />
-              {createLabel} "{query.trim()}"
+              <Plus size={13} color="#FFFFFF" />
+              <span>{createLabel} <span style={{ opacity: .95 }}>&ldquo;{query.trim()}&rdquo;</span></span>
             </button>
           )}
           {filtered.map((c) => {
