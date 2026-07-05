@@ -12,6 +12,7 @@ import { loadMemberReportData, type ReportRange } from "@/lib/report/data";
 import { buildMemberReportPdf, buildTeamReportPdf, persistMemberReportPdf, type PreparedMemberReport, type ReportLangChoice } from "@/lib/report/generator";
 import { buildTeamReportHtml, loadTeamReportData } from "@/lib/report/team-report";
 import type { Lang } from "@/i18n/dict";
+import { promptFilename } from "@/components/FilenamePrompt";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   component: ReportsPage,
