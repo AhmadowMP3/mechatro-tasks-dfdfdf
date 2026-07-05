@@ -213,6 +213,8 @@ export const dict = {
   backupsMasterOnlyNote: { ar: "إدارة النسخ الاحتياطية متاحة للمسؤول الرئيسي فقط", en: "Backup management is restricted to the master admin" },
   confirmDeleteBackup: { ar: "هل تريد حذف هذه النسخة الاحتياطية نهائياً؟", en: "Delete this backup permanently?" },
   backupDeleted: { ar: "تم حذف النسخة", en: "Backup deleted" },
+  cannotDeleteLatest: { ar: "لا يمكن حذف أحدث نسخة احتياطية", en: "Cannot delete the latest backup" },
+  latestBackupProtected: { ar: "الأحدث — محمية من الحذف", en: "Latest — protected from deletion" },
   download: { ar: "تنزيل", en: "Download" },
   restore: { ar: "استعادة", en: "Restore" },
   restoreWarn: {
