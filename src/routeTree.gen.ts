@@ -35,6 +35,7 @@ import { Route as ShareTokenPageRouteImport } from './routes/share.$token.$page'
 import { Route as AuthenticatedTeamIdRouteImport } from './routes/_authenticated/team.$id'
 import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history.compare'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
+import { Route as AuthenticatedFinanceSubscriptionsRouteImport } from './routes/_authenticated/finance.subscriptions'
 import { Route as AuthenticatedFinanceSettingsRouteImport } from './routes/_authenticated/finance.settings'
 import { Route as AuthenticatedFinancePayrollRouteImport } from './routes/_authenticated/finance.payroll'
 import { Route as AuthenticatedFinanceIncomeRouteImport } from './routes/_authenticated/finance.income'
@@ -178,6 +179,12 @@ const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedProjectsRoute,
 } as any)
+const AuthenticatedFinanceSubscriptionsRoute =
+  AuthenticatedFinanceSubscriptionsRouteImport.update({
+    id: '/subscriptions',
+    path: '/subscriptions',
+    getParentRoute: () => AuthenticatedFinanceRoute,
+  } as any)
 const AuthenticatedFinanceSettingsRoute =
   AuthenticatedFinanceSettingsRouteImport.update({
     id: '/settings',
@@ -244,6 +251,7 @@ export interface FileRoutesByFullPath {
   '/finance/income': typeof AuthenticatedFinanceIncomeRoute
   '/finance/payroll': typeof AuthenticatedFinancePayrollRoute
   '/finance/settings': typeof AuthenticatedFinanceSettingsRoute
+  '/finance/subscriptions': typeof AuthenticatedFinanceSubscriptionsRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/team/$id': typeof AuthenticatedTeamIdRoute
@@ -275,6 +283,7 @@ export interface FileRoutesByTo {
   '/finance/income': typeof AuthenticatedFinanceIncomeRoute
   '/finance/payroll': typeof AuthenticatedFinancePayrollRoute
   '/finance/settings': typeof AuthenticatedFinanceSettingsRoute
+  '/finance/subscriptions': typeof AuthenticatedFinanceSubscriptionsRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/team/$id': typeof AuthenticatedTeamIdRoute
@@ -311,6 +320,7 @@ export interface FileRoutesById {
   '/_authenticated/finance/income': typeof AuthenticatedFinanceIncomeRoute
   '/_authenticated/finance/payroll': typeof AuthenticatedFinancePayrollRoute
   '/_authenticated/finance/settings': typeof AuthenticatedFinanceSettingsRoute
+  '/_authenticated/finance/subscriptions': typeof AuthenticatedFinanceSubscriptionsRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/_authenticated/team/$id': typeof AuthenticatedTeamIdRoute
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
     | '/finance/income'
     | '/finance/payroll'
     | '/finance/settings'
+    | '/finance/subscriptions'
     | '/projects/$id'
     | '/reports-history/compare'
     | '/team/$id'
@@ -378,6 +389,7 @@ export interface FileRouteTypes {
     | '/finance/income'
     | '/finance/payroll'
     | '/finance/settings'
+    | '/finance/subscriptions'
     | '/projects/$id'
     | '/reports-history/compare'
     | '/team/$id'
@@ -413,6 +425,7 @@ export interface FileRouteTypes {
     | '/_authenticated/finance/income'
     | '/_authenticated/finance/payroll'
     | '/_authenticated/finance/settings'
+    | '/_authenticated/finance/subscriptions'
     | '/_authenticated/projects/$id'
     | '/_authenticated/reports-history/compare'
     | '/_authenticated/team/$id'
@@ -617,6 +630,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsIdRouteImport
       parentRoute: typeof AuthenticatedProjectsRoute
     }
+    '/_authenticated/finance/subscriptions': {
+      id: '/_authenticated/finance/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/finance/subscriptions'
+      preLoaderRoute: typeof AuthenticatedFinanceSubscriptionsRouteImport
+      parentRoute: typeof AuthenticatedFinanceRoute
+    }
     '/_authenticated/finance/settings': {
       id: '/_authenticated/finance/settings'
       path: '/settings'
@@ -675,6 +695,7 @@ interface AuthenticatedFinanceRouteChildren {
   AuthenticatedFinanceIncomeRoute: typeof AuthenticatedFinanceIncomeRoute
   AuthenticatedFinancePayrollRoute: typeof AuthenticatedFinancePayrollRoute
   AuthenticatedFinanceSettingsRoute: typeof AuthenticatedFinanceSettingsRoute
+  AuthenticatedFinanceSubscriptionsRoute: typeof AuthenticatedFinanceSubscriptionsRoute
   AuthenticatedFinanceIndexRoute: typeof AuthenticatedFinanceIndexRoute
   AuthenticatedFinanceInvoicesIdRoute: typeof AuthenticatedFinanceInvoicesIdRoute
   AuthenticatedFinanceInvoicesIndexRoute: typeof AuthenticatedFinanceInvoicesIndexRoute
@@ -686,6 +707,8 @@ const AuthenticatedFinanceRouteChildren: AuthenticatedFinanceRouteChildren = {
   AuthenticatedFinanceIncomeRoute: AuthenticatedFinanceIncomeRoute,
   AuthenticatedFinancePayrollRoute: AuthenticatedFinancePayrollRoute,
   AuthenticatedFinanceSettingsRoute: AuthenticatedFinanceSettingsRoute,
+  AuthenticatedFinanceSubscriptionsRoute:
+    AuthenticatedFinanceSubscriptionsRoute,
   AuthenticatedFinanceIndexRoute: AuthenticatedFinanceIndexRoute,
   AuthenticatedFinanceInvoicesIdRoute: AuthenticatedFinanceInvoicesIdRoute,
   AuthenticatedFinanceInvoicesIndexRoute:
