@@ -124,6 +124,7 @@ export const dict = {
   jobTitle: { ar: "المسمى الوظيفي", en: "Job title" },
   role: { ar: "الدور", en: "Role" },
   phone: { ar: "الهاتف", en: "Phone" },
+  email: { ar: "البريد الإلكتروني", en: "Email" },
   activate: { ar: "تفعيل", en: "Activate" },
   deactivate: { ar: "إلغاء التفعيل", en: "Deactivate" },
   record: { ar: "السجل", en: "Record" },
