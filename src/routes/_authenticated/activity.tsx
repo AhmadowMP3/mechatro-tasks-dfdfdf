@@ -375,6 +375,17 @@ function ActivityPage() {
   const activeCount = chips.length;
 
   const doExport = async () => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const fileName = await promptFilename({
+      defaultName: `Mechatro_Activity_${stamp}`,
+      extension: "xlsx",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("exportXlsx"),
+      cancelLabel: t("cancel"),
+    });
+    if (!fileName) return;
     try {
       const cols: XlsxColumn<ActivityRow>[] = [
         { key: "when", header: lang === "ar" ? "التاريخ" : "When", width: 22, kind: "datetime", get: (r) => r.created_at },
@@ -389,7 +400,7 @@ function ActivityPage() {
         title: `${t("reportTitle")} · ${t("activityLog")}`,
         filtersSummary: chips.map((c) => c.label).join(" · ") || (lang === "ar" ? "بدون فلاتر" : "No filters"),
         generatedBy: user?.full_name,
-        lang, columns: cols, rows,
+        lang, columns: cols, rows, fileName,
       });
       toast.success(t("exported"));
     } catch (e) {
