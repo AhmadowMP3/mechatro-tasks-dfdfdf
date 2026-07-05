@@ -19,7 +19,7 @@ import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import type { DictKey } from "@/i18n/dict";
 import { PageHeader } from "@/components/layout/PageHeader";
 
-export const Route = createFileRoute("/_authenticated/projects")({ component: ProjectsPage });
+export const Route = createFileRoute("/_authenticated/projects/")({ component: ProjectsPage });
 
 type P = { id: string; name_ar: string; name_en: string; color: string; status: string; due_date: string | null; start_date: string | null; archived: boolean; description: string | null; created_at: string; created_by: string | null; };
 type Task = { id: string; project_id: string | null; status: string; assignee_id: string | null };

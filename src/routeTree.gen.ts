@@ -22,12 +22,12 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedReportsHistoryRouteImport } from './routes/_authenticated/reports-history'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedReferencesRouteImport } from './routes/_authenticated/references'
-import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedLeagueRouteImport } from './routes/_authenticated/league'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
 import { Route as ShareTokenIndexRouteImport } from './routes/share.$token.index'
+import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as ShareTokenPageRouteImport } from './routes/share.$token.$page'
 import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history.compare'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
@@ -97,11 +97,6 @@ const AuthenticatedReferencesRoute = AuthenticatedReferencesRouteImport.update({
   path: '/references',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedNotificationsRoute =
   AuthenticatedNotificationsRouteImport.update({
     id: '/notifications',
@@ -129,6 +124,12 @@ const ShareTokenIndexRoute = ShareTokenIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ShareTokenRoute,
 } as any)
+const AuthenticatedProjectsIndexRoute =
+  AuthenticatedProjectsIndexRouteImport.update({
+    id: '/projects/',
+    path: '/projects/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ShareTokenPageRoute = ShareTokenPageRouteImport.update({
   id: '/$page',
   path: '/$page',
@@ -141,9 +142,9 @@ const AuthenticatedReportsHistoryCompareRoute =
     getParentRoute: () => AuthenticatedReportsHistoryRoute,
   } as any)
 const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedProjectsRoute,
+  id: '/projects/$id',
+  path: '/projects/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -155,7 +156,6 @@ export interface FileRoutesByFullPath {
   '/activity': typeof AuthenticatedActivityRoute
   '/league': typeof AuthenticatedLeagueRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
-  '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/references': typeof AuthenticatedReferencesRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
@@ -167,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/share/$token/': typeof ShareTokenIndexRoute
 }
 export interface FileRoutesByTo {
@@ -177,7 +178,6 @@ export interface FileRoutesByTo {
   '/activity': typeof AuthenticatedActivityRoute
   '/league': typeof AuthenticatedLeagueRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
-  '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/references': typeof AuthenticatedReferencesRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
@@ -189,6 +189,7 @@ export interface FileRoutesByTo {
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/projects': typeof AuthenticatedProjectsIndexRoute
   '/share/$token': typeof ShareTokenIndexRoute
 }
 export interface FileRoutesById {
@@ -201,7 +202,6 @@ export interface FileRoutesById {
   '/_authenticated/activity': typeof AuthenticatedActivityRoute
   '/_authenticated/league': typeof AuthenticatedLeagueRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
-  '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/_authenticated/references': typeof AuthenticatedReferencesRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/reports-history': typeof AuthenticatedReportsHistoryRouteWithChildren
@@ -214,6 +214,7 @@ export interface FileRoutesById {
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/share/$token/': typeof ShareTokenIndexRoute
 }
 export interface FileRouteTypes {
@@ -227,7 +228,6 @@ export interface FileRouteTypes {
     | '/activity'
     | '/league'
     | '/notifications'
-    | '/projects'
     | '/references'
     | '/reports'
     | '/reports-history'
@@ -239,6 +239,7 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/reports-history/compare'
     | '/share/$token/$page'
+    | '/projects/'
     | '/share/$token/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -249,7 +250,6 @@ export interface FileRouteTypes {
     | '/activity'
     | '/league'
     | '/notifications'
-    | '/projects'
     | '/references'
     | '/reports'
     | '/reports-history'
@@ -261,6 +261,7 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/reports-history/compare'
     | '/share/$token/$page'
+    | '/projects'
     | '/share/$token'
   id:
     | '__root__'
@@ -272,7 +273,6 @@ export interface FileRouteTypes {
     | '/_authenticated/activity'
     | '/_authenticated/league'
     | '/_authenticated/notifications'
-    | '/_authenticated/projects'
     | '/_authenticated/references'
     | '/_authenticated/reports'
     | '/_authenticated/reports-history'
@@ -285,6 +285,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$id'
     | '/_authenticated/reports-history/compare'
     | '/share/$token/$page'
+    | '/_authenticated/projects/'
     | '/share/$token/'
   fileRoutesById: FileRoutesById
 }
@@ -389,13 +390,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReferencesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/projects': {
-      id: '/_authenticated/projects'
-      path: '/projects'
-      fullPath: '/projects'
-      preLoaderRoute: typeof AuthenticatedProjectsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/notifications': {
       id: '/_authenticated/notifications'
       path: '/notifications'
@@ -431,6 +425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShareTokenIndexRouteImport
       parentRoute: typeof ShareTokenRoute
     }
+    '/_authenticated/projects/': {
+      id: '/_authenticated/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof AuthenticatedProjectsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/share/$token/$page': {
       id: '/share/$token/$page'
       path: '/$page'
@@ -447,26 +448,13 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/projects/$id': {
       id: '/_authenticated/projects/$id'
-      path: '/$id'
+      path: '/projects/$id'
       fullPath: '/projects/$id'
       preLoaderRoute: typeof AuthenticatedProjectsIdRouteImport
-      parentRoute: typeof AuthenticatedProjectsRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
-
-interface AuthenticatedProjectsRouteChildren {
-  AuthenticatedProjectsIdRoute: typeof AuthenticatedProjectsIdRoute
-}
-
-const AuthenticatedProjectsRouteChildren: AuthenticatedProjectsRouteChildren = {
-  AuthenticatedProjectsIdRoute: AuthenticatedProjectsIdRoute,
-}
-
-const AuthenticatedProjectsRouteWithChildren =
-  AuthenticatedProjectsRoute._addFileChildren(
-    AuthenticatedProjectsRouteChildren,
-  )
 
 interface AuthenticatedReportsHistoryRouteChildren {
   AuthenticatedReportsHistoryCompareRoute: typeof AuthenticatedReportsHistoryCompareRoute
@@ -488,7 +476,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
   AuthenticatedLeagueRoute: typeof AuthenticatedLeagueRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
-  AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
   AuthenticatedReferencesRoute: typeof AuthenticatedReferencesRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedReportsHistoryRoute: typeof AuthenticatedReportsHistoryRouteWithChildren
@@ -497,6 +484,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedProjectsIdRoute: typeof AuthenticatedProjectsIdRoute
+  AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -504,7 +493,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedActivityRoute: AuthenticatedActivityRoute,
   AuthenticatedLeagueRoute: AuthenticatedLeagueRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
-  AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,
   AuthenticatedReferencesRoute: AuthenticatedReferencesRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedReportsHistoryRoute:
@@ -514,6 +502,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedProjectsIdRoute: AuthenticatedProjectsIdRoute,
+  AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
