@@ -132,8 +132,7 @@ function NotificationsPage() {
         })}
       </div>
 
-      {/* consume unused imports helpers */}
-      <span style={{ display: "none" }}>{clear.toString().length}</span>
     </div>
   );
 }
+
