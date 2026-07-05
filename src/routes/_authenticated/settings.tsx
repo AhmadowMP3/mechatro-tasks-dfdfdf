@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Play, RotateCcw, AlertTriangle, UserPlus } from "lucide-react";
+import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { formatDate, toLocalDigits } from "@/lib/format";
@@ -167,6 +167,17 @@ function BackupsSection() {
     window.open(data.signedUrl, "_blank");
   };
 
+  const deleteBackup = async (b: Backup) => {
+    if (!confirm(t("confirmDeleteBackup"))) return;
+    setActingId(b.name);
+    const { error } = await supabase.functions.invoke("backup-snapshot", { body: { delete: true, file: b.name } });
+    setActingId(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("backupDeleted"));
+    refetch();
+  };
+
+
   const requestBackup = async () => {
     if (!user?.id) return;
     setRunning(true);
@@ -276,6 +287,9 @@ function BackupsSection() {
                 <button onClick={() => setRestoreTarget(b)} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)" }}>
                   <RotateCcw size={14} /> {t("restore")}
                 </button>
+                <button onClick={() => deleteBackup(b)} disabled={actingId === b.name} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "rgba(217,72,75,.15)", color: "#F0676A", border: "1px solid rgba(217,72,75,.4)", opacity: actingId === b.name ? 0.6 : 1 }}>
+                  <Trash2 size={14} /> {t("delete")}
+                </button>
               </div>
             </div>
           ))}
@@ -301,8 +315,11 @@ function BackupsSection() {
                   <button onClick={() => download(b)} className="brand-btn-sm" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)", marginInlineEnd: 6 }}>
                     <Download size={14} /> {t("download")}
                   </button>
-                  <button onClick={() => setRestoreTarget(b)} className="brand-btn-sm" style={{ background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)" }}>
+                  <button onClick={() => setRestoreTarget(b)} className="brand-btn-sm" style={{ background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)", marginInlineEnd: 6 }}>
                     <RotateCcw size={14} /> {t("restore")}
+                  </button>
+                  <button onClick={() => deleteBackup(b)} disabled={actingId === b.name} className="brand-btn-sm" style={{ background: "rgba(217,72,75,.15)", color: "#F0676A", border: "1px solid rgba(217,72,75,.4)", opacity: actingId === b.name ? 0.6 : 1 }}>
+                    <Trash2 size={14} /> {t("delete")}
                   </button>
                 </td>
               </tr>

@@ -7,6 +7,7 @@
 //   { approve_request_id: "<uuid>" }     — master admin approves a pending request → snapshot
 //   { reject_request_id: "<uuid>" }      — master admin rejects a pending request
 //   { restore: true, file: "backup-...json" } — master admin restore
+//   { delete: true, file: "backup-...json" } — master admin delete a backup file
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const CORS = {
@@ -63,6 +64,7 @@ Deno.serve(async (req) => {
   let body: {
     manual?: boolean;
     restore?: boolean;
+    delete?: boolean;
     file?: string;
     approve_request_id?: string;
     reject_request_id?: string;
@@ -168,6 +170,15 @@ Deno.serve(async (req) => {
       }
       return json(200, { ok: true, restored: body.file });
     }
+
+    // ---- Delete a backup file ----
+    if (body.delete && body.file) {
+      const { error: rmErr } = await sb.storage.from("backups").remove([body.file]);
+      if (rmErr) throw new Error(rmErr.message);
+      return json(200, { ok: true, deleted: body.file });
+    }
+
+
 
     // ---- Manual immediate snapshot ----
     const res = await runSnapshot(null);
