@@ -191,24 +191,28 @@ function ReferencesPage() {
             />
           </div>
 
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            style={{ minHeight: 42, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-2)", color: "var(--foreground)", padding: "0 12px", fontSize: 14 }}
-          >
-            <option value="">{t("allCategories")}</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <div style={{ minWidth: 180 }}>
+            <ThemedSelect
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              placeholder={t("allCategories")}
+              style={{ minHeight: 42 }}
+              options={categories.map((c) => ({ value: c, label: c }))}
+            />
+          </div>
 
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortMode)}
-            style={{ minHeight: 42, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-2)", color: "var(--foreground)", padding: "0 12px", fontSize: 14 }}
-          >
-            <option value="newest">{t("sortNewest")}</option>
-            <option value="oldest">{t("sortOldest")}</option>
-            <option value="az">{t("sortAZ")}</option>
-          </select>
+          <div style={{ minWidth: 160 }}>
+            <ThemedSelect
+              value={sort}
+              onChange={(v) => setSort(v as SortMode)}
+              style={{ minHeight: 42 }}
+              options={[
+                { value: "newest", label: t("sortNewest") },
+                { value: "oldest", label: t("sortOldest") },
+                { value: "az", label: t("sortAZ") },
+              ]}
+            />
+          </div>
 
           <button
             onClick={() => setOnlyPinned((v) => !v)}
