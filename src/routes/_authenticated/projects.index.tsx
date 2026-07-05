@@ -302,8 +302,9 @@ function ProjectsPage() {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px), 1fr))", gap: 16 }}>
           {filtered.map(({ p, progress, memberIds }) => (
-            <div key={p.id} className="brand-card" style={{ overflow: "hidden" }}>
+            <div key={p.id} className="brand-card" style={{ overflow: "hidden", position: "relative" }}>
               <div style={{ height: 6, background: PROJECT_COLORS[p.color] ?? PROJECT_COLORS.blue }} />
+              <StatusPill status={p.status} lang={lang} label={t(p.status as never)} />
               <div style={{ padding: 18 }}>
                 <Link to="/projects/$id" params={{ id: p.id }} style={{ color: "var(--foreground)", textDecoration: "none" }}>
                   <h3 style={{ fontSize: 17, margin: 0, marginBottom: 6 }}>{lang === "ar" ? p.name_ar : p.name_en}</h3>
