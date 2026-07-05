@@ -36,11 +36,23 @@ function ReportsPage() {
   }
 
   const downloadExcel = async (targetLang: Lang) => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const fileName = await promptFilename({
+      defaultName: `Mechatro_Report_${targetLang.toUpperCase()}_${stamp}`,
+      extension: "xlsx",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("exportXlsx"),
+      cancelLabel: t("cancel"),
+    });
+    if (!fileName) return;
     setBusy(targetLang === "ar" ? "ar" : "en");
     try {
       await exportBrandedWorkbook({
         lang: targetLang,
         generatedBy: user?.full_name ?? t("admin"),
+        fileName,
       });
       toast.success(t("workbookDownloaded"));
     } catch (e) {
