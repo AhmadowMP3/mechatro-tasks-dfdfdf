@@ -306,6 +306,14 @@ function MemberModal({ member, onClose, onSaved }: { member?: Profile; onClose: 
     toast.success(t("saved"));
     onSaved();
   };
+  const remove = async () => {
+    if (!member) return;
+    if (!confirm(t("deleteMemberConfirm"))) return;
+    const { error } = await supabase.from("profiles").delete().eq("id", member.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("memberDeleted"));
+    onSaved();
+  };
   return (
     <ModalShell title={member ? t("editMember") : t("addMember")} onClose={onClose}>
       <Field label={t("fullName")}><input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} style={inp} /></Field>
@@ -323,9 +331,14 @@ function MemberModal({ member, onClose, onSaved }: { member?: Profile; onClose: 
         <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} style={{ width: 18, height: 18 }} />
         {t("activate")}
       </label>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button onClick={save} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", flex: 1 }}>{t("save")}</button>
         <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
+        {member && (
+          <button onClick={remove} className="brand-btn" style={{ background: "linear-gradient(135deg,#F0676A,#C64447)", color: "#fff", flex: "1 1 100%" }}>
+            {t("deleteMember")}
+          </button>
+        )}
       </div>
     </ModalShell>
   );
