@@ -147,7 +147,7 @@ function ProjectsPage() {
     try {
       const cols: XlsxColumn<typeof filtered[number]>[] = [
         { key: "name", header: lang === "ar" ? "المشروع" : "Project", width: 40, get: (r) => lang === "ar" ? r.p.name_ar : r.p.name_en },
-        { key: "status", header: t("filterStatus"), width: 14, kind: "status", get: (r) => r.p.status },
+        { key: "status", header: t("filterStatus"), width: 14, kind: "status", get: (r) => t(r.p.status as never) },
         { key: "owner", header: lang === "ar" ? "المُنشئ" : "Owner", width: 24, get: (r) => users.find((u) => u.id === r.p.created_by)?.full_name ?? "" },
         { key: "start", header: lang === "ar" ? "البداية" : "Start", width: 14, kind: "date", get: (r) => r.p.start_date ?? r.p.created_at },
         { key: "due", header: t("dueDate"), width: 14, kind: "date", get: (r) => r.p.due_date },
