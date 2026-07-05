@@ -21,7 +21,7 @@ function NotificationsPage() {
   const items = data ?? [];
   const l = lang === "ar";
 
-  const { isSelected, toggle, clear, ids } = useBulkSelection({
+  const { isSelected, toggle, ids } = useBulkSelection({
     pageId: "notifications",
     items,
     deps: [items.length, lang],
