@@ -409,6 +409,51 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
   );
 }
 
+function DeleteProjectModal({ project, onClose, onDeleted }: { project: P; onClose: () => void; onDeleted: () => void }) {
+  const { t, lang, user } = useApp();
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const name = lang === "ar" ? project.name_ar : project.name_en;
+  const canDelete = confirm.trim() === name.trim() && !busy;
+  const submit = async () => {
+    if (!canDelete) return;
+    setBusy(true);
+    const { error } = await supabase.from("projects").delete().eq("id", project.id);
+    setBusy(false);
+    if (error) {
+      const { explainSupabaseError } = await import("@/lib/permission-errors");
+      toast.error(explainSupabaseError(error, { action: "delete", entity: "project", user, lang }), { duration: 8000 });
+      return;
+    }
+    toast.success(t("projectDeleted"));
+    onDeleted();
+  };
+  return (
+    <ModalShell title={t("deleteProject")} onClose={onClose}>
+      <div style={{ padding: 12, borderRadius: 10, background: "rgba(255,107,107,.08)", border: "1px solid rgba(255,107,107,.35)", color: "#ffb4b4", fontSize: 13, marginBottom: 14, lineHeight: 1.5 }}>
+        {t("deleteProjectWarning")}
+      </div>
+      <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+        <b style={{ color: "var(--foreground)" }}>{name}</b>
+      </div>
+      <Field label={t("typeToConfirm")}>
+        <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={name} style={inp} autoFocus />
+      </Field>
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <button
+          onClick={submit}
+          disabled={!canDelete}
+          className="brand-btn"
+          style={{ background: canDelete ? "#e5484d" : "var(--surface-2)", color: canDelete ? "#fff" : "var(--muted)", flex: 1, cursor: canDelete ? "pointer" : "not-allowed" }}
+        >
+          {t("deleteProject")}
+        </button>
+        <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
+      </div>
+    </ModalShell>
+  );
+}
+
 export function ModalShell({ title, onClose, children, size = "md" }: { title: string; onClose: () => void; children: React.ReactNode; size?: "md" | "lg" }) {
   return (
     <ResponsiveModal title={title} onClose={onClose} size={size}>
