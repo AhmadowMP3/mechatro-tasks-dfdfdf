@@ -85,6 +85,7 @@
   --grad-blue: linear-gradient(135deg, #189FD1 0%, #39C0EC 100%);
   --grad-orange: linear-gradient(135deg, #E8732E 0%, #FF9C5A 100%);
   --grad-green: linear-gradient(135deg, #3F782A 0%, #67BD42 100%);
+  --grad-gold: linear-gradient(135deg, #E7B03A 0%, #F5D06B 100%);
   --grad-card: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 60%);
 }
 
