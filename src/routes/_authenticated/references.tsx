@@ -785,8 +785,11 @@ function CategoryCombobox({
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "6px 10px 6px 8px", borderRadius: 999,
-              background: selectedFromList ? "var(--grad-blue)" : "var(--grad-gold)",
-              color: selectedFromList ? "#fff" : "#0A1626",
+              background: selectedFromList
+                ? "var(--grad-blue)"
+                : "linear-gradient(135deg, #F5A623 0%, #F0676A 100%)",
+              color: "#fff",
+              border: selectedFromList ? "none" : "1px solid rgba(255,255,255,.15)",
               fontSize: 13, fontWeight: 800, letterSpacing: 0.2,
               boxShadow: "0 4px 14px -6px rgba(0,0,0,.35)",
             }}
