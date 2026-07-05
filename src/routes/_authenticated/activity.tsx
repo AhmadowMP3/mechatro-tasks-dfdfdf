@@ -476,13 +476,27 @@ function ActivityPage() {
                   const from = typeof meta.from === "string" ? meta.from : null;
                   const to   = typeof meta.to   === "string" ? meta.to   : null;
                   const href = entityHref(r);
+                  const checked = isSelected(r.id);
 
                   const row = (
                     <div style={{
                       display: "flex", gap: 12, alignItems: "flex-start",
                       padding: "12px 18px",
                       borderBottom: "1px solid var(--border)",
+                      background: checked ? "rgba(24,159,209,.10)" : "transparent",
+                      transition: "background .12s",
                     }}>
+                      <div
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(r.id); }}
+                        style={{
+                          marginTop: 6,
+                          opacity: checked || bulkMode ? 1 : 0,
+                          transition: "opacity .12s",
+                        }}
+                        className="row-bulk-check"
+                      >
+                        <BulkCheckbox checked={checked} onChange={() => toggle(r.id)} label={lang === "ar" ? "تحديد" : "Select"} />
+                      </div>
                       <div style={{
                         width: 34, height: 34, borderRadius: 10,
                         display: "grid", placeItems: "center",
@@ -510,11 +524,15 @@ function ActivityPage() {
                     </div>
                   );
 
-                  return href ? (
+                  return href && !bulkMode ? (
                     <Link key={r.id} to={href} style={{ display: "block", color: "inherit", textDecoration: "none" }}>
                       {row}
                     </Link>
-                  ) : <div key={r.id}>{row}</div>;
+                  ) : (
+                    <div key={r.id} onClick={() => bulkMode && toggle(r.id)} style={{ cursor: bulkMode ? "pointer" : "default" }}>
+                      {row}
+                    </div>
+                  );
                 })}
               </div>
             ))}
