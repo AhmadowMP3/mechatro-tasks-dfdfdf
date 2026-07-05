@@ -34,6 +34,7 @@ export const dict = {
   // Project status
   active: { ar: "نشط", en: "Active" },
   on_hold: { ar: "معلّق", en: "On hold" },
+  archived: { ar: "مؤرشف", en: "Archived" },
   // Dashboard
   greetingMorning: { ar: "صباح الخير", en: "Good morning" },
   greetingAfternoon: { ar: "مساء الخير", en: "Good afternoon" },
