@@ -141,6 +141,7 @@ export function useBulkSelection<T extends { id: string }>(opts: {
 function BulkActionBar() {
   const host = useContext(HostCtx);
   const { lang } = useApp();
+  const confirm = useConfirm();
   const [running, setRunning] = useState<string | null>(null);
 
   if (!host?.current) return null;
@@ -148,7 +149,7 @@ function BulkActionBar() {
 
   const runAction = async (a: BulkAction) => {
     if (a.disabled) return;
-    if (a.confirm && !window.confirm(a.confirm)) return;
+    if (a.confirm && !(await confirm({ message: a.confirm, danger: a.danger }))) return;
     setRunning(a.id);
     try { await a.onRun(); } finally { setRunning(null); }
   };
