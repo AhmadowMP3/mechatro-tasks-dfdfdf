@@ -116,6 +116,315 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          active: boolean
+          address: string | null
+          company: string | null
+          created_at: string
+          created_by: string | null
+          default_currency: Database["public"]["Enums"]["currency_code"]
+          email: string | null
+          id: string
+          name_ar: string | null
+          name_en: string | null
+          notes: string | null
+          phone: string | null
+          tax_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_currency?: Database["public"]["Enums"]["currency_code"]
+          email?: string | null
+          id?: string
+          name_ar?: string | null
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_currency?: Database["public"]["Enums"]["currency_code"]
+          email?: string | null
+          id?: string
+          name_ar?: string | null
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expense_categories: {
+        Row: {
+          active: boolean
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          name_ar: string
+          name_en: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name_ar: string
+          name_en: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name_ar?: string
+          name_en?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          description_ar: string | null
+          description_en: string | null
+          exchange_rate_to_usd: number | null
+          expense_date: string
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          notes: string | null
+          project_id: string | null
+          receipt_path: string | null
+          reference: string | null
+          status: Database["public"]["Enums"]["expense_status"]
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          description_ar?: string | null
+          description_en?: string | null
+          exchange_rate_to_usd?: number | null
+          expense_date?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          project_id?: string | null
+          receipt_path?: string | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          description_ar?: string | null
+          description_en?: string | null
+          exchange_rate_to_usd?: number | null
+          expense_date?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          project_id?: string | null
+          receipt_path?: string | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_settings: {
+        Row: {
+          bank_details_ar: string | null
+          bank_details_en: string | null
+          company_address_ar: string | null
+          company_address_en: string | null
+          company_email: string | null
+          company_name_ar: string | null
+          company_name_en: string | null
+          company_phone: string | null
+          default_currency: Database["public"]["Enums"]["currency_code"]
+          default_tax_rate: number
+          id: boolean
+          invoice_next_number: number
+          invoice_number_prefix: string
+          invoice_terms_ar: string | null
+          invoice_terms_en: string | null
+          signature_url: string | null
+          stamp_url: string | null
+          tax_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          bank_details_ar?: string | null
+          bank_details_en?: string | null
+          company_address_ar?: string | null
+          company_address_en?: string | null
+          company_email?: string | null
+          company_name_ar?: string | null
+          company_name_en?: string | null
+          company_phone?: string | null
+          default_currency?: Database["public"]["Enums"]["currency_code"]
+          default_tax_rate?: number
+          id?: boolean
+          invoice_next_number?: number
+          invoice_number_prefix?: string
+          invoice_terms_ar?: string | null
+          invoice_terms_en?: string | null
+          signature_url?: string | null
+          stamp_url?: string | null
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bank_details_ar?: string | null
+          bank_details_en?: string | null
+          company_address_ar?: string | null
+          company_address_en?: string | null
+          company_email?: string | null
+          company_name_ar?: string | null
+          company_name_en?: string | null
+          company_phone?: string | null
+          default_currency?: Database["public"]["Enums"]["currency_code"]
+          default_tax_rate?: number
+          id?: boolean
+          invoice_next_number?: number
+          invoice_number_prefix?: string
+          invoice_terms_ar?: string | null
+          invoice_terms_en?: string | null
+          signature_url?: string | null
+          stamp_url?: string | null
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fx_rates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_date: string
+          id: string
+          note: string | null
+          syp_per_usd: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_date: string
+          id?: string
+          note?: string | null
+          syp_per_usd: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string
+          id?: string
+          note?: string | null
+          syp_per_usd?: number
+        }
+        Relationships: []
+      }
+      income_entries: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          description_ar: string | null
+          description_en: string | null
+          exchange_rate_to_usd: number | null
+          id: string
+          income_date: string
+          method: Database["public"]["Enums"]["payment_method"]
+          notes: string | null
+          reference: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          description_ar?: string | null
+          description_en?: string | null
+          exchange_rate_to_usd?: number | null
+          id?: string
+          income_date?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          reference?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          description_ar?: string | null
+          description_en?: string | null
+          exchange_rate_to_usd?: number | null
+          id?: string
+          income_date?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          reference?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invites: {
         Row: {
           created_at: string
@@ -192,6 +501,196 @@ export type Database = {
             columns: ["used_by"]
             isOneToOne: false
             referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_items: {
+        Row: {
+          description_ar: string | null
+          description_en: string | null
+          discount_amount: number
+          id: string
+          invoice_id: string
+          line_total: number
+          quantity: number
+          sort_order: number
+          unit_price: number
+        }
+        Insert: {
+          description_ar?: string | null
+          description_en?: string | null
+          discount_amount?: number
+          id?: string
+          invoice_id: string
+          line_total?: number
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+        }
+        Update: {
+          description_ar?: string | null
+          description_en?: string | null
+          discount_amount?: number
+          id?: string
+          invoice_id?: string
+          line_total?: number
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          exchange_rate_to_usd: number | null
+          id: string
+          invoice_id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          notes: string | null
+          paid_at: string
+          proof_path: string | null
+          recorded_by: string | null
+          reference: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          exchange_rate_to_usd?: number | null
+          id?: string
+          invoice_id: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          paid_at?: string
+          proof_path?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          exchange_rate_to_usd?: number | null
+          id?: string
+          invoice_id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          paid_at?: string
+          proof_path?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          customer_id: string
+          discount_amount: number
+          due_date: string | null
+          exchange_rate_to_usd: number | null
+          id: string
+          issue_date: string
+          notes_ar: string | null
+          notes_en: string | null
+          number: string
+          pdf_path: string | null
+          project_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal: number
+          tax_amount: number
+          tax_rate: number
+          terms_ar: string | null
+          terms_en: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          amount_paid?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          customer_id: string
+          discount_amount?: number
+          due_date?: string | null
+          exchange_rate_to_usd?: number | null
+          id?: string
+          issue_date?: string
+          notes_ar?: string | null
+          notes_en?: string | null
+          number: string
+          pdf_path?: string | null
+          project_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          terms_ar?: string | null
+          terms_en?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          customer_id?: string
+          discount_amount?: number
+          due_date?: string | null
+          exchange_rate_to_usd?: number | null
+          id?: string
+          issue_date?: string
+          notes_ar?: string | null
+          notes_en?: string | null
+          number?: string
+          pdf_path?: string | null
+          project_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          terms_ar?: string | null
+          terms_en?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -451,6 +950,7 @@ export type Database = {
           id: string
           invited_at: string | null
           invited_by: string | null
+          is_finance_admin: boolean
           is_master_admin: boolean
           job_title: string | null
           language_pref: string
@@ -476,6 +976,7 @@ export type Database = {
           id?: string
           invited_at?: string | null
           invited_by?: string | null
+          is_finance_admin?: boolean
           is_master_admin?: boolean
           job_title?: string | null
           language_pref?: string
@@ -501,6 +1002,7 @@ export type Database = {
           id?: string
           invited_at?: string | null
           invited_by?: string | null
+          is_finance_admin?: boolean
           is_master_admin?: boolean
           job_title?: string | null
           language_pref?: string
@@ -1034,6 +1536,7 @@ export type Database = {
     }
     Functions: {
       close_ended_seasons: { Args: never; Returns: number }
+      next_invoice_number: { Args: never; Returns: string }
       resolve_login_email: { Args: { p_name: string }; Returns: string }
       sync_master_admin: { Args: never; Returns: undefined }
     }
@@ -1046,6 +1549,16 @@ export type Database = {
         | "completed"
         | "failed"
         | "expired"
+      currency_code: "SYP" | "USD"
+      expense_status: "pending" | "paid" | "cancelled"
+      invoice_status:
+        | "draft"
+        | "issued"
+        | "partially_paid"
+        | "paid"
+        | "overdue"
+        | "void"
+      payment_method: "cash" | "bank_transfer" | "cheque" | "card" | "other"
       profile_status: "pending" | "active" | "suspended"
       project_status: "active" | "on_hold" | "done" | "archived"
       season_scope: "global" | "project"
@@ -1188,6 +1701,17 @@ export const Constants = {
         "failed",
         "expired",
       ],
+      currency_code: ["SYP", "USD"],
+      expense_status: ["pending", "paid", "cancelled"],
+      invoice_status: [
+        "draft",
+        "issued",
+        "partially_paid",
+        "paid",
+        "overdue",
+        "void",
+      ],
+      payment_method: ["cash", "bank_transfer", "cheque", "card", "other"],
       profile_status: ["pending", "active", "suspended"],
       project_status: ["active", "on_hold", "done", "archived"],
       season_scope: ["global", "project"],

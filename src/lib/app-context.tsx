@@ -32,6 +32,7 @@ export type Profile = {
   suspended_at?: string | null;
   suspend_reason?: string | null;
   is_master_admin?: boolean;
+  is_finance_admin?: boolean;
 };
 
 // Public teammate directory row — no PII exposed to Members.
@@ -56,6 +57,7 @@ type Ctx = {
   can: (perm: Permission) => boolean;
   isMasterAdmin: boolean;
   isAdmin: boolean;              // true for both Master Admin and Admin
+  isFinanceAdmin: boolean;       // true for Admin OR finance admin flag
   isMember: boolean;             // true when not admin
   signOut: () => Promise<void>;
 };
@@ -190,6 +192,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const isMasterAdmin = !!user?.is_master_admin;
   const isAdmin = isMasterAdmin || user?.role === "admin";
+  const isFinanceAdmin = isAdmin || !!user?.is_finance_admin;
   const isMember = !!user && !isAdmin;
 
   // Legacy shim — mapped to the fixed 3-role model.
@@ -204,7 +207,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppCtx.Provider value={{
       lang, theme, setLang, setTheme, t, user, session, users, directory, refreshUsers,
       refreshSelf: async () => { if (session?.user?.id) await loadUser(session.user.id); },
-      can, isMasterAdmin, isAdmin, isMember, signOut,
+      can, isMasterAdmin, isAdmin, isFinanceAdmin, isMember, signOut,
     }}>
       {children}
     </AppCtx.Provider>
