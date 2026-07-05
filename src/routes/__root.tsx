@@ -12,6 +12,7 @@ import { AppProvider, useApp } from "@/lib/app-context";
 import { AppShell } from "@/components/layout/AppShell";
 import { CustomCursor } from "@/components/CustomCursor";
 import { QueryPersistProvider } from "@/lib/QueryPersistProvider";
+import { ConfirmProvider } from "@/components/confirm-dialog";
 
 
 function NotFoundComponent() {
