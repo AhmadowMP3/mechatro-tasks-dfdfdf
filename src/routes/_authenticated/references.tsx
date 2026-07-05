@@ -265,18 +265,54 @@ function ReferencesPage() {
           gap: 16,
           gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))",
         }}>
-          {filtered.map((r) => (
-            <RefCard
-              key={r.id}
-              row={r}
-              canManage={!!canManage}
-              onPin={() => togglePin(r)}
-              onEdit={() => openEdit(r)}
-              onDelete={() => remove(r)}
-              t={t}
-              lang={lang}
-            />
-          ))}
+          {filtered.map((r) => {
+            const checked = isSelected(r.id);
+            return (
+              <div
+                key={r.id}
+                style={{
+                  position: "relative",
+                  borderRadius: 16,
+                  outline: checked ? "2px solid var(--primary, #189FD1)" : "none",
+                  outlineOffset: 2,
+                  transition: "outline .12s",
+                }}
+                onClick={(e) => {
+                  if (!bulkMode || !canManage) return;
+                  e.stopPropagation();
+                  toggle(r.id);
+                }}
+              >
+                {canManage && (
+                  <div
+                    onClick={(e) => { e.stopPropagation(); toggle(r.id); }}
+                    style={{
+                      position: "absolute",
+                      top: 10,
+                      insetInlineStart: 10,
+                      zIndex: 5,
+                      opacity: checked || bulkMode ? 1 : 0,
+                      transition: "opacity .12s",
+                    }}
+                    className="ref-bulk-check"
+                  >
+                    <BulkCheckbox checked={checked} onChange={() => toggle(r.id)} label={lang === "ar" ? "تحديد" : "Select"} />
+                  </div>
+                )}
+                <div style={{ pointerEvents: bulkMode ? "none" : "auto" }}>
+                  <RefCard
+                    row={r}
+                    canManage={!!canManage}
+                    onPin={() => togglePin(r)}
+                    onEdit={() => openEdit(r)}
+                    onDelete={() => remove(r)}
+                    t={t}
+                    lang={lang}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
