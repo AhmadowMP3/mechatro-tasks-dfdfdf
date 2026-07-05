@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Plus, Archive, ArchiveRestore, CalendarPlus } from "lucide-react";
+import { Plus, Archive, ArchiveRestore, CalendarPlus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
@@ -54,6 +54,7 @@ const DEFAULTS: Filters = {
 function ProjectsPage() {
   const { t, lang, isAdmin, user, users } = useApp();
   const [modal, setModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<P | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [f, setF] = useState<Filters>(DEFAULTS);
   const patch = (p: Partial<Filters>) => setF((c) => ({ ...c, ...p }));
@@ -317,9 +318,19 @@ function ProjectsPage() {
                   </div>
                 </div>
                 {isAdmin && (
-                  <button onClick={() => toggleArchive(p)} style={{ marginTop: 12, width: "100%", minHeight: 40, borderRadius: 10, background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--border)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, fontWeight: 700 }}>
-                    {p.archived ? <><ArchiveRestore size={16} /> {t("unarchive")}</> : <><Archive size={16} /> {t("archive")}</>}
-                  </button>
+                  <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+                    <button onClick={() => toggleArchive(p)} style={{ flex: 1, minHeight: 40, borderRadius: 10, background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--border)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 13, fontWeight: 700 }}>
+                      {p.archived ? <><ArchiveRestore size={16} /> {t("unarchive")}</> : <><Archive size={16} /> {t("archive")}</>}
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(p)}
+                      aria-label={t("deleteProject")}
+                      title={t("deleteProject")}
+                      style={{ width: 44, minHeight: 40, borderRadius: 10, background: "var(--surface-2)", color: "#ff6b6b", border: "1px solid var(--border)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -328,6 +339,13 @@ function ProjectsPage() {
       )}
 
       {modal && <NewProjectModal onClose={() => setModal(false)} onCreated={() => { setModal(false); refetch(); }} />}
+      {deleteTarget && (
+        <DeleteProjectModal
+          project={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={() => { setDeleteTarget(null); refetch(); }}
+        />
+      )}
     </div>
   );
 }
@@ -385,6 +403,51 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
       <Field label={t("dueDate")}><input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} style={inp} /></Field>
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
         <button onClick={submit} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", flex: 1 }}>{t("create")}</button>
+        <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
+      </div>
+    </ModalShell>
+  );
+}
+
+function DeleteProjectModal({ project, onClose, onDeleted }: { project: P; onClose: () => void; onDeleted: () => void }) {
+  const { t, lang, user } = useApp();
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const name = lang === "ar" ? project.name_ar : project.name_en;
+  const canDelete = confirm.trim() === name.trim() && !busy;
+  const submit = async () => {
+    if (!canDelete) return;
+    setBusy(true);
+    const { error } = await supabase.from("projects").delete().eq("id", project.id);
+    setBusy(false);
+    if (error) {
+      const { explainSupabaseError } = await import("@/lib/permission-errors");
+      toast.error(explainSupabaseError(error, { action: "delete", entity: "project", user, lang }), { duration: 8000 });
+      return;
+    }
+    toast.success(t("projectDeleted"));
+    onDeleted();
+  };
+  return (
+    <ModalShell title={t("deleteProject")} onClose={onClose}>
+      <div style={{ padding: 12, borderRadius: 10, background: "rgba(255,107,107,.08)", border: "1px solid rgba(255,107,107,.35)", color: "#ffb4b4", fontSize: 13, marginBottom: 14, lineHeight: 1.5 }}>
+        {t("deleteProjectWarning")}
+      </div>
+      <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+        <b style={{ color: "var(--foreground)" }}>{name}</b>
+      </div>
+      <Field label={t("typeToConfirm")}>
+        <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={name} style={inp} autoFocus />
+      </Field>
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <button
+          onClick={submit}
+          disabled={!canDelete}
+          className="brand-btn"
+          style={{ background: canDelete ? "#e5484d" : "var(--surface-2)", color: canDelete ? "#fff" : "var(--muted)", flex: 1, cursor: canDelete ? "pointer" : "not-allowed" }}
+        >
+          {t("deleteProject")}
+        </button>
         <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
       </div>
     </ModalShell>

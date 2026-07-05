@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
@@ -9,14 +9,20 @@ import { TaskCard } from "@/components/TaskCard";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { NewTaskModal } from "@/components/NewTaskModal";
 import { formatDate, toLocalDigits } from "@/lib/format";
+import { toast } from "sonner";
+import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({ component: ProjectDetail });
 
 function ProjectDetail() {
   const { id } = Route.useParams();
-  const { t, lang, users, isAdmin } = useApp();
+  const { t, lang, users, isAdmin, user } = useApp();
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const { data, refetch } = useQuery({
     queryKey: ["project", id],
@@ -57,9 +63,20 @@ function ProjectDetail() {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
         <h2 style={{ margin: 0, flex: 1, fontSize: 20 }}>{t("tasks")}</h2>
         {isAdmin && (
-          <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
-            <Plus size={18} /> {t("addTaskHere")}
-          </button>
+          <>
+            <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
+              <Plus size={18} /> {t("addTaskHere")}
+            </button>
+            <button
+              onClick={() => { setConfirmText(""); setDeleteOpen(true); }}
+              className="brand-btn"
+              aria-label={t("deleteProject")}
+              title={t("deleteProject")}
+              style={{ background: "var(--surface-2)", color: "#ff6b6b", border: "1px solid var(--border)" }}
+            >
+              <Trash2 size={16} /> {t("deleteProject")}
+            </button>
+          </>
         )}
       </div>
 
@@ -77,6 +94,48 @@ function ProjectDetail() {
 
       {selected && <TaskDetailModal taskId={selected} onClose={() => setSelected(null)} onChanged={refetch} />}
       {newOpen && <NewTaskModal defaultProjectId={id} onClose={() => setNewOpen(false)} onCreated={() => { setNewOpen(false); refetch(); }} />}
+      {deleteOpen && (() => {
+        const name = lang === "ar" ? p.name_ar : p.name_en;
+        const canDelete = confirmText.trim() === name.trim() && !busy;
+        const submit = async () => {
+          if (!canDelete) return;
+          setBusy(true);
+          const { error } = await supabase.from("projects").delete().eq("id", p.id);
+          setBusy(false);
+          if (error) {
+            const { explainSupabaseError } = await import("@/lib/permission-errors");
+            toast.error(explainSupabaseError(error, { action: "delete", entity: "project", user, lang }), { duration: 8000 });
+            return;
+          }
+          toast.success(t("projectDeleted"));
+          navigate({ to: "/projects" });
+        };
+        return (
+          <ResponsiveModal title={t("deleteProject")} onClose={() => setDeleteOpen(false)} size="md">
+            <div style={{ padding: 12, borderRadius: 10, background: "rgba(255,107,107,.08)", border: "1px solid rgba(255,107,107,.35)", color: "#ffb4b4", fontSize: 13, marginBottom: 14, lineHeight: 1.5 }}>
+              {t("deleteProjectWarning")}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+              <b style={{ color: "var(--foreground)" }}>{name}</b>
+            </div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.4 }}>{t("typeToConfirm")}</label>
+            <input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={name}
+              autoFocus
+              style={{ width: "100%", padding: "10px 12px", minHeight: 48, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--foreground)", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+            />
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={submit} disabled={!canDelete} className="brand-btn"
+                style={{ background: canDelete ? "#e5484d" : "var(--surface-2)", color: canDelete ? "#fff" : "var(--muted)", flex: 1, cursor: canDelete ? "pointer" : "not-allowed" }}>
+                {t("deleteProject")}
+              </button>
+              <button onClick={() => setDeleteOpen(false)} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
+            </div>
+          </ResponsiveModal>
+        );
+      })()}
     </div>
   );
 }
