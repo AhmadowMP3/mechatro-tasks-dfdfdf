@@ -103,7 +103,7 @@ function rangeSince(r: Range): string | null {
 function ActivityPage() {
   const { t, lang, user, users, isMasterAdmin } = useApp();
   const search = Route.useSearch();
-  const navigate = useNavigate({ from: "/_authenticated/activity" });
+  const navigate = useNavigate();
   const isAdmin = isMasterAdmin || user?.role === "admin";
 
   const [rows, setRows] = useState<ActivityRow[]>([]);
