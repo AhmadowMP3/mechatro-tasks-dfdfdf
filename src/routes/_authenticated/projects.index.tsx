@@ -240,7 +240,7 @@ function ProjectsPage() {
           <ChipMultiSelect
             value={f.statuses}
             onChange={(v) => patch({ statuses: v })}
-            options={PROJECT_STATUSES.map((s) => ({ value: s, label: t(s as DictKey) }))}
+            options={(f.archived ? (["archived"] as const) : PROJECT_STATUSES).map((s) => ({ value: s, label: t(s as DictKey) }))}
           />
         </FilterSection>
         <FilterSection label={t("progressBucket")}>
