@@ -374,10 +374,60 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
             </div>
           ))}
           {canEdit && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr auto", gap: 8, marginTop: 8 }}>
-              <input placeholder={t("linkName")} value={linkName} onChange={(e) => setLinkName(e.target.value)} style={selectStyle} />
-              <input placeholder={t("driveUrl")} value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} style={selectStyle} />
-              <button onClick={addLink} className="brand-btn-sm" style={{ background: "var(--grad-blue)", color: "#fff" }}>{t("addLink")}</button>
+            <div style={{ marginTop: 8, padding: 12, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12 }}>
+              <div style={{ position: "relative", marginBottom: 8 }}>
+                <input
+                  placeholder={t("driveUrl")}
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } }}
+                  style={{ ...selectStyle, paddingInlineEnd: detectedType ? 140 : 12 }}
+                />
+                {detectedType && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      insetInlineEnd: 8,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      background: "rgba(66,194,238,.15)",
+                      color: "#42C2EE",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <LinkIcon size={12} /> {detectedType}
+                  </span>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexWrap: "wrap" }}>
+                <input
+                  placeholder={t("linkName")}
+                  value={linkName}
+                  onChange={(e) => setLinkName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } }}
+                  style={{ ...selectStyle, flex: "1 1 200px" }}
+                />
+                <button
+                  onClick={addLink}
+                  disabled={!linkUrl.trim() || savingLink}
+                  className="brand-btn"
+                  style={{
+                    background: !linkUrl.trim() || savingLink ? "var(--surface-3)" : "var(--grad-green)",
+                    color: !linkUrl.trim() || savingLink ? "var(--muted)" : "#fff",
+                    minWidth: 140,
+                    cursor: !linkUrl.trim() || savingLink ? "not-allowed" : "pointer",
+                  }}
+                >
+                  <Save size={16} /> {savingLink ? "…" : t("saveLink")}
+                </button>
+              </div>
             </div>
           )}
         </div>
