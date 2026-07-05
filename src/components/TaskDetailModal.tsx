@@ -161,7 +161,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     try {
       const { withRetryOnReconnect } = await import("@/lib/withRetryToast");
       const { error } = await withRetryOnReconnect(
-        () => supabase.from("task_files").insert({
+        async () => await supabase.from("task_files").insert({
           task_id: taskId, file_name: name, drive_url: url,
           file_type: driveFileType(url), added_by: user?.id ?? null,
         }),
