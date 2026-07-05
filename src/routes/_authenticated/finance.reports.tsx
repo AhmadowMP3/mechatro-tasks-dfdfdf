@@ -163,7 +163,7 @@ function FinanceReports() {
       else buckets.b90 += balance;
       const cust = (customers ?? []).find((c) => c.id === inv.customer_id);
       rows.push({
-        customer: cust ? (ar ? cust.name_ar || cust.name_en : cust.name_en || cust.name_ar) : "—",
+        customer: cust ? ((ar ? cust.name_ar || cust.name_en : cust.name_en || cust.name_ar) ?? "—") : "—",
         balance,
         days,
         number: inv.number ?? "—",
