@@ -10,6 +10,7 @@ import { driveFileType, isDriveUrl, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { notify } from "@/lib/activity";
 import { toast } from "sonner";
 import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
+import { ThemedSelect } from "@/components/ui/ThemedSelect";
 
 type Task = {
   id: string; project_id: string; title: string; description: string | null;
