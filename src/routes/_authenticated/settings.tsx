@@ -310,7 +310,7 @@ function BackupsSection() {
           </tbody>
         </table>
       </div>
-      )}
+      ))}
       {restoreTarget && <RestoreDialog backup={restoreTarget} onClose={() => setRestoreTarget(null)} onDone={() => { setRestoreTarget(null); refetch(); }} />}
     </section>
   );
