@@ -141,14 +141,34 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     load();
   };
 
+  const driveTypeLabel = (url: string): string => {
+    switch (driveFileType(url)) {
+      case "folder": return t("driveFolder");
+      case "doc": return t("googleDoc");
+      case "sheet": return t("googleSheet");
+      case "slides": return t("googleSlides");
+      default: return t("driveFile");
+    }
+  };
+  const detectedType = linkUrl.trim() && isDriveUrl(linkUrl) ? driveTypeLabel(linkUrl) : "";
+
   const addLink = async () => {
-    if (!isDriveUrl(linkUrl)) { toast.error(t("invalidDriveUrl")); return; }
-    if (!linkName.trim()) return;
-    await supabase.from("task_files").insert({
-      task_id: taskId, file_name: linkName.trim(), drive_url: linkUrl.trim(),
-      file_type: driveFileType(linkUrl), added_by: user?.id ?? null,
+    const url = linkUrl.trim();
+    if (!url) { toast.error(t("urlRequired")); return; }
+    if (!isDriveUrl(url)) { toast.error(t("invalidDriveUrl")); return; }
+    const name = linkName.trim() || driveTypeLabel(url);
+    setSavingLink(true);
+    const { error } = await supabase.from("task_files").insert({
+      task_id: taskId, file_name: name, drive_url: url,
+      file_type: driveFileType(url), added_by: user?.id ?? null,
     });
-    
+    setSavingLink(false);
+    if (error) {
+      const { explainSupabaseError } = await import("@/lib/permission-errors");
+      toast.error(explainSupabaseError(error, { action: "create", entity: "task", user, lang }), { duration: 8000 });
+      return;
+    }
+    toast.success(t("linkSaved"));
     setLinkName(""); setLinkUrl("");
     load();
   };
