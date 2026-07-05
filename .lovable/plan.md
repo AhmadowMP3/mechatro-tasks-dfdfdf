@@ -1,19 +1,35 @@
 ## الهدف
 
-ترقية الحساب `zizo` (id: `d90cf90e-9301-4ffd-aad3-8b2000ee34e3`) إلى Master Admin، وإزالة العلامة عن `tester@mechatro.test` حتى يبقى مسؤول رئيسي واحد.
+إضافة إمكانية حذف النسخ الاحتياطية من صفحة الإعدادات (متاحة للمسؤول الرئيسي فقط).
 
-## الخطوات
+## التغييرات
 
-1. تشغيل Migration بيانات على جدول `profiles`:
-   - `UPDATE profiles SET is_master_admin = false WHERE is_master_admin = true;`
-   - `UPDATE profiles SET is_master_admin = true, role = 'admin', status = 'active' WHERE id = 'd90cf90e-9301-4ffd-aad3-8b2000ee34e3';`
-2. تحديث `app_config.master_admin_email` لبريد zizo لكي لا تُعيده دالة `sync_master_admin()` إلى الحساب القديم لاحقاً.
-3. جلب البريد الحالي لـ zizo من `profiles` واستخدامه في التحديث.
+### 1. `supabase/functions/backup-snapshot/index.ts`
 
-## بعد التنفيذ
+إضافة فرع جديد للحذف:
+```
+{ delete: true, file: "backup-....json" }
+```
+- التحقق أن المستخدم `is_master_admin` (موجود مسبقاً في بداية الدالة).
+- استدعاء `sb.storage.from("backups").remove([body.file])`.
+- إرجاع `{ ok: true, deleted: filename }`.
 
-سيتمكن zizo فور تحديث الصفحة من:
-- رؤية زر "نسخة الآن" (تنفيذ فوري) بدل زر "طلب نسخة احتياطية".
-- الموافقة/الرفض للطلبات المعلقة.
-- تحميل واستعادة النسخ الاحتياطية.
-- ظهور قسم "Test users" في الإعدادات.
+### 2. `src/routes/_authenticated/settings.tsx`
+
+داخل `BackupsSection` (للمسؤول الرئيسي فقط):
+- إضافة `handleDelete(b)` يستدعي الـ edge function بـ body `{ delete: true, file: b.name }` بعد تأكيد بسيط.
+- إضافة زر **حذف** بجانب زري "تنزيل" و"استعادة" في كل من عرض الجوال والجدول، بأيقونة `Trash2` من `lucide-react` وألوان تحذير (نفس نمط الاستعادة لكن باللون الأحمر).
+- إظهار `confirm()` بسيط بنص الترجمة قبل التنفيذ.
+- استدعاء `refetch()` بعد النجاح.
+
+### 3. `src/i18n/dict.ts`
+
+مفاتيح ترجمة جديدة:
+- `delete` → "حذف" / "Delete" (إن لم يكن موجوداً؛ إن وُجد نُعيد استخدامه)
+- `confirmDeleteBackup` → "هل تريد حذف هذه النسخة الاحتياطية نهائياً؟" / "Delete this backup permanently?"
+- `backupDeleted` → "تم حذف النسخة" / "Backup deleted"
+
+## ملاحظات
+
+- الحذف يقتصر على المسؤول الرئيسي لأن الأزرار داخل الفرع المحمي بـ `isMasterAdmin` أصلاً، والـ edge function تتحقق مجدداً من الصلاحية.
+- لا حاجة لتغييرات في قاعدة البيانات أو سياسات Storage.
