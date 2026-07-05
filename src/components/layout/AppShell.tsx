@@ -205,6 +205,50 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             </Link>
           )}
 
+          {!shareMode && (
+            <button
+              onClick={() => openCommandPalette()}
+              aria-label={lang === "ar" ? "بحث شامل" : "Global search"}
+              title={lang === "ar" ? "بحث (⌘K)" : "Search (⌘K)"}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                height: isMobile ? 40 : 44,
+                padding: isMobile ? "0 10px" : "0 14px",
+                borderRadius: 999,
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                color: "var(--muted)",
+                cursor: "pointer",
+                minWidth: isMobile ? 40 : 200,
+                justifyContent: isMobile ? "center" : "flex-start",
+                fontSize: 13,
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              <Search size={16} />
+              {!isMobile && (
+                <>
+                  <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>
+                    {lang === "ar" ? "بحث…" : "Search…"}
+                  </span>
+                  <kbd
+                    style={{
+                      fontSize: 10, fontWeight: 800, letterSpacing: 0.4,
+                      padding: "3px 6px", borderRadius: 5,
+                      background: "var(--card)", border: "1px solid var(--border)",
+                      color: "var(--foreground)", fontFamily: "ui-monospace, monospace",
+                    }}
+                  >
+                    ⌘K
+                  </kbd>
+                </>
+              )}
+            </button>
+          )}
+
           <div
             style={{
               display: "inline-flex",
