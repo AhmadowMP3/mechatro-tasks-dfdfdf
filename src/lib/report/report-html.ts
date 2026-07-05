@@ -211,7 +211,7 @@ function coverPage(data: ReportData, lang: Lang, s: Stats): string {
   }
 
   return `
-  <section class="pdf-page cover" style="background:${th.coverBg};color:${onCoverText};position:relative;overflow:hidden">
+  <section class="pdf-page cover" dir="${lang === 'ar' ? 'rtl' : 'ltr'}" lang="${lang}" style="background:${th.coverBg};color:${onCoverText};position:relative;overflow:hidden">
     <div style="position:absolute;inset:0;background:${th.coverGlow}"></div>
     <div style="position:relative;padding:56px 56px 40px 56px;height:100%;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;gap:14px">
