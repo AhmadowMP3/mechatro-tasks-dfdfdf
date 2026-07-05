@@ -217,11 +217,23 @@ function TeamPage() {
             </div>
             {isAdmin && (
               <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-                <button onClick={() => setRecord(u)} className="brand-btn-sm" style={{ flex: 1, minWidth: 90, minHeight: 44, background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("record")}</button>
-                <button onClick={() => setEdit(u)} className="brand-btn-sm" style={{ flex: 1, minWidth: 90, minHeight: 44, background: "var(--grad-blue)", color: "#fff" }}>{t("editMember")}</button>
-                <button onClick={() => setReport(u)} className="brand-btn-sm"
+                <button
+                  onClick={() => setRecord(u)}
+                  className="brand-btn-sm"
+                  style={{ flex: "1 1 90px", minWidth: 0, minHeight: 44, padding: "0 10px", background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                >{t("record")}</button>
+                <button
+                  onClick={() => setEdit(u)}
+                  className="brand-btn-sm"
+                  style={{ flex: "1 1 90px", minWidth: 0, minHeight: 44, padding: "0 10px", background: "var(--grad-blue)", color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                >{t("editMember")}</button>
+                <button
+                  onClick={() => setReport(u)}
+                  className="brand-btn-sm"
                   title={t("generateReport")}
-                  style={{ flex: "0 0 auto", minHeight: 44, padding: "0 14px", background: "linear-gradient(135deg,#FF8A3D,#F0676A)", color: "#fff", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  aria-label={t("generateReport")}
+                  style={{ flex: "0 0 auto", minHeight: 44, minWidth: 44, padding: "0 14px", background: "linear-gradient(135deg,#FF8A3D,#F0676A)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, whiteSpace: "nowrap" }}
+                >
                   <FileText size={14} /> PDF
                 </button>
               </div>

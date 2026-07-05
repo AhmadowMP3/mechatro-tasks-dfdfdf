@@ -331,15 +331,22 @@ export function SearchField({ value, onChange, placeholder }: {
 }) {
   const { t } = useApp();
   return (
-    <div style={{ position: "relative", flex: "1 1 220px", minWidth: 220, maxWidth: 360 }}>
-      <SearchIcon size={16} style={{ position: "absolute", top: "50%", insetInlineStart: 10, transform: "translateY(-50%)", color: "var(--muted)" }} />
+    <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0, maxWidth: 360 }}>
+      <SearchIcon
+        size={16}
+        style={{
+          position: "absolute", top: "50%",
+          insetInlineStart: 12, transform: "translateY(-50%)",
+          color: "var(--muted)", pointerEvents: "none",
+        }}
+      />
       <input
         placeholder={placeholder ?? t("searchPlaceholder")}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         style={{
-          width: "100%", minHeight: 40, borderRadius: 10,
-          padding: "0 12px 0 34px",
+          width: "100%", minHeight: 44, borderRadius: 12,
+          paddingInlineStart: 36, paddingInlineEnd: 14,
           background: "var(--surface-2)", color: "var(--foreground)",
           border: "1px solid var(--border)", outline: "none", fontSize: 14,
         }}

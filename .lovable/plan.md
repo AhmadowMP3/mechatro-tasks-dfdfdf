@@ -1,46 +1,65 @@
 ## Goal
 
-Group the sidebar links under clear, cool-looking section titles (like Notion / Linear sidebars) instead of one flat list — bilingual, respects share-mode filtering, no functional changes.
+Full-app mobile polish pass at 390×844 (iPhone). Systematically find and fix every mobile-only issue, then screenshot each authenticated page before/after so you can see the pipeline results.
 
-## Sections
+## Pipeline (executed in build mode)
 
-Rendered top → bottom, each with a small pill-style header (uppercase, letter-spaced, muted color, tiny gradient underline). Icons/routes unchanged.
+### Phase 1 — Capture "before" baseline
+Playwright at 390×844, signed in, capture every authenticated route:
+Dashboard, Projects list, Project detail, Tasks, Team, League, References, Notifications, Activity, Reports, Reports history, Access control, Share links, Settings, plus Task detail modal and Sidebar drawer.
 
-1. **Workspace** — `overviewSection` — Dashboard
-2. **Work** — `workSection` — Projects · Tasks · References
-3. **Team** — `teamSection` — Team · League
-4. **Insights** *(admin only)* — `insightsSection` — Activity · Reports · Report history
-5. **Administration** *(admin/master only)* — `adminSection` — People & Invites · Share Links
-6. **Personal** — `personalSection` — Notifications · Settings
+Save under `/tmp/browser/mobile-before/`.
 
-Share-mode viewers only see sections whose items survive the whitelist filter — empty sections are hidden automatically.
+### Phase 2 — Diagnose
+For each screenshot, log every issue in one of these buckets:
+- **Horizontal overflow** (page or card scrolls sideways)
+- **Text overflow / clipping** (headings, badges, chips)
+- **Tap targets < 44×44** (icon buttons, chevrons, tab pills)
+- **Cramped headers** — grid+min-w-0+shrink-0 pattern missing
+- **Tables** that need a horizontal-scroll wrapper or card-list swap
+- **Modals/dialogs** that don't fit — need `max-h-[90dvh]` + inner scroll
+- **Safe-area** — bottom tab bar / floating action buttons over iOS home indicator
+- **Sticky header + drawer** — z-index / scroll-lock issues
+- **RTL sanity** — Arabic direction still correct
 
-## Implementation (single file: `src/components/layout/Sidebar.tsx`)
+### Phase 3 — Fix in a single pass
+Apply targeted edits per file. Guardrails:
+- Header rows → `grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex` + `min-w-0` on text col + `shrink-0` on avatars + `truncate` on titles
+- Icon-only buttons → `min-h-11 min-w-11` + `aria-label`
+- Wide tables → wrap in `overflow-x-auto` OR switch to a stacked card list under `sm:`
+- Every dialog/sheet → `max-h-[90dvh] overflow-y-auto` on content, sticky footer
+- Bottom-safe padding via `pb-[calc(72px+env(safe-area-inset-bottom))]` on scroll containers where the mobile tab bar overlaps
+- Section cards → tighter mobile density (`p-3 sm:p-5`, `text-sm sm:text-base`)
+- Sidebar drawer → make sure backdrop click closes, prevent body scroll while open
+- Never change desktop behavior — mobile-only changes gated at `sm:` breakpoint or `useIsMobile()`
 
-- Replace the flat `NAV: NavItem[]` with `NAV_SECTIONS: { titleKey: DictKey; items: NavItem[] }[]`.
-- Move the admin/master conditional pushes into their own section objects instead of appending to the flat list.
-- In the render pass:
-  - map over sections
-  - filter each section's items with the existing share-mode / role logic
-  - skip the section entirely if no items remain
-  - render a `<div>` section header (12px uppercase, `letter-spacing: .12em`, `color: var(--muted)`, small 2-line gradient bar under the label using existing `--grad-blue`) then the item `<Link>`s
-- Keep existing item styles (active pill, icon tile, RTL flipping). No changes to click handlers, routes, or `PAGE_TO_KEY`.
+Files most likely touched (list is illustrative, not exhaustive — will only edit what actually needs fixing):
+- `src/components/layout/AppShell.tsx`
+- `src/components/layout/PageHeader.tsx`
+- `src/components/layout/MobileTabBar.tsx`
+- `src/components/layout/Sidebar.tsx`
+- `src/components/TaskDetailModal.tsx`
+- `src/routes/_authenticated/{index,tasks,projects,projects.$id,team,league,references,notifications,activity,reports,reports-history,reports-history.compare,access-control,share-links,settings}.tsx`
+- Small CSS additions in `src/styles.css` if a reusable utility is needed (safe-area helper, no-scroll body)
 
-## i18n (`src/i18n/dict.ts`)
+### Phase 4 — Verify
+Playwright again at 390×844 across the same routes → `/tmp/browser/mobile-after/`. Diff visually. Fix any regressions. Confirm typecheck (`tsgo`) passes clean.
 
-Add 6 keys, ar + en:
-- `overviewSection`: "نظرة عامة" / "Overview"
-- `workSection`: "العمل" / "Work"
-- `teamSection`: "الفريق" / "Team & League"
-- `insightsSection`: "التحليلات" / "Insights"
-- `adminSection`: "الإدارة" / "Administration"
-- `personalSection`: "شخصي" / "Personal"
+### Phase 5 — Deliver
+Compose a single **before/after mobile audit** contact-sheet PNG (grid of thumbnails) into `/mnt/documents/mobile-audit.png`. Reply with the artifact and a short bullet list of the categories fixed.
 
 ## Out of scope
 
-- No changes to routing, permissions, share-mode logic, or the account card.
-- No collapsible sections (keeps it simple — can add later if wanted).
-- No changes to the mobile drawer wrapper.
+- No feature changes, no backend/RLS, no auth flow, no i18n additions unless a fix needs a new key.
+- No visual redesign — this is polish/correctness. If a page needs a redesign (not just a fix), I'll flag it in the final report rather than silently overhauling it.
+- No PWA / service worker changes (already handled).
 
-## Files touched
-- edited: `src/components/layout/Sidebar.tsx`, `src/i18n/dict.ts`
+## Verification bar
+
+- Zero horizontal scroll on any authenticated route at 390×844
+- All interactive icon buttons ≥ 44×44 with accessible names
+- No text clipped on the primary headings, task/project cards, notification rows
+- Task detail modal fully usable on mobile (scroll, close, share, save Drive link)
+- Sidebar drawer opens, closes on backdrop click, doesn't leak body scroll
+- Bottom tab bar clears the iOS home indicator via `env(safe-area-inset-bottom)`
+- `bunx tsgo --noEmit` green
