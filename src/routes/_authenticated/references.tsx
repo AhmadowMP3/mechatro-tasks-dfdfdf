@@ -530,7 +530,20 @@ function EmptyState({ canManage, onAdd, t }: { canManage: boolean; onAdd: () => 
 
 /* --------------------------- Modal --------------------------- */
 
-function RefModal({ initial, onClose, onSaved, userId, t, categories }: {
+const DEFAULT_CATEGORIES: { ar: string; en: string }[] = [
+  { ar: "توثيق", en: "Documentation" },
+  { ar: "أدوات", en: "Tools" },
+  { ar: "قوالب", en: "Templates" },
+  { ar: "مراجع", en: "References" },
+  { ar: "تصميم", en: "Design" },
+  { ar: "تطوير", en: "Development" },
+  { ar: "تعلّم", en: "Learning" },
+  { ar: "فيديو", en: "Video" },
+  { ar: "مقالات", en: "Articles" },
+  { ar: "روابط مهمة", en: "Important links" },
+];
+
+function RefModal({ initial, onClose, onSaved, userId, t, lang, categories }: {
   initial: RefRow | null;
   onClose: () => void;
   onSaved: () => void;
@@ -626,7 +639,16 @@ function RefModal({ initial, onClose, onSaved, userId, t, categories }: {
         </Field>
 
         <Field label={tt("category")}>
-          <CategoryCombobox value={category} onChange={setCategory} options={categories} placeholder={tt("categoryPlaceholder")} hint={tt("categoryHint")} createLabel={tt("createCategory")} />
+          <CategoryCombobox
+            value={category}
+            onChange={setCategory}
+            options={categories}
+            defaults={DEFAULT_CATEGORIES.map((c) => (lang === "ar" ? c.ar : c.en))}
+            placeholder={tt("categoryPlaceholder")}
+            hint={tt("categoryHint")}
+            createLabel={tt("createCategory")}
+            suggestedLabel={tt("suggestedCategories")}
+          />
         </Field>
 
 
@@ -700,27 +722,41 @@ function accentFor(name: string) {
 }
 
 function CategoryCombobox({
-  value, onChange, options, placeholder, hint, createLabel,
+  value, onChange, options, defaults = [], placeholder, hint, createLabel, suggestedLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: string[];
+  defaults?: string[];
   placeholder: string;
   hint: string;
   createLabel: string;
+  suggestedLabel?: string;
 }) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const norm = (s: string) => s.trim().toLowerCase();
   const q = norm(query);
+  // Merge defaults with data-derived options, case-insensitive dedupe, defaults first.
+  const merged = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const c of [...defaults, ...options]) {
+      const k = norm(c);
+      if (!k || seen.has(k)) continue;
+      seen.add(k); out.push(c);
+    }
+    return out;
+  }, [defaults, options]);
   const filtered = useMemo(
-    () => options.filter((o) => !value || o !== value).filter((o) => !q || norm(o).includes(q)).slice(0, 24),
-    [options, q, value],
+    () => merged.filter((o) => !value || o !== value).filter((o) => !q || norm(o).includes(q)).slice(0, 30),
+    [merged, q, value],
   );
-  const exactExists = options.some((o) => norm(o) === q);
+  const exactExists = merged.some((o) => norm(o) === q);
   const canCreate = q.length > 0 && !exactExists;
   const selected = value.trim();
-  const selectedFromList = options.some((o) => o === selected);
+  const selectedFromList = merged.some((o) => o === selected);
+  const showSuggestedLabel = !q && !selected && filtered.length > 0 && !!suggestedLabel;
 
   const commit = (v: string) => {
     const t = v.trim().slice(0, 60);
@@ -800,7 +836,13 @@ function CategoryCombobox({
 
       {/* Row 2: chip cloud */}
       {(filtered.length > 0 || canCreate) && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {showSuggestedLabel && (
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, color: "var(--muted)", textTransform: "uppercase" }}>
+              {suggestedLabel}
+            </div>
+          )}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
           {canCreate && (
             <button
               type="button"
@@ -842,6 +884,7 @@ function CategoryCombobox({
               </button>
             );
           })}
+          </div>
         </div>
       )}
 
