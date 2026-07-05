@@ -410,6 +410,7 @@ export const dict = {
   categoryPlaceholder: { ar: "ابحث أو اكتب فئة جديدة...", en: "Search or type a new category..." },
   categoryHint: { ar: "اختر من الفئات الموجودة أو اكتب فئة جديدة", en: "Pick an existing category or type your own" },
   createCategory: { ar: "إنشاء", en: "Create" },
+  suggestedCategories: { ar: "تصنيفات مقترحة", en: "Suggested categories" },
 
   clearFilters: { ar: "مسح الفلاتر", en: "Clear filters" },
   // Report History
