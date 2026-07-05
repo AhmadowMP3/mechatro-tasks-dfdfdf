@@ -11,6 +11,7 @@ import { NewTaskModal } from "@/components/NewTaskModal";
 import { formatDate, toLocalDigits } from "@/lib/format";
 import { toast } from "sonner";
 import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
+import { ThemedSelect } from "@/components/ui/ThemedSelect";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({ component: ProjectDetail });
 
@@ -73,33 +74,30 @@ function ProjectDetail() {
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               {t("status")}:{" "}
               {isAdmin ? (
-                <select
-                  value={p.status}
-                  onChange={async (e) => {
-                    const next = e.target.value as "active" | "on_hold" | "done" | "archived";
-                    const patch: { status: typeof next; archived?: boolean } = { status: next };
-                    if (next === "archived") patch.archived = true;
-                    else if (p.archived) patch.archived = false;
-                    const { error } = await supabase.from("projects").update(patch).eq("id", p.id);
-                    if (error) {
-                      const { explainSupabaseError } = await import("@/lib/permission-errors");
-                      toast.error(explainSupabaseError(error, { action: "update", entity: "project", user, lang }), { duration: 8000 });
-                      return;
-                    }
-                    toast.success(t("saved"));
-                    refetch();
-                    queryClient.invalidateQueries({ queryKey: ["projects", "list"] });
-                  }}
-                  style={{
-                    padding: "6px 10px", minHeight: 36, background: "var(--surface-2)",
-                    border: "1px solid var(--border)", borderRadius: 999, color: "var(--foreground)",
-                    fontSize: 13, fontWeight: 700, fontFamily: "inherit", outline: "none", cursor: "pointer",
-                  }}
-                >
-                  {(["active", "on_hold", "done", "archived"] as const).map((s) => (
-                    <option key={s} value={s}>{t(s as never)}</option>
-                  ))}
-                </select>
+                <div style={{ minWidth: 150 }}>
+                  <ThemedSelect
+                    value={p.status}
+                    onChange={async (v) => {
+                      const next = v as "active" | "on_hold" | "done" | "archived";
+                      const patch: { status: typeof next; archived?: boolean } = { status: next };
+                      if (next === "archived") patch.archived = true;
+                      else if (p.archived) patch.archived = false;
+                      const { error } = await supabase.from("projects").update(patch).eq("id", p.id);
+                      if (error) {
+                        const { explainSupabaseError } = await import("@/lib/permission-errors");
+                        toast.error(explainSupabaseError(error, { action: "update", entity: "project", user, lang }), { duration: 8000 });
+                        return;
+                      }
+                      toast.success(t("saved"));
+                      refetch();
+                      queryClient.invalidateQueries({ queryKey: ["projects", "list"] });
+                    }}
+                    style={{ minHeight: 36, borderRadius: 999, fontSize: 13, fontWeight: 700 }}
+                    options={(["active", "on_hold", "done", "archived"] as const).map((s) => ({
+                      value: s, label: t(s as never),
+                    }))}
+                  />
+                </div>
               ) : (
                 <b>{t(p.status as never)}</b>
               )}

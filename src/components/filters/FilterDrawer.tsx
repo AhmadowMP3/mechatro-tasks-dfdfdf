@@ -2,10 +2,11 @@
 // All 4 major pages share these primitives.
 
 import * as React from "react";
-import { Filter, RotateCcw, X, Check, ChevronDown, Download } from "lucide-react";
+import { Filter, RotateCcw, X, Check, Download } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger,
 } from "@/components/ui/sheet";
+import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { useApp } from "@/lib/app-context";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -196,22 +197,12 @@ export function FilterSelect({ value, onChange, options, placeholder }: {
   placeholder?: string;
 }) {
   return (
-    <div style={{ position: "relative" }}>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          width: "100%", minHeight: 40, appearance: "none",
-          padding: "0 32px 0 12px",
-          background: "var(--surface-2)", color: "var(--foreground)",
-          border: "1px solid var(--border)", borderRadius: 10, fontSize: 14, outline: "none",
-        }}
-      >
-        {placeholder !== undefined && <option value="">{placeholder}</option>}
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-      <ChevronDown size={14} style={{ position: "absolute", top: "50%", insetInlineEnd: 10, transform: "translateY(-50%)", color: "var(--muted)", pointerEvents: "none" }} />
-    </div>
+    <ThemedSelect
+      value={value}
+      onChange={onChange}
+      options={options}
+      placeholder={placeholder}
+    />
   );
 }
 

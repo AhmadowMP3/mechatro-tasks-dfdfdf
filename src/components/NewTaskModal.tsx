@@ -7,6 +7,7 @@ import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { notify } from "@/lib/activity";
 import { ModalShell, Field, inp } from "@/routes/_authenticated/projects.index";
+import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { useQuery } from "@tanstack/react-query";
 import { formatDate, toLocalDigits } from "@/lib/format";
 
@@ -142,27 +143,35 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
       <Field label={t("title")}><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} style={inp} /></Field>
       <Field label={t("description")}><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ ...inp, minHeight: 70 }} /></Field>
       <Field label={t("filterProject")}>
-        <select value={form.project_id} onChange={(e) => setForm({ ...form, project_id: e.target.value })} style={inp}>
-          <option value="">—</option>
-          {(projects ?? []).map((p) => <option key={p.id} value={p.id}>{lang === "ar" ? p.name_ar : p.name_en}</option>)}
-        </select>
+        <ThemedSelect
+          value={form.project_id}
+          onChange={(v) => setForm({ ...form, project_id: v })}
+          placeholder="—"
+          options={(projects ?? []).map((p) => ({ value: p.id, label: lang === "ar" ? p.name_ar : p.name_en }))}
+        />
       </Field>
       <Field label={t("assignee")}>
-        <select value={form.assignee_id} onChange={(e) => setForm({ ...form, assignee_id: e.target.value })} style={inp}>
-          <option value="">{t("none")}</option>
-          {users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-        </select>
+        <ThemedSelect
+          value={form.assignee_id}
+          onChange={(v) => setForm({ ...form, assignee_id: v })}
+          placeholder={t("none")}
+          options={users.map((u) => ({ value: u.id, label: u.full_name }))}
+        />
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <Field label={t("priority")}>
-          <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} style={inp}>
-            {["low", "normal", "high", "urgent"].map((s) => <option key={s} value={s}>{t(s as never)}</option>)}
-          </select>
+          <ThemedSelect
+            value={form.priority}
+            onChange={(v) => setForm({ ...form, priority: v })}
+            options={["low", "normal", "high", "urgent"].map((s) => ({ value: s, label: t(s as never) }))}
+          />
         </Field>
         <Field label={t("status")}>
-          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} style={inp}>
-            {["todo", "in_progress", "paused", "done"].map((s) => <option key={s} value={s}>{t(s as never)}</option>)}
-          </select>
+          <ThemedSelect
+            value={form.status}
+            onChange={(v) => setForm({ ...form, status: v })}
+            options={["todo", "in_progress", "paused", "done"].map((s) => ({ value: s, label: t(s as never) }))}
+          />
         </Field>
       </div>
 

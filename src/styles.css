@@ -585,3 +585,14 @@ img, svg, video { max-width: 100%; }
 [class*="brand-card"] :hover > .row-bulk-check,
 [class*="brand-card"] a:hover > div > .row-bulk-check,
 [class*="brand-card"] > div > div:hover .row-bulk-check { opacity: 1 !important; }
+
+/* Themed dropdown items — hover/focus tint */
+.themed-select-item[data-highlighted],
+.themed-select-item:hover {
+  background: var(--surface-2);
+  color: var(--foreground);
+}
+.themed-select-item[data-state="checked"] {
+  background: color-mix(in oklab, #189FD1 22%, transparent);
+  color: var(--foreground);
+}

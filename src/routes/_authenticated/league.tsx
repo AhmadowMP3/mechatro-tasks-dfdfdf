@@ -8,6 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { toLocalDigits, formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ModalShell, Field, inp } from "@/routes/_authenticated/projects.index";
+import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/league")({ component: LeaguePage });
@@ -419,10 +420,12 @@ function NewSeasonModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
       {form.scope === "project" && (
         <Field label={t("filterProject")}>
-          <select value={form.project_id} onChange={(e) => setForm({ ...form, project_id: e.target.value })} style={inp}>
-            <option value="">—</option>
-            {(projects ?? []).map((p) => <option key={p.id} value={p.id}>{p.name_en}</option>)}
-          </select>
+          <ThemedSelect
+            value={form.project_id}
+            onChange={(v) => setForm({ ...form, project_id: v })}
+            placeholder="—"
+            options={(projects ?? []).map((p) => ({ value: p.id, label: p.name_en }))}
+          />
         </Field>
       )}
 
