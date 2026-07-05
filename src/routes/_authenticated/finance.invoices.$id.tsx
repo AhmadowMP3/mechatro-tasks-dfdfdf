@@ -243,13 +243,10 @@ function InvoiceEditorPage() {
     navigate({ to: "/finance/invoices" });
   };
 
-  const downloadPdf = async () => {
+  const downloadPdf = () => {
     if (isNew) { toast.error(t("saveDraft")); return; }
-    const { data, error } = await supabase.functions.invoke("generate-invoice-pdf", { body: { invoice_id: id } });
-    if (error) { toast.error(error.message); return; }
-    const payload = data as { url?: string; error?: string };
-    if (payload.error) { toast.error(payload.error); return; }
-    if (payload.url) window.open(payload.url, "_blank");
+    // Client-side print for now — the browser's "Save as PDF" produces a branded copy.
+    window.print();
   };
 
   const statusColors = existing ? invoiceStatusColor(existing.invoice.status) : null;
