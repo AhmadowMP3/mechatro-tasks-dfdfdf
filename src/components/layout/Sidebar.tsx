@@ -18,15 +18,59 @@ type NavItem = {
   label?: { ar: string; en: string };
 };
 
-const NAV: NavItem[] = [
-  { to: "/",              icon: LayoutDashboard, key: "dashboard" },
-  { to: "/projects",      icon: FolderKanban,    key: "projects" },
-  { to: "/tasks",         icon: CheckSquare,     key: "tasks" },
-  { to: "/team",          icon: Users,           key: "team" },
-  { to: "/league",        icon: Trophy,          key: "league" },
-  { to: "/references",    icon: Library,         key: "references" },
-  { to: "/notifications", icon: Bell,            key: "notifications" },
-  { to: "/settings",      icon: Settings,        key: "settings" },
+type NavSection = {
+  titleKey: DictKey;
+  items: NavItem[];
+  adminOnly?: boolean;
+  masterOnly?: boolean;
+};
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    titleKey: "overviewSection",
+    items: [
+      { to: "/", icon: LayoutDashboard, key: "dashboard" },
+    ],
+  },
+  {
+    titleKey: "workSection",
+    items: [
+      { to: "/projects",   icon: FolderKanban, key: "projects" },
+      { to: "/tasks",      icon: CheckSquare,  key: "tasks" },
+      { to: "/references", icon: Library,      key: "references" },
+    ],
+  },
+  {
+    titleKey: "teamSection",
+    items: [
+      { to: "/team",   icon: Users,   key: "team" },
+      { to: "/league", icon: Trophy,  key: "league" },
+    ],
+  },
+  {
+    titleKey: "insightsSection",
+    adminOnly: true,
+    items: [
+      { to: "/activity",         icon: ScrollText, key: "activityLog" },
+      { to: "/reports",          icon: FileText,   key: "reports" },
+      { to: "/reports-history",  icon: ScrollText, key: "reportHistory" },
+    ],
+  },
+  {
+    titleKey: "adminSection",
+    adminOnly: true,
+    items: [
+      { to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } },
+      { to: "/share-links",    icon: Share2,   key: null, label: { ar: "روابط المشاركة", en: "Share Links" }, /* masterOnly handled below */ },
+    ],
+  },
+  {
+    titleKey: "personalSection",
+    items: [
+      { to: "/notifications", icon: Bell,     key: "notifications" },
+      { to: "/settings",      icon: Settings, key: "settings" },
+    ],
+  },
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
@@ -43,26 +87,32 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     "/activity": "activity",
   };
 
-  let nav: NavItem[] = [...NAV];
-  if (!shareMode) {
-    if (isAdmin) {
-      nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });
-      nav.push({ to: "/reports", icon: FileText, key: "reports" });
-      nav.push({ to: "/reports-history", icon: ScrollText, key: "reportHistory" });
-      nav.push({ to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } });
-    }
+  // Build visible sections based on role + share mode.
+  const sections: NavSection[] = NAV_SECTIONS
+    .map((section) => {
+      let items = section.items;
 
-    if (isMasterAdmin) {
-      nav.push({ to: "/share-links", icon: Share2, key: null, label: { ar: "روابط المشاركة", en: "Share Links" } });
-    }
-  } else if (shareLink) {
-    // Share viewers see only the pages included in the link. Dashboard is
-    // added first; activity is added if whitelisted.
-    if (shareLink.allowed_pages.includes("activity")) {
-      nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });
-    }
-    nav = nav.filter((n) => shareLink.allowed_pages.includes(PAGE_TO_KEY[n.to]));
-  }
+      // "share-links" is master-only within the admin section
+      if (section.titleKey === "adminSection") {
+        items = items.filter((i) => i.to !== "/share-links" || isMasterAdmin);
+      }
+
+      if (shareMode) {
+        if (!shareLink) return { ...section, items: [] };
+        // Inject /activity as a visible item when whitelisted (for share viewers only)
+        if (section.titleKey === "insightsSection" && shareLink.allowed_pages.includes("activity")) {
+          // keep only activity for share viewers
+          items = items.filter((i) => i.to === "/activity");
+        }
+        items = items.filter((i) => shareLink.allowed_pages.includes(PAGE_TO_KEY[i.to]));
+        return { ...section, items };
+      }
+
+      if (section.adminOnly && !isAdmin) return { ...section, items: [] };
+      if (section.masterOnly && !isMasterAdmin) return { ...section, items: [] };
+      return { ...section, items };
+    })
+    .filter((s) => s.items.length > 0);
 
 
   return (
@@ -156,41 +206,74 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       )}
 
       <nav style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
-        {nav.map((item) => {
-          const { to, icon: Icon } = item;
-          const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
-          const label = "label" in item && item.label
-            ? item.label[lang]
-            : t(item.key as DictKey);
-          return (
-            <Link
-              key={to}
-              to={to}
-              onClick={onClose}
-              className={`side-item ${active ? "is-active" : ""}`}
+        {sections.map((section, sIdx) => (
+          <div key={section.titleKey} style={{ marginBottom: 14 }}>
+            <div
               style={{
-                display: "flex", alignItems: "center", gap: 12,
-                padding: "10px 12px", marginBottom: 4,
-                borderRadius: 12,
-                minHeight: 48,
-                background: active ? "var(--grad-blue)" : "transparent",
-                color: active ? "#fff" : "var(--muted)",
-                fontWeight: 700, fontSize: 14.5,
-                textDecoration: "none",
-                flexDirection: lang === "ar" ? "row-reverse" : "row",
-                justifyContent: "flex-end",
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "10px 12px 6px",
+                marginTop: sIdx === 0 ? 0 : 2,
               }}
             >
-              <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>{label}</span>
               <span
-                className={`icon-tile icon-tile-sm ${active ? "is-active" : ""}`}
-                style={active ? { background: "rgba(255,255,255,0.18)", color: "#fff", borderColor: "transparent", boxShadow: "none" } : undefined}
+                aria-hidden
+                style={{
+                  width: 18, height: 2, borderRadius: 2,
+                  background: "var(--grad-blue)",
+                  boxShadow: "0 0 10px rgba(29,155,240,.5)",
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  fontSize: 10.5, fontWeight: 800,
+                  letterSpacing: ".14em", textTransform: "uppercase",
+                  color: "var(--muted)",
+                  flex: 1,
+                  textAlign: lang === "ar" ? "right" : "left",
+                }}
               >
-                <Icon size={16} />
+                {t(section.titleKey)}
               </span>
-            </Link>
-          );
-        })}
+            </div>
+
+            {section.items.map((item) => {
+              const { to, icon: Icon } = item;
+              const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
+              const label = "label" in item && item.label
+                ? item.label[lang]
+                : t(item.key as DictKey);
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  onClick={onClose}
+                  className={`side-item ${active ? "is-active" : ""}`}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "10px 12px", marginBottom: 4,
+                    borderRadius: 12,
+                    minHeight: 48,
+                    background: active ? "var(--grad-blue)" : "transparent",
+                    color: active ? "#fff" : "var(--muted)",
+                    fontWeight: 700, fontSize: 14.5,
+                    textDecoration: "none",
+                    flexDirection: lang === "ar" ? "row-reverse" : "row",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>{label}</span>
+                  <span
+                    className={`icon-tile icon-tile-sm ${active ? "is-active" : ""}`}
+                    style={active ? { background: "rgba(255,255,255,0.18)", color: "#fff", borderColor: "transparent", boxShadow: "none" } : undefined}
+                  >
+                    <Icon size={16} />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div style={{ padding: 12, borderTop: "1px solid var(--border)" }}>
