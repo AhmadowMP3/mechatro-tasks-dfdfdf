@@ -9,7 +9,7 @@ import { Avatar } from "@/components/Avatar";
 import { RoleBadge } from "@/components/Pills";
 import { toLocalDigits, formatMinutes, formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { ModalShell, Field, inp } from "@/routes/_authenticated/projects";
+import { ModalShell, Field, inp } from "@/routes/_authenticated/projects.index";
 import {
   FilterDrawer, FilterSection, ChipMultiSelect, FilterSelect,
   ActiveFilterChips, SearchField, FilterBarCluster,
