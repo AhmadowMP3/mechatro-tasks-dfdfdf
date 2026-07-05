@@ -88,6 +88,7 @@ function ProjectDetail() {
                     }
                     toast.success(t("saved"));
                     refetch();
+                    queryClient.invalidateQueries({ queryKey: ["projects", "list"] });
                   }}
                   style={{
                     padding: "6px 10px", minHeight: 36, background: "var(--surface-2)",
