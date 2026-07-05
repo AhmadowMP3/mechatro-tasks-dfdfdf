@@ -14,7 +14,9 @@ import {
   type FxRate,
 } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
-import { Printer, Download, FileBarChart2 } from "lucide-react";
+import { Printer, Download, FileBarChart2, FileSpreadsheet } from "lucide-react";
+import { exportFinanceWorkbook, type FinanceSheetSpec } from "@/lib/finance-xlsx";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/finance/reports")({
   component: FinanceReports,
