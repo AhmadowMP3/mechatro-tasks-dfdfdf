@@ -68,8 +68,40 @@ function ProjectDetail() {
         <div style={{ padding: 24 }}>
           <h1 style={{ margin: 0, fontSize: 26 }}>{lang === "ar" ? p.name_ar : p.name_en}</h1>
           {p.description && <p style={{ color: "var(--muted)", marginTop: 8 }}>{p.description}</p>}
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 14, fontSize: 13 }}>
-            <span>{t("status")}: <b>{t(p.status as never)}</b></span>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 14, fontSize: 13, alignItems: "center" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              {t("status")}:{" "}
+              {isAdmin ? (
+                <select
+                  value={p.status}
+                  onChange={async (e) => {
+                    const next = e.target.value as "active" | "on_hold" | "done" | "archived";
+                    const patch: { status: typeof next; archived?: boolean } = { status: next };
+                    if (next === "archived") patch.archived = true;
+                    else if (p.archived) patch.archived = false;
+                    const { error } = await supabase.from("projects").update(patch).eq("id", p.id);
+                    if (error) {
+                      const { explainSupabaseError } = await import("@/lib/permission-errors");
+                      toast.error(explainSupabaseError(error, { action: "update", entity: "project", user, lang }), { duration: 8000 });
+                      return;
+                    }
+                    toast.success(t("saved"));
+                    refetch();
+                  }}
+                  style={{
+                    padding: "6px 10px", minHeight: 36, background: "var(--surface-2)",
+                    border: "1px solid var(--border)", borderRadius: 999, color: "var(--foreground)",
+                    fontSize: 13, fontWeight: 700, fontFamily: "inherit", outline: "none", cursor: "pointer",
+                  }}
+                >
+                  {(["active", "on_hold", "done", "archived"] as const).map((s) => (
+                    <option key={s} value={s}>{t(s as never)}</option>
+                  ))}
+                </select>
+              ) : (
+                <b>{t(p.status as never)}</b>
+              )}
+            </span>
             <span>{t("dueDate")}: <b>{formatDate(p.due_date, lang)}</b></span>
             <span>{t("progress")}: <b>{toLocalDigits(progress, lang)}%</b> ({toLocalDigits(done, lang)}/{toLocalDigits(total, lang)})</span>
           </div>

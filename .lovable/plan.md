@@ -1,26 +1,21 @@
-# Set project status to "archived" when archived
+# Change project status from the detail page
 
-## Problem
+## Change
 
-Archiving a project sets `archived = true` but leaves `status` unchanged (usually "active"). The user wants the displayed status to reflect that the project is archived.
+Replace the static status label on `src/routes/_authenticated/projects.$id.tsx` (line 72) with an inline `<select>` for admins. Members keep the read-only label.
 
-## Fix
-
-**`src/routes/_authenticated/projects.index.tsx` — `toggleArchive`:**
-- When archiving: update `{ archived: true, status: "archived" }`.
-- When unarchiving: update `{ archived: false, status: "active" }` (restore to default active state).
-
-**`src/i18n/dict.ts`:** add translation key
-- `archived: { ar: "مؤرشف", en: "Archived" }`
-
-No schema change — `status` is a free text column and already accepts arbitrary values. The status filter list (`PROJECT_STATUSES = ["active", "on_hold", "done"]`) stays as-is since archived projects are filtered out by the `archived` tab; users toggling to "Archived only" already see them regardless of status value.
+- Options: `active`, `on_hold`, `done`, `archived` — labels via `t(...)`.
+- Selecting `archived` sets `{ status: "archived", archived: true }`.
+- Selecting any other value on a currently archived project sets `{ status, archived: false }` (unarchive).
+- Otherwise just update `status`.
+- On success: toast + `refetch()`. On error: `explainSupabaseError` toast (same pattern as delete).
+- Styled to match the surrounding meta row (small pill-shaped select using `var(--surface-2)` / `var(--border)`).
 
 ## Out of scope
 
-- Project detail page status editor stays the same (admins can still manually change status on an archived project if they want).
-- No migration; no changes to tasks, filters, or reports.
+No changes to the projects list, filters, or export. No new fields (due_date / description editing stays out of this turn). No RLS changes — existing admin-manage policies already allow the update.
 
 ## Verification
 
-- Archive a project from the list → status label shows "مؤرشف / Archived".
-- Unarchive it → status returns to "نشط / Active".
+- As admin: open a project → change status via the dropdown → label updates, list page reflects new status, and toggling to/from "archived" also flips the archive tab correctly.
+- As member: same row renders as plain text (no dropdown).
