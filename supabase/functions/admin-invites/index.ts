@@ -15,6 +15,18 @@ function json(status: number, body: unknown) {
   });
 }
 
+function errMsg(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object") {
+    const o = e as Record<string, unknown>;
+    const parts = [o.message, o.details, o.hint, o.code].filter(Boolean);
+    if (parts.length) return parts.join(" — ");
+    try { return JSON.stringify(o); } catch { /* ignore */ }
+  }
+  return String(e);
+}
+
+
 function b64url(bytes: Uint8Array): string {
   let s = btoa(String.fromCharCode(...bytes));
   return s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -113,8 +125,7 @@ Deno.serve(async (req) => {
         return json(400, { error: `unknown action: ${action}` });
     }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("admin-invites error", msg);
-    return json(500, { error: msg });
+    console.error("admin-invites error", e);
+    return json(500, { error: errMsg(e) });
   }
 });

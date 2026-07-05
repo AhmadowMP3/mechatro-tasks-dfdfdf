@@ -1,77 +1,43 @@
-## Goal
-Every 10 days the system asks a master admin to approve a backup. Nothing is written to storage until an admin clicks **Approve**. Manual "Backup now" keeps working.
+## Problem
 
-## Findings from current setup
+The red "Edge Function returned a non-2xx status code" toast on `/access-control` comes from `admin-users`. The function's server log for that failure reads:
 
-**Edge function** `supabase/functions/backup-snapshot/index.ts`
-- Master-admin JWT OR `x-backup-cron-secret` header required.
-- Snapshots only 8 tables: `profiles, projects, tasks, task_files, task_comments, work_sessions, activity_log, notifications`.
-- Missing from snapshot: `invites, league_seasons, season_scores, member_reports, references, share_links, user_badges, app_config`.
-- Retains last 12 files in the `backups` bucket.
-- Restore truncates + reinserts in FK-safe order.
-
-**Cron job** (`cron.job`, id 1, `mechatro-backup-10d`, `0 3 */10 * *`)
-- Posts to the edge function with NO `Authorization` header and NO `x-backup-cron-secret` header → every scheduled run currently 401s and no backup is saved. Confirmed silent failure.
-
-**UI** `src/routes/_authenticated/settings.tsx` `BackupsSection`
-- Lists files in `backups` bucket, Backup now, Download, Restore (typed "RESTORE" confirm). No approval flow.
-
-## Design — approval-gated scheduled backup
-
-### 1. New table `public.backup_requests` (migration)
-Columns: `id uuid pk`, `status` enum `pending|approved|rejected|completed|failed|expired` default `pending`, `requested_at`, `requested_by uuid null` (null = system/cron), `decided_by uuid null`, `decided_at timestamptz null`, `result_file text null`, `error text null`, `created_at`, `updated_at`.
-
-GRANT SELECT/UPDATE to `authenticated`, ALL to `service_role`. Enable RLS.
-Policies (master admins only, via existing `private.is_admin`/`is_master_admin` check pattern):
-- SELECT: master admin can read all rows.
-- UPDATE: master admin only (used by Approve/Reject to change status → approved/rejected).
-- INSERT/DELETE: none from client — inserts come from cron (service role) and manual admin action goes through the edge function.
-`updated_at` trigger with `public.set_updated_at`.
-
-### 2. Cron rewrite (via `supabase--insert`, not migration)
-Unschedule `mechatro-backup-10d`. Reschedule to run every 10 days at 03:00 UTC:
-```sql
-INSERT INTO public.backup_requests (status) VALUES ('pending');
-INSERT INTO public.notifications (user_id, type, title_ar, title_en, body)
-SELECT id, 'backup_request',
-       'طلب نسخة احتياطية بانتظار موافقتك',
-       'Backup request awaiting your approval',
-       'Scheduled every 10 days'
-  FROM public.profiles WHERE is_master_admin = true;
 ```
-No `pg_net`, no edge function call from cron — approval flow does the actual snapshot.
+admin-users error [object Object]
+```
 
-Also auto-expire: before inserting a new pending, `UPDATE backup_requests SET status='expired' WHERE status='pending' AND requested_at < now() - interval '15 days'`.
+Root cause: in `supabase/functions/admin-users/index.ts` the catch block does
 
-### 3. Edge function updates (`backup-snapshot/index.ts`)
-- Extend `TABLES` to include `app_config, invites, league_seasons, season_scores, member_reports, references, share_links, user_badges` (FK-safe order: keep `profiles` first for insert, reverse for delete).
-- New request body variants:
-  - `{ approve_request_id }` — verify caller is master admin, load the row, must be `pending`; run snapshot; on success set row to `completed` + `result_file`; on error set to `failed` + `error`.
-  - `{ reject_request_id }` — verify master admin; set status to `rejected` + `decided_by/at`.
-- Existing `{ manual: true }` and `{ restore, file }` paths unchanged.
-- Remove cron-secret path — cron no longer calls this function directly (kept simpler and closes an unused auth surface).
+```ts
+const msg = e instanceof Error ? e.message : String(e);
+```
 
-### 4. UI changes — `src/routes/_authenticated/settings.tsx` `BackupsSection`
-Add a "Pending backup requests" card above the existing file list (only shown to master admin):
-- Query `backup_requests` where `status='pending'` ordered by `requested_at desc`.
-- Each row shows requested_at, source (system/manual by X), and two buttons: **Approve & run** (calls edge fn with `approve_request_id`) and **Reject** (calls edge fn with `reject_request_id`).
-- After approve completes, toast success and refetch both queries.
-- Non-master admins keep the current file-listing view but hide the pending-requests card.
+When a DB call fails, `throw error` throws a Supabase `PostgrestError` — a plain object, not an `Error`. `String(e)` → `"[object Object]"`. The 500 body is `{ error: "[object Object]" }`, and the client falls back to Supabase's generic "non-2xx" message, so we never see the real reason.
 
-Also update the "Backup now" button: instead of immediately snapshotting, it can either (a) run immediately as today (master-admin manual override), or (b) create a pending request. Default keeps today's immediate behavior since the user only asked for the *scheduled* one to require approval.
+I verified the `list` action returns 200 with the full user list, so the page load itself works — the toast fires from a subsequent action (approve / set_role / suspend / delete). We need the actual message to diagnose it.
 
-### 5. i18n additions in `src/i18n/dict.ts`
-`pendingBackupRequests`, `approveAndRun`, `reject`, `backupRequestedAt`, `bySystem`, `bySelf`, `noPendingBackups`, `backupApproved`, `backupRejected` (ar + en).
+## Fix
 
-## Verification
-- `cron.job` shows the new schedule with the SQL-only body (no HTTP call).
-- Manually insert a pending row → master admin sees it in Settings, notification arrives.
-- Click Approve → row transitions to `completed`, new file appears in bucket, tables now include the full 16-table set.
-- Click Reject → row transitions to `rejected`.
-- Non-master-admin cannot see pending card and cannot mutate requests (RLS + edge function checks).
+1. `supabase/functions/admin-users/index.ts`
+   - Replace the catch block with a serializer that extracts `message` / `code` / `details` / `hint` from Supabase errors, falls back to `JSON.stringify`, and never returns `"[object Object]"`:
+     ```ts
+     function errMsg(e: unknown) {
+       if (e instanceof Error) return e.message;
+       if (e && typeof e === "object") {
+         const o = e as Record<string, unknown>;
+         const parts = [o.message, o.details, o.hint, o.code].filter(Boolean);
+         return parts.length ? parts.join(" — ") : JSON.stringify(o);
+       }
+       return String(e);
+     }
+     ```
+   - Log the raw error too (`console.error("admin-users error", e)`) so Deno prints the object shape, not `[object Object]`.
+   - Apply the same treatment in `admin-invites/index.ts` and `backup-snapshot/index.ts` so identical failures are readable there.
+
+2. `src/routes/_authenticated/access-control.tsx`
+   - In the `call()` helper, when `error.context` is present (Supabase FunctionsHttpError attaches the Response), attempt to read the JSON body and surface `payload.error` instead of the generic "non-2xx" string. Falls back to the current behavior otherwise.
 
 ## Out of scope
-- Email notifications (in-app notification only).
-- Restoring individual tables.
-- Backup encryption / off-site storage.
-- Retention policy change (still keep 12 most recent files).
+
+- Not changing any admin action logic, RLS, or approve/suspend/delete flow — only error surfacing.
+- Once the real message is visible, the actual failing action can be fixed in a follow-up.

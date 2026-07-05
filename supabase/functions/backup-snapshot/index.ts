@@ -21,6 +21,18 @@ function json(status: number, body: unknown) {
   });
 }
 
+function errMsg(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object") {
+    const o = e as Record<string, unknown>;
+    const parts = [o.message, o.details, o.hint, o.code].filter(Boolean);
+    if (parts.length) return parts.join(" — ");
+    try { return JSON.stringify(o); } catch { /* ignore */ }
+  }
+  return String(e);
+}
+
+
 // FK-safe insert order (parents first). Delete goes in reverse.
 const TABLES = [
   "app_config",
@@ -127,7 +139,8 @@ Deno.serve(async (req) => {
         const res = await runSnapshot(body.approve_request_id);
         return json(200, res);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
+        const msg = errMsg(e);
+        console.error("backup-snapshot approve error", e);
         await sb.from("backup_requests").update({
           status: "failed",
           decided_by: me.id,
@@ -160,7 +173,7 @@ Deno.serve(async (req) => {
     const res = await runSnapshot(null);
     return json(200, res);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return json(500, { error: msg });
+    console.error("backup-snapshot error", e);
+    return json(500, { error: errMsg(e) });
   }
 });

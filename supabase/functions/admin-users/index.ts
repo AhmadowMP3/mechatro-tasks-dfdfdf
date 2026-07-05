@@ -16,6 +16,18 @@ function json(status: number, body: unknown) {
   });
 }
 
+function errMsg(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object") {
+    const o = e as Record<string, unknown>;
+    const parts = [o.message, o.details, o.hint, o.code].filter(Boolean);
+    if (parts.length) return parts.join(" — ");
+    try { return JSON.stringify(o); } catch { /* ignore */ }
+  }
+  return String(e);
+}
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return json(405, { error: "method not allowed" });
@@ -143,8 +155,7 @@ Deno.serve(async (req) => {
         return json(400, { error: `unknown action: ${action}` });
     }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("admin-users error", msg);
-    return json(500, { error: msg });
+    console.error("admin-users error", e);
+    return json(500, { error: errMsg(e) });
   }
 });
