@@ -781,7 +781,7 @@ export const dict = {
   arAging: { ar: "أعمار الذمم المدينة", en: "A/R Aging" },
   projectProfitability: { ar: "ربحية المشاريع", en: "Project Profitability" },
   clientBalances: { ar: "أرصدة العملاء", en: "Client Balances" },
-  dateRange: { ar: "الفترة", en: "Date range" },
+  
   rangeFrom: { ar: "من", en: "From" },
   rangeTo: { ar: "إلى", en: "To" },
   rangeThisMonth: { ar: "هذا الشهر", en: "This month" },
