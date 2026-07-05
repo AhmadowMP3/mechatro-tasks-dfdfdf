@@ -319,19 +319,19 @@ function chartsSection(data: ReportData, s: Stats, lang: Lang): string {
 
   return `<div>${sectionHeader(t("sec_charts", lang), C.orange)}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:16px">
+      <div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:16px">
         <div style="font-size:12px;color:${C.muted};text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${esc(t("statusDistribution", lang))}</div>
         <div style="display:flex;gap:16px;align-items:center">${donutSVG(donutData)}<div style="display:flex;flex-direction:column;gap:8px">${legend}</div></div>
       </div>
-      <div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:16px">
+      <div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:16px">
         <div style="font-size:12px;color:${C.muted};text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${esc(t("priorityBreakdown", lang))}</div>
         ${barsSVG(prioData)}
       </div>
-      ${projEntries.length ? `<div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:16px">
+      ${projEntries.length ? `<div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:16px">
         <div style="font-size:12px;color:${C.muted};text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${esc(t("tasksPerProject", lang))}</div>
         ${barsSVG(projEntries)}
       </div>` : ""}
-      <div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:16px;grid-column:${projEntries.length ? "auto" : "1 / span 2"}">
+      <div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:16px;grid-column:${projEntries.length ? "auto" : "1 / span 2"}">
         <div style="font-size:12px;color:${C.muted};text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${esc(t("weeklyCompletion", lang))}</div>
         ${sparklineSVG(s.weeks, projEntries.length ? 340 : 700, 140)}
       </div>
@@ -368,7 +368,7 @@ function projectsSection(data: ReportData, s: Stats, lang: Lang): string {
 }
 
 function tableWrap(inner: string): string {
-  return `<table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid ${C.line};border-radius:12px;overflow:hidden;font-size:12.5px">
+  return `<table style="width:100%;border-collapse:collapse;background:${C.card};border:1px solid ${C.line};border-radius:12px;overflow:hidden;font-size:12.5px">
     <style>th{background:${C.soft};color:${C.muted};padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;border-bottom:1px solid ${C.line}}td{border-bottom:1px solid ${C.line}}tr:last-child td{border-bottom:none}</style>
     ${inner}
   </table>`;
@@ -428,7 +428,7 @@ function commentsFilesSection(data: ReportData, lang: Lang): string {
   if (!data.comments.length && !data.files.length) return "";
   return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div>${sectionHeader(t("sec_comments", lang), C.blue)}
-      <div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:6px 14px;font-size:12.5px">
+      <div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:6px 14px;font-size:12.5px">
         ${data.comments.slice(0, 10).map((c) => `<div style="padding:10px 0;border-bottom:1px solid ${C.line}">
           <div style="color:${C.ink}">${esc(c.body.slice(0, 140))}${c.body.length > 140 ? "…" : ""}</div>
           <div style="color:${C.muted};font-size:11px;margin-top:3px">${esc(fmtDT(c.created_at, lang))}</div>
@@ -436,7 +436,7 @@ function commentsFilesSection(data: ReportData, lang: Lang): string {
       </div>
     </div>
     <div>${sectionHeader(t("sec_files", lang), C.green)}
-      <div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:6px 14px;font-size:12.5px">
+      <div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:6px 14px;font-size:12.5px">
         ${data.files.slice(0, 10).map((f) => `<div style="padding:10px 0;border-bottom:1px solid ${C.line}">
           <div style="color:${C.ink};font-weight:700">📎 ${esc(f.file_name)}</div>
           <div style="color:${C.muted};font-size:11px;margin-top:3px">${esc(f.file_type ?? "file")} · ${esc(fmtDT(f.created_at, lang))}</div>
