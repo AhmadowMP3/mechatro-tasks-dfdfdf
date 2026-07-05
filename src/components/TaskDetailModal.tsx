@@ -253,10 +253,12 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBottom: 16 }}>
           <Field label={t("assignee")}>
             {canEditAll ? (
-              <select value={merged.assignee_id ?? ""} onChange={(e) => setField("assignee_id", e.target.value || null)} style={selectStyle}>
-                <option value="">—</option>
-                {users.filter((u) => u.active).map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-              </select>
+              <ThemedSelect
+                value={merged.assignee_id ?? ""}
+                onChange={(v) => setField("assignee_id", v || null)}
+                placeholder="—"
+                options={users.filter((u) => u.active).map((u) => ({ value: u.id, label: u.full_name }))}
+              />
             ) : assignee ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Avatar id={assignee.id} name={assignee.full_name} size={28} /><span>{assignee.full_name}</span></div>
             ) : "—"}
@@ -264,9 +266,11 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
 
           <Field label={t("priority")}>
             {canEdit ? (
-              <select value={merged.priority} onChange={(e) => setField("priority", e.target.value)} style={selectStyle}>
-                {PRIORITY_LIST.map((p) => <option key={p} value={p}>{t(p)}</option>)}
-              </select>
+              <ThemedSelect
+                value={merged.priority}
+                onChange={(v) => setField("priority", v)}
+                options={PRIORITY_LIST.map((p) => ({ value: p, label: t(p) }))}
+              />
             ) : <PriorityPill priority={merged.priority} />}
           </Field>
 
