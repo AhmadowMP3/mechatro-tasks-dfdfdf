@@ -339,6 +339,13 @@ function ProjectsPage() {
       )}
 
       {modal && <NewProjectModal onClose={() => setModal(false)} onCreated={() => { setModal(false); refetch(); }} />}
+      {deleteTarget && (
+        <DeleteProjectModal
+          project={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={() => { setDeleteTarget(null); refetch(); }}
+        />
+      )}
     </div>
   );
 }
