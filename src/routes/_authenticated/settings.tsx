@@ -167,6 +167,17 @@ function BackupsSection() {
     window.open(data.signedUrl, "_blank");
   };
 
+  const deleteBackup = async (b: Backup) => {
+    if (!confirm(t("confirmDeleteBackup"))) return;
+    setActingId(b.name);
+    const { error } = await supabase.functions.invoke("backup-snapshot", { body: { delete: true, file: b.name } });
+    setActingId(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("backupDeleted"));
+    refetch();
+  };
+
+
   const requestBackup = async () => {
     if (!user?.id) return;
     setRunning(true);
