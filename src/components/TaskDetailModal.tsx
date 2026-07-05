@@ -299,9 +299,11 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
 
           <Field label={t("status")}>
             {canEdit ? (
-              <select value={merged.status} onChange={(e) => setField("status", e.target.value)} style={selectStyle}>
-                {(canEditAll ? STATUS_LIST : MEMBER_STATUS_LIST).map((s) => <option key={s} value={s}>{t(s)}</option>)}
-              </select>
+              <ThemedSelect
+                value={merged.status}
+                onChange={(v) => setField("status", v)}
+                options={(canEditAll ? STATUS_LIST : MEMBER_STATUS_LIST).map((s) => ({ value: s, label: t(s) }))}
+              />
             ) : <StatusPill status={merged.status} />}
             {readOnlyForMember && merged.status !== "in_review" && merged.status !== "done" && (
               <button
