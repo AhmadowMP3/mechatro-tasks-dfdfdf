@@ -279,20 +279,26 @@ function MemberModal({ member, onClose, onSaved }: { member?: Profile; onClose: 
   const [form, setForm] = useState({
     full_name: member?.full_name ?? "", role: member?.role ?? "member",
     job_title: member?.job_title ?? "", phone: member?.phone ?? "",
+    email: member?.email ?? "",
     active: member?.active ?? true,
   });
   const save = async () => {
     if (!form.full_name) { toast.error(t("fullName")); return; }
+    const trimmedEmail = form.email.trim();
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      toast.error(t("email")); return;
+    }
     if (member) {
       const { error } = await supabase.from("profiles").update({
         full_name: form.full_name, role: form.role as never, job_title: form.job_title || null,
-        phone: form.phone || null, active: form.active,
+        phone: form.phone || null, email: trimmedEmail || null, active: form.active,
       }).eq("id", member.id);
       if (error) { toast.error(error.message); return; }
     } else {
       const { error } = await supabase.from("profiles").insert({
         full_name: form.full_name, role: form.role as never,
         job_title: form.job_title || null, phone: form.phone || null,
+        email: trimmedEmail || null,
         active: form.active, language_pref: "ar", theme_pref: "dark",
       });
       if (error) { toast.error(error.message); return; }
@@ -305,6 +311,7 @@ function MemberModal({ member, onClose, onSaved }: { member?: Profile; onClose: 
       <Field label={t("fullName")}><input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} style={inp} /></Field>
       <Field label={t("jobTitle")}><input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} style={inp} /></Field>
       <Field label={t("phone")}><input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} style={inp} /></Field>
+      <Field label={t("email")}><input type="email" dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} style={inp} /></Field>
       <Field label={t("role")}>
         <ThemedSelect
           value={form.role}
