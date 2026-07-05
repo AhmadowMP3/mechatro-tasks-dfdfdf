@@ -228,7 +228,31 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         />
       )}
 
-      <nav style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
+      <nav
+        aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"}
+        style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}
+        onKeyDown={(e) => {
+          const key = e.key;
+          if (key !== "ArrowDown" && key !== "ArrowUp" && key !== "Home" && key !== "End") return;
+          const target = e.target as HTMLElement;
+          if (!target.matches("[data-sidebar-nav]")) return;
+          const nav = e.currentTarget;
+          const nodes = Array.from(
+            nav.querySelectorAll<HTMLElement>("[data-sidebar-nav]"),
+          ).filter((el) => !el.closest("[hidden]"));
+          if (nodes.length === 0) return;
+          const idx = nodes.indexOf(target);
+          let next = idx;
+          if (key === "ArrowDown") next = Math.min(nodes.length - 1, idx + 1);
+          else if (key === "ArrowUp") next = Math.max(0, idx - 1);
+          else if (key === "Home") next = 0;
+          else if (key === "End") next = nodes.length - 1;
+          if (next !== idx) {
+            e.preventDefault();
+            nodes[next]?.focus();
+          }
+        }}
+      >
         {sections.map((section, sIdx) => {
           const SectionIcon = section.icon;
           const hasActive = section.items.some(({ to }) =>
@@ -236,13 +260,16 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           );
           const isCollapsed = !!collapsed[section.titleKey] && !hasActive;
           const sectionLabel = t(section.titleKey);
+          const panelId = `sidebar-section-${section.titleKey}`;
           return (
             <div key={section.titleKey} style={{ marginBottom: 10 }}>
               <button
                 type="button"
+                data-sidebar-nav
                 onClick={() => toggleSection(section.titleKey)}
                 aria-expanded={!isCollapsed}
-                aria-label={`${sectionLabel} — ${isCollapsed ? (lang === "ar" ? "إظهار" : "expand") : (lang === "ar" ? "إخفاء" : "collapse")}`}
+                aria-controls={panelId}
+                aria-label={sectionLabel}
                 style={{
                   width: "100%",
                   display: "flex", alignItems: "center", gap: 8,
@@ -297,48 +324,58 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                 />
               </button>
 
-              {!isCollapsed && section.items.map((item) => {
-                const { to, icon: Icon } = item;
-                const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
-                const label = "label" in item && item.label
-                  ? item.label[lang]
-                  : t(item.key as DictKey);
-                return (
-                  <Link
-                    key={to}
-                    to={to}
-                    onClick={onClose}
-                    className={`side-item ${active ? "is-active" : ""}`}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 12,
-                      padding: "10px 12px", marginBottom: 4,
-                      borderRadius: 12,
-                      minHeight: 48,
-                      background: active ? "var(--grad-blue)" : "transparent",
-                      color: active ? "#fff" : "var(--muted)",
-                      fontWeight: 700, fontSize: 14.5,
-                      textDecoration: "none",
-                      flexDirection: lang === "ar" ? "row-reverse" : "row",
-                      justifyContent: "flex-end",
-                      boxShadow: active ? "0 6px 20px rgba(29,155,240,.35)" : "none",
-                      border: active ? "1px solid rgba(255,255,255,.08)" : "1px solid transparent",
-                      transition: "background .15s ease, color .15s ease",
-                    }}
-                  >
-                    <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>{label}</span>
-                    <span
-                      className={`icon-tile icon-tile-sm ${active ? "is-active" : ""}`}
-                      style={active ? { background: "rgba(255,255,255,0.18)", color: "#fff", borderColor: "transparent", boxShadow: "none" } : undefined}
+              <div
+                id={panelId}
+                role="group"
+                aria-label={sectionLabel}
+                hidden={isCollapsed}
+              >
+                {section.items.map((item) => {
+                  const { to, icon: Icon } = item;
+                  const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
+                  const label = "label" in item && item.label
+                    ? item.label[lang]
+                    : t(item.key as DictKey);
+                  return (
+                    <Link
+                      key={to}
+                      to={to}
+                      onClick={onClose}
+                      data-sidebar-nav
+                      aria-current={active ? "page" : undefined}
+                      className={`side-item ${active ? "is-active" : ""}`}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 12,
+                        padding: "10px 12px", marginBottom: 4,
+                        borderRadius: 12,
+                        minHeight: 48,
+                        background: active ? "var(--grad-blue)" : "transparent",
+                        color: active ? "#fff" : "var(--muted)",
+                        fontWeight: 700, fontSize: 14.5,
+                        textDecoration: "none",
+                        flexDirection: lang === "ar" ? "row-reverse" : "row",
+                        justifyContent: "flex-end",
+                        boxShadow: active ? "0 6px 20px rgba(29,155,240,.35)" : "none",
+                        border: active ? "1px solid rgba(255,255,255,.08)" : "1px solid transparent",
+                        transition: "background .15s ease, color .15s ease",
+                      }}
                     >
-                      <Icon size={16} />
-                    </span>
-                  </Link>
-                );
-              })}
+                      <span style={{ flex: 1, textAlign: lang === "ar" ? "right" : "left" }}>{label}</span>
+                      <span
+                        className={`icon-tile icon-tile-sm ${active ? "is-active" : ""}`}
+                        style={active ? { background: "rgba(255,255,255,0.18)", color: "#fff", borderColor: "transparent", boxShadow: "none" } : undefined}
+                      >
+                        <Icon size={16} />
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
       </nav>
+
 
       <div style={{ padding: 12, borderTop: "1px solid var(--border)" }}>
         {shareMode ? (
