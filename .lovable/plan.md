@@ -1,35 +1,25 @@
-## الهدف
+## منع حذف أحدث نسخة احتياطية
 
-إضافة إمكانية حذف النسخ الاحتياطية من صفحة الإعدادات (متاحة للمسؤول الرئيسي فقط).
+الهدف: ما نسمح للمستخدم يحذف آخر (أحدث) نسخة احتياطية موجودة في bucket `backups`، حتى ما نضل بدون أي نسخة للاسترجاع.
 
-## التغييرات
+### التغييرات
 
-### 1. `supabase/functions/backup-snapshot/index.ts`
+**1. `supabase/functions/backup-snapshot/index.ts` (فرع `delete`)**
+- قبل تنفيذ `remove()`, نجيب قائمة الملفات من `sb.storage.from("backups").list()`.
+- نرتّبها تنازلياً حسب `created_at` (أو الاسم لأنه يحتوي timestamp) ونحدّد اسم الأحدث.
+- إذا `body.file === latest.name` → نرجّع `400` مع `{ error: "cannot_delete_latest" }`.
+- غير هيك، نكمل الحذف عادي.
 
-إضافة فرع جديد للحذف:
-```
-{ delete: true, file: "backup-....json" }
-```
-- التحقق أن المستخدم `is_master_admin` (موجود مسبقاً في بداية الدالة).
-- استدعاء `sb.storage.from("backups").remove([body.file])`.
-- إرجاع `{ ok: true, deleted: filename }`.
+**2. `src/routes/_authenticated/settings.tsx`**
+- في `BackupsSection`: نحسب `latestName` = أول عنصر بعد الترتيب النازل للنسخ.
+- زر الحذف يصير `disabled` للنسخة الأحدث مع `title` توضيحي.
+- في `deleteBackup`: نتعامل مع خطأ `cannot_delete_latest` ونعرض `toast` بالمفتاح الجديد.
 
-### 2. `src/routes/_authenticated/settings.tsx`
+**3. `src/i18n/dict.ts`**
+- مفاتيح جديدة:
+  - `cannotDeleteLatest`: "لا يمكن حذف أحدث نسخة احتياطية" / "Cannot delete the latest backup"
+  - `latestBackupTooltip`: "الأحدث — محمية من الحذف" / "Latest — protected"
 
-داخل `BackupsSection` (للمسؤول الرئيسي فقط):
-- إضافة `handleDelete(b)` يستدعي الـ edge function بـ body `{ delete: true, file: b.name }` بعد تأكيد بسيط.
-- إضافة زر **حذف** بجانب زري "تنزيل" و"استعادة" في كل من عرض الجوال والجدول، بأيقونة `Trash2` من `lucide-react` وألوان تحذير (نفس نمط الاستعادة لكن باللون الأحمر).
-- إظهار `confirm()` بسيط بنص الترجمة قبل التنفيذ.
-- استدعاء `refetch()` بعد النجاح.
-
-### 3. `src/i18n/dict.ts`
-
-مفاتيح ترجمة جديدة:
-- `delete` → "حذف" / "Delete" (إن لم يكن موجوداً؛ إن وُجد نُعيد استخدامه)
-- `confirmDeleteBackup` → "هل تريد حذف هذه النسخة الاحتياطية نهائياً؟" / "Delete this backup permanently?"
-- `backupDeleted` → "تم حذف النسخة" / "Backup deleted"
-
-## ملاحظات
-
-- الحذف يقتصر على المسؤول الرئيسي لأن الأزرار داخل الفرع المحمي بـ `isMasterAdmin` أصلاً، والـ edge function تتحقق مجدداً من الصلاحية.
-- لا حاجة لتغييرات في قاعدة البيانات أو سياسات Storage.
+### الحماية بطبقتين
+- الواجهة تعطّل الزر (تجربة مستخدم واضحة).
+- الـ edge function ترفض الطلب حتى لو انحايل عليها (أمان فعلي).
