@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
-import { BarChart3, FileText, Building2, TrendingDown, TrendingUp, Settings as SettingsIcon, Wallet, Repeat } from "lucide-react";
+import { BarChart3, FileText, Building2, TrendingDown, TrendingUp, Settings as SettingsIcon, Wallet, Repeat, FileBarChart2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/finance")({
   ssr: false,
@@ -27,6 +27,7 @@ const TABS = [
   { to: "/finance/income", label: { ar: "الدخل", en: "Income" }, icon: TrendingUp },
   { to: "/finance/payroll", label: { ar: "الرواتب", en: "Payroll" }, icon: Wallet },
   { to: "/finance/subscriptions", label: { ar: "الاشتراكات", en: "Subscriptions" }, icon: Repeat },
+  { to: "/finance/reports", label: { ar: "التقارير", en: "Reports" }, icon: FileBarChart2 },
   { to: "/finance/settings", label: { ar: "إعدادات", en: "Settings" }, icon: SettingsIcon },
 ];
 
