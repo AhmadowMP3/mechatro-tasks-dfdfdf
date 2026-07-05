@@ -63,9 +63,20 @@ function ProjectDetail() {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
         <h2 style={{ margin: 0, flex: 1, fontSize: 20 }}>{t("tasks")}</h2>
         {isAdmin && (
-          <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
-            <Plus size={18} /> {t("addTaskHere")}
-          </button>
+          <>
+            <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
+              <Plus size={18} /> {t("addTaskHere")}
+            </button>
+            <button
+              onClick={() => { setConfirmText(""); setDeleteOpen(true); }}
+              className="brand-btn"
+              aria-label={t("deleteProject")}
+              title={t("deleteProject")}
+              style={{ background: "var(--surface-2)", color: "#ff6b6b", border: "1px solid var(--border)" }}
+            >
+              <Trash2 size={16} /> {t("deleteProject")}
+            </button>
+          </>
         )}
       </div>
 
