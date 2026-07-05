@@ -102,6 +102,8 @@ export const dict = {
   delete: { ar: "حذف", en: "Delete" },
   shareWhatsapp: { ar: "مشاركة واتساب", en: "Share on WhatsApp" },
   shareTelegram: { ar: "مشاركة تلغرام", en: "Share on Telegram" },
+  shareViewLink: { ar: "عرض المهمة", en: "View task" },
+  linkCopied: { ar: "تم نسخ الرابط", en: "Link copied" },
   save: { ar: "حفظ", en: "Save" },
   saved: { ar: "تم الحفظ", en: "Saved" },
   cancel: { ar: "إلغاء", en: "Cancel" },

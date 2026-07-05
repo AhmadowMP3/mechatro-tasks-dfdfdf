@@ -64,6 +64,25 @@ function TasksPage() {
   const { t, lang, users, directory, isAdmin, user } = useApp();
   const [selected, setSelected] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+
+  // Deep-link: open task modal from ?task=<id>
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const tid = params.get("task");
+    if (tid) setSelected(tid);
+  }, []);
+  const closeTaskModal = () => {
+    setSelected(null);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("task")) {
+        params.delete("task");
+        const qs = params.toString();
+        window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+      }
+    }
+  };
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [view, setView] = useState<TaskView>(() => {
     if (typeof window === "undefined") return "cards";
@@ -439,7 +458,7 @@ function TasksPage() {
         );
       })()}
 
-      {selected && <TaskDetailModal taskId={selected} onClose={() => setSelected(null)} onChanged={refetch} />}
+      {selected && <TaskDetailModal taskId={selected} onClose={closeTaskModal} onChanged={refetch} />}
       {newOpen && <NewTaskModal onClose={() => setNewOpen(false)} onCreated={() => { setNewOpen(false); refetch(); }} />}
     </div>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
-import { X, Play, Pause, MessageSquare, Link as LinkIcon, Trash2, ExternalLink, Send, Save, Star } from "lucide-react";
+import { X, Play, Pause, MessageSquare, Link as LinkIcon, Trash2, ExternalLink, Send, Save, Star, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
 import { StatusPill, PriorityPill, OverduePill } from "@/components/Pills";
@@ -154,13 +154,29 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
 
   const deleteLink = async (id: string) => { await supabase.from("task_files").delete().eq("id", id); load(); };
 
-  const shareMessage = () => t("shareTemplate", {
-    title: task.title,
-    project: projectName || "—",
-    assignee: assignee?.full_name || "—",
-    due: task.due_date ? formatDate(task.due_date, lang) : "—",
-    status: t(task.status as never),
-  });
+  const taskUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/tasks?task=${task.id}`
+    : `/tasks?task=${task.id}`;
+
+  const shareMessage = () => {
+    const base = t("shareTemplate", {
+      title: task.title,
+      project: projectName || "—",
+      assignee: assignee?.full_name || "—",
+      due: task.due_date ? formatDate(task.due_date, lang) : "—",
+      status: t(task.status as never),
+    });
+    return `${base}\n\n${t("shareViewLink")}: ${taskUrl}`;
+  };
+
+  const copyTaskLink = async () => {
+    try {
+      await navigator.clipboard.writeText(taskUrl);
+      toast.success(t("linkCopied"));
+    } catch {
+      toast.error(t("copyLink"));
+    }
+  };
 
   const overdue = isOverdue(merged.due_date, merged.status);
 
@@ -353,10 +369,17 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
             className="brand-btn" style={{ background: "var(--grad-green)", color: "#fff", textDecoration: "none", flex: 1, minWidth: 200 }}
           ><Send size={18} /> {t("shareWhatsapp")}</a>
           <a
-            href={`https://t.me/share/url?url=${encodeURIComponent(location.href)}&text=${encodeURIComponent(shareMessage())}`}
+            href={`https://t.me/share/url?url=${encodeURIComponent(taskUrl)}&text=${encodeURIComponent(shareMessage())}`}
             target="_blank" rel="noopener noreferrer"
             className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", textDecoration: "none", flex: 1, minWidth: 200 }}
           ><Send size={18} /> {t("shareTelegram")}</a>
+          <button
+            onClick={copyTaskLink}
+            className="brand-btn"
+            aria-label={t("copyLink")}
+            title={t("copyLink")}
+            style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}
+          ><Copy size={16} /> {t("copyLink")}</button>
         </div>
 
         {/* Comments */}

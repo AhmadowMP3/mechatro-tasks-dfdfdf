@@ -1,43 +1,39 @@
 ## Goal
 
-Add a Delete button to each project on the Projects page (and project detail page) for admins. Deleting removes the project along with all its tasks, comments, files, and related activity. The existing Active / Archived tabs stay as they are.
+When sharing a task to WhatsApp or Telegram, append a deep link to the task so recipients can open it directly. Today the WhatsApp share sends text only, and Telegram uses `location.href` (which points to whatever page happens to be open, not the task).
 
 ## Changes
 
-### 1. Database — cascade delete migration
+### 1. Deep-link URL — `?task=<id>`
 
-Ensure FK constraints from child tables to `projects.id` are `ON DELETE CASCADE` so a single project delete wipes everything cleanly:
+Since tasks are viewed in a modal (no dedicated `/tasks/$id` route), use a query-param deep link:
 
-- `tasks.project_id` → cascade
-- `task_comments.task_id` (already cascades from tasks — verify)
-- `task_files.task_id` (verify cascade)
-- `work_sessions.task_id` (verify cascade)
-- `season_scores` / `league_seasons.project_id` (if scoped) → set null on delete
-- `activity_log` rows referencing the project/tasks: leave as-is (audit trail), no FK
+```
+${window.location.origin}/tasks?task=<task-id>
+```
 
-I'll drop and recreate the relevant FKs with `ON DELETE CASCADE` in one migration.
+### 2. Auto-open modal from `?task=<id>`
 
-### 2. RLS policy
+In `src/routes/_authenticated/tasks.tsx`: on mount / when the search param changes, if `task` is present, set the selected task id so `TaskDetailModal` opens automatically. When the modal closes, clear the query param (via `navigate({ search: {} })`) so the back button behaves correctly.
 
-Add/confirm a DELETE policy on `public.projects` allowing admins (`private.is_admin(auth.uid())` or `has_role(auth.uid(),'admin')`) to delete. Members cannot.
+Also apply the same auto-open behavior on `src/routes/_authenticated/projects.$id.tsx` for tasks that belong to that project (so a link opened while viewing a project also opens the modal).
 
-### 3. UI — Projects list (`src/routes/_authenticated/projects.tsx`)
+### 3. Update the share message + links — `src/components/TaskDetailModal.tsx`
 
-- Add a small Delete (trash icon) button next to the Archive/Unarchive button on each project card, admin-only.
-- Click → confirmation modal showing project name + task count + warning "This will permanently delete the project and all its tasks, comments, and files. This cannot be undone." with a typed-confirm (type project name) before enabling the Delete button.
-- On success: toast, refetch list.
+- Add a new i18n key `shareViewLink` (`View task:` / `عرض المهمة:`) and include the deep link at the end of the shared text.
+- Build `taskUrl = ${origin}/tasks?task=${task.id}`.
+- WhatsApp link: `https://wa.me/?text=<message + \n\n + taskUrl>` (WhatsApp shows the URL inline, becomes a preview).
+- Telegram link: `https://t.me/share/url?url=<taskUrl>&text=<message>` (Telegram uses the `url` param as the shared link and prepends `text` as caption).
+- Add a small "Copy link" button next to the two share buttons for convenience (icon + `navigator.clipboard.writeText(taskUrl)` + toast).
 
-### 4. UI — Project detail page (`src/routes/_authenticated/projects.$id.tsx`)
+### 4. i18n additions (`src/i18n/dict.ts`)
 
-- Add the same Delete action in the page header (admin-only), same confirmation modal.
-- After delete → navigate back to `/projects`.
-
-### 5. i18n
-
-Add strings: `deleteProject`, `deleteProjectConfirm`, `deleteProjectWarning`, `typeToConfirm`, `projectDeleted` in both `ar` and `en` in `src/i18n/dict.ts`.
+- `shareViewLink`: `{ ar: "عرض المهمة", en: "View task" }`
+- `copyLink`: `{ ar: "نسخ الرابط", en: "Copy link" }`
+- `linkCopied`: `{ ar: "تم نسخ الرابط", en: "Link copied" }`
 
 ## Out of scope
 
-- No changes to the Active/Archived tabs (already good per your answer).
-- No bulk delete on the projects page (can add later if needed).
-- No soft-delete / trash; deletion is permanent as requested.
+- No new dedicated `/tasks/$id` route (query param keeps existing modal UX intact).
+- No changes to sharing from `TaskCard` (still opens the modal first).
+- No changes to auth/RLS — recipients still need permission to see the task once they follow the link.
