@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
@@ -9,14 +9,20 @@ import { TaskCard } from "@/components/TaskCard";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { NewTaskModal } from "@/components/NewTaskModal";
 import { formatDate, toLocalDigits } from "@/lib/format";
+import { toast } from "sonner";
+import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({ component: ProjectDetail });
 
 function ProjectDetail() {
   const { id } = Route.useParams();
-  const { t, lang, users, isAdmin } = useApp();
+  const { t, lang, users, isAdmin, user } = useApp();
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const { data, refetch } = useQuery({
     queryKey: ["project", id],
