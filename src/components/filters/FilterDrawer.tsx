@@ -2,7 +2,7 @@
 // All 4 major pages share these primitives.
 
 import * as React from "react";
-import { Filter, RotateCcw, X, Check, ChevronDown, Download } from "lucide-react";
+import { Filter, RotateCcw, X, Check, Download } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger,
 } from "@/components/ui/sheet";
