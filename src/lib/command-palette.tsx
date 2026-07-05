@@ -76,7 +76,7 @@ export function CommandPalette() {
   const [loading, setLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const shareMode = isShareMode();
-  const allowed = shareMode ? allowedPaths() : null;
+  const allowed = shareMode ? shareAllowedPaths().map((a) => a.path) : null;
 
   // Open triggers.
   useEffect(() => {
