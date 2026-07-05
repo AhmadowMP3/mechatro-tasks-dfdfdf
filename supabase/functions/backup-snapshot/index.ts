@@ -6,6 +6,7 @@
 //   { manual: true }                     — master admin immediate snapshot
 //   { approve_request_id: "<uuid>" }     — master admin approves a pending request → snapshot
 //   { reject_request_id: "<uuid>" }      — master admin rejects a pending request
+//   { restore: true, file: "backup-...json" } — master admin restore
 //   { delete: true, file: "backup-...json" } — master admin delete a backup file
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
