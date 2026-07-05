@@ -403,6 +403,7 @@ function UserMenu({ user, lang, busy, onAction }: {
   const [open, setOpen] = useState(false);
   const [showReason, setShowReason] = useState(false);
   const [reason, setReason] = useState("");
+  const confirm = useConfirm();
   const l = lang === "ar";
   return (
     <div style={{ position: "relative" }}>
