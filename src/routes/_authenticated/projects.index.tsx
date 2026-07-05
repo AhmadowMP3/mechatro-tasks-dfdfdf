@@ -302,8 +302,9 @@ function ProjectsPage() {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px), 1fr))", gap: 16 }}>
           {filtered.map(({ p, progress, memberIds }) => (
-            <div key={p.id} className="brand-card" style={{ overflow: "hidden" }}>
+            <div key={p.id} className="brand-card" style={{ overflow: "hidden", position: "relative" }}>
               <div style={{ height: 6, background: PROJECT_COLORS[p.color] ?? PROJECT_COLORS.blue }} />
+              <StatusPill status={p.status} lang={lang} label={t(p.status as never)} />
               <div style={{ padding: 18 }}>
                 <Link to="/projects/$id" params={{ id: p.id }} style={{ color: "var(--foreground)", textDecoration: "none" }}>
                   <h3 style={{ fontSize: 17, margin: 0, marginBottom: 6 }}>{lang === "ar" ? p.name_ar : p.name_en}</h3>
@@ -367,6 +368,39 @@ function ProjectsPage() {
 }
 
 
+
+function StatusPill({ status, lang, label }: { status: string; lang: "ar" | "en"; label: string }) {
+  const styles: Record<string, { bg: string; color: string; border?: string }> = {
+    active:   { bg: "var(--grad-green)", color: "#fff" },
+    on_hold:  { bg: "linear-gradient(135deg,#c9a84c 0%,#e8c07a 100%)", color: "#1a1200" },
+    done:     { bg: "var(--grad-blue)", color: "#fff" },
+    archived: { bg: "var(--surface-3)", color: "var(--muted)", border: "1px solid var(--border)" },
+  };
+  const s = styles[status] ?? styles.archived;
+  return (
+    <span
+      style={{
+        position: "absolute",
+        top: 14,
+        insetInlineStart: 14,
+        padding: "3px 12px",
+        borderRadius: 999,
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: 0.2,
+        background: s.bg,
+        color: s.color,
+        border: s.border ?? "none",
+        boxShadow: "0 4px 12px -6px rgba(0,0,0,.5)",
+        whiteSpace: "nowrap",
+        zIndex: 2,
+      }}
+      dir={lang === "ar" ? "rtl" : "ltr"}
+    >
+      {label}
+    </span>
+  );
+}
 
 function MembersList({ ids }: { ids: string[] }) {
   const { users } = useApp();

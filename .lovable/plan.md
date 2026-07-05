@@ -1,33 +1,25 @@
 ## Goal
-Before any file export (xlsx or pdf), show a popup asking the user for the filename. The entered text becomes the file name (extension appended automatically).
+Show the project status as a colored pill badge on the top-right of each project card (grid view), matching the empty area circled in red on the uploaded reference.
 
-## New file
-**`src/components/FilenamePrompt.tsx`** — a reusable async prompt:
-- `promptFilename({ defaultName, extension, title? }): Promise<string | null>`
-- Renders a modal (using existing `ModalShell` styling) with a text input pre-filled with `defaultName`, a hint showing the final `.ext`, and two buttons: `t("cancel")` / `t("export")`.
-- Resolves with the sanitized filename (strip illegal chars `\ / : * ? " < > |`, trim, fallback to default if empty) plus extension, or `null` if cancelled.
-- Implemented via a mounted root portal + promise (imperative API so we don't refactor every call site into stateful modals).
+## Change (single file)
 
-## Wire into every export site
-For each call, wrap the export in `const name = await promptFilename(...); if (!name) return;` and pass `fileName: name` (xlsx) or use `name` as the download filename (pdf).
+**`src/routes/_authenticated/projects.index.tsx`** — grid card (around line 307):
+- Add a small status pill absolutely positioned at the top-inline-start (LTR: top-left; RTL: top-right — since UI is RTL, this lands on the top-left corner in the RTL layout, matching the circled area in the screenshot).
+- Pill content: `t(p.status)` (already localized: `active` / `on_hold` / `done` / `archived`).
+- Color mapping (semantic tokens, works in dark mode):
+  - `active` → green (`var(--success)` / green gradient)
+  - `on_hold` → amber/gold (`var(--brand-gold)`)
+  - `done` → blue (`var(--primary)` or `var(--grad-blue)`)
+  - `archived` → muted gray (`var(--surface-3)` bg, `var(--muted)` text)
+- Style: pill with padding `2px 10px`, `border-radius: 999px`, font-size 11, bold, uppercase-off, subtle border, `color:#fff` for colored states.
+- The card wrapper gets `position: relative` so the pill can absolute-position inside it under the colored top bar.
 
-1. **`src/routes/_authenticated/projects.index.tsx`** (line 158) — xlsx export.
-2. **`src/routes/_authenticated/team.tsx`** (line 119) — xlsx export.
-3. **`src/routes/_authenticated/tasks.tsx`** (line 260) — xlsx export.
-4. **`src/routes/_authenticated/activity.tsx`** (line 386) — xlsx export.
-5. **`src/routes/_authenticated/reports.tsx`** (line 198) — pdf download (`a.download = prepared.filename` → use prompted name).
-6. **`src/routes/_authenticated/reports-history.compare.tsx`** (line 86) — pdf comparison export.
-
-Default filenames keep today's existing patterns (e.g. `Mechatro_Projects_2026-07-05_1430`); the popup pre-fills that so a user can just hit Enter.
-
-## i18n
-Add keys to `src/i18n/dict.ts`: `filenamePromptTitle`, `filenameLabel`, `filenameHint` (ar + en).
+Also mirror the same pill in the table/list view (if present in this route) — will inspect and add there too during the edit for consistency.
 
 ## Out of scope
-- No change to xlsx/pdf content or column logic.
-- No change to who can export (permissions unchanged).
-- Status change / archive logic untouched.
+- No changes to the status dropdown on the detail page.
+- No changes to filters, export, or data model.
 
 ## Verification
-- Trigger each of the 6 export entry points; confirm popup appears, default name shown, cancel aborts (no download), confirm downloads file with the exact typed name + correct extension.
-- Illegal characters stripped; empty input falls back to default.
+- Grid view: each card shows a colored status badge in the top corner; colors distinct per status; readable in dark theme.
+- Switching a project's status on the detail page reflects the new color/label after list refetch.
