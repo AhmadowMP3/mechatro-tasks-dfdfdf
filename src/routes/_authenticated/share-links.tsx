@@ -133,12 +133,12 @@ function LinkCard({ link, onEdit, onChanged }: { link: ShareLinkRow; onEdit: () 
     catch { toast.error(ar ? "فشل النسخ" : "Copy failed"); }
   };
   const revoke = async () => {
-    if (!confirm(ar ? "تعطيل هذا الرابط؟" : "Revoke this link?")) return;
+    if (!(await confirm({ message: t("confirmRevokeLink"), danger: true }))) return;
     try { await shareApi.revoke(link.id); toast.success(ar ? "تم تعطيل الرابط" : "Link revoked"); onChanged(); }
     catch (e) { toast.error((e as Error).message); }
   };
   const remove = async () => {
-    if (!confirm(ar ? "حذف نهائي؟" : "Delete permanently?")) return;
+    if (!(await confirm({ message: t("confirmDeleteLink"), danger: true, confirmText: t("delete") }))) return;
     try { await shareApi.remove(link.id); toast.success(ar ? "تم الحذف" : "Deleted"); onChanged(); }
     catch (e) { toast.error((e as Error).message); }
   };
