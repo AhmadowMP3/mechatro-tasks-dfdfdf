@@ -639,7 +639,16 @@ function RefModal({ initial, onClose, onSaved, userId, t, lang, categories }: {
         </Field>
 
         <Field label={tt("category")}>
-          <CategoryCombobox value={category} onChange={setCategory} options={categories} placeholder={tt("categoryPlaceholder")} hint={tt("categoryHint")} createLabel={tt("createCategory")} />
+          <CategoryCombobox
+            value={category}
+            onChange={setCategory}
+            options={categories}
+            defaults={DEFAULT_CATEGORIES.map((c) => (lang === "ar" ? c.ar : c.en))}
+            placeholder={tt("categoryPlaceholder")}
+            hint={tt("categoryHint")}
+            createLabel={tt("createCategory")}
+            suggestedLabel={tt("suggestedCategories")}
+          />
         </Field>
 
 
