@@ -884,6 +884,7 @@ function CategoryCombobox({
               </button>
             );
           })}
+          </div>
         </div>
       )}
 
