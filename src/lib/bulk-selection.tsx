@@ -149,7 +149,7 @@ function BulkActionBar() {
 
   const runAction = async (a: BulkAction) => {
     if (a.disabled) return;
-    if (a.confirm && !(await confirm({ message: a.confirm, danger: a.danger }))) return;
+    if (a.confirm && !(await confirm({ message: a.confirm, danger: true }))) return;
     setRunning(a.id);
     try { await a.onRun(); } finally { setRunning(null); }
   };
