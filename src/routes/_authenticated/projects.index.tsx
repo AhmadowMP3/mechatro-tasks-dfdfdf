@@ -208,7 +208,7 @@ function ProjectsPage() {
                 key={String(val)}
                 role="tab"
                 aria-selected={active}
-                onClick={() => patch({ archived: val })}
+                onClick={() => patch({ archived: val, statuses: [] })}
                 style={{
                   minHeight: 36, padding: "6px 16px", borderRadius: 999, border: "none",
                   cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit",
@@ -240,7 +240,7 @@ function ProjectsPage() {
           <ChipMultiSelect
             value={f.statuses}
             onChange={(v) => patch({ statuses: v })}
-            options={PROJECT_STATUSES.map((s) => ({ value: s, label: t(s as DictKey) }))}
+            options={(f.archived ? (["archived"] as const) : PROJECT_STATUSES).map((s) => ({ value: s, label: t(s as DictKey) }))}
           />
         </FilterSection>
         <FilterSection label={t("progressBucket")}>
