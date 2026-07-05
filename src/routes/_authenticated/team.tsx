@@ -215,14 +215,19 @@ function TeamPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px), 1fr))", gap: 16 }}>
         {filtered.map(({ u, s }) => (
           <div key={u.id} className="brand-card" style={{ padding: 20, opacity: u.active ? 1 : 0.6 }}>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <Link
+              to="/team/$id"
+              params={{ id: u.id }}
+              style={{ display: "flex", gap: 12, alignItems: "center", textDecoration: "none", color: "inherit", cursor: "pointer" }}
+              title={t("memberProfile")}
+            >
               <Avatar id={u.id} name={u.full_name} size={52} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.full_name}</div>
                 <div style={{ fontSize: 12, color: "var(--muted)" }}>{u.job_title || "—"}</div>
               </div>
               {isAdmin && <RoleBadge role={u.role} />}
-            </div>
+            </Link>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 14, textAlign: "center" }}>
               <MiniStat label={t("openTasks")} value={toLocalDigits(s.open, lang)} />
               <MiniStat label={t("doneTasks")} value={toLocalDigits(s.done, lang)} />

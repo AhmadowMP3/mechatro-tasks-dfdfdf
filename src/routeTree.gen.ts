@@ -30,6 +30,7 @@ import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authen
 import { Route as ShareTokenIndexRouteImport } from './routes/share.$token.index'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as ShareTokenPageRouteImport } from './routes/share.$token.$page'
+import { Route as AuthenticatedTeamIdRouteImport } from './routes/_authenticated/team.$id'
 import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history.compare'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 
@@ -141,6 +142,11 @@ const ShareTokenPageRoute = ShareTokenPageRouteImport.update({
   path: '/$page',
   getParentRoute: () => ShareTokenRoute,
 } as any)
+const AuthenticatedTeamIdRoute = AuthenticatedTeamIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedTeamRoute,
+} as any)
 const AuthenticatedReportsHistoryCompareRoute =
   AuthenticatedReportsHistoryCompareRouteImport.update({
     id: '/compare',
@@ -169,10 +175,11 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
-  '/team': typeof AuthenticatedTeamRoute
+  '/team': typeof AuthenticatedTeamRouteWithChildren
   '/share/$token': typeof ShareTokenRouteWithChildren
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
+  '/team/$id': typeof AuthenticatedTeamIdRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/share/$token/': typeof ShareTokenIndexRoute
@@ -191,10 +198,11 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
-  '/team': typeof AuthenticatedTeamRoute
+  '/team': typeof AuthenticatedTeamRouteWithChildren
   '/': typeof AuthenticatedIndexRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
+  '/team/$id': typeof AuthenticatedTeamIdRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/share/$token': typeof ShareTokenIndexRoute
@@ -216,11 +224,12 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/share-links': typeof AuthenticatedShareLinksRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
-  '/_authenticated/team': typeof AuthenticatedTeamRoute
+  '/_authenticated/team': typeof AuthenticatedTeamRouteWithChildren
   '/share/$token': typeof ShareTokenRouteWithChildren
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
+  '/_authenticated/team/$id': typeof AuthenticatedTeamIdRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/share/$token/': typeof ShareTokenIndexRoute
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | '/share/$token'
     | '/projects/$id'
     | '/reports-history/compare'
+    | '/team/$id'
     | '/share/$token/$page'
     | '/projects/'
     | '/share/$token/'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/'
     | '/projects/$id'
     | '/reports-history/compare'
+    | '/team/$id'
     | '/share/$token/$page'
     | '/projects'
     | '/share/$token'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/projects/$id'
     | '/_authenticated/reports-history/compare'
+    | '/_authenticated/team/$id'
     | '/share/$token/$page'
     | '/_authenticated/projects/'
     | '/share/$token/'
@@ -456,6 +468,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShareTokenPageRouteImport
       parentRoute: typeof ShareTokenRoute
     }
+    '/_authenticated/team/$id': {
+      id: '/_authenticated/team/$id'
+      path: '/$id'
+      fullPath: '/team/$id'
+      preLoaderRoute: typeof AuthenticatedTeamIdRouteImport
+      parentRoute: typeof AuthenticatedTeamRoute
+    }
     '/_authenticated/reports-history/compare': {
       id: '/_authenticated/reports-history/compare'
       path: '/compare'
@@ -503,6 +522,17 @@ const AuthenticatedReportsHistoryRouteWithChildren =
     AuthenticatedReportsHistoryRouteChildren,
   )
 
+interface AuthenticatedTeamRouteChildren {
+  AuthenticatedTeamIdRoute: typeof AuthenticatedTeamIdRoute
+}
+
+const AuthenticatedTeamRouteChildren: AuthenticatedTeamRouteChildren = {
+  AuthenticatedTeamIdRoute: AuthenticatedTeamIdRoute,
+}
+
+const AuthenticatedTeamRouteWithChildren =
+  AuthenticatedTeamRoute._addFileChildren(AuthenticatedTeamRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessControlRoute: typeof AuthenticatedAccessControlRoute
   AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
@@ -515,7 +545,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedShareLinksRoute: typeof AuthenticatedShareLinksRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
-  AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
+  AuthenticatedTeamRoute: typeof AuthenticatedTeamRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
@@ -532,7 +562,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedShareLinksRoute: AuthenticatedShareLinksRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
-  AuthenticatedTeamRoute: AuthenticatedTeamRoute,
+  AuthenticatedTeamRoute: AuthenticatedTeamRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 
