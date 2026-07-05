@@ -158,19 +158,26 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     if (!isDriveUrl(url)) { toast.error(t("invalidDriveUrl")); return; }
     const name = linkName.trim() || driveTypeLabel(url);
     setSavingLink(true);
-    const { error } = await supabase.from("task_files").insert({
-      task_id: taskId, file_name: name, drive_url: url,
-      file_type: driveFileType(url), added_by: user?.id ?? null,
-    });
-    setSavingLink(false);
-    if (error) {
-      const { explainSupabaseError } = await import("@/lib/permission-errors");
-      toast.error(explainSupabaseError(error, { action: "create", entity: "task", user, lang }), { duration: 8000 });
-      return;
+    try {
+      const { withRetryOnReconnect } = await import("@/lib/withRetryToast");
+      const { error } = await withRetryOnReconnect(
+        async () => await supabase.from("task_files").insert({
+          task_id: taskId, file_name: name, drive_url: url,
+          file_type: driveFileType(url), added_by: user?.id ?? null,
+        }),
+        { offlineMessage: t("offlineRetryToast"), retryingMessage: t("retryingToast") },
+      );
+      if (error) {
+        const { explainSupabaseError } = await import("@/lib/permission-errors");
+        toast.error(explainSupabaseError(error, { action: "create", entity: "task", user, lang }), { duration: 8000 });
+        return;
+      }
+      toast.success(t("linkSaved"));
+      setLinkName(""); setLinkUrl("");
+      load();
+    } finally {
+      setSavingLink(false);
     }
-    toast.success(t("linkSaved"));
-    setLinkName(""); setLinkUrl("");
-    load();
   };
 
   const deleteLink = async (id: string) => { await supabase.from("task_files").delete().eq("id", id); load(); };

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { SuspendedScreen } from "@/components/SuspendedScreen";
 import { useApp } from "@/lib/app-context";
 import { isShareMode, isPathAllowed, firstAllowedPath } from "@/lib/share-mode";
+import { NetworkStatus } from "@/components/NetworkStatus";
 
 
 export const Route = createFileRoute("/_authenticated")({
@@ -31,6 +32,7 @@ function LayoutComponent() {
   
   return (
     <AppShell>
+      <NetworkStatus />
       <Outlet />
     </AppShell>
   );

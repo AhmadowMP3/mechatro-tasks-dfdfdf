@@ -544,6 +544,14 @@ export const dict = {
   chooseStyleHint: { ar: "اختر النمط البصري للتقرير", en: "Pick the visual style" },
   sampleTitle: { ar: "نموذج", en: "Sample" },
   reportLabel: { ar: "تقرير", en: "Report" },
+  // Network status
+  online: { ar: "متصل", en: "Online" },
+  offline: { ar: "غير متصل — سنعيد المحاولة عند عودة الاتصال", en: "Offline — we'll retry when back online" },
+  slowConnection: { ar: "اتصال بطيء", en: "Slow connection" },
+  reconnecting: { ar: "جاري إعادة الاتصال…", en: "Reconnecting…" },
+  changesQueued: { ar: "تم حفظ التغييرات محلياً", en: "Changes saved locally" },
+  offlineRetryToast: { ar: "غير متصل — سنعيد المحاولة عند عودة الاتصال", en: "Offline — will retry when back online" },
+  retryingToast: { ar: "جاري إعادة المحاولة…", en: "Retrying…" },
 } as const;
 
 
