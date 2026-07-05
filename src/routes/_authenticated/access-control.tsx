@@ -12,6 +12,7 @@ import { relativeTime } from "@/lib/format";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
+import { useConfirm } from "@/components/confirm-dialog";
 
 
 export const Route = createFileRoute("/_authenticated/access-control")({
@@ -402,6 +403,7 @@ function UserMenu({ user, lang, busy, onAction }: {
   const [open, setOpen] = useState(false);
   const [showReason, setShowReason] = useState(false);
   const [reason, setReason] = useState("");
+  const confirm = useConfirm();
   const l = lang === "ar";
   return (
     <div style={{ position: "relative" }}>
@@ -428,8 +430,8 @@ function UserMenu({ user, lang, busy, onAction }: {
                 onClick={() => { setOpen(false); onAction("activate"); }} />
             )}
             <MenuItem icon={Trash2} danger label={l ? "حذف نهائي" : "Delete permanently"}
-              onClick={() => {
-                if (confirm(l ? "حذف هذا المستخدم نهائيًا؟" : "Delete this user permanently?")) {
+              onClick={async () => {
+                if (await confirm({ message: l ? "حذف هذا المستخدم نهائيًا؟" : "Delete this user permanently?", danger: true, confirmText: l ? "حذف" : "Delete" })) {
                   setOpen(false); onAction("delete");
                 }
               }} />
@@ -882,6 +884,7 @@ type InviteRow = {
 
 function PendingInvitesList({ lang, refreshKey }: { lang: "ar" | "en"; refreshKey: string }) {
   const l = lang === "ar";
+  const confirm = useConfirm();
   const [rows, setRows] = useState<InviteRow[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -907,7 +910,7 @@ function PendingInvitesList({ lang, refreshKey }: { lang: "ar" | "en"; refreshKe
   }
 
   async function revoke(id: string) {
-    if (!confirm(l ? "إلغاء هذه الدعوة نهائيًا؟" : "Revoke this invite?")) return;
+    if (!(await confirm({ message: l ? "إلغاء هذه الدعوة نهائيًا؟" : "Revoke this invite?", danger: true }))) return;
     setBusyId(id);
     try {
       const { error } = await supabase.functions.invoke("admin-invites", { body: { action: "revoke", id } });

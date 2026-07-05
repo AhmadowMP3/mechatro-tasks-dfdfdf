@@ -1,25 +1,33 @@
-## منع حذف أحدث نسخة احتياطية
+## استبدال رسائل التأكيد المتصفحية برسائل popup بتصميم الموقع
 
-الهدف: ما نسمح للمستخدم يحذف آخر (أحدث) نسخة احتياطية موجودة في bucket `backups`، حتى ما نضل بدون أي نسخة للاسترجاع.
+### الفكرة
+نبني مكوّن `ConfirmProvider` عام + hook `useConfirm()` بيرجّع دالة `confirm(options): Promise<boolean>`، مبني فوق `AlertDialog` من shadcn ومنسّق بستايل الموقع (`brand-card`, `--grad-*`) — عربي/إنجليزي حسب اللغة الحالية.
 
-### التغييرات
+### الملفات
 
-**1. `supabase/functions/backup-snapshot/index.ts` (فرع `delete`)**
-- قبل تنفيذ `remove()`, نجيب قائمة الملفات من `sb.storage.from("backups").list()`.
-- نرتّبها تنازلياً حسب `created_at` (أو الاسم لأنه يحتوي timestamp) ونحدّد اسم الأحدث.
-- إذا `body.file === latest.name` → نرجّع `400` مع `{ error: "cannot_delete_latest" }`.
-- غير هيك، نكمل الحذف عادي.
+**1. جديد: `src/components/confirm-dialog.tsx`**
+- `ConfirmProvider` يلفّ التطبيق ويحتفظ بحالة الحوار الحالي.
+- `useConfirm()` يرجّع دالة `confirm({ title?, message, confirmText?, cancelText?, danger? }) => Promise<boolean>`.
+- استخدام `AlertDialog` مع كلاسات الموقع + دعم RTL/lang. زر التأكيد يستخدم `--grad-red` عند `danger: true`، وإلا `--grad-blue`.
 
-**2. `src/routes/_authenticated/settings.tsx`**
-- في `BackupsSection`: نحسب `latestName` = أول عنصر بعد الترتيب النازل للنسخ.
-- زر الحذف يصير `disabled` للنسخة الأحدث مع `title` توضيحي.
-- في `deleteBackup`: نتعامل مع خطأ `cannot_delete_latest` ونعرض `toast` بالمفتاح الجديد.
+**2. `src/routes/__root.tsx` (أو أعلى مزوّد موجود)**
+- تغليف الشجرة بـ `<ConfirmProvider>` بجانب `<Toaster />`.
 
-**3. `src/i18n/dict.ts`**
-- مفاتيح جديدة:
-  - `cannotDeleteLatest`: "لا يمكن حذف أحدث نسخة احتياطية" / "Cannot delete the latest backup"
-  - `latestBackupTooltip`: "الأحدث — محمية من الحذف" / "Latest — protected"
+**3. استبدال جميع `confirm(...)` بـ `await confirm(...)`**
+- `src/routes/_authenticated/settings.tsx` — حذف نسخة احتياطية.
+- `src/routes/_authenticated/team.index.tsx` — حذف عضو.
+- `src/routes/_authenticated/share-links.tsx` — تعطيل/حذف رابط (رسالتان).
+- `src/routes/_authenticated/access-control.tsx` — حذف مستخدم، إلغاء دعوة.
+- `src/routes/_authenticated/references.tsx` — حذف مرجع.
+- `src/routes/_authenticated/league.tsx` — حذف موسم (+ ترجمة للعربية).
+- `src/lib/bulk-selection.tsx` — استبدال `window.confirm(a.confirm)` باستدعاء الـ hook.
 
-### الحماية بطبقتين
-- الواجهة تعطّل الزر (تجربة مستخدم واضحة).
-- الـ edge function ترفض الطلب حتى لو انحايل عليها (أمان فعلي).
+كل مكان يستخدم `const confirm = useConfirm();` بدل الدالة العامة، مع تعليم الأزرار الخطرة `danger: true`.
+
+### مفاتيح i18n جديدة
+- `confirmDefaultTitle`: "تأكيد" / "Confirm"
+- `cancel` (موجود على الأرجح — نتحقق)، `confirm`
+- ترجمة رسالة "Delete season?" و "Revoke this link?" و "Delete permanently?" لمفاتيح i18n منظمة.
+
+### التحقق
+بعد التنفيذ، فحص عبر `rg "\bconfirm\(" src` للتأكد ما ضل ولا استدعاء للـ `window.confirm`.

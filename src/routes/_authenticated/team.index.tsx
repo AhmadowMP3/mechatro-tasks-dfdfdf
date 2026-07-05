@@ -19,6 +19,7 @@ import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import { promptFilename } from "@/components/FilenamePrompt";
 import type { DictKey } from "@/i18n/dict";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_authenticated/team/")({ component: TeamPage });
 
@@ -281,6 +282,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 
 function MemberModal({ member, onClose, onSaved }: { member?: Profile; onClose: () => void; onSaved: () => void }) {
   const { t } = useApp();
+  const confirm = useConfirm();
   const [form, setForm] = useState({
     full_name: member?.full_name ?? "", role: member?.role ?? "member",
     job_title: member?.job_title ?? "", phone: member?.phone ?? "",
@@ -313,7 +315,7 @@ function MemberModal({ member, onClose, onSaved }: { member?: Profile; onClose: 
   };
   const remove = async () => {
     if (!member) return;
-    if (!confirm(t("deleteMemberConfirm"))) return;
+    if (!(await confirm({ message: t("deleteMemberConfirm"), danger: true, confirmText: t("delete") }))) return;
     const { error } = await supabase.from("profiles").delete().eq("id", member.id);
     if (error) { toast.error(error.message); return; }
     toast.success(t("memberDeleted"));

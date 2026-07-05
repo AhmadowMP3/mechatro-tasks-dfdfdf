@@ -9,6 +9,7 @@ import {
 } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useApp } from "@/lib/app-context";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export type BulkAction = {
   id: string;
@@ -140,6 +141,7 @@ export function useBulkSelection<T extends { id: string }>(opts: {
 function BulkActionBar() {
   const host = useContext(HostCtx);
   const { lang } = useApp();
+  const confirm = useConfirm();
   const [running, setRunning] = useState<string | null>(null);
 
   if (!host?.current) return null;
@@ -147,7 +149,7 @@ function BulkActionBar() {
 
   const runAction = async (a: BulkAction) => {
     if (a.disabled) return;
-    if (a.confirm && !window.confirm(a.confirm)) return;
+    if (a.confirm && !(await confirm({ message: a.confirm, danger: true }))) return;
     setRunning(a.id);
     try { await a.onRun(); } finally { setRunning(null); }
   };

@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useServerFn } from "@tanstack/react-start";
 import { provisionTestUsers } from "@/lib/provision-test-users.functions";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
@@ -91,6 +92,7 @@ type BackupRequest = {
 
 function BackupsSection() {
   const { t, lang, isMasterAdmin, user } = useApp();
+  const confirm = useConfirm();
   const isMobile = useIsMobile();
   const [running, setRunning] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
@@ -168,7 +170,7 @@ function BackupsSection() {
   };
 
   const deleteBackup = async (b: Backup) => {
-    if (!confirm(t("confirmDeleteBackup"))) return;
+    if (!(await confirm({ message: t("confirmDeleteBackup"), danger: true, confirmText: t("delete") }))) return;
     setActingId(b.name);
     const { data: resp, error } = await supabase.functions.invoke("backup-snapshot", { body: { delete: true, file: b.name } });
     setActingId(null);

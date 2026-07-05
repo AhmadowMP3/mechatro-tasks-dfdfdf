@@ -12,6 +12,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_authenticated/references")({ component: ReferencesPage });
 
@@ -33,6 +34,7 @@ type SortMode = "newest" | "oldest" | "az";
 
 function ReferencesPage() {
   const { t, lang, user, isMasterAdmin } = useApp();
+  const confirm = useConfirm();
   const canManage = isMasterAdmin || user?.role === "admin";
 
   const [search, setSearch] = useState("");
@@ -141,7 +143,7 @@ function ReferencesPage() {
   };
 
   const remove = async (r: RefRow) => {
-    if (!confirm(t("confirmDeleteRef"))) return;
+    if (!(await confirm({ message: t("confirmDeleteRef"), danger: true, confirmText: t("delete") }))) return;
     await (supabase.from as unknown as (t: string) => any)("references").delete().eq("id", r.id);
     toast.success(t("deleteReference"));
     refetch();

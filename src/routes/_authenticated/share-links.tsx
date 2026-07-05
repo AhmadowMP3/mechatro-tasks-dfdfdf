@@ -6,6 +6,7 @@ import { Copy, Trash2, Ban, Pencil, Plus, Link2, Eye, RefreshCw, Lock, Calendar,
 import { useApp } from "@/lib/app-context";
 import { shareApi, SHARE_PAGES, type ShareLinkRow } from "@/lib/share-links";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_authenticated/share-links")({
   beforeLoad: ({ context }) => {
@@ -111,7 +112,8 @@ function SharePage() {
 
 
 function LinkCard({ link, onEdit, onChanged }: { link: ShareLinkRow; onEdit: () => void; onChanged: () => void }) {
-  const { lang } = useApp();
+  const { lang, t } = useApp();
+  const confirm = useConfirm();
   const ar = lang === "ar";
   const url = shareUrl(link.token);
   const expired = link.expires_at ? new Date(link.expires_at).getTime() < Date.now() : false;
@@ -131,12 +133,12 @@ function LinkCard({ link, onEdit, onChanged }: { link: ShareLinkRow; onEdit: () 
     catch { toast.error(ar ? "فشل النسخ" : "Copy failed"); }
   };
   const revoke = async () => {
-    if (!confirm(ar ? "تعطيل هذا الرابط؟" : "Revoke this link?")) return;
+    if (!(await confirm({ message: t("confirmRevokeLink"), danger: true }))) return;
     try { await shareApi.revoke(link.id); toast.success(ar ? "تم تعطيل الرابط" : "Link revoked"); onChanged(); }
     catch (e) { toast.error((e as Error).message); }
   };
   const remove = async () => {
-    if (!confirm(ar ? "حذف نهائي؟" : "Delete permanently?")) return;
+    if (!(await confirm({ message: t("confirmDeleteLink"), danger: true, confirmText: t("delete") }))) return;
     try { await shareApi.remove(link.id); toast.success(ar ? "تم الحذف" : "Deleted"); onChanged(); }
     catch (e) { toast.error((e as Error).message); }
   };
