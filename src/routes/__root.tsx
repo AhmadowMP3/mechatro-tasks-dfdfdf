@@ -96,9 +96,11 @@ function RootComponent() {
   return (
     <QueryPersistProvider client={queryClient}>
       <AppProvider>
-        <Outlet />
-        <CustomCursor />
-        <Toaster position="top-center" richColors />
+        <ConfirmProvider>
+          <Outlet />
+          <CustomCursor />
+          <Toaster position="top-center" richColors />
+        </ConfirmProvider>
       </AppProvider>
     </QueryPersistProvider>
   );
