@@ -884,6 +884,7 @@ type InviteRow = {
 
 function PendingInvitesList({ lang, refreshKey }: { lang: "ar" | "en"; refreshKey: string }) {
   const l = lang === "ar";
+  const confirm = useConfirm();
   const [rows, setRows] = useState<InviteRow[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
