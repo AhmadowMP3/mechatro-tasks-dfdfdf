@@ -90,6 +90,19 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const [editOpen, setEditOpen] = useState(false);
   const email = user?.email ?? session?.user?.email ?? "";
 
+  // Per-section collapse state, persisted to localStorage.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(COLLAPSED_STORAGE_KEY, JSON.stringify(collapsed)); } catch { /* ignore */ }
+  }, [collapsed]);
+  const toggleSection = (key: string) => setCollapsed((c) => ({ ...c, [key]: !c[key] }));
+
   const PAGE_TO_KEY: Record<string, string> = {
     "/": "dashboard", "/projects": "projects", "/tasks": "tasks",
     "/team": "team", "/league": "league", "/references": "references",
