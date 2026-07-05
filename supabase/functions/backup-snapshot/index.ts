@@ -171,6 +171,15 @@ Deno.serve(async (req) => {
       return json(200, { ok: true, restored: body.file });
     }
 
+    // ---- Delete a backup file ----
+    if (body.delete && body.file) {
+      const { error: rmErr } = await sb.storage.from("backups").remove([body.file]);
+      if (rmErr) throw new Error(rmErr.message);
+      return json(200, { ok: true, deleted: body.file });
+    }
+
+
+
     // ---- Manual immediate snapshot ----
     const res = await runSnapshot(null);
     return json(200, res);
