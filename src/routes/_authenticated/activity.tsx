@@ -293,7 +293,17 @@ function ActivityPage() {
           id: "export",
           label: lang === "ar" ? "تصدير CSV" : "Export CSV",
           icon: <Download size={14} />,
-          onRun: () => {
+          onRun: async () => {
+            const fileName = await promptFilename({
+              defaultName: `activity-selection-${new Date().toISOString().slice(0, 10)}`,
+              extension: "csv",
+              title: t("filenamePromptTitle"),
+              label: t("filenameLabel"),
+              hint: t("filenameHint"),
+              confirmLabel: t("exportXlsx"),
+              cancelLabel: t("cancel"),
+            });
+            if (!fileName) return;
             const selRows = rows.filter((r) => sel.includes(r.id));
             const header = ["created_at", "actor", "action", "entity_type", "entity_id", "entity_name", "meta"];
             const csv = [header.join(",")].concat(
@@ -310,7 +320,7 @@ function ActivityPage() {
             const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = url; a.download = `activity-selection-${Date.now()}.csv`; a.click();
+            a.href = url; a.download = fileName; a.click();
             URL.revokeObjectURL(url);
             toast.success(lang === "ar" ? `تم تصدير ${sel.length} حدث` : `Exported ${sel.length} row${sel.length === 1 ? "" : "s"}`);
             clearSel();
