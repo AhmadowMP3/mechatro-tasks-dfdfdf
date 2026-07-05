@@ -7,6 +7,7 @@ import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { notify } from "@/lib/activity";
 import { ModalShell, Field, inp } from "@/routes/_authenticated/projects.index";
+import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { useQuery } from "@tanstack/react-query";
 import { formatDate, toLocalDigits } from "@/lib/format";
 
