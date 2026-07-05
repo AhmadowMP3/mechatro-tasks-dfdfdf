@@ -1,90 +1,39 @@
-## Goal
+# Fix: Project card URL changes but detail page doesn't render
 
-Add a polished, error-free **Install app** button that works across:
-- **Chromium desktop** (macOS/Windows/Linux — Chrome, Edge, Brave, Arc, Opera) → native install prompt.
-- **Android Chrome** → native install prompt.
-- **iOS Safari (iPhone/iPad)** → instructional bottom sheet ("Share → Add to Home Screen"), because iOS gives no programmatic prompt.
-- **macOS Safari 17+** → instructional sheet ("File → Add to Dock").
+## Root cause
 
-Auto-hides when the app is already installed / running in standalone mode.
+TanStack Router's file-based routing treats `src/routes/_authenticated/projects.tsx` and `src/routes/_authenticated/projects.$id.tsx` as **parent + child** (same filename prefix). The generated route tree confirms this — `AuthenticatedProjectsRouteWithChildren` wraps `projects.$id`.
 
-Scope is **manifest-only home-screen support** per the PWA skill — no service worker, no offline caching, no `vite-plugin-pwa`.
+A parent route must render `<Outlet />` for its children to appear. But `projects.tsx` currently renders `<ProjectsPage />` (the full list page) with no `<Outlet />`. Result: navigating to `/projects/:id` matches correctly, the URL updates, but the child detail has nowhere to mount — so the list stays visible or nothing new appears. This matches the "layout routes: never gate `<Outlet />`" guidance in the TanStack route-architecture card.
 
-## Changes
+## Fix
 
-### 1. Web app manifest — `public/manifest.webmanifest` (new)
+Split `projects.tsx` into a real layout + an index leaf:
 
-```json
-{
-  "name": "Mechatro Tasks",
-  "short_name": "Mechatro",
-  "description": "Mechatro team tasks, projects, and reporting.",
-  "start_url": "/",
-  "scope": "/",
-  "display": "standalone",
-  "orientation": "any",
-  "background_color": "#0B1220",
-  "theme_color": "#0B1220",
-  "icons": [
-    { "src": "/icons/app-192.png",         "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/app-512.png",         "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/app-192-maskable.png","sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/app-512-maskable.png","sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
-}
-```
+1. **Rename** `src/routes/_authenticated/projects.tsx` → `src/routes/_authenticated/projects.index.tsx`
+   - Change `createFileRoute("/_authenticated/projects")` → `createFileRoute("/_authenticated/projects/")`
+   - Everything else in that file stays the same (still the full `ProjectsPage` list).
 
-### 2. Icons — `public/icons/*.png` (new)
+2. **Create** `src/routes/_authenticated/projects.tsx` as a minimal pathless layout:
+   ```tsx
+   import { createFileRoute, Outlet } from "@tanstack/react-router";
+   export const Route = createFileRoute("/_authenticated/projects")({
+     component: () => <Outlet />,
+   });
+   ```
 
-Generate four PNGs with `imagegen`:
-- `app-192.png`, `app-512.png` — Mechatro mark centered on a dark navy background (matches app), full-bleed logo.
-- `app-192-maskable.png`, `app-512-maskable.png` — same but with generous safe-zone padding (Android maskable spec) so Android's rounded/squircle masks don't crop the mark.
-- One `apple-touch-icon.png` (180×180) for iOS home-screen — solid background, no transparency.
+After this:
+- `/projects` → renders `projects.index.tsx` (list)
+- `/projects/:id` → renders `projects.$id.tsx` (detail) inside the layout's `<Outlet />`
 
-### 3. Head tags — `src/routes/__root.tsx`
+`routeTree.gen.ts` regenerates automatically — no manual edits.
 
-Extend the existing `head()` `link`/`meta` arrays with:
-- `<link rel="manifest" href="/manifest.webmanifest">`
-- `<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">`
-- `<meta name="apple-mobile-web-app-capable" content="yes">`
-- `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">`
-- `<meta name="apple-mobile-web-app-title" content="Mechatro">`
-- Replace the current `theme-color: var(--background)` (invalid — CSS vars don't work in meta) with a real hex (`#0B1220`) plus a light-scheme variant via `media`.
+## Out of scope
 
-### 4. Install button + iOS/macOS sheet — `src/components/InstallAppButton.tsx` (new)
-
-A single small self-contained component:
-
-- On mount, adds `beforeinstallprompt` listener → stashes the event, sets `canInstall=true`.
-- Also detects: `iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream`, `macSafari = /Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome|Chromium|Edg|OPR/.test(ua)`, `isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone`.
-- Renders nothing when `isStandalone` (already installed).
-- Otherwise renders a compact button with a download-cloud icon:
-  - Chromium: click → `evt.prompt()`, then hide on `userChoice.outcome === "accepted"`; also listens to `appinstalled` to hide.
-  - iOS or macOS Safari: click → open an accessible bottom sheet (portal to `document.body`, backdrop, focus trap-ish with initial focus on close button, `Esc` closes) that shows step-by-step instructions with an inline Share/File icon graphic. Bilingual (ar/en) from `useApp().lang`.
-  - If none apply and no prompt captured: hide the button (nothing to do).
-
-Styling matches the existing sidebar aesthetic (rounded, subtle gradient border, `min-h: 44` tap target). Uses only design tokens / existing inline-style palette — no hardcoded arbitrary colors.
-
-### 5. Placement — `src/components/layout/Sidebar.tsx`
-
-Mount `<InstallAppButton />` in the sidebar footer, directly above the existing Logout button (or above the share-mode banner in share mode: **omit** it, since share viewers shouldn't install an admin app). Same component on mobile drawer (the sidebar is shared).
-
-No changes to any route, RLS, or auth code.
-
-## Non-goals / explicitly out
-
-- No offline support, no service worker, no `vite-plugin-pwa`, no cache-busting reloads (PWA skill).
-- No push notifications.
-- No Capacitor / native app store build.
-- No visual redesign of the sidebar.
-- No changes to the activity/filter fix from earlier.
+No changes to auth, RLS, data fetching, or the detail page itself. No visual changes to the list.
 
 ## Verification
 
-- Typecheck clean.
-- Chrome desktop: Install button appears; clicking it opens Chrome's install dialog; after install, button disappears on next load.
-- Android Chrome (via DevTools device mode + real device if possible): same behavior.
-- iOS Safari: button appears, opens the instructional sheet; when the user adds to Home Screen and re-opens from icon, `standalone` matches and the button is hidden.
-- macOS Safari: button opens the "File → Add to Dock" sheet.
-- Firefox / already-installed contexts: button hidden, no console errors.
-- Lighthouse PWA "Installable" check passes on the published site.
+- Click a project card → URL changes AND detail page renders.
+- Direct load of `/projects/:id` renders the detail.
+- `/projects` still shows the full list with filters intact.
