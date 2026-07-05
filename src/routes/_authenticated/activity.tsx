@@ -249,7 +249,17 @@ function ActivityPage() {
     return formatDate(iso, lang);
   };
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
+    const fileName = await promptFilename({
+      defaultName: `activity-${new Date().toISOString().slice(0, 10)}`,
+      extension: "csv",
+      title: t("filenamePromptTitle"),
+      label: t("filenameLabel"),
+      hint: t("filenameHint"),
+      confirmLabel: t("exportXlsx"),
+      cancelLabel: t("cancel"),
+    });
+    if (!fileName) return;
     const header = ["created_at", "actor", "action", "entity_type", "entity_id", "entity_name", "meta"];
     const csv = [header.join(",")].concat(
       rows.map((r) => [
@@ -265,7 +275,7 @@ function ActivityPage() {
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `activity-${Date.now()}.csv`; a.click();
+    a.href = url; a.download = fileName; a.click();
     URL.revokeObjectURL(url);
   };
 
