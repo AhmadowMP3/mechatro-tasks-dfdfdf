@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
@@ -19,6 +19,22 @@ function ProjectDetail() {
   const { t, lang, users, isAdmin, user } = useApp();
   const navigate = useNavigate();
   const [selected, setSelected] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const tid = new URLSearchParams(window.location.search).get("task");
+    if (tid) setSelected(tid);
+  }, []);
+  const closeTaskModal = () => {
+    setSelected(null);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("task")) {
+        params.delete("task");
+        const qs = params.toString();
+        window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+      }
+    }
+  };
   const [newOpen, setNewOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
