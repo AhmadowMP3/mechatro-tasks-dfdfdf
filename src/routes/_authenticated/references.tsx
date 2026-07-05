@@ -722,27 +722,41 @@ function accentFor(name: string) {
 }
 
 function CategoryCombobox({
-  value, onChange, options, placeholder, hint, createLabel,
+  value, onChange, options, defaults = [], placeholder, hint, createLabel, suggestedLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: string[];
+  defaults?: string[];
   placeholder: string;
   hint: string;
   createLabel: string;
+  suggestedLabel?: string;
 }) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const norm = (s: string) => s.trim().toLowerCase();
   const q = norm(query);
+  // Merge defaults with data-derived options, case-insensitive dedupe, defaults first.
+  const merged = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const c of [...defaults, ...options]) {
+      const k = norm(c);
+      if (!k || seen.has(k)) continue;
+      seen.add(k); out.push(c);
+    }
+    return out;
+  }, [defaults, options]);
   const filtered = useMemo(
-    () => options.filter((o) => !value || o !== value).filter((o) => !q || norm(o).includes(q)).slice(0, 24),
-    [options, q, value],
+    () => merged.filter((o) => !value || o !== value).filter((o) => !q || norm(o).includes(q)).slice(0, 30),
+    [merged, q, value],
   );
-  const exactExists = options.some((o) => norm(o) === q);
+  const exactExists = merged.some((o) => norm(o) === q);
   const canCreate = q.length > 0 && !exactExists;
   const selected = value.trim();
-  const selectedFromList = options.some((o) => o === selected);
+  const selectedFromList = merged.some((o) => o === selected);
+  const showSuggestedLabel = !q && !selected && filtered.length > 0 && !!suggestedLabel;
 
   const commit = (v: string) => {
     const t = v.trim().slice(0, 60);
