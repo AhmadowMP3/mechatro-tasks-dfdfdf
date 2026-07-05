@@ -6,6 +6,7 @@ import { Filter, RotateCcw, X, Check, ChevronDown, Download } from "lucide-react
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger,
 } from "@/components/ui/sheet";
+import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { useApp } from "@/lib/app-context";
 import { useIsMobile } from "@/hooks/use-mobile";
 
