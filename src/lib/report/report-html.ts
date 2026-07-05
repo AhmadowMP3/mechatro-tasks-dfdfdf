@@ -187,8 +187,9 @@ function coverPage(data: ReportData, lang: Lang, s: Stats): string {
         <div style="display:flex;gap:32px;align-items:flex-end">
           ${avatar}
           <div style="flex:1">
-            <div style="font-size:44px;font-weight:900;line-height:1.05;color:${th.ink}">${esc(m.full_name)}</div>
-            <div style="font-size:15px;color:${th.muted};margin-top:8px;letter-spacing:.5px">${esc(m.job_title ?? t(m.role as never, lang))}</div>
+            <div style="font-size:44px;font-weight:900;line-height:1.05;color:${th.ink};font-family:'Montserrat','Segoe UI',Tahoma,'Montserrat Arabic',sans-serif">${esc(m.full_name)}</div>
+            ${m.job_title && m.job_title !== t(m.role as never, lang) ? `<div style="font-size:15px;color:${th.muted};margin-top:8px;letter-spacing:.5px">${esc(m.job_title)}</div>` : ""}
+
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid ${th.line};padding-top:24px;margin-top:16px">
