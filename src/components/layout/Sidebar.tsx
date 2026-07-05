@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2, Eye, Pencil, Crown, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2, Eye, Pencil, Crown, UserPlus, ChevronDown, Compass, Briefcase, UsersRound, BarChart3, UserCog } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
@@ -20,6 +20,7 @@ type NavItem = {
 
 type NavSection = {
   titleKey: DictKey;
+  icon: React.ComponentType<{ size?: number }>;
   items: NavItem[];
   adminOnly?: boolean;
   masterOnly?: boolean;
@@ -28,12 +29,14 @@ type NavSection = {
 const NAV_SECTIONS: NavSection[] = [
   {
     titleKey: "overviewSection",
+    icon: Compass,
     items: [
       { to: "/", icon: LayoutDashboard, key: "dashboard" },
     ],
   },
   {
     titleKey: "workSection",
+    icon: Briefcase,
     items: [
       { to: "/projects",   icon: FolderKanban, key: "projects" },
       { to: "/tasks",      icon: CheckSquare,  key: "tasks" },
@@ -42,6 +45,7 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     titleKey: "teamSection",
+    icon: UsersRound,
     items: [
       { to: "/team",   icon: Users,   key: "team" },
       { to: "/league", icon: Trophy,  key: "league" },
@@ -49,6 +53,7 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     titleKey: "insightsSection",
+    icon: BarChart3,
     adminOnly: true,
     items: [
       { to: "/activity",         icon: ScrollText, key: "activityLog" },
@@ -58,20 +63,24 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     titleKey: "adminSection",
+    icon: ShieldCheck,
     adminOnly: true,
     items: [
       { to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } },
-      { to: "/share-links",    icon: Share2,   key: null, label: { ar: "روابط المشاركة", en: "Share Links" }, /* masterOnly handled below */ },
+      { to: "/share-links",    icon: Share2,   key: null, label: { ar: "روابط المشاركة", en: "Share Links" } },
     ],
   },
   {
     titleKey: "personalSection",
+    icon: UserCog,
     items: [
       { to: "/notifications", icon: Bell,     key: "notifications" },
       { to: "/settings",      icon: Settings, key: "settings" },
     ],
   },
 ];
+
+const COLLAPSED_STORAGE_KEY = "mechatro-sidebar-collapsed-v1";
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const { t, user, session, lang, signOut, isMasterAdmin, isAdmin, refreshSelf } = useApp();
