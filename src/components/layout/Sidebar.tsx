@@ -18,15 +18,59 @@ type NavItem = {
   label?: { ar: string; en: string };
 };
 
-const NAV: NavItem[] = [
-  { to: "/",              icon: LayoutDashboard, key: "dashboard" },
-  { to: "/projects",      icon: FolderKanban,    key: "projects" },
-  { to: "/tasks",         icon: CheckSquare,     key: "tasks" },
-  { to: "/team",          icon: Users,           key: "team" },
-  { to: "/league",        icon: Trophy,          key: "league" },
-  { to: "/references",    icon: Library,         key: "references" },
-  { to: "/notifications", icon: Bell,            key: "notifications" },
-  { to: "/settings",      icon: Settings,        key: "settings" },
+type NavSection = {
+  titleKey: DictKey;
+  items: NavItem[];
+  adminOnly?: boolean;
+  masterOnly?: boolean;
+};
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    titleKey: "overviewSection",
+    items: [
+      { to: "/", icon: LayoutDashboard, key: "dashboard" },
+    ],
+  },
+  {
+    titleKey: "workSection",
+    items: [
+      { to: "/projects",   icon: FolderKanban, key: "projects" },
+      { to: "/tasks",      icon: CheckSquare,  key: "tasks" },
+      { to: "/references", icon: Library,      key: "references" },
+    ],
+  },
+  {
+    titleKey: "teamSection",
+    items: [
+      { to: "/team",   icon: Users,   key: "team" },
+      { to: "/league", icon: Trophy,  key: "league" },
+    ],
+  },
+  {
+    titleKey: "insightsSection",
+    adminOnly: true,
+    items: [
+      { to: "/activity",         icon: ScrollText, key: "activityLog" },
+      { to: "/reports",          icon: FileText,   key: "reports" },
+      { to: "/reports-history",  icon: ScrollText, key: "reportHistory" },
+    ],
+  },
+  {
+    titleKey: "adminSection",
+    adminOnly: true,
+    items: [
+      { to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } },
+      { to: "/share-links",    icon: Share2,   key: null, label: { ar: "روابط المشاركة", en: "Share Links" }, /* masterOnly handled below */ },
+    ],
+  },
+  {
+    titleKey: "personalSection",
+    items: [
+      { to: "/notifications", icon: Bell,     key: "notifications" },
+      { to: "/settings",      icon: Settings, key: "settings" },
+    ],
+  },
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {

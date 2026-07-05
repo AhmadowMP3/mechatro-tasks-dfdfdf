@@ -1,47 +1,46 @@
 ## Goal
 
-Make the app usable on flaky/slow internet without breaking the Lovable preview or adding a full PWA/service-worker (per PWA guidance — user didn't ask for installability/offline install, just resilience).
+Group the sidebar links under clear, cool-looking section titles (like Notion / Linear sidebars) instead of one flat list — bilingual, respects share-mode filtering, no functional changes.
 
-## What to build
+## Sections
 
-### 1. Network status indicator (top of app)
-- New `src/components/NetworkStatus.tsx`: listens to `navigator.onLine` + `online`/`offline` events, plus a lightweight periodic ping to Supabase health.
-- Renders a small pill top-right:
-  - green dot "Online" (auto-hides after 2s when things are fine)
-  - amber "Slow connection" when a request takes >3s
-  - red "Offline — changes will retry" when offline
-- Uses existing i18n dict (add `online`, `offline`, `slowConnection`, `reconnecting`, `changesQueued` keys, ar+en).
-- Mounted once in `src/routes/_authenticated/route.tsx`.
+Rendered top → bottom, each with a small pill-style header (uppercase, letter-spaced, muted color, tiny gradient underline). Icons/routes unchanged.
 
-### 2. TanStack Query defaults tuned for low bandwidth
-In `src/router.tsx`, configure the `QueryClient`:
-- `retry: 3` with exponential backoff (`retryDelay: attempt => Math.min(1000 * 2**attempt, 15000)`)
-- `staleTime: 60_000`, `gcTime: 5 * 60_000` — reuse cached data on navigation, avoid refetch storms
-- `refetchOnWindowFocus: false`, `refetchOnReconnect: true` — auto-refresh once the network returns
-- `networkMode: "offlineFirst"` for queries and mutations — serve cache offline, resume when back
+1. **Workspace** — `overviewSection` — Dashboard
+2. **Work** — `workSection` — Projects · Tasks · References
+3. **Team** — `teamSection` — Team · League
+4. **Insights** *(admin only)* — `insightsSection` — Activity · Reports · Report history
+5. **Administration** *(admin/master only)* — `adminSection` — People & Invites · Share Links
+6. **Personal** — `personalSection` — Notifications · Settings
 
-### 3. Persist query cache to localStorage
-- Add dep `@tanstack/query-sync-storage-persister` + `@tanstack/react-query-persist-client`
-- Wrap the app in `PersistQueryClientProvider` inside `__root.tsx` (or a small client-only wrapper), key `mechatro-cache-v1`, max age 24h, buster tied to app version
-- Effect: opening the app offline shows the last-seen tasks/projects instead of blank screen
+Share-mode viewers only see sections whose items survive the whitelist filter — empty sections are hidden automatically.
 
-### 4. Mutation-friendly toasts
-- Small helper `src/lib/withRetryToast.ts` used by places that already call Supabase mutations (share, save Drive link, task edits): if the mutation fails with a network error, show toast "Offline — will retry when back online" and re-fire the mutation on the next `online` event (single retry, no queue persistence — keeps scope tight).
-- Wire it into the two hot paths the user actually touches: Drive-link save (`TaskDetailModal.addLink`) and task share (already synchronous, no change needed).
+## Implementation (single file: `src/components/layout/Sidebar.tsx`)
 
-### 5. Fetch timeout wrapper
-- `src/lib/fetchWithTimeout.ts`: 15s AbortController-based timeout, used by any raw `fetch` calls (Telegram/WhatsApp share links don't fetch — skip; only wrap places that already use `fetch`).
+- Replace the flat `NAV: NavItem[]` with `NAV_SECTIONS: { titleKey: DictKey; items: NavItem[] }[]`.
+- Move the admin/master conditional pushes into their own section objects instead of appending to the flat list.
+- In the render pass:
+  - map over sections
+  - filter each section's items with the existing share-mode / role logic
+  - skip the section entirely if no items remain
+  - render a `<div>` section header (12px uppercase, `letter-spacing: .12em`, `color: var(--muted)`, small 2-line gradient bar under the label using existing `--grad-blue`) then the item `<Link>`s
+- Keep existing item styles (active pill, icon tile, RTL flipping). No changes to click handlers, routes, or `PAGE_TO_KEY`.
+
+## i18n (`src/i18n/dict.ts`)
+
+Add 6 keys, ar + en:
+- `overviewSection`: "نظرة عامة" / "Overview"
+- `workSection`: "العمل" / "Work"
+- `teamSection`: "الفريق" / "Team & League"
+- `insightsSection`: "التحليلات" / "Insights"
+- `adminSection`: "الإدارة" / "Administration"
+- `personalSection`: "شخصي" / "Personal"
 
 ## Out of scope
-- No service worker, no `vite-plugin-pwa`, no installability (per PWA guidance — user didn't ask, and Lovable preview must not register SW).
-- No offline write queue with IndexedDB — one-shot retry-on-reconnect only.
-- No changes to auth flow, RLS, or backend.
+
+- No changes to routing, permissions, share-mode logic, or the account card.
+- No collapsible sections (keeps it simple — can add later if wanted).
+- No changes to the mobile drawer wrapper.
 
 ## Files touched
-- new: `src/components/NetworkStatus.tsx`, `src/lib/withRetryToast.ts`, `src/lib/fetchWithTimeout.ts`
-- edited: `src/router.tsx` (QueryClient defaults), `src/routes/__root.tsx` (persister provider), `src/routes/_authenticated/route.tsx` (mount NetworkStatus), `src/i18n/dict.ts` (5 keys), `src/components/TaskDetailModal.tsx` (wrap `addLink` with retry helper), `package.json` (2 deps)
-
-## Verification
-- Build passes
-- DevTools → Network → "Offline": app still renders last-cached tasks; red pill shows
-- DevTools → "Slow 3G": amber pill appears on slow requests; mutations retry instead of erroring out
+- edited: `src/components/layout/Sidebar.tsx`, `src/i18n/dict.ts`

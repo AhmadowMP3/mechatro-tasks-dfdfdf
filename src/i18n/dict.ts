@@ -552,6 +552,13 @@ export const dict = {
   changesQueued: { ar: "تم حفظ التغييرات محلياً", en: "Changes saved locally" },
   offlineRetryToast: { ar: "غير متصل — سنعيد المحاولة عند عودة الاتصال", en: "Offline — will retry when back online" },
   retryingToast: { ar: "جاري إعادة المحاولة…", en: "Retrying…" },
+  // Sidebar section headers
+  overviewSection: { ar: "نظرة عامة", en: "Overview" },
+  workSection: { ar: "العمل", en: "Work" },
+  teamSection: { ar: "الفريق والدوري", en: "Team & League" },
+  insightsSection: { ar: "التحليلات", en: "Insights" },
+  adminSection: { ar: "الإدارة", en: "Administration" },
+  personalSection: { ar: "شخصي", en: "Personal" },
 } as const;
 
 
