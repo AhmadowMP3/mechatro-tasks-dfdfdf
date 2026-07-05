@@ -910,7 +910,7 @@ function PendingInvitesList({ lang, refreshKey }: { lang: "ar" | "en"; refreshKe
   }
 
   async function revoke(id: string) {
-    if (!confirm(l ? "إلغاء هذه الدعوة نهائيًا؟" : "Revoke this invite?")) return;
+    if (!(await confirm({ message: l ? "إلغاء هذه الدعوة نهائيًا؟" : "Revoke this invite?", danger: true }))) return;
     setBusyId(id);
     try {
       const { error } = await supabase.functions.invoke("admin-invites", { body: { action: "revoke", id } });
