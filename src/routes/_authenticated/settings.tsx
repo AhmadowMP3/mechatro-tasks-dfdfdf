@@ -170,12 +170,20 @@ function BackupsSection() {
   const deleteBackup = async (b: Backup) => {
     if (!confirm(t("confirmDeleteBackup"))) return;
     setActingId(b.name);
-    const { error } = await supabase.functions.invoke("backup-snapshot", { body: { delete: true, file: b.name } });
+    const { data: resp, error } = await supabase.functions.invoke("backup-snapshot", { body: { delete: true, file: b.name } });
     setActingId(null);
-    if (error) { toast.error(error.message); return; }
+    if (error || (resp && (resp as { error?: string }).error)) {
+      const code = (resp as { error?: string } | null)?.error;
+      if (code === "cannot_delete_latest") { toast.error(t("cannotDeleteLatest")); return; }
+      toast.error(error?.message ?? code ?? "err");
+      return;
+    }
     toast.success(t("backupDeleted"));
     refetch();
   };
+
+  const latestBackupName = data?.[0]?.name;
+
 
 
   const requestBackup = async () => {
