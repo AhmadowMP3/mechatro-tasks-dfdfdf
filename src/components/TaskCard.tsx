@@ -42,10 +42,20 @@ export function TaskCard({ task, project, assignee, onClick }: {
   return (
     <button onClick={onClick} className="brand-card" style={{
       padding: 16, textAlign: lang === "ar" ? "right" : "left",
-      cursor: "pointer", width: "100%", border: `1px solid ${overdue ? "rgba(240,103,106,.5)" : "var(--border)"}`,
+      cursor: "pointer", width: "100%", height: "100%", border: `1px solid ${overdue ? "rgba(240,103,106,.5)" : "var(--border)"}`,
       background: "var(--card)", color: "var(--foreground)", display: "block",
+      position: "relative",
     }}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
+      {(task.points ?? 0) > 0 && (
+        <span title={task.points_awarded_at ? "awarded" : "pending"} style={{
+          position: "absolute", top: 10, insetInlineEnd: 10, zIndex: 2,
+          display: "inline-flex", alignItems: "center", gap: 3,
+          padding: "3px 9px", borderRadius: 999, fontSize: 11, fontWeight: 800, color: "#fff",
+          background: task.points_awarded_at ? "linear-gradient(135deg,#FFD700,#F5A623)" : "linear-gradient(135deg,#F5A623,#F0676A)",
+          boxShadow: task.points_awarded_at ? "0 2px 8px rgba(255,215,0,.35)" : "none",
+        }}>⭐ {toLocalDigits(task.points ?? 0, lang)}</span>
+      )}
+      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap", alignItems: "center", paddingInlineEnd: (task.points ?? 0) > 0 ? 64 : 0 }}>
         {project && (
           <span style={{
             padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, color: "#fff",
@@ -55,15 +65,6 @@ export function TaskCard({ task, project, assignee, onClick }: {
         <PriorityPill priority={task.priority} />
         <StatusPill status={task.status} />
         {overdue && <OverduePill />}
-        {(task.points ?? 0) > 0 && (
-          <span title={task.points_awarded_at ? "awarded" : "pending"} style={{
-            marginInlineStart: "auto",
-            display: "inline-flex", alignItems: "center", gap: 3,
-            padding: "3px 9px", borderRadius: 999, fontSize: 11, fontWeight: 800, color: "#fff",
-            background: task.points_awarded_at ? "linear-gradient(135deg,#FFD700,#F5A623)" : "linear-gradient(135deg,#F5A623,#F0676A)",
-            boxShadow: task.points_awarded_at ? "0 2px 8px rgba(255,215,0,.35)" : "none",
-          }}>⭐ {toLocalDigits(task.points ?? 0, lang)}</span>
-        )}
       </div>
       <h3 style={{ fontSize: 16, fontWeight: 800, margin: "6px 0" }}>{task.title}</h3>
       {elapsedPct != null && (
