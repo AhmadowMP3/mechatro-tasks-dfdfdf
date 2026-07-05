@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2, Eye, Pencil, Crown, UserPlus, ChevronDown, Compass, Briefcase, UsersRound, BarChart3, UserCog } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
@@ -403,7 +404,9 @@ function EditNameModal({
     }
   }
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div
       onClick={onClose}
       style={{
@@ -463,6 +466,7 @@ function EditNameModal({
           >{l ? "إلغاء" : "Cancel"}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
