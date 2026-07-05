@@ -357,7 +357,6 @@ function AccessControlPage() {
               <UserMenu user={u} lang={lang} busy={busyId === u.id} onAction={(a, extra) => act(a, u.id, extra)} />
             )}
           </div>
-          </div>
           );
         })}
       </div>
