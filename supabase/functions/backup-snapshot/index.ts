@@ -139,7 +139,8 @@ Deno.serve(async (req) => {
         const res = await runSnapshot(body.approve_request_id);
         return json(200, res);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
+        const msg = errMsg(e);
+        console.error("backup-snapshot approve error", e);
         await sb.from("backup_requests").update({
           status: "failed",
           decided_by: me.id,
