@@ -62,27 +62,6 @@ export function TableView({
     </th>
   );
 
-  if (isMobile) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {sorted.length === 0 ? (
-          <div className="brand-card" style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>—</div>
-        ) : sorted.map((tk) => {
-          const project = projects.find((p) => p.id === tk.project_id) ?? null;
-          const assignee = users.find((u) => u.id === tk.assignee_id) ?? null;
-          return (
-            <TaskCard
-              key={tk.id}
-              task={tk}
-              project={project}
-              assignee={assignee}
-              onClick={() => onOpen(tk.id)}
-            />
-          );
-        })}
-      </div>
-    );
-  }
 
   return (
     <div className="brand-card" style={{ padding: 0, overflow: "hidden" }}>
