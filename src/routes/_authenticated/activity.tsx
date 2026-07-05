@@ -12,6 +12,7 @@ import {
   ScrollText, Filter,
   Plus, Pencil, Trash2, ArrowRightLeft, MessageSquare, Paperclip,
   UserPlus, Archive as ArchiveIcon, LogIn, LogOut, Activity as ActivityIcon,
+  Download,
 } from "lucide-react";
 
 import {
@@ -22,6 +23,7 @@ import {
 import { exportToBrandedXlsx, type XlsxColumn } from "@/lib/export/xlsx";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 
 
 const ACTIONS = ["created","updated","status_changed","deleted","archived","commented","file_added","assigned","signed_in","signed_out"] as const;
