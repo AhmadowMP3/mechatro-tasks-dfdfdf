@@ -87,26 +87,32 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     "/activity": "activity",
   };
 
-  let nav: NavItem[] = [...NAV];
-  if (!shareMode) {
-    if (isAdmin) {
-      nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });
-      nav.push({ to: "/reports", icon: FileText, key: "reports" });
-      nav.push({ to: "/reports-history", icon: ScrollText, key: "reportHistory" });
-      nav.push({ to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } });
-    }
+  // Build visible sections based on role + share mode.
+  const sections: NavSection[] = NAV_SECTIONS
+    .map((section) => {
+      let items = section.items;
 
-    if (isMasterAdmin) {
-      nav.push({ to: "/share-links", icon: Share2, key: null, label: { ar: "روابط المشاركة", en: "Share Links" } });
-    }
-  } else if (shareLink) {
-    // Share viewers see only the pages included in the link. Dashboard is
-    // added first; activity is added if whitelisted.
-    if (shareLink.allowed_pages.includes("activity")) {
-      nav.push({ to: "/activity", icon: ScrollText, key: "activityLog" });
-    }
-    nav = nav.filter((n) => shareLink.allowed_pages.includes(PAGE_TO_KEY[n.to]));
-  }
+      // "share-links" is master-only within the admin section
+      if (section.titleKey === "adminSection") {
+        items = items.filter((i) => i.to !== "/share-links" || isMasterAdmin);
+      }
+
+      if (shareMode) {
+        if (!shareLink) return { ...section, items: [] };
+        // Inject /activity as a visible item when whitelisted (for share viewers only)
+        if (section.titleKey === "insightsSection" && shareLink.allowed_pages.includes("activity")) {
+          // keep only activity for share viewers
+          items = items.filter((i) => i.to === "/activity");
+        }
+        items = items.filter((i) => shareLink.allowed_pages.includes(PAGE_TO_KEY[i.to]));
+        return { ...section, items };
+      }
+
+      if (section.adminOnly && !isAdmin) return { ...section, items: [] };
+      if (section.masterOnly && !isMasterAdmin) return { ...section, items: [] };
+      return { ...section, items };
+    })
+    .filter((s) => s.items.length > 0);
 
 
   return (
