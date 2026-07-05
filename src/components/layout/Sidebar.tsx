@@ -389,18 +389,21 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             <Eye size={16} /> {lang === "ar" ? "عرض للقراءة فقط" : "READ-ONLY PREVIEW"}
           </div>
         ) : (
-          <button
-            onClick={async () => { await signOut(); window.location.href = "/auth"; }}
-            style={{
-              width: "100%", minHeight: 48, borderRadius: 12,
-              background: "rgba(240,103,106,.12)", color: "#F0676A",
-              border: "1px solid rgba(240,103,106,.3)", fontWeight: 700,
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-              cursor: "pointer",
-            }}
-          >
-            <LogOut size={18} /> {t("logout")}
-          </button>
+          <>
+            <InstallAppButton />
+            <button
+              onClick={async () => { await signOut(); window.location.href = "/auth"; }}
+              style={{
+                width: "100%", minHeight: 48, borderRadius: 12,
+                background: "rgba(240,103,106,.12)", color: "#F0676A",
+                border: "1px solid rgba(240,103,106,.3)", fontWeight: 700,
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                cursor: "pointer",
+              }}
+            >
+              <LogOut size={18} /> {t("logout")}
+            </button>
+          </>
         )}
       </div>
 
