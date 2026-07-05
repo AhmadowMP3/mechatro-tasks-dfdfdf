@@ -24,15 +24,23 @@ import { Route as AuthenticatedReferencesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedLeagueRouteImport } from './routes/_authenticated/league'
+import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
 import { Route as ShareTokenIndexRouteImport } from './routes/share.$token.index'
 import { Route as AuthenticatedTeamIndexRouteImport } from './routes/_authenticated/team.index'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
+import { Route as AuthenticatedFinanceIndexRouteImport } from './routes/_authenticated/finance.index'
 import { Route as ShareTokenPageRouteImport } from './routes/share.$token.$page'
 import { Route as AuthenticatedTeamIdRouteImport } from './routes/_authenticated/team.$id'
 import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history.compare'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
+import { Route as AuthenticatedFinanceSettingsRouteImport } from './routes/_authenticated/finance.settings'
+import { Route as AuthenticatedFinanceIncomeRouteImport } from './routes/_authenticated/finance.income'
+import { Route as AuthenticatedFinanceExpensesRouteImport } from './routes/_authenticated/finance.expenses'
+import { Route as AuthenticatedFinanceCustomersRouteImport } from './routes/_authenticated/finance.customers'
+import { Route as AuthenticatedFinanceInvoicesIndexRouteImport } from './routes/_authenticated/finance.invoices.index'
+import { Route as AuthenticatedFinanceInvoicesIdRouteImport } from './routes/_authenticated/finance.invoices.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -110,6 +118,11 @@ const AuthenticatedLeagueRoute = AuthenticatedLeagueRouteImport.update({
   path: '/league',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFinanceRoute = AuthenticatedFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedActivityRoute = AuthenticatedActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
@@ -137,6 +150,12 @@ const AuthenticatedProjectsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedProjectsRoute,
   } as any)
+const AuthenticatedFinanceIndexRoute =
+  AuthenticatedFinanceIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedFinanceRoute,
+  } as any)
 const ShareTokenPageRoute = ShareTokenPageRouteImport.update({
   id: '/$page',
   path: '/$page',
@@ -158,6 +177,42 @@ const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedProjectsRoute,
 } as any)
+const AuthenticatedFinanceSettingsRoute =
+  AuthenticatedFinanceSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedFinanceRoute,
+  } as any)
+const AuthenticatedFinanceIncomeRoute =
+  AuthenticatedFinanceIncomeRouteImport.update({
+    id: '/income',
+    path: '/income',
+    getParentRoute: () => AuthenticatedFinanceRoute,
+  } as any)
+const AuthenticatedFinanceExpensesRoute =
+  AuthenticatedFinanceExpensesRouteImport.update({
+    id: '/expenses',
+    path: '/expenses',
+    getParentRoute: () => AuthenticatedFinanceRoute,
+  } as any)
+const AuthenticatedFinanceCustomersRoute =
+  AuthenticatedFinanceCustomersRouteImport.update({
+    id: '/customers',
+    path: '/customers',
+    getParentRoute: () => AuthenticatedFinanceRoute,
+  } as any)
+const AuthenticatedFinanceInvoicesIndexRoute =
+  AuthenticatedFinanceInvoicesIndexRouteImport.update({
+    id: '/invoices/',
+    path: '/invoices/',
+    getParentRoute: () => AuthenticatedFinanceRoute,
+  } as any)
+const AuthenticatedFinanceInvoicesIdRoute =
+  AuthenticatedFinanceInvoicesIdRouteImport.update({
+    id: '/invoices/$id',
+    path: '/invoices/$id',
+    getParentRoute: () => AuthenticatedFinanceRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -166,6 +221,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/access-control': typeof AuthenticatedAccessControlRoute
   '/activity': typeof AuthenticatedActivityRoute
+  '/finance': typeof AuthenticatedFinanceRouteWithChildren
   '/league': typeof AuthenticatedLeagueRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
@@ -176,13 +232,20 @@ export interface FileRoutesByFullPath {
   '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/share/$token': typeof ShareTokenRouteWithChildren
+  '/finance/customers': typeof AuthenticatedFinanceCustomersRoute
+  '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
+  '/finance/income': typeof AuthenticatedFinanceIncomeRoute
+  '/finance/settings': typeof AuthenticatedFinanceSettingsRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/team/$id': typeof AuthenticatedTeamIdRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/finance/': typeof AuthenticatedFinanceIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/team/': typeof AuthenticatedTeamIndexRoute
   '/share/$token/': typeof ShareTokenIndexRoute
+  '/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
+  '/finance/invoices/': typeof AuthenticatedFinanceInvoicesIndexRoute
 }
 export interface FileRoutesByTo {
   '/accept-invite': typeof AcceptInviteRoute
@@ -199,13 +262,20 @@ export interface FileRoutesByTo {
   '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/': typeof AuthenticatedIndexRoute
+  '/finance/customers': typeof AuthenticatedFinanceCustomersRoute
+  '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
+  '/finance/income': typeof AuthenticatedFinanceIncomeRoute
+  '/finance/settings': typeof AuthenticatedFinanceSettingsRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/team/$id': typeof AuthenticatedTeamIdRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/finance': typeof AuthenticatedFinanceIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/team': typeof AuthenticatedTeamIndexRoute
   '/share/$token': typeof ShareTokenIndexRoute
+  '/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
+  '/finance/invoices': typeof AuthenticatedFinanceInvoicesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -215,6 +285,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/access-control': typeof AuthenticatedAccessControlRoute
   '/_authenticated/activity': typeof AuthenticatedActivityRoute
+  '/_authenticated/finance': typeof AuthenticatedFinanceRouteWithChildren
   '/_authenticated/league': typeof AuthenticatedLeagueRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
@@ -226,13 +297,20 @@ export interface FileRoutesById {
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/share/$token': typeof ShareTokenRouteWithChildren
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/finance/customers': typeof AuthenticatedFinanceCustomersRoute
+  '/_authenticated/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
+  '/_authenticated/finance/income': typeof AuthenticatedFinanceIncomeRoute
+  '/_authenticated/finance/settings': typeof AuthenticatedFinanceSettingsRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/_authenticated/team/$id': typeof AuthenticatedTeamIdRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/_authenticated/finance/': typeof AuthenticatedFinanceIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/team/': typeof AuthenticatedTeamIndexRoute
   '/share/$token/': typeof ShareTokenIndexRoute
+  '/_authenticated/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
+  '/_authenticated/finance/invoices/': typeof AuthenticatedFinanceInvoicesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -243,6 +321,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/access-control'
     | '/activity'
+    | '/finance'
     | '/league'
     | '/notifications'
     | '/projects'
@@ -253,13 +332,20 @@ export interface FileRouteTypes {
     | '/share-links'
     | '/tasks'
     | '/share/$token'
+    | '/finance/customers'
+    | '/finance/expenses'
+    | '/finance/income'
+    | '/finance/settings'
     | '/projects/$id'
     | '/reports-history/compare'
     | '/team/$id'
     | '/share/$token/$page'
+    | '/finance/'
     | '/projects/'
     | '/team/'
     | '/share/$token/'
+    | '/finance/invoices/$id'
+    | '/finance/invoices/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/accept-invite'
@@ -276,13 +362,20 @@ export interface FileRouteTypes {
     | '/share-links'
     | '/tasks'
     | '/'
+    | '/finance/customers'
+    | '/finance/expenses'
+    | '/finance/income'
+    | '/finance/settings'
     | '/projects/$id'
     | '/reports-history/compare'
     | '/team/$id'
     | '/share/$token/$page'
+    | '/finance'
     | '/projects'
     | '/team'
     | '/share/$token'
+    | '/finance/invoices/$id'
+    | '/finance/invoices'
   id:
     | '__root__'
     | '/_authenticated'
@@ -291,6 +384,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/access-control'
     | '/_authenticated/activity'
+    | '/_authenticated/finance'
     | '/_authenticated/league'
     | '/_authenticated/notifications'
     | '/_authenticated/projects'
@@ -302,13 +396,20 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks'
     | '/share/$token'
     | '/_authenticated/'
+    | '/_authenticated/finance/customers'
+    | '/_authenticated/finance/expenses'
+    | '/_authenticated/finance/income'
+    | '/_authenticated/finance/settings'
     | '/_authenticated/projects/$id'
     | '/_authenticated/reports-history/compare'
     | '/_authenticated/team/$id'
     | '/share/$token/$page'
+    | '/_authenticated/finance/'
     | '/_authenticated/projects/'
     | '/_authenticated/team/'
     | '/share/$token/'
+    | '/_authenticated/finance/invoices/$id'
+    | '/_authenticated/finance/invoices/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -426,6 +527,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeagueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/finance': {
+      id: '/_authenticated/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof AuthenticatedFinanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/activity': {
       id: '/_authenticated/activity'
       path: '/activity'
@@ -461,6 +569,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsIndexRouteImport
       parentRoute: typeof AuthenticatedProjectsRoute
     }
+    '/_authenticated/finance/': {
+      id: '/_authenticated/finance/'
+      path: '/'
+      fullPath: '/finance/'
+      preLoaderRoute: typeof AuthenticatedFinanceIndexRouteImport
+      parentRoute: typeof AuthenticatedFinanceRoute
+    }
     '/share/$token/$page': {
       id: '/share/$token/$page'
       path: '/$page'
@@ -489,8 +604,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsIdRouteImport
       parentRoute: typeof AuthenticatedProjectsRoute
     }
+    '/_authenticated/finance/settings': {
+      id: '/_authenticated/finance/settings'
+      path: '/settings'
+      fullPath: '/finance/settings'
+      preLoaderRoute: typeof AuthenticatedFinanceSettingsRouteImport
+      parentRoute: typeof AuthenticatedFinanceRoute
+    }
+    '/_authenticated/finance/income': {
+      id: '/_authenticated/finance/income'
+      path: '/income'
+      fullPath: '/finance/income'
+      preLoaderRoute: typeof AuthenticatedFinanceIncomeRouteImport
+      parentRoute: typeof AuthenticatedFinanceRoute
+    }
+    '/_authenticated/finance/expenses': {
+      id: '/_authenticated/finance/expenses'
+      path: '/expenses'
+      fullPath: '/finance/expenses'
+      preLoaderRoute: typeof AuthenticatedFinanceExpensesRouteImport
+      parentRoute: typeof AuthenticatedFinanceRoute
+    }
+    '/_authenticated/finance/customers': {
+      id: '/_authenticated/finance/customers'
+      path: '/customers'
+      fullPath: '/finance/customers'
+      preLoaderRoute: typeof AuthenticatedFinanceCustomersRouteImport
+      parentRoute: typeof AuthenticatedFinanceRoute
+    }
+    '/_authenticated/finance/invoices/': {
+      id: '/_authenticated/finance/invoices/'
+      path: '/invoices'
+      fullPath: '/finance/invoices/'
+      preLoaderRoute: typeof AuthenticatedFinanceInvoicesIndexRouteImport
+      parentRoute: typeof AuthenticatedFinanceRoute
+    }
+    '/_authenticated/finance/invoices/$id': {
+      id: '/_authenticated/finance/invoices/$id'
+      path: '/invoices/$id'
+      fullPath: '/finance/invoices/$id'
+      preLoaderRoute: typeof AuthenticatedFinanceInvoicesIdRouteImport
+      parentRoute: typeof AuthenticatedFinanceRoute
+    }
   }
 }
+
+interface AuthenticatedFinanceRouteChildren {
+  AuthenticatedFinanceCustomersRoute: typeof AuthenticatedFinanceCustomersRoute
+  AuthenticatedFinanceExpensesRoute: typeof AuthenticatedFinanceExpensesRoute
+  AuthenticatedFinanceIncomeRoute: typeof AuthenticatedFinanceIncomeRoute
+  AuthenticatedFinanceSettingsRoute: typeof AuthenticatedFinanceSettingsRoute
+  AuthenticatedFinanceIndexRoute: typeof AuthenticatedFinanceIndexRoute
+  AuthenticatedFinanceInvoicesIdRoute: typeof AuthenticatedFinanceInvoicesIdRoute
+  AuthenticatedFinanceInvoicesIndexRoute: typeof AuthenticatedFinanceInvoicesIndexRoute
+}
+
+const AuthenticatedFinanceRouteChildren: AuthenticatedFinanceRouteChildren = {
+  AuthenticatedFinanceCustomersRoute: AuthenticatedFinanceCustomersRoute,
+  AuthenticatedFinanceExpensesRoute: AuthenticatedFinanceExpensesRoute,
+  AuthenticatedFinanceIncomeRoute: AuthenticatedFinanceIncomeRoute,
+  AuthenticatedFinanceSettingsRoute: AuthenticatedFinanceSettingsRoute,
+  AuthenticatedFinanceIndexRoute: AuthenticatedFinanceIndexRoute,
+  AuthenticatedFinanceInvoicesIdRoute: AuthenticatedFinanceInvoicesIdRoute,
+  AuthenticatedFinanceInvoicesIndexRoute:
+    AuthenticatedFinanceInvoicesIndexRoute,
+}
+
+const AuthenticatedFinanceRouteWithChildren =
+  AuthenticatedFinanceRoute._addFileChildren(AuthenticatedFinanceRouteChildren)
 
 interface AuthenticatedProjectsRouteChildren {
   AuthenticatedProjectsIdRoute: typeof AuthenticatedProjectsIdRoute
@@ -525,6 +706,7 @@ const AuthenticatedReportsHistoryRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessControlRoute: typeof AuthenticatedAccessControlRoute
   AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
+  AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRouteWithChildren
   AuthenticatedLeagueRoute: typeof AuthenticatedLeagueRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
@@ -542,6 +724,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessControlRoute: AuthenticatedAccessControlRoute,
   AuthenticatedActivityRoute: AuthenticatedActivityRoute,
+  AuthenticatedFinanceRoute: AuthenticatedFinanceRouteWithChildren,
   AuthenticatedLeagueRoute: AuthenticatedLeagueRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,

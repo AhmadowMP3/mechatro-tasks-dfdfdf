@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2, Eye, Pencil, Crown, UserPlus, ChevronDown, Compass, Briefcase, UsersRound, BarChart3, UserCog } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2, Eye, Pencil, Crown, UserPlus, ChevronDown, Compass, Briefcase, UsersRound, BarChart3, UserCog, Wallet, Receipt, TrendingDown, TrendingUp, Building2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ type NavSection = {
   items: NavItem[];
   adminOnly?: boolean;
   masterOnly?: boolean;
+  financeOnly?: boolean;
 };
 
 const NAV_SECTIONS: NavSection[] = [
@@ -64,6 +65,18 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    titleKey: "financeSection",
+    icon: Wallet,
+    financeOnly: true,
+    items: [
+      { to: "/finance",           icon: BarChart3,    key: null, label: { ar: "لوحة مالية", en: "Finance" } },
+      { to: "/finance/invoices",  icon: FileText,     key: null, label: { ar: "الفواتير", en: "Invoices" } },
+      { to: "/finance/customers", icon: Building2,    key: null, label: { ar: "العملاء", en: "Customers" } },
+      { to: "/finance/expenses",  icon: TrendingDown, key: null, label: { ar: "المصاريف", en: "Expenses" } },
+      { to: "/finance/income",    icon: TrendingUp,   key: null, label: { ar: "الدخل", en: "Income" } },
+    ],
+  },
+  {
     titleKey: "adminSection",
     icon: ShieldCheck,
     adminOnly: true,
@@ -85,7 +98,7 @@ const NAV_SECTIONS: NavSection[] = [
 const COLLAPSED_STORAGE_KEY = "mechatro-sidebar-collapsed-v1";
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
-  const { t, user, session, lang, signOut, isMasterAdmin, isAdmin, refreshSelf } = useApp();
+  const { t, user, session, lang, signOut, isMasterAdmin, isAdmin, isFinanceAdmin, refreshSelf } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const shareMode = isShareMode();
   const shareLink = getShareLink();
@@ -134,6 +147,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       if (section.adminOnly && !isAdmin) return { ...section, items: [] };
       if (section.masterOnly && !isMasterAdmin) return { ...section, items: [] };
+      if (section.financeOnly && !isFinanceAdmin) return { ...section, items: [] };
       return { ...section, items };
     })
     .filter((s) => s.items.length > 0);
