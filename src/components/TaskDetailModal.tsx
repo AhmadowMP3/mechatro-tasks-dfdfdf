@@ -35,6 +35,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
   const [newComment, setNewComment] = useState("");
   const [linkName, setLinkName] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [savingLink, setSavingLink] = useState(false);
   const [dirty, setDirty] = useState<Partial<Task>>({});
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
@@ -140,14 +141,34 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     load();
   };
 
+  const driveTypeLabel = (url: string): string => {
+    switch (driveFileType(url)) {
+      case "folder": return t("driveFolder");
+      case "doc": return t("googleDoc");
+      case "sheet": return t("googleSheet");
+      case "slides": return t("googleSlides");
+      default: return t("driveFile");
+    }
+  };
+  const detectedType = linkUrl.trim() && isDriveUrl(linkUrl) ? driveTypeLabel(linkUrl) : "";
+
   const addLink = async () => {
-    if (!isDriveUrl(linkUrl)) { toast.error(t("invalidDriveUrl")); return; }
-    if (!linkName.trim()) return;
-    await supabase.from("task_files").insert({
-      task_id: taskId, file_name: linkName.trim(), drive_url: linkUrl.trim(),
-      file_type: driveFileType(linkUrl), added_by: user?.id ?? null,
+    const url = linkUrl.trim();
+    if (!url) { toast.error(t("urlRequired")); return; }
+    if (!isDriveUrl(url)) { toast.error(t("invalidDriveUrl")); return; }
+    const name = linkName.trim() || driveTypeLabel(url);
+    setSavingLink(true);
+    const { error } = await supabase.from("task_files").insert({
+      task_id: taskId, file_name: name, drive_url: url,
+      file_type: driveFileType(url), added_by: user?.id ?? null,
     });
-    
+    setSavingLink(false);
+    if (error) {
+      const { explainSupabaseError } = await import("@/lib/permission-errors");
+      toast.error(explainSupabaseError(error, { action: "create", entity: "task", user, lang }), { duration: 8000 });
+      return;
+    }
+    toast.success(t("linkSaved"));
     setLinkName(""); setLinkUrl("");
     load();
   };
@@ -353,10 +374,60 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
             </div>
           ))}
           {canEdit && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr auto", gap: 8, marginTop: 8 }}>
-              <input placeholder={t("linkName")} value={linkName} onChange={(e) => setLinkName(e.target.value)} style={selectStyle} />
-              <input placeholder={t("driveUrl")} value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} style={selectStyle} />
-              <button onClick={addLink} className="brand-btn-sm" style={{ background: "var(--grad-blue)", color: "#fff" }}>{t("addLink")}</button>
+            <div style={{ marginTop: 8, padding: 12, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12 }}>
+              <div style={{ position: "relative", marginBottom: 8 }}>
+                <input
+                  placeholder={t("driveUrl")}
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } }}
+                  style={{ ...selectStyle, paddingInlineEnd: detectedType ? 140 : 12 }}
+                />
+                {detectedType && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      insetInlineEnd: 8,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      background: "rgba(66,194,238,.15)",
+                      color: "#42C2EE",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <LinkIcon size={12} /> {detectedType}
+                  </span>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexWrap: "wrap" }}>
+                <input
+                  placeholder={t("linkName")}
+                  value={linkName}
+                  onChange={(e) => setLinkName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } }}
+                  style={{ ...selectStyle, flex: "1 1 200px" }}
+                />
+                <button
+                  onClick={addLink}
+                  disabled={!linkUrl.trim() || savingLink}
+                  className="brand-btn"
+                  style={{
+                    background: !linkUrl.trim() || savingLink ? "var(--surface-3)" : "var(--grad-green)",
+                    color: !linkUrl.trim() || savingLink ? "var(--muted)" : "#fff",
+                    minWidth: 140,
+                    cursor: !linkUrl.trim() || savingLink ? "not-allowed" : "pointer",
+                  }}
+                >
+                  <Save size={16} /> {savingLink ? "…" : t("saveLink")}
+                </button>
+              </div>
             </div>
           )}
         </div>

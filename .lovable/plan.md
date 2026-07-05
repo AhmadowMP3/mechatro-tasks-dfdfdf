@@ -1,39 +1,48 @@
 ## Goal
 
-When sharing a task to WhatsApp or Telegram, append a deep link to the task so recipients can open it directly. Today the WhatsApp share sends text only, and Telegram uses `location.href` (which points to whatever page happens to be open, not the task).
+Fix the confusing Google Drive link flow in the task modal. The current "Add link" button does save the link to the database but gives no visible feedback, so users think nothing happened. Rebuild it as a clean, obvious save action with proper feedback and validation.
 
-## Changes
+## Changes — `src/components/TaskDetailModal.tsx`
 
-### 1. Deep-link URL — `?task=<id>`
+### 1. Better `addLink` handler
 
-Since tasks are viewed in a modal (no dedicated `/tasks/$id` route), use a query-param deep link:
+- Trim inputs first.
+- If URL empty → toast "URL is required".
+- If URL is not a Google Drive/Docs/Sheets/Slides URL → toast `invalidDriveUrl` (already exists).
+- If name is empty → **auto-fill a smart default** based on `driveFileType(url)`:
+  - `folder` → "Drive folder"
+  - `doc` → "Google Doc"
+  - `sheet` → "Google Sheet"
+  - `slides` → "Google Slides"
+  - `file` → "Drive file"
+  (Localized via new i18n keys.)
+- Insert row. On success: `toast.success(t("linkSaved"))`, clear inputs, refresh list.
+- On DB error: surface message via `explainSupabaseError` (used elsewhere in this codebase).
+- Disable the button while saving; show a small spinner state.
 
-```
-${window.location.origin}/tasks?task=<task-id>
-```
+### 2. Better inline UI
 
-### 2. Auto-open modal from `?task=<id>`
+Replace the 3-column `1fr 2fr auto` grid with a two-row card:
 
-In `src/routes/_authenticated/tasks.tsx`: on mount / when the search param changes, if `task` is present, set the selected task id so `TaskDetailModal` opens automatically. When the modal closes, clear the query param (via `navigate({ search: {} })`) so the back button behaves correctly.
+- Row 1: URL input (full width) with a small live-detected chip on the right showing the file type icon + label ("Google Sheet", "Drive folder", etc.) once the URL is valid.
+- Row 2: Name input (left, flex 1) + **"Save link"** button (right, brand-green gradient, wider, prominent).
+- Rename button label from `addLink` → `saveLink` (add new i18n key; keep old `addLink` key too).
+- `onKeyDown` on both inputs: Enter submits.
+- Button is disabled until URL is non-empty.
 
-Also apply the same auto-open behavior on `src/routes/_authenticated/projects.$id.tsx` for tasks that belong to that project (so a link opened while viewing a project also opens the modal).
+### 3. i18n additions in `src/i18n/dict.ts`
 
-### 3. Update the share message + links — `src/components/TaskDetailModal.tsx`
-
-- Add a new i18n key `shareViewLink` (`View task:` / `عرض المهمة:`) and include the deep link at the end of the shared text.
-- Build `taskUrl = ${origin}/tasks?task=${task.id}`.
-- WhatsApp link: `https://wa.me/?text=<message + \n\n + taskUrl>` (WhatsApp shows the URL inline, becomes a preview).
-- Telegram link: `https://t.me/share/url?url=<taskUrl>&text=<message>` (Telegram uses the `url` param as the shared link and prepends `text` as caption).
-- Add a small "Copy link" button next to the two share buttons for convenience (icon + `navigator.clipboard.writeText(taskUrl)` + toast).
-
-### 4. i18n additions (`src/i18n/dict.ts`)
-
-- `shareViewLink`: `{ ar: "عرض المهمة", en: "View task" }`
-- `copyLink`: `{ ar: "نسخ الرابط", en: "Copy link" }`
-- `linkCopied`: `{ ar: "تم نسخ الرابط", en: "Link copied" }`
+- `saveLink`: `{ ar: "حفظ الرابط", en: "Save link" }`
+- `linkSaved`: `{ ar: "تم حفظ الرابط", en: "Link saved" }`
+- `urlRequired`: `{ ar: "أدخل رابط", en: "URL is required" }`
+- `driveFolder`: `{ ar: "مجلد درايف", en: "Drive folder" }`
+- `googleDoc`: `{ ar: "مستند Google", en: "Google Doc" }`
+- `googleSheet`: `{ ar: "جدول Google", en: "Google Sheet" }`
+- `googleSlides`: `{ ar: "عرض Google", en: "Google Slides" }`
+- `driveFile`: `{ ar: "ملف درايف", en: "Drive file" }`
 
 ## Out of scope
 
-- No new dedicated `/tasks/$id` route (query param keeps existing modal UX intact).
-- No changes to sharing from `TaskCard` (still opens the modal first).
-- No changes to auth/RLS — recipients still need permission to see the task once they follow the link.
+- No changes to the existing "Google Drive links" list rendering below the input row.
+- No changes to `task_files` schema or `isDriveUrl` regex.
+- No connector integration (this is just saving user-provided Drive URLs, not authenticated API access).
