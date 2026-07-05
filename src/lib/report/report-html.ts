@@ -169,7 +169,8 @@ function coverPage(data: ReportData, lang: Lang, s: Stats): string {
   // Minimal theme uses a totally different layout: big black text, thin gold divider.
   if (th.id === "minimal") {
     return `
-    <section class="pdf-page cover" style="background:${th.coverBg};color:${onCoverText};position:relative;overflow:hidden">
+    <section class="pdf-page cover" dir="${lang === 'ar' ? 'rtl' : 'ltr'}" lang="${lang}" style="background:${th.coverBg};color:${onCoverText};position:relative;overflow:hidden">
+
       <div style="padding:80px 72px 56px 72px;height:100%;display:flex;flex-direction:column;gap:32px">
         <div style="display:flex;align-items:center;gap:12px">
           <img src="${logo}" style="width:36px;height:36px;object-fit:contain"/>
