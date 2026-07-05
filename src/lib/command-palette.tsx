@@ -130,8 +130,8 @@ export function CommandPalette() {
             .select("id,name_ar,name_en")
             .or(`name_ar.ilike.${like},name_en.ilike.${like}`).limit(6),
           supabase.from("references")
-            .select("id,title_ar,title_en,tag")
-            .or(`title_ar.ilike.${like},title_en.ilike.${like}`).limit(6),
+            .select("id,title,description,category")
+            .or(`title.ilike.${like},description.ilike.${like},category.ilike.${like}`).limit(6),
           isAdmin
             ? supabase.from("profiles")
                 .select("id,full_name,username,email,role,status")
@@ -162,8 +162,8 @@ export function CommandPalette() {
         for (const r of refs.data ?? []) {
           out.push({
             id: `ref-${r.id}`, kind: "reference",
-            title: (lang === "ar" ? r.title_ar : r.title_en) || r.title_en || r.title_ar || "—",
-            subtitle: r.tag ? `${lang === "ar" ? "مرجع" : "Reference"} · ${r.tag}` : (lang === "ar" ? "مرجع" : "Reference"),
+            title: r.title || "—",
+            subtitle: r.category ? `${lang === "ar" ? "مرجع" : "Reference"} · ${r.category}` : (lang === "ar" ? "مرجع" : "Reference"),
             to: `/references?open=${r.id}`,
             icon: <BookOpen size={16} />,
           });
