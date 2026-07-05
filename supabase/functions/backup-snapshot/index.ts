@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
     const res = await runSnapshot(null);
     return json(200, res);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return json(500, { error: msg });
+    console.error("backup-snapshot error", e);
+    return json(500, { error: errMsg(e) });
   }
 });
