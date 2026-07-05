@@ -225,9 +225,9 @@ function ActivityPage() {
   };
 
   const patchSearch = (partial: Partial<z.infer<typeof searchSchema>>) => {
-    navigate({ search: (prev: Search) => ({ ...prev, ...partial }) });
+    navigate({ to: "/activity", search: (prev: Search) => ({ ...prev, ...partial }), replace: true });
   };
-  const resetFilters = () => navigate({ search: { q: "", user: "", action: "", entity: "", range: "7d", from: "", to: "" } });
+  const resetFilters = () => navigate({ to: "/activity", search: { q: "", user: "", action: "", entity: "", range: "7d", from: "", to: "" }, replace: true });
 
   // Group rows by day
   const groups = useMemo(() => {
