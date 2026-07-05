@@ -83,6 +83,57 @@ function ReferencesPage() {
     return arr;
   }, [rows, search, onlyPinned, selectedCategory, selectedTags, sort]);
 
+  const { isSelected, toggle, ids: selectedIds } = useBulkSelection<RefRow>({
+    pageId: "references",
+    items: filtered,
+    deps: [filtered.length, canManage, lang],
+    buildBar: canManage
+      ? (sel, clearSel) => ({
+          count: sel.length,
+          totalLabel: lang === "ar"
+            ? `${sel.length} مرجع محدد`
+            : `${sel.length} reference${sel.length === 1 ? "" : "s"} selected`,
+          actions: [
+            {
+              id: "pin",
+              label: lang === "ar" ? "تثبيت" : "Pin",
+              icon: <Pin size={14} />,
+              onRun: async () => {
+                await (supabase.from as unknown as (t: string) => any)("references").update({ pinned: true }).in("id", sel);
+                clearSel(); refetch();
+                toast.success(lang === "ar" ? "تم التثبيت" : "Pinned");
+              },
+            },
+            {
+              id: "unpin",
+              label: lang === "ar" ? "إلغاء التثبيت" : "Unpin",
+              icon: <PinOff size={14} />,
+              onRun: async () => {
+                await (supabase.from as unknown as (t: string) => any)("references").update({ pinned: false }).in("id", sel);
+                clearSel(); refetch();
+              },
+            },
+            {
+              id: "delete",
+              label: lang === "ar" ? "حذف" : "Delete",
+              icon: <Trash2 size={14} />,
+              destructive: true,
+              confirm: lang === "ar"
+                ? `حذف ${sel.length} مرجع؟`
+                : `Delete ${sel.length} reference${sel.length === 1 ? "" : "s"}?`,
+              onRun: async () => {
+                const { error } = await (supabase.from as unknown as (t: string) => any)("references").delete().in("id", sel);
+                if (error) { toast.error(error.message); return; }
+                toast.success(lang === "ar" ? "تم الحذف" : "Deleted");
+                clearSel(); refetch();
+              },
+            },
+          ],
+        })
+      : () => null,
+  });
+  const bulkMode = selectedIds.length > 0;
+
   const togglePin = async (r: RefRow) => {
     await (supabase.from as unknown as (t: string) => any)("references").update({ pinned: !r.pinned }).eq("id", r.id);
     refetch();
