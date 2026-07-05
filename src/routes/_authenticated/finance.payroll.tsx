@@ -414,7 +414,7 @@ function PaySlipModal({ entry, member, onClose }: { entry: PayrollEntry; member:
         <div className="print-slip" style={{ padding: 32 }}>
           <div style={{ background: "var(--grad-blue, linear-gradient(135deg,#3B82F6,#1E40AF))", color: "#fff", padding: "16px 20px", borderRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 20 }}>{lang === "ar" ? (settings?.company_legal_name_ar ?? "ميكاترو") : (settings?.company_legal_name_en ?? "Mechatro")}</div>
+              <div style={{ fontWeight: 800, fontSize: 20 }}>{lang === "ar" ? (settings?.company_name_ar ?? "ميكاترو") : (settings?.company_name_en ?? "Mechatro")}</div>
               <div style={{ fontSize: 12, opacity: 0.9 }}>{lang === "ar" ? (settings?.company_address_ar ?? "") : (settings?.company_address_en ?? "")}</div>
             </div>
             <img src="/mechatro-logo.png" alt="logo" style={{ height: 40 }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
