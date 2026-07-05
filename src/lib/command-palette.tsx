@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
-import { isShareMode, allowedPaths } from "@/lib/share-mode";
+import { isShareMode, shareAllowedPaths } from "@/lib/share-mode";
 
 type Suggestion = {
   id: string;
