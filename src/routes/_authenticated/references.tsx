@@ -31,7 +31,7 @@ type SortMode = "newest" | "oldest" | "az";
 
 function ReferencesPage() {
   const { t, lang, user, isMasterAdmin } = useApp();
-  const canManage = isMasterAdmin || user?.role === "admin" || user?.role === "manager";
+  const canManage = isMasterAdmin || user?.role === "admin";
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
