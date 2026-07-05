@@ -390,12 +390,47 @@ function TasksPage() {
           <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noTasks")}</div>
         ) : view === "cards" ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px),1fr))", gap: 14 }}>
-            {filtered.map((tk) => (
-              <TaskCard key={tk.id} task={tk}
-                project={projects.find((p) => p.id === tk.project_id) ?? null}
-                assignee={displayUsers.find((u) => u.id === tk.assignee_id) ?? null}
-                onClick={() => setSelected(tk.id)} />
-            ))}
+            {filtered.map((tk) => {
+              const checked = isSelected(tk.id);
+              return (
+                <div
+                  key={tk.id}
+                  style={{
+                    position: "relative",
+                    borderRadius: 16,
+                    outline: checked ? "2px solid var(--primary, #189FD1)" : "none",
+                    outlineOffset: 2,
+                    transition: "outline .12s",
+                  }}
+                  onClick={(e) => {
+                    if (bulkMode && isAdmin) { e.stopPropagation(); toggle(tk.id); }
+                  }}
+                >
+                  {isAdmin && (
+                    <div
+                      onClick={(e) => { e.stopPropagation(); toggle(tk.id); }}
+                      className="ref-bulk-check"
+                      style={{
+                        position: "absolute",
+                        top: 10,
+                        insetInlineStart: 10,
+                        zIndex: 5,
+                        opacity: checked || bulkMode ? 1 : 0,
+                        transition: "opacity .12s",
+                      }}
+                    >
+                      <BulkCheckbox checked={checked} onChange={() => toggle(tk.id)} label={lang === "ar" ? "تحديد" : "Select"} />
+                    </div>
+                  )}
+                  <div style={{ pointerEvents: bulkMode ? "none" : "auto" }}>
+                    <TaskCard task={tk}
+                      project={projects.find((p) => p.id === tk.project_id) ?? null}
+                      assignee={displayUsers.find((u) => u.id === tk.assignee_id) ?? null}
+                      onClick={() => setSelected(tk.id)} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : view === "kanban" ? (
           <KanbanView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} onChanged={refetch} />
