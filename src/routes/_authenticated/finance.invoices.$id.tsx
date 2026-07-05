@@ -9,8 +9,10 @@ import {
   type Invoice, type InvoiceItem, type InvoicePayment, type Customer, type Currency, type PaymentMethod, type FinancialSettings, type FxRate,
 } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
-import { Plus, Trash2, Save, Send, Download, DollarSign, ArrowLeft, X, Ban } from "lucide-react";
+import { Plus, Trash2, Save, Send, Download, DollarSign, ArrowLeft, X, Ban, Receipt } from "lucide-react";
 import { useConfirm } from "@/components/confirm-dialog";
+import { renderAndDownloadPdf } from "@/lib/pdf-render";
+import { InvoiceDocument, PaymentReceiptDocument, paymentMethodTextFor, type CompanySettings } from "@/components/finance/BrandedDocuments";
 
 export const Route = createFileRoute("/_authenticated/finance/invoices/$id")({
   component: InvoiceEditorPage,
@@ -243,11 +245,27 @@ function InvoiceEditorPage() {
     navigate({ to: "/finance/invoices" });
   };
 
-  const downloadPdf = () => {
-    if (isNew) { toast.error(t("saveDraft")); return; }
-    // Client-side print for now — the browser's "Save as PDF" produces a branded copy.
-    window.print();
+  const downloadPdf = async () => {
+    if (isNew || !existing) { toast.error(t("saveDraft")); return; }
+    const cust = customers?.find((c) => c.id === existing.invoice.customer_id) ?? null;
+    try {
+      await renderAndDownloadPdf(
+        <InvoiceDocument
+          invoice={existing.invoice}
+          items={existing.items}
+          customer={cust}
+          settings={settings as CompanySettings | null}
+          lang={lang}
+        />,
+        `${existing.invoice.number ?? "invoice"}.pdf`,
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
   };
+
+  const [receiptPayment, setReceiptPayment] = useState<InvoicePayment | null>(null);
+
 
   const statusColors = existing ? invoiceStatusColor(existing.invoice.status) : null;
 
@@ -408,10 +426,18 @@ function InvoiceEditorPage() {
           <h3 style={{ margin: "0 0 12px", fontSize: 16 }}>{t("payments")}</h3>
           <div style={{ display: "grid", gap: 6 }}>
             {existing.payments.map((p) => (
-              <div key={p.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: 10, alignItems: "center", padding: "10px 12px", background: "var(--surface-2)", borderRadius: 10, border: "1px solid var(--border)" }}>
+              <div key={p.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto auto auto", gap: 10, alignItems: "center", padding: "10px 12px", background: "var(--surface-2)", borderRadius: 10, border: "1px solid var(--border)" }}>
                 <span style={{ fontSize: 13, color: "var(--muted)", whiteSpace: "nowrap" }}>{formatDate(p.paid_at, lang)}</span>
                 <span style={{ fontSize: 13 }}>{t(paymentMethodKey(p.method))}{p.reference ? ` · ${p.reference}` : ""}</span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "#50C878" }}>{formatMoney(p.amount, p.currency, lang)}</span>
+                <button
+                  onClick={() => setReceiptPayment(p)}
+                  className="brand-btn-sm"
+                  title={t("paymentReceipt")}
+                  style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--foreground)", padding: "4px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}
+                >
+                  <Receipt size={13} /> {t("paymentReceipt")}
+                </button>
                 <PaymentDeleteButton id={p.id} onDone={() => qc.invalidateQueries({ queryKey: ["invoice", id] })} />
               </div>
             ))}
@@ -424,6 +450,16 @@ function InvoiceEditorPage() {
           invoice={existing.invoice}
           onClose={() => setShowPayment(false)}
           onSaved={() => { setShowPayment(false); qc.invalidateQueries({ queryKey: ["invoice", id] }); qc.invalidateQueries({ queryKey: ["invoices"] }); }}
+        />
+      )}
+
+      {receiptPayment && existing && (
+        <PaymentReceiptModal
+          payment={receiptPayment}
+          invoice={existing.invoice}
+          customer={customers?.find((c) => c.id === existing.invoice.customer_id) ?? null}
+          settings={(settings as CompanySettings | null) ?? null}
+          onClose={() => setReceiptPayment(null)}
         />
       )}
     </div>
@@ -443,6 +479,61 @@ function PaymentDeleteButton({ id, onDone }: { id: string; onDone: () => void })
     <button onClick={remove} className="brand-btn-sm" style={{ background: "transparent", border: "none", color: "#F0676A", padding: 4 }}>
       <X size={14} />
     </button>
+  );
+}
+
+function PaymentReceiptModal({
+  payment, invoice, customer, settings, onClose,
+}: {
+  payment: InvoicePayment;
+  invoice: Invoice;
+  customer: Customer | null;
+  settings: CompanySettings | null;
+  onClose: () => void;
+}) {
+  const { t, lang } = useApp();
+  const [downloading, setDownloading] = useState(false);
+  const download = async () => {
+    setDownloading(true);
+    try {
+      await renderAndDownloadPdf(
+        <PaymentReceiptDocument
+          payment={payment}
+          invoice={invoice}
+          customer={customer}
+          settings={settings}
+          lang={lang}
+          methodLabel={paymentMethodTextFor(payment.method, lang)}
+        />,
+        `receipt-${(payment.id ?? "").slice(0, 8)}.pdf`,
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally {
+      setDownloading(false);
+    }
+  };
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div className="brand-card" onClick={(e) => e.stopPropagation()} style={{ background: "var(--card)", padding: 20, borderRadius: 16, maxWidth: 480, width: "100%" }}>
+        <h2 style={{ margin: "0 0 6px", fontSize: 18 }}>{t("paymentReceipt")}</h2>
+        <p style={{ margin: "0 0 16px", color: "var(--muted)", fontSize: 13 }}>
+          {formatDate(payment.paid_at, lang)} · {formatMoney(payment.amount, payment.currency, lang)}
+        </p>
+        <div style={{ padding: 14, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, marginBottom: 16, fontSize: 13, lineHeight: 1.8 }}>
+          <div><b>{t("customer")}:</b> {customer ? (lang === "ar" ? customer.name_ar || customer.name_en : customer.name_en || customer.name_ar) : "—"}</div>
+          <div><b>{t("invoice")}:</b> {invoice.number ?? "—"}</div>
+          <div><b>{t("paymentMethod")}:</b> {paymentMethodTextFor(payment.method, lang)}</div>
+          {payment.reference && <div><b>{t("reference")}:</b> {payment.reference}</div>}
+        </div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
+          <button onClick={download} disabled={downloading} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", opacity: downloading ? 0.6 : 1 }}>
+            <Download size={16} /> {t("downloadPdf")}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

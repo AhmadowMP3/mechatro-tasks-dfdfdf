@@ -1,148 +1,128 @@
-## نظام مالي داخلي كامل لميكاترو — إدخال يدوي بالكامل
+## ملاحظة مهمة قبل ما نبدأ
 
-نظام محاسبة داخلي لتتبع الدخل والمصاريف والرواتب والفواتير والاشتراكات، **بدون أي بوابة دفع إلكترونية**. جميع الأرقام تُدخل يدوياً من قبل المسؤول المالي.
+**رفع إيصالات المصاريف موجود فعلاً وشغّال** في `finance.expenses.tsx`:
+- رفع الملف إلى bucket `expense-receipts` عند إنشاء/تعديل المصروف
+- عرض/تحميل الإيصال عبر `createSignedUrl` (سطر 71 و 216)
 
----
-
-### 1. الوحدات الأساسية
-
-#### أ) العملاء (Customers)
-- CRUD كامل: اسم عربي/إنجليزي، شركة، بريد، هاتف، عنوان، رقم ضريبي، ملاحظات، عملة افتراضية.
-- سجل كامل لكل عميل: فواتيره، مدفوعاته، رصيده المستحق.
-
-#### ب) الفواتير (Invoices)
-- ترقيم تلقائي تسلسلي (`INV-2026-0001`).
-- بنود يدوية: وصف، كمية، سعر وحدة، خصم، مجموع.
-- حساب فوري: subtotal → خصم → ضريبة → إجمالي.
-- حالات: `draft / issued / partially_paid / paid / overdue / void`.
-- ربط اختياري بمشروع من `projects`.
-- **إخراج PDF** بهوية الموقع (شعار، ألوان، خطوط عربي+إنجليزي).
-- تسجيل يدوي للمدفوعات المستلمة (تاريخ، مبلغ، طريقة، ملاحظات، مرفق اختياري).
-
-#### ج) المصاريف (Expenses)
-- فئات: رواتب، إيجار، معدات، برمجيات، تسويق، مواصلات، ضيافة، أخرى (قابلة للإضافة).
-- كل مصروف: تاريخ، فئة، مورد/جهة، وصف، مبلغ، عملة، طريقة دفع (كاش/تحويل/شيك)، حالة (paid/pending)، إيصال (رفع صورة/PDF)، ملاحظات.
-- ربط اختياري بمشروع لتتبع ربحية المشاريع.
-
-#### د) الرواتب والمستحقات (Payroll)
-- **رواتب الأعضاء** بجدولة شهرية:
-  - راتب أساسي لكل عضو (يُحدّد من الإعدادات).
-  - إضافات: مكافأة نقاط، مكافأة streak، مكافآت يدوية، بدل مواصلات.
-  - خصومات: تأخير، سلف، خصومات يدوية.
-  - صافي الراتب محسوب تلقائياً.
-- إمكانية توليد كشف الرواتب الشهري لكل الأعضاء دفعة واحدة، مع تعديل يدوي على كل صف قبل الاعتماد.
-- **إيصال راتب PDF** لكل عضو بهوية الموقع + تفصيل النقاط والمهام.
-- تسجيل الدفع الفعلي (تاريخ، طريقة، ملاحظة).
-
-#### هـ) الدخل (Income)
-- **مصدر تلقائي:** كل payment مسجّل على فاتورة يظهر كدخل.
-- **مصدر يدوي:** إمكانية إضافة دخل مباشر (بدون فاتورة) مع فئة (استشارة، بيع أصل، أخرى)، تاريخ، مبلغ، عملة، ملاحظات.
-
-#### و) الاشتراكات (Subscriptions)
-- **مصاريف اشتراكات** (خدمات دورية تدفعها الشركة): اسم الخدمة (Adobe, GitHub, Hosting...)، دورة (شهري/ربع سنوي/سنوي)، مبلغ، عملة، تاريخ التجديد التالي، حالة، تذكير قبل التجديد بأيام.
-- **دخل اشتراكات** (عملاء دائمون): عميل، خطة، مبلغ، دورة، تاريخ بدء، تاريخ الفاتورة القادمة، حالة (active/paused/canceled).
-- توليد فاتورة تلقائي (اختياري بضغطة زر) عند حلول تاريخ التجديد.
+فش شي ناقص هنا — إلا إذا بدك ميزات إضافية (رفع متعدد، معاينة داخل الصفحة، سحب وإفلات). خبّرني إذا بدك تحسينات وإلا رح أعتبرها منتهية وأركّز على الأربعة الباقية.
 
 ---
 
-### 2. اللوحة المالية (Dashboard)
+## المخطط: 4 مزايا
 
-`/finance` تعرض:
-- **KPIs علوية:** إجمالي الدخل الشهري، إجمالي المصاريف، صافي الربح، المستحق من العملاء (AR)، المستحق للموردين (AP)، رواتب الشهر.
-- **رسم بياني:** الدخل vs المصاريف آخر 12 شهر (bar/line).
-- **Pie chart:** توزيع المصاريف حسب الفئة.
-- **قائمة سريعة:** فواتير قيد التحصيل، اشتراكات تنتهي قريباً، رواتب لم تُصرف.
-- **تبديل عملة العرض:** SYP ⇄ USD (كل الأرقام تتحول فوراً حسب سعر الصرف).
+### 1) PDF احترافي بالهوية البصرية
 
----
+**النهج:** استبدال `window.print()` بـ edge function تولد PDF فعلي، لأن `@react-pdf/renderer` ما يشتغل على Cloudflare Workers (يحتاج Node runtime + native). الحل الموثوق: توليد HTML مصمم بالكامل مع الخطوط والشعار من داخل TanStack server function ثم استخدام مكتبة **pdfmake** (Pure JS، تشتغل على Workers) أو الأبسط: توليد HTML جاهز للطباعة + ملف `.pdf.html` يفتحه المستخدم ويطبعه بأمر واحد.
 
-### 3. العملات (SYP + USD)
+**بعد بحث موجز:** الحل الأنظف على Cloudflare Workers = مكتبة **`pdf-lib`** (Pure JS، متوافقة مع Workers، تدعم النصوص العربية عبر custom fonts embed). لكنها بدون HTML — كل شي رسم يدوي.
 
-- كل مبلغ يُخزن بعملته الأصلية + سعر الصرف وقت الإدخال (لثبات المحاسبة).
-- إدارة يدوية لسعر الصرف الحالي من الإعدادات (`fx_rates`).
-- محوّل عرض في كل شاشة يبدّل بين العملتين فوراً.
-- التقارير المجمعة تعرض إجماليات بالعملتين معاً.
+**النهج المختار (عملي وسريع):**
+- **Supabase Edge Function** `generate-pdf` (Deno runtime، يدعم كل شي) باستخدام `jspdf` + `jspdf-autotable` للجداول، مع تضمين خط Almarai كـ Base64 لدعم العربية.
+- الشعار يُضمّن كصورة PNG (base64) داخل الـ edge function.
+- يستقبل payload من ثلاث أنواع: `invoice`, `payment_receipt`, `payroll_slip`.
+- يرجّع PDF binary → المتصفح يحمّله مباشرة.
 
----
+**التصميم:**
+- Header بتدرج `--grad-blue` (#3B82F6 → #1E40AF)
+- شعار Mechatro يسار (أو يمين حسب اللغة)
+- Footer فيه رقم الوثيقة + تاريخ الإصدار + رقم الصفحة
+- ألوان: أزرق (رئيسي)، أخضر #50C878 (مدفوع)، أحمر #F0676A (متأخر)
+- خط Almarai للعربي، خط Montserrat للإنكليزي
 
-### 4. التقارير (Reports)
+**نقاط الاستدعاء:**
+- `finance.invoices.$id.tsx` → زر "تحميل PDF" يستدعي `generate-pdf` بـ `type=invoice`
+- `finance.payroll.tsx` → قسيمة الراتب `type=payroll_slip`
 
-`/finance/reports`:
-- **P&L** (الربح والخسارة) لفترة محددة.
-- **AR Aging** — تصنيف المستحقات حسب العمر (0-30 / 31-60 / 61-90 / 90+ يوم).
-- **ربحية المشاريع** — دخل vs مصاريف لكل مشروع.
-- **كشف حساب عميل** لأي فترة.
-- **كشف رواتب** لأي شهر.
-- **تصدير:** Excel + PDF لكل تقرير، بهوية الموقع.
+### 2) تذكيرات الاستحقاق (Cron Job)
 
----
+**Server Route:** `src/routes/api/public/hooks/finance-reminders.ts`
+- يُشغَّل يومياً الساعة 8 صباحاً (توقيت UTC)
+- يمر على:
+  - **اشتراكات صادرة** (`subscriptions_expense`) قريبة التجديد ضمن `reminder_days` → ينشئ إشعار للمشرفين الماليين نوع `subscription_due`
+  - **اشتراكات عملاء** (`subscriptions_income`) قريبة الفاتورة القادمة → إشعار
+  - **فواتير غير مدفوعة** (`invoices` بحالة `issued` أو `partially_paid`) خلال 3 أيام من `due_date` → إشعار
+  - **فواتير متأخرة** (`due_date < today` وليست `paid`) → إشعار + تحديث الحالة إلى `overdue`
+- يستخدم `supabaseAdmin` (خدمة داخلية) ومحمي بحقل `apikey` header
+- يمنع التكرار عبر جدول `finance_reminders_log(entity_type, entity_id, sent_on DATE)` مع unique constraint
 
-### 5. تصميم PDF بهوية الموقع
+**pg_cron:**
+```sql
+SELECT cron.schedule('finance-daily-reminders','0 8 * * *', $$
+  SELECT net.http_post(
+    url:='https://project--70935899-f801-4b02-9f3a-e174fc26093c.lovable.app/api/public/hooks/finance-reminders',
+    headers:='{"Content-Type":"application/json","apikey":"..."}'::jsonb,
+    body:='{}'::jsonb
+  );
+$$);
+```
 
-كل مستند PDF (فاتورة، إيصال راتب، تقرير) بهوية موحّدة:
-- شعار ميكاترو `/mechatro-logo.png`.
-- رأس متدرّج (`--grad-blue` من tokens الموقع).
-- خطوط: Almarai للعربي، Montserrat للإنجليزي.
-- ثنائي اللغة جنباً إلى جنب في نفس الصفحة.
-- ذيل: بيانات الشركة + رقم المستند + QR للتحقق.
-- توليد عبر server function باستخدام مكتبة متوافقة مع Cloudflare Workers (pdfmake أو @pdf-lib/fontkit).
+**نوع إشعار جديد** يُضاف لجدول `notifications` (النوع موجود كنص، لا يحتاج enum).
 
----
+### 3) إيصالات الدفع (Payment Receipts)
 
-### 6. جداول قاعدة البيانات
+- في `finance.invoices.$id.tsx` بجانب كل دفعة → زر "إيصال" (Receipt icon)
+- يفتح modal فيه معاينة الإيصال ثم زر "تحميل PDF"
+- يستدعي نفس `generate-pdf` بـ `type=payment_receipt` مع payload:
+  ```
+  { invoiceNumber, customerName, paymentAmount, paymentMethod, paidAt, reference, remainingBalance }
+  ```
+- تصميم الإيصال: صفحة A5 أو A4 مبسّطة، فيها ختم "RECEIVED" أخضر مائل، أرقام الفاتورة والإيصال، توقيع الشركة
 
-كلها بـ RLS + GRANT صحيحة، متاحة فقط لأدوار `admin` و `finance_admin`:
-- `customers`, `invoices`, `invoice_items`, `invoice_payments`
-- `expenses`, `expense_categories`
-- `payroll_periods`, `payroll_entries`, `payroll_adjustments`
-- `income_entries` (للدخل اليدوي المباشر)
-- `subscriptions_expense` (اشتراكات صادرة من الشركة)
-- `subscriptions_income` (اشتراكات عملاء)
-- `subscription_plans`
-- `fx_rates`
-- `financial_settings` (بيانات الشركة، الرواتب الأساسية لكل دور، ترقيم، رسوم توقيع، سياسات)
-- `member_salary_settings` (راتب أساسي لكل عضو + بدلات ثابتة)
+### 4) تصدير Excel حقيقي (.xlsx)
 
-دور جديد `finance_admin` في `user_roles`.
-
----
-
-### 7. الصلاحيات
-
-- `admin` + `finance_admin`: وصول كامل لكل شي مالي.
-- `member` عادي: يرى **إيصال راتبه فقط** لا غير.
-- تسجيل كامل في `activity_log` لكل تعديل مالي (من عدّل، متى، القيمة القديمة والجديدة).
-
----
-
-### 8. i18n كامل
-
-كل النصوص عربي + إنجليزي في `dict.ts`، والتقارير والفواتير تصدر بلغة العميل الافتراضية أو ثنائية.
+- إضافة مكتبة `xlsx` (SheetJS، Pure JS، شغّالة في المتصفح)
+- استبدال جميع `downloadCsv` في `finance.reports.tsx` بـ `downloadXlsx` تولد ملف واحد فيه sheets متعددة:
+  - Sheet "P&L"
+  - Sheet "A/R Aging"
+  - Sheet "Project Profitability"
+  - Sheet "Client Balances"
+- تنسيق مع rich formatting: عمود العملة يستخدم `numFmt: '#,##0.00'`، الرؤوس ملوّنة بالأزرق، RTL sheet direction إذا كان العرض بالعربي
+- زر جديد "تصدير Excel" بجانب "تصدير / طباعة PDF" في الهيدر، مع الاحتفاظ بأزرار CSV لكل قسم منفصل
 
 ---
 
-### مراحل التنفيذ
+## Technical details
 
-نظراً لضخامة النظام، أقترح تقسيمه لدفعات (نبدأ بالأولى فقط في هذا الرن):
+**الملفات الجديدة:**
+- `supabase/functions/generate-pdf/index.ts` (Deno edge function)
+- `supabase/functions/generate-pdf/assets/almarai-base64.ts` (خط عربي)
+- `supabase/functions/generate-pdf/assets/logo-base64.ts` (شعار)
+- `supabase/functions/generate-pdf/templates.ts` (قوالب الفاتورة/الإيصال/قسيمة الراتب)
+- `src/routes/api/public/hooks/finance-reminders.ts` (TanStack server route)
+- `src/lib/xlsx-export.ts` (helper لبناء sheets)
+- `src/components/finance/PaymentReceiptModal.tsx`
 
-**الدفعة 1 — الأساس + الفواتير + المصاريف (الأولوية القصوى):**
-- جداول DB + الدور الجديد + الصلاحيات
-- إعدادات مالية وسعر صرف
-- إدارة العملاء
-- محرر الفواتير الكامل + PDF بالهوية + تسجيل مدفوعات يدوية
-- إدارة المصاريف (CRUD + فئات + مرفقات)
-- لوحة مالية أساسية (KPIs + رسمين بيانيين)
+**تعديل:**
+- `src/routes/_authenticated/finance.invoices.$id.tsx`: `downloadPdf` يستدعي edge function، زر إيصال لكل دفعة
+- `src/routes/_authenticated/finance.payroll.tsx`: زر PDF لقسيمة الراتب
+- `src/routes/_authenticated/finance.reports.tsx`: زر Excel
+- `src/i18n/dict.ts`: مفاتيح جديدة (receipt, paymentReceipt, exportXlsx, dueSoon, etc.)
 
-**الدفعة 2 — الرواتب والاشتراكات:**
-- إعدادات الرواتب الأساسية لكل عضو
-- كشف رواتب شهري + إيصال PDF
-- اشتراكات (صادرة + واردة) + تذكيرات
+**هجرات SQL:**
+- جدول `finance_reminders_log` مع RLS ومنح صلاحيات
+- تفعيل `pg_cron` و `pg_net` إذا لم تكن مفعّلة
+- schedule الـ cron عبر supabase--insert tool (بعد نشر الـ route)
 
-**الدفعة 3 — التقارير المتقدمة:**
-- P&L, AR Aging, ربحية المشاريع، كشوف حساب
-- تصدير Excel + PDF لكل تقرير
-- فلاتر متقدمة وبحث
+**الأمان:**
+- edge function `generate-pdf`: `verify_jwt=false` مع فحص داخلي أن المستخدم مصادق عبر بيرر توكن ممرر يدوياً، أو نجعله عام لأن الـ payload يأتي كامل من العميل (لا نقرأ من DB)
+- `finance-reminders` route: يتحقق من header `apikey` يطابق anon key + logic كلها من داخل SQL/service role
+- Excel export: كلياً client-side، بدون endpoint
+
+**مكتبات جديدة:**
+- `xlsx` (~700kb لكن lazy-imported فقط عند الضغط على زر التصدير)
+- edge function تستخدم `jspdf` + `jspdf-autotable` عبر esm.sh
 
 ---
 
-قلي إذا الخطة تناسبك، أو أي بند تريد تعديله (مثلاً تريد المصاريف قبل الفواتير؟ تريد تشيل الاشتراكات؟ تريد فئات مخصصة للمصاريف؟)، وأبدأ بتنفيذ الدفعة 1.
+## ترتيب التنفيذ
+
+1. Excel exports (أسرع، بدون backend)
+2. Migration جدول التذكيرات + إشعارات
+3. Server route + جدولة cron
+4. Edge function `generate-pdf` + قوالب
+5. ربط PDF بالفواتير + قسائم الرواتب
+6. Modal إيصال الدفع
+
+---
+
+هل الخطة توافق توقعاتك؟ ولا بدك تعديل على أي جزء (مثلاً: PDF بدون edge function، أو تذكيرات كل ساعة بدل يومي، أو تصدير Excel لكل قسم منفصل بدل ملف واحد)؟

@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
-import { Plus, Trash2, RefreshCw, CheckCircle2, Lock, Unlock, Printer, Settings2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, RefreshCw, CheckCircle2, Lock, Unlock, Printer, Settings2, ChevronDown, ChevronUp, Download } from "lucide-react";
 import {
   formatMoney,
   monthLabel,
@@ -17,6 +17,8 @@ import {
 } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-dialog";
+import { renderAndDownloadPdf } from "@/lib/pdf-render";
+import { PayrollSlipDocument, type CompanySettings } from "@/components/finance/BrandedDocuments";
 
 export const Route = createFileRoute("/_authenticated/finance/payroll")({
   component: PayrollPage,
@@ -459,6 +461,43 @@ function PaySlipModal({ entry, member, onClose }: { entry: PayrollEntry; member:
         </div>
         <div className="no-print" style={{ padding: 16, background: "#f1f5f9", display: "flex", gap: 8, justifyContent: "flex-end", borderTop: "1px solid #e2e8f0" }}>
           <button onClick={onClose} className="brand-btn" style={{ background: "#fff", color: "#111", border: "1px solid #cbd5e1" }}>{t("cancel")}</button>
+          <button
+            onClick={async () => {
+              try {
+                await renderAndDownloadPdf(
+                  <PayrollSlipDocument
+                    entry={{
+                      id: entry.id,
+                      base_salary: Number(entry.base_salary),
+                      housing_allowance: 0,
+                      transport_allowance: Number(entry.transport_allowance),
+                      other_allowance: Number(entry.other_allowance),
+                      points_snapshot: entry.points_snapshot,
+                      tasks_done_snapshot: entry.tasks_done_snapshot,
+                      points_bonus: Number(entry.points_bonus),
+                      streak_bonus: Number(entry.streak_bonus),
+                      manual_bonus: Number(entry.manual_bonus),
+                      deductions: Number(entry.deductions),
+                      net_amount: Number(entry.net_amount),
+                      notes: entry.notes,
+                    }}
+                    memberName={member?.full_name ?? "—"}
+                    periodLabel={period ? `${monthLabel(period.month, lang)} ${period.year}` : ""}
+                    currency={entry.currency}
+                    settings={(settings as CompanySettings | null) ?? null}
+                    lang={lang}
+                  />,
+                  `payslip-${member?.full_name?.replace(/\s+/g, "_") ?? entry.id.slice(0, 6)}-${period ? `${period.year}-${String(period.month).padStart(2, "0")}` : ""}.pdf`,
+                );
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : String(e));
+              }
+            }}
+            className="brand-btn"
+            style={{ background: "var(--grad-blue)", color: "#fff" }}
+          >
+            <Download size={16} /> {t("downloadPdf")}
+          </button>
           <button onClick={() => window.print()} className="brand-btn" style={{ background: "#3B82F6", color: "#fff" }}>
             <Printer size={16} /> {t("printPaySlip")}
           </button>
@@ -468,6 +507,7 @@ function PaySlipModal({ entry, member, onClose }: { entry: PayrollEntry; member:
     </div>
   );
 }
+
 
 function SlipRow({ label, value, negative }: { label: string; value: string; negative?: boolean }) {
   return (
