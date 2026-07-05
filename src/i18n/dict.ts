@@ -771,7 +771,7 @@ export const dict = {
   renewNow: { ar: "تجديد الآن", en: "Renew now" },
   renewedCreatedExpense: { ar: "تم توليد المصروف وتحديث تاريخ التجديد", en: "Expense created and renewal date advanced" },
   renewedCreatedInvoice: { ar: "تم توليد الفاتورة وتحديث التاريخ", en: "Invoice created and next date advanced" },
-  dueSoon: { ar: "قريب الاستحقاق", en: "Due Soon" },
+  subscriptionDueSoon: { ar: "قريب الاستحقاق", en: "Due Soon" },
   noSubscriptions: { ar: "لا توجد اشتراكات", en: "No subscriptions yet" },
   confirmDeleteSubscription: { ar: "حذف هذا الاشتراك؟", en: "Delete this subscription?" },
 } as const;
