@@ -208,7 +208,7 @@ function ProjectsPage() {
                 key={String(val)}
                 role="tab"
                 aria-selected={active}
-                onClick={() => patch({ archived: val })}
+                onClick={() => patch({ archived: val, statuses: [] })}
                 style={{
                   minHeight: 36, padding: "6px 16px", borderRadius: 999, border: "none",
                   cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit",
