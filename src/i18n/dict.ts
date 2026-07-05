@@ -103,7 +103,6 @@ export const dict = {
   shareWhatsapp: { ar: "مشاركة واتساب", en: "Share on WhatsApp" },
   shareTelegram: { ar: "مشاركة تلغرام", en: "Share on Telegram" },
   shareViewLink: { ar: "عرض المهمة", en: "View task" },
-  copyLink: { ar: "نسخ الرابط", en: "Copy link" },
   linkCopied: { ar: "تم نسخ الرابط", en: "Link copied" },
   save: { ar: "حفظ", en: "Save" },
   saved: { ar: "تم الحفظ", en: "Saved" },
