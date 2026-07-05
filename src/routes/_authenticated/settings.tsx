@@ -161,20 +161,42 @@ function BackupsSection() {
     refetchPending();
   };
 
-  const download = async (b: Backup) => {
-    const { data, error } = await supabase.storage.from("backups").createSignedUrl(b.name, 300);
-    if (error || !data) { toast.error(error?.message ?? "err"); return; }
-    window.open(data.signedUrl, "_blank");
+  const requestBackup = async () => {
+    if (!user?.id) return;
+    setRunning(true);
+    const { error } = await supabase.from("backup_requests").insert({
+      status: "pending",
+      requested_by: user.id,
+    } as never);
+    setRunning(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("backupRequestSent"));
+    refetchMyPending();
   };
+
+  const hasMyPending = (myPending ?? []).length > 0;
 
   return (
     <section className="brand-card" style={{ padding: 20 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
         <h2 style={{ margin: 0, flex: 1, fontSize: 18 }}>{t("backups")}</h2>
-        <button onClick={runBackup} disabled={running} className="brand-btn" style={{ background: "var(--grad-green)", color: "#fff", opacity: running ? 0.6 : 1 }}>
-          <Play size={16} /> {t("backupNow")}
-        </button>
+        {isMasterAdmin ? (
+          <button onClick={runBackup} disabled={running} className="brand-btn" style={{ background: "var(--grad-green)", color: "#fff", opacity: running ? 0.6 : 1 }}>
+            <Play size={16} /> {t("backupNow")}
+          </button>
+        ) : (
+          <button onClick={requestBackup} disabled={running || hasMyPending} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", opacity: (running || hasMyPending) ? 0.6 : 1 }}>
+            <Play size={16} /> {t("requestBackup")}
+          </button>
+        )}
       </div>
+
+      {!isMasterAdmin && (
+        <div style={{ padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-2)", fontSize: 13, color: "var(--muted)" }}>
+          {hasMyPending ? t("backupRequestPending") : t("backupsMasterOnlyNote")}
+        </div>
+      )}
+
 
       {isMasterAdmin && (
         <div style={{
