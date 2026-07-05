@@ -108,7 +108,7 @@ function ProjectDetail() {
         </div>
       )}
 
-      {selected && <TaskDetailModal taskId={selected} onClose={() => setSelected(null)} onChanged={refetch} />}
+      {selected && <TaskDetailModal taskId={selected} onClose={closeTaskModal} onChanged={refetch} />}
       {newOpen && <NewTaskModal defaultProjectId={id} onClose={() => setNewOpen(false)} onCreated={() => { setNewOpen(false); refetch(); }} />}
       {deleteOpen && (() => {
         const name = lang === "ar" ? p.name_ar : p.name_en;
