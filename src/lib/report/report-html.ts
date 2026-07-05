@@ -169,7 +169,8 @@ function coverPage(data: ReportData, lang: Lang, s: Stats): string {
   // Minimal theme uses a totally different layout: big black text, thin gold divider.
   if (th.id === "minimal") {
     return `
-    <section class="pdf-page cover" style="background:${th.coverBg};color:${onCoverText};position:relative;overflow:hidden">
+    <section class="pdf-page cover" dir="${lang === 'ar' ? 'rtl' : 'ltr'}" lang="${lang}" style="background:${th.coverBg};color:${onCoverText};position:relative;overflow:hidden">
+
       <div style="padding:80px 72px 56px 72px;height:100%;display:flex;flex-direction:column;gap:32px">
         <div style="display:flex;align-items:center;gap:12px">
           <img src="${logo}" style="width:36px;height:36px;object-fit:contain"/>
@@ -186,8 +187,9 @@ function coverPage(data: ReportData, lang: Lang, s: Stats): string {
         <div style="display:flex;gap:32px;align-items:flex-end">
           ${avatar}
           <div style="flex:1">
-            <div style="font-size:44px;font-weight:900;line-height:1.05;color:${th.ink}">${esc(m.full_name)}</div>
-            <div style="font-size:15px;color:${th.muted};margin-top:8px;letter-spacing:.5px">${esc(m.job_title ?? t(m.role as never, lang))}</div>
+            <div style="font-size:44px;font-weight:900;line-height:1.05;color:${th.ink};font-family:'Montserrat','Segoe UI',Tahoma,'Montserrat Arabic',sans-serif">${esc(m.full_name)}</div>
+            ${m.job_title && m.job_title !== t(m.role as never, lang) ? `<div style="font-size:15px;color:${th.muted};margin-top:8px;letter-spacing:.5px">${esc(m.job_title)}</div>` : ""}
+
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid ${th.line};padding-top:24px;margin-top:16px">
@@ -209,7 +211,7 @@ function coverPage(data: ReportData, lang: Lang, s: Stats): string {
   }
 
   return `
-  <section class="pdf-page cover" style="background:${th.coverBg};color:${onCoverText};position:relative;overflow:hidden">
+  <section class="pdf-page cover" dir="${lang === 'ar' ? 'rtl' : 'ltr'}" lang="${lang}" style="background:${th.coverBg};color:${onCoverText};position:relative;overflow:hidden">
     <div style="position:absolute;inset:0;background:${th.coverGlow}"></div>
     <div style="position:relative;padding:56px 56px 40px 56px;height:100%;display:flex;flex-direction:column">
       <div style="display:flex;align-items:center;gap:14px">
@@ -224,8 +226,9 @@ function coverPage(data: ReportData, lang: Lang, s: Stats): string {
         <div style="display:flex;gap:24px;align-items:center;margin-top:8px">
           ${avatar}
           <div>
-            <div style="font-size:44px;font-weight:800;line-height:1.1">${esc(m.full_name)}</div>
-            <div style="font-size:16px;color:${softSubtle};margin-top:8px">${esc(m.job_title ?? t(m.role as never, lang))}</div>
+            <div style="font-size:44px;font-weight:800;line-height:1.1;font-family:'Montserrat','Segoe UI',Tahoma,'Montserrat Arabic',sans-serif">${esc(m.full_name)}</div>
+            ${m.job_title && m.job_title !== t(m.role as never, lang) ? `<div style="font-size:16px;color:${softSubtle};margin-top:8px">${esc(m.job_title)}</div>` : ""}
+
             <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
               <span style="background:${softOverlay};padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700">${esc(t(m.role as never, lang))}</span>
               ${m.is_master_admin ? `<span style="background:${th.gold};color:#1a1a1a;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700">${esc(t("masterAdmin", lang))}</span>` : ""}
@@ -265,11 +268,12 @@ function sectionHeader(title: string, accent = C.blue): string {
 }
 
 function kpiCard(label: string, value: string, accent: string): string {
-  return `<div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:14px 16px;border-top:3px solid ${accent}">
+  return `<div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:14px 16px;border-top:3px solid ${accent}">
     <div style="font-size:26px;font-weight:800;color:${C.ink};line-height:1">${esc(value)}</div>
     <div style="font-size:11px;color:${C.muted};margin-top:6px;text-transform:uppercase;letter-spacing:.5px">${esc(label)}</div>
   </div>`;
 }
+
 
 function profileSection(data: ReportData, lang: Lang): string {
   const m = data.member;
@@ -318,19 +322,19 @@ function chartsSection(data: ReportData, s: Stats, lang: Lang): string {
 
   return `<div>${sectionHeader(t("sec_charts", lang), C.orange)}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:16px">
+      <div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:16px">
         <div style="font-size:12px;color:${C.muted};text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${esc(t("statusDistribution", lang))}</div>
         <div style="display:flex;gap:16px;align-items:center">${donutSVG(donutData)}<div style="display:flex;flex-direction:column;gap:8px">${legend}</div></div>
       </div>
-      <div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:16px">
+      <div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:16px">
         <div style="font-size:12px;color:${C.muted};text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${esc(t("priorityBreakdown", lang))}</div>
         ${barsSVG(prioData)}
       </div>
-      ${projEntries.length ? `<div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:16px">
+      ${projEntries.length ? `<div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:16px">
         <div style="font-size:12px;color:${C.muted};text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${esc(t("tasksPerProject", lang))}</div>
         ${barsSVG(projEntries)}
       </div>` : ""}
-      <div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:16px;grid-column:${projEntries.length ? "auto" : "1 / span 2"}">
+      <div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:16px;grid-column:${projEntries.length ? "auto" : "1 / span 2"}">
         <div style="font-size:12px;color:${C.muted};text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${esc(t("weeklyCompletion", lang))}</div>
         ${sparklineSVG(s.weeks, projEntries.length ? 340 : 700, 140)}
       </div>
@@ -367,7 +371,7 @@ function projectsSection(data: ReportData, s: Stats, lang: Lang): string {
 }
 
 function tableWrap(inner: string): string {
-  return `<table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid ${C.line};border-radius:12px;overflow:hidden;font-size:12.5px">
+  return `<table style="width:100%;border-collapse:collapse;background:${C.card};border:1px solid ${C.line};border-radius:12px;overflow:hidden;font-size:12.5px">
     <style>th{background:${C.soft};color:${C.muted};padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;border-bottom:1px solid ${C.line}}td{border-bottom:1px solid ${C.line}}tr:last-child td{border-bottom:none}</style>
     ${inner}
   </table>`;
@@ -427,7 +431,7 @@ function commentsFilesSection(data: ReportData, lang: Lang): string {
   if (!data.comments.length && !data.files.length) return "";
   return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div>${sectionHeader(t("sec_comments", lang), C.blue)}
-      <div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:6px 14px;font-size:12.5px">
+      <div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:6px 14px;font-size:12.5px">
         ${data.comments.slice(0, 10).map((c) => `<div style="padding:10px 0;border-bottom:1px solid ${C.line}">
           <div style="color:${C.ink}">${esc(c.body.slice(0, 140))}${c.body.length > 140 ? "…" : ""}</div>
           <div style="color:${C.muted};font-size:11px;margin-top:3px">${esc(fmtDT(c.created_at, lang))}</div>
@@ -435,7 +439,7 @@ function commentsFilesSection(data: ReportData, lang: Lang): string {
       </div>
     </div>
     <div>${sectionHeader(t("sec_files", lang), C.green)}
-      <div style="background:#fff;border:1px solid ${C.line};border-radius:12px;padding:6px 14px;font-size:12.5px">
+      <div style="background:${C.card};border:1px solid ${C.line};border-radius:12px;padding:6px 14px;font-size:12.5px">
         ${data.files.slice(0, 10).map((f) => `<div style="padding:10px 0;border-bottom:1px solid ${C.line}">
           <div style="color:${C.ink};font-weight:700">📎 ${esc(f.file_name)}</div>
           <div style="color:${C.muted};font-size:11px;margin-top:3px">${esc(f.file_type ?? "file")} · ${esc(fmtDT(f.created_at, lang))}</div>
