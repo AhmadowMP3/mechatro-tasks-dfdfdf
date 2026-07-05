@@ -217,7 +217,7 @@ function IncomeSubs() {
 
   const renew = async (s: SubscriptionIncome) => {
     // Create draft invoice
-    const { data: settings } = await supabase.from("financial_settings").select("default_tax_rate, default_terms_ar, default_terms_en").maybeSingle();
+    const { data: settings } = await supabase.from("financial_settings").select("default_tax_rate, invoice_terms_ar, invoice_terms_en").maybeSingle();
     const { data: invNumRes, error: numErr } = await supabase.rpc("next_invoice_number");
     if (numErr) { toast.error(numErr.message); return; }
     const taxRate = Number(settings?.default_tax_rate ?? 0);
@@ -225,7 +225,7 @@ function IncomeSubs() {
     const taxAmount = (amount * taxRate) / 100;
     const total = amount + taxAmount;
     const { data: inv, error: invErr } = await supabase.from("invoices").insert({
-      invoice_number: invNumRes as unknown as string,
+      number: invNumRes as unknown as string,
       customer_id: s.customer_id,
       issue_date: s.next_invoice_date,
       due_date: s.next_invoice_date,
@@ -236,8 +236,8 @@ function IncomeSubs() {
       discount_amount: 0,
       total,
       status: "issued",
-      terms_ar: settings?.default_terms_ar ?? null,
-      terms_en: settings?.default_terms_en ?? null,
+      terms_ar: settings?.invoice_terms_ar ?? null,
+      terms_en: settings?.invoice_terms_en ?? null,
       notes_en: `Subscription: ${s.plan_name}`,
     }).select("id").single();
     if (invErr) { toast.error(invErr.message); return; }
@@ -368,7 +368,7 @@ function ExpenseSubModal({ sub, onClose, onSaved }: { sub: SubscriptionExpense |
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    if (!form.name || form.amount <= 0) { toast.error(t("name")); return; }
+    if (!form.name || form.amount <= 0) { toast.error("Required"); return; }
     setSaving(true);
     const payload = { ...form, vendor: form.vendor || null, category: form.category || null, notes: form.notes || null };
     const { error } = sub
