@@ -155,8 +155,7 @@ Deno.serve(async (req) => {
         return json(400, { error: `unknown action: ${action}` });
     }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("admin-users error", msg);
-    return json(500, { error: msg });
+    console.error("admin-users error", e);
+    return json(500, { error: errMsg(e) });
   }
 });
