@@ -126,8 +126,8 @@ async function resolveLink(admin: ReturnType<typeof createClient>, token: string
   if (link.max_uses != null && link.use_count >= link.max_uses) return { error: "exhausted", status: 403 as const };
   if (link.password_hash) {
     if (!password) return { error: "password_required", status: 401 as const };
-    const h = await sha256hex(password);
-    if (h !== link.password_hash) return { error: "wrong_password", status: 401 as const };
+    const ok = await verifyPassword(password, link.password_hash as string, (link.password_salt as string | null) ?? null);
+    if (!ok) return { error: "wrong_password", status: 401 as const };
   }
   return { link };
 }
