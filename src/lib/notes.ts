@@ -4,6 +4,21 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+export function errMsg(e: unknown): string {
+  if (!e) return "Unknown error";
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  if (typeof e === "object") {
+    const anyE = e as { message?: unknown; error_description?: unknown; details?: unknown; hint?: unknown };
+    if (typeof anyE.message === "string") return anyE.message;
+    if (typeof anyE.error_description === "string") return anyE.error_description;
+    if (typeof anyE.details === "string") return anyE.details;
+    if (typeof anyE.hint === "string") return anyE.hint;
+    try { return JSON.stringify(e); } catch { return "Unknown error"; }
+  }
+  return String(e);
+}
+
 export type NoteColor = "default" | "yellow" | "pink" | "blue" | "green" | "orange" | "purple";
 
 export const NOTE_COLORS: { key: NoteColor; bg: string; border: string; label: string }[] = [
