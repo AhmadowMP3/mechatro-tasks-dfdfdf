@@ -395,7 +395,7 @@ function EntryEditModal({ entry, onClose, onSaved }: { entry: PayrollEntry; onCl
 }
 
 function PaySlipModal({ entry, member, onClose }: { entry: PayrollEntry; member: { full_name: string; job_title: string | null } | null; onClose: () => void }) {
-  const { t, lang } = useApp();
+  const { t, lang, user } = useApp();
   const { data: period } = useQuery({
     queryKey: ["payroll_period", entry.period_id],
     queryFn: async () => {
