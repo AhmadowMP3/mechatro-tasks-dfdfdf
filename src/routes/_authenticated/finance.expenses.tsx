@@ -272,13 +272,7 @@ function ExpenseModal({ expense, categories, onClose, onSaved }: { expense: Expe
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <Field label={t("paymentMethod")}>
-              <select value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value as PaymentMethod })} style={inp}>
-                <option value="cash">{t("methodCash")}</option>
-                <option value="bank_transfer">{t("methodBankTransfer")}</option>
-                <option value="cheque">{t("methodCheque")}</option>
-                <option value="card">{t("methodCard")}</option>
-                <option value="other">{t("methodOther")}</option>
-              </select>
+              <PaymentMethodSelect value={form.method} onChange={(m) => setForm({ ...form, method: m })} />
             </Field>
             <Field label={t("status")}>
               <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as ExpenseStatus })} style={inp}>

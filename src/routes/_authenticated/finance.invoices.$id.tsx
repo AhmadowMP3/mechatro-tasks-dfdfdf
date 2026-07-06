@@ -581,13 +581,7 @@ function PaymentModal({ invoice, onClose, onSaved }: { invoice: Invoice; onClose
             <input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} style={inp} />
           </Field>
           <Field label={t("paymentMethod")}>
-            <select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} style={inp}>
-              <option value="cash">{t("methodCash")}</option>
-              <option value="bank_transfer">{t("methodBankTransfer")}</option>
-              <option value="cheque">{t("methodCheque")}</option>
-              <option value="card">{t("methodCard")}</option>
-              <option value="other">{t("methodOther")}</option>
-            </select>
+            <PaymentMethodSelect value={method} onChange={setMethod} />
           </Field>
           <Field label={t("reference")}><input value={reference} onChange={(e) => setReference(e.target.value)} style={inp} /></Field>
           <Field label={t("notesArabic")}><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} style={{ ...inp, resize: "vertical" }} /></Field>

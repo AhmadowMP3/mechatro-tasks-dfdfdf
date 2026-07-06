@@ -195,13 +195,7 @@ function IncomeModal({ entry, onClose, onSaved }: { entry: IncomeEntry | null; o
             </Field>
           </div>
           <Field label={t("paymentMethod")}>
-            <select value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value as PaymentMethod })} style={inp}>
-              <option value="cash">{t("methodCash")}</option>
-              <option value="bank_transfer">{t("methodBankTransfer")}</option>
-              <option value="cheque">{t("methodCheque")}</option>
-              <option value="card">{t("methodCard")}</option>
-              <option value="other">{t("methodOther")}</option>
-            </select>
+            <PaymentMethodSelect value={form.method} onChange={(m) => setForm({ ...form, method: m })} />
           </Field>
           <Field label={t("reference")}><input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} style={inp} /></Field>
         </div>
