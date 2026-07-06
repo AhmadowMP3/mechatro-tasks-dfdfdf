@@ -145,7 +145,8 @@ function NotesPage() {
 
   const onDelete = async () => {
     if (!selectedNote || !isOwner) return;
-    if (!window.confirm(t("confirmDeleteNote"))) return;
+    const ok = await openConfirm(t("confirmDeleteNote"), { destructive: true });
+    if (!ok) return;
     try {
       await deleteNote(selectedNote.id);
       setNotes((cur) => cur.filter((n) => n.id !== selectedNote.id));
