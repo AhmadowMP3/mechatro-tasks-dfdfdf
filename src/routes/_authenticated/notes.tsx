@@ -5,7 +5,7 @@ import { useApp } from "@/lib/app-context";
 import {
   listNotes, listFolders, listTags, listNoteTagLinks, createNote, updateNote, deleteNote,
   createFolder, renameFolder, deleteFolder, createTag, setNoteTags, htmlToPlain, countWords, preview,
-  listAttachments, uploadAttachment, deleteAttachment, signedAttachmentUrl,
+  listAttachments, uploadAttachment, deleteAttachment, signedAttachmentUrl, errMsg,
   NOTE_COLORS, colorPalette,
   type Note, type NoteFolder, type NoteTag, type NoteColor, type NoteAttachment,
 } from "@/lib/notes";
