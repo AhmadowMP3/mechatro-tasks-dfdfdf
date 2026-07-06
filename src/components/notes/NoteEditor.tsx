@@ -12,6 +12,7 @@ import { useApp } from "@/lib/app-context";
 import { NoteToolbar } from "./NoteToolbar";
 
 type Props = {
+  noteId: string;
   content: string;
   onChange: (html: string, text: string) => void;
   editable?: boolean;
@@ -19,7 +20,7 @@ type Props = {
   onInsertImageClick?: () => void;
 };
 
-export function NoteEditor({ content, onChange, editable = true, onEditor, onInsertImageClick }: Props) {
+export function NoteEditor({ noteId, content, onChange, editable = true, onEditor, onInsertImageClick }: Props) {
   const { lang, t } = useApp();
 
   const editor = useEditor({
@@ -51,12 +52,12 @@ export function NoteEditor({ content, onChange, editable = true, onEditor, onIns
     return () => onEditor?.(null);
   }, [editor, onEditor]);
 
-  // Update content when switching notes.
+  // Reset content only when switching notes (not on every autosave-driven prop change).
   useEffect(() => {
     if (!editor) return;
-    if (editor.getHTML() === content) return;
     editor.commands.setContent(content || "", { emitUpdate: false });
-  }, [content, editor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteId, editor]);
 
   useEffect(() => {
     if (!editor) return;
