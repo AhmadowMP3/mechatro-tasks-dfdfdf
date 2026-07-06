@@ -67,6 +67,9 @@ export async function htmlToPdf(element: HTMLElement, filename: string, breakHin
       return from;
     };
 
+    // html2canvas scale=2 → canvas pixels are 2× the CSS px passed in as hints.
+    const hintsCanvasPx = (breakHintsPx ?? []).map((h) => h * 2).sort((a, b) => a - b);
+
     let yOffset = 0;
     let pageIndex = 0;
     const maxBacktrack = Math.floor(pageHeightPx * 0.15);
@@ -74,8 +77,20 @@ export async function htmlToPdf(element: HTMLElement, filename: string, breakHin
       if (pageIndex > 0) pdf.addPage();
       let nextY = Math.min(canvas.height, yOffset + pageHeightPx);
       if (nextY < canvas.height) {
-        const safe = findSafeBreak(nextY, maxBacktrack);
-        if (safe > yOffset + 100) nextY = safe;
+        // Prefer a block-boundary hint that falls inside the current page window.
+        const minAdvance = yOffset + Math.min(200, pageHeightPx * 0.25);
+        const upper = yOffset + pageHeightPx;
+        let bestHint = -1;
+        for (const h of hintsCanvasPx) {
+          if (h > minAdvance && h <= upper && h > bestHint) bestHint = h;
+        }
+        if (bestHint > 0) {
+          nextY = bestHint;
+        } else {
+          // Fall back to whitespace-scan heuristic.
+          const safe = findSafeBreak(nextY, maxBacktrack);
+          if (safe > yOffset + 100) nextY = safe;
+        }
       }
       const sliceHeightPx = Math.max(1, nextY - yOffset);
       const sliceCanvas = document.createElement("canvas");
