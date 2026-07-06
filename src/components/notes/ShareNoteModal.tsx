@@ -45,7 +45,7 @@ export function ShareNoteModal({ noteId, onClose }: { noteId: string; onClose: (
       toast.success(lang === "ar" ? "تم حفظ المشاركة" : "Sharing saved");
       onClose();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     } finally {
       setSaving(false);
     }
