@@ -52,12 +52,12 @@ export function NoteEditor({ noteId, content, onChange, editable = true, onEdito
     return () => onEditor?.(null);
   }, [editor, onEditor]);
 
-  // Update content when switching notes.
+  // Reset content only when switching notes (not on every autosave-driven prop change).
   useEffect(() => {
     if (!editor) return;
-    if (editor.getHTML() === content) return;
     editor.commands.setContent(content || "", { emitUpdate: false });
-  }, [content, editor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteId, editor]);
 
   useEffect(() => {
     if (!editor) return;
