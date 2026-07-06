@@ -583,6 +583,7 @@ function NotesPage() {
 
             {/* Editor */}
             <NoteEditor
+              noteId={selectedNote.id}
               content={selectedNote.content_html}
               editable={isOwner}
               onEditor={setEditor}
