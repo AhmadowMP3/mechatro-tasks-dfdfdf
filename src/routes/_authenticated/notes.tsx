@@ -189,7 +189,7 @@ function NotesPage() {
   };
 
   const onCreateFolder = async () => {
-    const name = window.prompt(t("newFolder") + " —");
+    const name = await openPrompt({ title: t("newFolder"), placeholder: t("newFolder") });
     if (!name?.trim() || !userId) return;
     try {
       const f = await createFolder(userId, name.trim());
@@ -200,7 +200,7 @@ function NotesPage() {
   };
 
   const onRenameFolder = async (f: NoteFolder) => {
-    const name = window.prompt(t("renameFolder"), f.name);
+    const name = await openPrompt({ title: t("renameFolder"), defaultValue: f.name });
     if (!name?.trim()) return;
     try {
       await renameFolder(f.id, name.trim());
@@ -211,7 +211,8 @@ function NotesPage() {
   };
 
   const onDeleteFolder = async (f: NoteFolder) => {
-    if (!window.confirm(t("deleteFolder") + "؟")) return;
+    const ok = await openConfirm(t("deleteFolder") + "؟", { destructive: true });
+    if (!ok) return;
     try {
       await deleteFolder(f.id);
       setFolders((cur) => cur.filter((x) => x.id !== f.id));
