@@ -1,36 +1,23 @@
-## The error
+## What I can see in the screenshot
 
-```
-insert or update on table "note_shares" violates foreign key
-constraint "note_shares_shared_with_user_id_fkey"
-```
+The **Change cover / Remove cover** buttons on a note's cover image are getting clipped off the right edge — the text is cut mid-word.
 
-`public.note_shares.shared_with_user_id` currently references `auth.users(id)`, but the Share modal lists people from `public.profiles`. When a profile exists whose `id` has no matching row in `auth.users` (e.g. the seeded "Test User"), the insert fails the FK check before it ever hits RLS.
+## Cause
 
-## Fix (one small migration)
+In `src/routes/_authenticated/notes.tsx` (line ~507) the buttons sit inside the cover div (which has `overflow: hidden`) and are positioned with `insetInlineEnd: 12`. When a right-side panel is open (Comments / AI) or the viewport is narrow, the buttons still render but the parent's `overflow: hidden` — plus the toolbar row's `flexWrap` reflow — pushes them past the visible edge. The buttons also have no `whiteSpace: nowrap`, so on tight widths the labels themselves can wrap and get clipped.
 
-Repoint the FK to `public.profiles(id)` — the table the UI actually reads from — so any user visible in the share picker can be inserted.
+## Fix (small, presentation-only)
 
-```sql
-ALTER TABLE public.note_shares
-  DROP CONSTRAINT note_shares_shared_with_user_id_fkey;
+In `src/routes/_authenticated/notes.tsx`:
 
-ALTER TABLE public.note_shares
-  ADD CONSTRAINT note_shares_shared_with_user_id_fkey
-  FOREIGN KEY (shared_with_user_id)
-  REFERENCES public.profiles(id) ON DELETE CASCADE;
-```
+1. Move the cover action buttons from top-right → **bottom-right of the cover**, so they sit on the darkest part of the gradient (already there) and are visually anchored to the image.
+2. Use `right: 12` + `bottom: 12` explicitly (avoid `insetInlineEnd` here — it flips in RTL and can cause overlap with side panels).
+3. Wrap them in a flex row with `maxWidth: "calc(100% - 24px)"` and `flexWrap: wrap` so they always stay inside the cover box.
+4. Add `whiteSpace: nowrap` to `coverBtn` so each label stays on one line.
+5. Slight polish: darker pill background (`rgba(0,0,0,.65)`), `Camera` icon on "Change" and `Trash` icon on "Remove" for clarity.
 
-Also add a tiny safety net in `setNoteShares` (`src/lib/notes.ts`) so the toast surfaces a clean message ("This user can't be shared with") on a 23503 FK violation instead of the raw Postgres text.
+No logic changes — cover upload/remove handlers, storage, and DB stay identical.
 
-No UI changes, no schema of `note_shares` changes beyond the FK target — RLS, grants, and the recursion-safe policies from earlier migrations stay intact.
+## Files
 
-## Notes UI polish (optional, same turn)
-
-You already asked for the Notes to feel "cool without errors". If you want, I can also, in the same turn:
-
-- Make the Share modal show a subtle avatar + role chip per row and a live count ("3 of 8 selected").
-- Add an inline "Shared with N" pill on the note header that opens the modal.
-- Toast on save: "Shared with Ahmed, Sara +2".
-
-Say **yes to polish** or **just the fix** and I'll implement.
+- `src/routes/_authenticated/notes.tsx` — cover buttons block (~line 506-511) + `coverBtn` style (~line 807).
