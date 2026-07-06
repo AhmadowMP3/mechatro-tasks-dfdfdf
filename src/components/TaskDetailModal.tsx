@@ -74,14 +74,20 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     return sum;
   }, 0);
 
-  const editValid =
-    (merged.title ?? "").trim().length > 0 &&
-    (merged.description ?? "").trim().length > 0 &&
-    !!merged.project_id &&
-    !!merged.assignee_id &&
-    !!merged.due_date &&
-    !!merged.priority &&
-    (!canEditAll || merged.points_awarded_at ? true : (Number(merged.points) > 0 && Number(merged.points) <= 1000));
+  // Validate only the fields being changed, plus keep title non-empty.
+  // This lets members update status on legacy tasks (missing description/due_date/etc.)
+  // and lets admins change status/priority without refilling missing legacy fields.
+  const dirtyKeys = Object.keys(dirty) as (keyof Task)[];
+  const nonEmpty = (v: unknown) => (typeof v === "string" ? v.trim().length > 0 : v != null && v !== "");
+  const requiredIfDirty: (keyof Task)[] = ["title", "description", "project_id", "assignee_id", "due_date", "priority"];
+  const dirtyFieldsValid = requiredIfDirty.every((k) => !dirtyKeys.includes(k) || nonEmpty(merged[k]));
+  const titleOk = (merged.title ?? "").trim().length > 0;
+  const pointsOk = !canEditAll || merged.points_awarded_at
+    ? true
+    : (dirtyKeys.includes("points") || dirty.status === "done")
+      ? Number(merged.points) > 0 && Number(merged.points) <= 1000
+      : true;
+  const editValid = titleOk && dirtyFieldsValid && pointsOk;
 
   const saveChanges = async () => {
     if (Object.keys(dirty).length === 0) return;
