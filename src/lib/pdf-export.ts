@@ -36,10 +36,28 @@ export async function htmlToPdf(element: HTMLElement, filename: string, breakHin
 
   const totalPages = Math.ceil(canvas.height / pageHeightPx);
 
+  // Draw a canvas slice onto a full A4-sized (pageHeightPx tall) canvas with
+  // white padding at the bottom, then place it as a full A4 image in the PDF.
+  // This guarantees every emitted PDF page is exactly A4 (210×297 mm).
+  const addFullA4Page = (sliceSourceY: number, sliceHeight: number) => {
+    const pageCanvas = document.createElement("canvas");
+    pageCanvas.width = canvas.width;
+    pageCanvas.height = pageHeightPx;
+    const ctx = pageCanvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+    ctx.drawImage(
+      canvas,
+      0, sliceSourceY, canvas.width, sliceHeight,
+      0, 0, canvas.width, sliceHeight,
+    );
+    const data = pageCanvas.toDataURL("image/jpeg", 0.95);
+    addImageSafe(data, pdfWidth, pdfHeight);
+  };
+
   if (totalPages <= 1) {
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
-    const imgHeightMm = (canvas.height / canvas.width) * pdfWidth;
-    addImageSafe(imgData, pdfWidth, imgHeightMm);
+    addFullA4Page(0, canvas.height);
   } else {
     // Read source pixels once so we can find safe (mostly-white) break rows.
     const srcCtx = canvas.getContext("2d");
