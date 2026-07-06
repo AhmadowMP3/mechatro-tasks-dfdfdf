@@ -488,7 +488,8 @@ function PaySlipModal({ entry, member, onClose }: { entry: PayrollEntry; member:
                     settings={(settings as CompanySettings | null) ?? null}
                     lang={lang}
                   />,
-                  `payslip-${member?.full_name?.replace(/\s+/g, "_") ?? entry.id.slice(0, 6)}-${period ? `${period.year}-${String(period.month).padStart(2, "0")}` : ""}.pdf`,
+                  stampFilename("payslip", `${member?.full_name?.replace(/\s+/g, "-") ?? entry.id.slice(0, 6)}-${period ? `${period.year}-${String(period.month).padStart(2, "0")}` : ""}`),
+                  { chrome: { lang, generatedBy: user?.full_name ?? null } },
                 );
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : String(e));
