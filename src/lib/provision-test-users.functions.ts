@@ -9,10 +9,19 @@ type SeedResult = {
   action: "created" | "updated";
 };
 
-const SEEDS: Array<Omit<SeedResult, "action">> = [
-  { email: "admin.test@mechatro.test", password: "Admin!2026", role: "admin", full_name: "Admin Test" },
-  { email: "member.test@mechatro.test", password: "Member!2026", role: "member", full_name: "Member Test" },
+const SEEDS: Array<Omit<SeedResult, "action" | "password">> = [
+  { email: "admin.test@mechatro.test", role: "admin", full_name: "Admin Test" },
+  { email: "member.test@mechatro.test", role: "member", full_name: "Member Test" },
 ];
+
+// Generate a cryptographically strong random password for each seeded account.
+// Passwords are returned to the caller once and never stored in source.
+function generatePassword(): string {
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  const b64 = Buffer.from(bytes).toString("base64");
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") + "!A1";
+}
 
 export const provisionTestUsers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
