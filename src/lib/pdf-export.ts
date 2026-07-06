@@ -2,7 +2,7 @@
 // Renders a hidden branded HTML template, captures it to canvas, embeds in PDF.
 // Handles multi-page for long content and preserves Arabic fonts (from the DOM).
 
-export async function htmlToPdf(element: HTMLElement, filename: string): Promise<void> {
+export async function htmlToPdf(element: HTMLElement, filename: string, breakHintsPx?: number[]): Promise<void> {
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
     import("html2canvas"),
     import("jspdf"),
