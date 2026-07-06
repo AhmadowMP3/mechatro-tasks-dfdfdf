@@ -1,51 +1,66 @@
-// Branded document templates for invoice / payment receipt / payroll slip.
-// Rendered off-screen, captured to PDF via src/lib/pdf-export.ts
+// Document templates rendered off-screen and captured to PDF via
+// src/lib/pdf-export.ts. Each template renders only the body content — the
+// unified Mechatro header (logo) and footer (Page X/Y + generated meta) are
+// drawn natively on every page by src/lib/pdf/chrome.ts. This keeps ALL PDFs
+// on the same brand and eliminates duplicated header/footer variants.
 
 import { formatMoney, type Currency, type Invoice, type InvoiceItem, type InvoicePayment, type Customer, type PaymentMethod } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
-import logoUrl from "@/assets/mechatro-logo.png";
 
 type Lang = "ar" | "en";
 
-const grad = "linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)";
-const green = "#50C878";
-const red = "#F0676A";
-const ink = "#0F172A";
-const muted = "#64748B";
-const border = "#E5E7EB";
-const paper = "#FFFFFFff";
+// Brand tokens are duplicated here in RGB form so the rasterized document
+// matches the native chrome. Any change in src/lib/pdf/brand.ts should be
+// mirrored here.
+const navy = "#0A2540";
+const blue = "#189FD1";
+const gold = "#C8A24B";
+const ink = "#0F2031";
+const muted = "#5A6B7D";
+const border = "#D7DEE5";
+const zebra = "#F5F9FD";
+const green = "#3F782A";
+const red = "#C0392B";
+const grad = `linear-gradient(135deg, ${navy} 0%, ${blue} 100%)`;
 
-function fontFamily(lang: Lang) {
-  return lang === "ar"
-    ? "'Almarai', 'Montserrat Arabic', 'Montserrat', system-ui, sans-serif"
-    : "'Montserrat', 'Almarai', system-ui, sans-serif";
-}
+// A4 width at 96dpi. The A4 content zone (after native chrome margins) is
+// 24mm top + 16mm bottom = 40mm reserved; leave equivalent breathing room at
+// the top of the first page so the rasterized title never collides with the
+// header logo.
+const A4_WIDTH_PX = 794;
+const CONTENT_TOP_PADDING = 60;   // px — clears native header band
+const CONTENT_BOTTOM_PADDING = 44; // px — clears native footer band
 
-const A4_WIDTH_PX = 794; // 210mm at 96dpi
-
-function pageWrap(children: React.ReactNode, lang: Lang): React.CSSProperties {
+function pageWrap(lang: Lang): React.CSSProperties {
   return {
     width: A4_WIDTH_PX,
-    minHeight: 1123,
-    background: paper,
+    background: "#ffffff",
     color: ink,
-    fontFamily: fontFamily(lang),
-    padding: 0,
+    fontFamily: lang === "ar"
+      ? "'Montserrat Arabic', 'Almarai', 'Segoe UI', sans-serif"
+      : "'Montserrat', 'Montserrat Arabic', system-ui, sans-serif",
+    padding: `${CONTENT_TOP_PADDING}px 40px ${CONTENT_BOTTOM_PADDING}px`,
     direction: lang === "ar" ? "rtl" : "ltr",
     fontSize: 12,
-    lineHeight: 1.5,
+    lineHeight: 1.55,
     boxSizing: "border-box",
   };
 }
 
-function BrandHeader({ lang, title, subtitle }: { lang: Lang; title: string; subtitle?: string }) {
+function DocTitle({ title, subtitle, tone = "blue" }: { title: string; subtitle?: string; tone?: "blue" | "gold" }) {
+  const accent = tone === "gold" ? gold : blue;
   return (
-    <div style={{ background: grad, color: "#fff", padding: "28px 40px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
-      <div>
-        <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 0.5 }}>{title}</div>
-        {subtitle && <div style={{ fontSize: 13, opacity: 0.9, marginTop: 4 }}>{subtitle}</div>}
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: muted, letterSpacing: 3, textTransform: "uppercase" }}>
+            {subtitle ?? ""}
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: navy, letterSpacing: 0.4 }}>{title}</div>
+        </div>
+        <div style={{ width: 60, height: 6, background: accent, borderRadius: 3, marginBottom: 8 }} />
       </div>
-      <img src={logoUrl} alt="Mechatro" style={{ height: 54, width: "auto", filter: "brightness(0) invert(1)" }} />
+      <div style={{ height: 1, background: `linear-gradient(90deg, ${accent}, transparent)`, marginTop: 10 }} />
     </div>
   );
 }
@@ -54,7 +69,7 @@ function CompanyBlock({ settings, lang }: { settings: CompanySettings | null; la
   if (!settings) return null;
   const name = lang === "ar" ? settings.company_name_ar || settings.company_name_en : settings.company_name_en || settings.company_name_ar;
   return (
-    <div style={{ fontSize: 11, color: muted, lineHeight: 1.6 }}>
+    <div style={{ fontSize: 11, color: muted, lineHeight: 1.7 }}>
       <div style={{ fontWeight: 700, color: ink, fontSize: 14 }}>{name}</div>
       {settings.company_address && <div>{settings.company_address}</div>}
       {settings.company_phone && <div>{lang === "ar" ? "هاتف" : "Tel"}: {settings.company_phone}</div>}
@@ -66,14 +81,14 @@ function CompanyBlock({ settings, lang }: { settings: CompanySettings | null; la
 
 function StatusPill({ text, tone }: { text: string; tone: "green" | "red" | "blue" | "gray" }) {
   const map = {
-    green: { bg: "#D1FAE5", fg: "#065F46" },
-    red: { bg: "#FEE2E2", fg: "#991B1B" },
-    blue: { bg: "#DBEAFE", fg: "#1E40AF" },
-    gray: { bg: "#F1F5F9", fg: "#334155" },
+    green: { bg: "#DFF3D5", fg: "#2F5E1E" },
+    red: { bg: "#FBE0DE", fg: "#7E2822" },
+    blue: { bg: "#DDF0FA", fg: navy },
+    gray: { bg: "#EEF1F4", fg: "#334155" },
   };
   const c = map[tone];
   return (
-    <span style={{ display: "inline-block", padding: "4px 12px", background: c.bg, color: c.fg, borderRadius: 999, fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase" }}>
+    <span style={{ display: "inline-block", padding: "5px 14px", background: c.bg, color: c.fg, borderRadius: 999, fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase" }}>
       {text}
     </span>
   );
@@ -96,7 +111,7 @@ export type CompanySettings = {
 };
 
 // ============================================================
-// INVOICE TEMPLATE
+// INVOICE
 // ============================================================
 export function InvoiceDocument({
   invoice, items, customer, settings, lang,
@@ -121,28 +136,30 @@ export function InvoiceDocument({
   const st = statusText[invoice.status] ?? statusText.issued;
 
   return (
-    <div style={pageWrap(null, lang)}>
-      <BrandHeader lang={lang} title={lang === "ar" ? "فاتورة" : "INVOICE"} subtitle={invoice.number ?? ""} />
+    <div style={pageWrap(lang)}>
+      <DocTitle
+        subtitle={lang === "ar" ? "فاتورة" : "INVOICE"}
+        title={invoice.number ?? (lang === "ar" ? "بدون رقم" : "Untitled")}
+      />
 
-      <div style={{ padding: "24px 40px 20px", display: "flex", justifyContent: "space-between", gap: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 20, marginBottom: 20 }}>
         <CompanyBlock settings={settings} lang={lang} />
         <div style={{ textAlign: lang === "ar" ? "left" : "right", fontSize: 12 }}>
-          <div style={{ marginBottom: 6 }}><StatusPill text={lang === "ar" ? st.ar : st.en} tone={statusTone} /></div>
+          <div style={{ marginBottom: 8 }}><StatusPill text={lang === "ar" ? st.ar : st.en} tone={statusTone} /></div>
           <div style={{ color: muted }}>{lang === "ar" ? "تاريخ الإصدار" : "Issue date"}</div>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>{formatDate(invoice.issue_date, lang)}</div>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>{formatDate(invoice.issue_date, lang)}</div>
           {invoice.due_date && (
             <>
               <div style={{ color: muted }}>{lang === "ar" ? "تاريخ الاستحقاق" : "Due date"}</div>
-              <div style={{ fontWeight: 600 }}>{formatDate(invoice.due_date, lang)}</div>
+              <div style={{ fontWeight: 700 }}>{formatDate(invoice.due_date, lang)}</div>
             </>
           )}
         </div>
       </div>
 
-      {/* Bill to */}
-      <div style={{ padding: "0 40px 20px" }}>
-        <div style={{ background: "#F8FAFC", border: `1px solid ${border}`, borderRadius: 10, padding: "14px 18px" }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ background: zebra, border: `1px solid ${border}`, borderRadius: 10, padding: "14px 18px" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: muted, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 6 }}>
             {lang === "ar" ? "الفاتورة إلى" : "Bill To"}
           </div>
           <div style={{ fontSize: 15, fontWeight: 700 }}>
@@ -156,23 +173,22 @@ export function InvoiceDocument({
         </div>
       </div>
 
-      {/* Items */}
-      <div style={{ padding: "0 40px" }}>
+      <div className="pdf-flow">
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
-            <tr style={{ background: grad, color: "#fff" }}>
-              <th style={{ padding: "10px 12px", textAlign: lang === "ar" ? "right" : "left", fontWeight: 700, fontSize: 11, letterSpacing: 0.4 }}>
+            <tr style={{ background: navy, color: "#fff" }}>
+              <th style={{ padding: "10px 12px", textAlign: lang === "ar" ? "right" : "left", fontWeight: 700, fontSize: 11, letterSpacing: 0.4, borderBottom: `2px solid ${gold}` }}>
                 {lang === "ar" ? "الوصف" : "Description"}
               </th>
-              <th style={{ padding: "10px 12px", textAlign: "center", width: 60, fontSize: 11 }}>{lang === "ar" ? "الكمية" : "Qty"}</th>
-              <th style={{ padding: "10px 12px", textAlign: lang === "ar" ? "left" : "right", width: 110, fontSize: 11 }}>{lang === "ar" ? "السعر" : "Unit"}</th>
-              <th style={{ padding: "10px 12px", textAlign: lang === "ar" ? "left" : "right", width: 90, fontSize: 11 }}>{lang === "ar" ? "خصم" : "Disc."}</th>
-              <th style={{ padding: "10px 12px", textAlign: lang === "ar" ? "left" : "right", width: 120, fontSize: 11 }}>{lang === "ar" ? "الإجمالي" : "Total"}</th>
+              <th style={{ padding: "10px 12px", textAlign: "center", width: 60, fontSize: 11, borderBottom: `2px solid ${gold}` }}>{lang === "ar" ? "الكمية" : "Qty"}</th>
+              <th style={{ padding: "10px 12px", textAlign: lang === "ar" ? "left" : "right", width: 110, fontSize: 11, borderBottom: `2px solid ${gold}` }}>{lang === "ar" ? "السعر" : "Unit"}</th>
+              <th style={{ padding: "10px 12px", textAlign: lang === "ar" ? "left" : "right", width: 90, fontSize: 11, borderBottom: `2px solid ${gold}` }}>{lang === "ar" ? "خصم" : "Disc."}</th>
+              <th style={{ padding: "10px 12px", textAlign: lang === "ar" ? "left" : "right", width: 120, fontSize: 11, borderBottom: `2px solid ${gold}` }}>{lang === "ar" ? "الإجمالي" : "Total"}</th>
             </tr>
           </thead>
           <tbody>
             {items.map((it, i) => (
-              <tr key={it.id} style={{ background: i % 2 === 1 ? "#F8FAFC" : "#fff", borderBottom: `1px solid ${border}` }}>
+              <tr key={it.id} style={{ background: i % 2 === 1 ? zebra : "#fff", borderBottom: `1px solid ${border}` }}>
                 <td style={{ padding: "10px 12px" }}>
                   {(lang === "ar" ? it.description_ar || it.description_en : it.description_en || it.description_ar) ?? "—"}
                 </td>
@@ -181,7 +197,7 @@ export function InvoiceDocument({
                 <td style={{ padding: "10px 12px", textAlign: lang === "ar" ? "left" : "right", color: muted }}>
                   {Number(it.discount_amount) > 0 ? formatMoney(it.discount_amount, invoice.currency, lang) : "—"}
                 </td>
-                <td style={{ padding: "10px 12px", textAlign: lang === "ar" ? "left" : "right", fontWeight: 600 }}>
+                <td style={{ padding: "10px 12px", textAlign: lang === "ar" ? "left" : "right", fontWeight: 700 }}>
                   {formatMoney(it.line_total, invoice.currency, lang)}
                 </td>
               </tr>
@@ -190,8 +206,7 @@ export function InvoiceDocument({
         </table>
       </div>
 
-      {/* Totals */}
-      <div style={{ padding: "20px 40px", display: "flex", justifyContent: lang === "ar" ? "flex-start" : "flex-end" }}>
+      <div style={{ marginTop: 20, display: "flex", justifyContent: lang === "ar" ? "flex-start" : "flex-end" }}>
         <div style={{ width: 320, fontSize: 13 }}>
           <TotalRow label={lang === "ar" ? "المجموع الفرعي" : "Subtotal"} value={formatMoney(invoice.subtotal, invoice.currency, lang)} />
           {Number(invoice.discount_amount) > 0 && (
@@ -201,9 +216,9 @@ export function InvoiceDocument({
             <TotalRow label={`${lang === "ar" ? "ضريبة" : "Tax"} (${Number(invoice.tax_rate)}%)`} value={formatMoney(invoice.tax_amount, invoice.currency, lang)} />
           )}
           <div style={{ height: 8 }} />
-          <div style={{ background: grad, color: "#fff", padding: "12px 16px", borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 12, opacity: 0.9 }}>{lang === "ar" ? "الإجمالي" : "TOTAL"}</span>
-            <span style={{ fontSize: 18, fontWeight: 800 }}>{formatMoney(invoice.total, invoice.currency, lang)}</span>
+          <div style={{ background: navy, color: "#fff", padding: "14px 18px", borderRadius: 10, borderTop: `3px solid ${gold}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 11, opacity: 0.9, letterSpacing: 1.4, textTransform: "uppercase" }}>{lang === "ar" ? "الإجمالي" : "TOTAL"}</span>
+            <span style={{ fontSize: 20, fontWeight: 900 }}>{formatMoney(invoice.total, invoice.currency, lang)}</span>
           </div>
           {Number(invoice.amount_paid) > 0 && (
             <>
@@ -214,11 +229,10 @@ export function InvoiceDocument({
         </div>
       </div>
 
-      {/* Notes + bank details */}
-      <div style={{ padding: "0 40px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 24 }}>
         {(invoice.notes_ar || invoice.notes_en) && (
-          <div style={{ background: "#F8FAFC", border: `1px solid ${border}`, borderRadius: 10, padding: 14 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+          <div style={{ background: zebra, border: `1px solid ${border}`, borderRadius: 10, padding: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: muted, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 6 }}>
               {lang === "ar" ? "ملاحظات" : "Notes"}
             </div>
             <div style={{ fontSize: 11, whiteSpace: "pre-wrap" }}>
@@ -227,8 +241,8 @@ export function InvoiceDocument({
           </div>
         )}
         {settings?.bank_account_number && (
-          <div style={{ background: "#F8FAFC", border: `1px solid ${border}`, borderRadius: 10, padding: 14 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+          <div style={{ background: zebra, border: `1px solid ${border}`, borderRadius: 10, padding: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: muted, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 6 }}>
               {lang === "ar" ? "تفاصيل الحساب" : "Bank details"}
             </div>
             <div style={{ fontSize: 11, lineHeight: 1.7 }}>
@@ -242,10 +256,11 @@ export function InvoiceDocument({
         )}
       </div>
 
-      {/* Footer */}
-      <div style={{ marginTop: 30, padding: "16px 40px", borderTop: `2px solid ${border}`, textAlign: "center", color: muted, fontSize: 10 }}>
-        {(lang === "ar" ? settings?.invoice_footer_ar : settings?.invoice_footer_en) || (lang === "ar" ? "شكراً لتعاملكم معنا" : "Thank you for your business")}
-      </div>
+      {(settings?.invoice_footer_ar || settings?.invoice_footer_en) && (
+        <div style={{ marginTop: 22, textAlign: "center", color: muted, fontSize: 10.5, fontStyle: "italic" }}>
+          {(lang === "ar" ? settings?.invoice_footer_ar : settings?.invoice_footer_en) || ""}
+        </div>
+      )}
     </div>
   );
 }
@@ -276,10 +291,14 @@ export function PaymentReceiptDocument({
   const receiptNo = `RCP-${(payment.id ?? "").slice(0, 8).toUpperCase()}`;
 
   return (
-    <div style={pageWrap(null, lang)}>
-      <BrandHeader lang={lang} title={lang === "ar" ? "إيصال دفع" : "PAYMENT RECEIPT"} subtitle={receiptNo} />
+    <div style={pageWrap(lang)}>
+      <DocTitle
+        subtitle={lang === "ar" ? "إيصال دفع" : "PAYMENT RECEIPT"}
+        title={receiptNo}
+        tone="gold"
+      />
 
-      <div style={{ padding: "24px 40px", display: "flex", justifyContent: "space-between", gap: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 20, marginBottom: 20 }}>
         <CompanyBlock settings={settings} lang={lang} />
         <div style={{ textAlign: lang === "ar" ? "left" : "right", fontSize: 12 }}>
           <div style={{ color: muted }}>{lang === "ar" ? "تاريخ الدفع" : "Payment date"}</div>
@@ -289,57 +308,52 @@ export function PaymentReceiptDocument({
         </div>
       </div>
 
-      {/* Received-from card */}
-      <div style={{ padding: "0 40px" }}>
-        <div style={{ background: "#F8FAFC", border: `1px solid ${border}`, borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
-            {lang === "ar" ? "استلمنا من" : "Received From"}
-          </div>
-          <div style={{ fontSize: 17, fontWeight: 700 }}>
-            {customer ? (lang === "ar" ? customer.name_ar || customer.name_en : customer.name_en || customer.name_ar) : "—"}
-          </div>
-          {customer?.company && <div style={{ fontSize: 12, color: muted }}>{customer.company}</div>}
+      <div style={{ background: zebra, border: `1px solid ${border}`, borderRadius: 10, padding: 18, marginBottom: 24 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: muted, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 6 }}>
+          {lang === "ar" ? "استلمنا من" : "Received From"}
         </div>
+        <div style={{ fontSize: 17, fontWeight: 700 }}>
+          {customer ? (lang === "ar" ? customer.name_ar || customer.name_en : customer.name_en || customer.name_ar) : "—"}
+        </div>
+        {customer?.company && <div style={{ fontSize: 12, color: muted }}>{customer.company}</div>}
       </div>
 
-      {/* Amount hero */}
-      <div style={{ padding: "30px 40px", position: "relative" }}>
+      <div style={{
+        background: `linear-gradient(135deg, ${navy} 0%, ${blue} 100%)`,
+        color: "#fff",
+        borderRadius: 14,
+        padding: "30px 28px",
+        textAlign: "center",
+        position: "relative",
+        overflow: "hidden",
+        marginBottom: 22,
+        borderTop: `4px solid ${gold}`,
+      }}>
+        <div style={{ fontSize: 11, opacity: 0.85, textTransform: "uppercase", letterSpacing: 3, marginBottom: 10 }}>
+          {lang === "ar" ? "المبلغ المستلم" : "Amount Received"}
+        </div>
+        <div style={{ fontSize: 38, fontWeight: 900, letterSpacing: 0.5 }}>
+          {formatMoney(payment.amount, payment.currency, lang)}
+        </div>
         <div style={{
-          background: grad,
-          color: "#fff",
-          borderRadius: 14,
-          padding: "32px 28px",
-          textAlign: "center",
-          position: "relative",
-          overflow: "hidden",
+          position: "absolute",
+          top: 20,
+          [lang === "ar" ? "left" : "right"]: 20,
+          border: `2.5px solid ${gold}`,
+          color: gold,
+          padding: "6px 16px",
+          borderRadius: 8,
+          fontWeight: 900,
+          fontSize: 13,
+          letterSpacing: 2,
+          transform: "rotate(-8deg)",
+          background: "rgba(255,255,255,0.08)",
         }}>
-          <div style={{ fontSize: 12, opacity: 0.85, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>
-            {lang === "ar" ? "المبلغ المستلم" : "Amount Received"}
-          </div>
-          <div style={{ fontSize: 38, fontWeight: 900, letterSpacing: 0.5 }}>
-            {formatMoney(payment.amount, payment.currency, lang)}
-          </div>
-          <div style={{
-            position: "absolute",
-            top: 20,
-            [lang === "ar" ? "left" : "right"]: 20,
-            border: `3px solid ${green}`,
-            color: green,
-            padding: "6px 16px",
-            borderRadius: 8,
-            fontWeight: 900,
-            fontSize: 14,
-            letterSpacing: 2,
-            transform: "rotate(-8deg)",
-            background: "rgba(255,255,255,0.9)",
-          }}>
-            {lang === "ar" ? "استُلم" : "RECEIVED"}
-          </div>
+          {lang === "ar" ? "استُلم" : "RECEIVED"}
         </div>
       </div>
 
-      {/* Details */}
-      <div style={{ padding: "0 40px", fontSize: 13 }}>
+      <div style={{ fontSize: 13 }}>
         <DetailRow label={lang === "ar" ? "طريقة الدفع" : "Payment method"} value={methodLabel} />
         {payment.reference && (
           <DetailRow label={lang === "ar" ? "مرجع" : "Reference"} value={payment.reference} />
@@ -354,23 +368,19 @@ export function PaymentReceiptDocument({
           highlight={balanceAfter <= 0 ? green : undefined}
         />
         {payment.notes && (
-          <div style={{ marginTop: 14, padding: 12, background: "#F8FAFC", border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }}>
+          <div style={{ marginTop: 14, padding: 12, background: zebra, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }}>
             <strong>{lang === "ar" ? "ملاحظات" : "Notes"}:</strong> {payment.notes}
           </div>
         )}
       </div>
 
-      <div style={{ marginTop: 60, padding: "0 40px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, fontSize: 11 }}>
+      <div style={{ marginTop: 60, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, fontSize: 11 }}>
         <div style={{ borderTop: `1px solid ${ink}`, paddingTop: 6, textAlign: "center", color: muted }}>
           {lang === "ar" ? "توقيع العميل" : "Customer signature"}
         </div>
         <div style={{ borderTop: `1px solid ${ink}`, paddingTop: 6, textAlign: "center", color: muted }}>
           {lang === "ar" ? "التوقيع والختم" : "Authorized signature"}
         </div>
-      </div>
-
-      <div style={{ marginTop: 40, padding: "12px 40px", borderTop: `2px solid ${border}`, textAlign: "center", color: muted, fontSize: 10 }}>
-        {(lang === "ar" ? settings?.invoice_footer_ar : settings?.invoice_footer_en) || (lang === "ar" ? "شكراً لتعاملكم معنا" : "Thank you for your business")}
       </div>
     </div>
   );
@@ -418,27 +428,30 @@ export function PayrollSlipDocument({
   lang: Lang;
 }) {
   return (
-    <div style={pageWrap(null, lang)}>
-      <BrandHeader lang={lang} title={lang === "ar" ? "قسيمة راتب" : "PAY SLIP"} subtitle={periodLabel} />
+    <div style={pageWrap(lang)}>
+      <DocTitle
+        subtitle={lang === "ar" ? "قسيمة راتب" : "PAY SLIP"}
+        title={periodLabel}
+      />
 
-      <div style={{ padding: "24px 40px", display: "flex", justifyContent: "space-between", gap: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 20, marginBottom: 22 }}>
         <CompanyBlock settings={settings} lang={lang} />
         <div style={{ textAlign: lang === "ar" ? "left" : "right", fontSize: 12 }}>
           <div style={{ color: muted }}>{lang === "ar" ? "الموظف" : "Employee"}</div>
           <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{memberName}</div>
           <div style={{ color: muted }}>{lang === "ar" ? "الفترة" : "Period"}</div>
-          <div style={{ fontWeight: 600 }}>{periodLabel}</div>
+          <div style={{ fontWeight: 700 }}>{periodLabel}</div>
         </div>
       </div>
 
-      <div style={{ padding: "0 40px" }}>
+      <div className="pdf-flow">
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
-            <tr style={{ background: grad, color: "#fff" }}>
-              <th style={{ padding: "10px 14px", textAlign: lang === "ar" ? "right" : "left", fontSize: 11, letterSpacing: 0.4 }}>
+            <tr style={{ background: navy, color: "#fff" }}>
+              <th style={{ padding: "12px 14px", textAlign: lang === "ar" ? "right" : "left", fontSize: 11, letterSpacing: 0.4, borderBottom: `2px solid ${gold}` }}>
                 {lang === "ar" ? "البند" : "Item"}
               </th>
-              <th style={{ padding: "10px 14px", textAlign: lang === "ar" ? "left" : "right", fontSize: 11 }}>
+              <th style={{ padding: "12px 14px", textAlign: lang === "ar" ? "left" : "right", fontSize: 11, borderBottom: `2px solid ${gold}` }}>
                 {lang === "ar" ? "المبلغ" : "Amount"}
               </th>
             </tr>
@@ -461,10 +474,9 @@ export function PayrollSlipDocument({
         </table>
       </div>
 
-      {/* Net */}
-      <div style={{ padding: "24px 40px" }}>
-        <div style={{ background: grad, color: "#fff", padding: "18px 24px", borderRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 14, opacity: 0.9, textTransform: "uppercase", letterSpacing: 1 }}>
+      <div style={{ marginTop: 22 }}>
+        <div style={{ background: navy, color: "#fff", padding: "18px 24px", borderRadius: 12, borderTop: `4px solid ${gold}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 12, opacity: 0.9, textTransform: "uppercase", letterSpacing: 2 }}>
             {lang === "ar" ? "صافي الراتب" : "Net Pay"}
           </span>
           <span style={{ fontSize: 26, fontWeight: 900 }}>{formatMoney(entry.net_amount, currency, lang)}</span>
@@ -472,12 +484,12 @@ export function PayrollSlipDocument({
       </div>
 
       {entry.notes && (
-        <div style={{ margin: "0 40px", padding: 14, background: "#F8FAFC", fontSize: 11, color: muted, borderRadius: 8, border: `1px solid ${border}` }}>
+        <div style={{ marginTop: 18, padding: 14, background: zebra, fontSize: 11, color: muted, borderRadius: 8, border: `1px solid ${border}` }}>
           {entry.notes}
         </div>
       )}
 
-      <div style={{ marginTop: 60, padding: "0 40px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, fontSize: 11 }}>
+      <div style={{ marginTop: 60, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, fontSize: 11 }}>
         <div style={{ borderTop: `1px solid ${ink}`, paddingTop: 6, textAlign: "center", color: muted }}>
           {lang === "ar" ? "توقيع الموظف" : "Employee signature"}
         </div>
@@ -486,7 +498,7 @@ export function PayrollSlipDocument({
         </div>
       </div>
 
-      <div style={{ marginTop: 40, padding: "12px 40px", borderTop: `2px solid ${border}`, textAlign: "center", color: muted, fontSize: 10 }}>
+      <div style={{ marginTop: 20, textAlign: "center", color: muted, fontSize: 10, fontStyle: "italic" }}>
         {lang === "ar" ? "قسيمة راتب سرية للاستخدام الداخلي فقط" : "Confidential — for internal use only"}
       </div>
     </div>

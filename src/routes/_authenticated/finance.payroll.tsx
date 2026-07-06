@@ -18,6 +18,7 @@ import {
 import { formatDate } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-dialog";
 import { renderAndDownloadPdf } from "@/lib/pdf-render";
+import { stampFilename } from "@/lib/pdf/brand";
 import { PayrollSlipDocument, type CompanySettings } from "@/components/finance/BrandedDocuments";
 
 export const Route = createFileRoute("/_authenticated/finance/payroll")({
@@ -394,7 +395,7 @@ function EntryEditModal({ entry, onClose, onSaved }: { entry: PayrollEntry; onCl
 }
 
 function PaySlipModal({ entry, member, onClose }: { entry: PayrollEntry; member: { full_name: string; job_title: string | null } | null; onClose: () => void }) {
-  const { t, lang } = useApp();
+  const { t, lang, user } = useApp();
   const { data: period } = useQuery({
     queryKey: ["payroll_period", entry.period_id],
     queryFn: async () => {
@@ -487,7 +488,8 @@ function PaySlipModal({ entry, member, onClose }: { entry: PayrollEntry; member:
                     settings={(settings as CompanySettings | null) ?? null}
                     lang={lang}
                   />,
-                  `payslip-${member?.full_name?.replace(/\s+/g, "_") ?? entry.id.slice(0, 6)}-${period ? `${period.year}-${String(period.month).padStart(2, "0")}` : ""}.pdf`,
+                  stampFilename("payslip", `${member?.full_name?.replace(/\s+/g, "-") ?? entry.id.slice(0, 6)}-${period ? `${period.year}-${String(period.month).padStart(2, "0")}` : ""}`),
+                  { chrome: { lang, generatedBy: user?.full_name ?? null } },
                 );
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : String(e));

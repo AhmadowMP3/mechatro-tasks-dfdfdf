@@ -1,79 +1,93 @@
 
-# Finance UI Polish — Simple & Comfortable for Master Admin
+# Unified Branded PDF System
 
-Goal: make every finance page easy to read and tap for an older admin, while keeping the current Mechatro brand (deep navy `#0A2540`, blue `#189FD1`, gold `#C8A24B`, gradient blue). No color rebrand, no logic changes — only presentation.
+Goal: every PDF the app produces (Invoices, Pay slips, Finance reports, Team/activity reports, Notes) uses one consistent brand chrome, has zero Arabic rendering bugs, and shares a single implementation so future PDFs "just work".
 
-## Design rules (applied across all finance pages)
+## Brand chrome (identical on every page of every PDF)
 
-- **Type scale bump** (finance-only, scoped via a `.finance-root` wrapper class on the layout):
-  - Body: 15px → **17px**
-  - Table cells: 13px → **16px**, row height 44 → **56px**
-  - Section titles: 18px → **22px**, page titles **28px** bold
-  - Numbers/money: **tabular-nums**, +1px, semibold
-- **Buttons**: min height **48px**, min width **120px**, radius 12, primary uses existing `--grad-blue`; icon+label always (no icon-only primary actions).
-- **Inputs**: height **48px**, 16px font (prevents mobile zoom), clearer focus ring using `--brand` at 40% alpha.
-- **Spacing**: card padding 16 → **24px**, gap between cards 12 → **20px**.
-- **Contrast**: muted text lightened one step for readability; keep dark surface.
-- **One primary action per page** (top-right on desktop, sticky bottom on mobile).
-- **Tabs bar** (`finance.tsx`): taller (48px), larger label (15px), active tab gets gold underline in addition to blue fill for clearer "you are here".
+- **Header band** (~26mm tall): Mechatro logo top-outer edge; thin gold hairline separator below.
+- **Footer band** (~14mm tall): thin gold hairline separator, then a single row:
+  - Outer side: `Page X / Y` in the doc's language
+  - Center: `Mechatro · ميكاترو`
+  - Inner side: `Generated: 2026-07-06 14:30 · by Test User`
+- Page size **A4 portrait** (215×297mm), margins 18mm side / 32mm top / 22mm bottom (header/footer reserved).
+- Palette reused verbatim from the existing finance workbook: navy `#0A2540`, blue `#189FD1`, gold `#C8A24B`, ink `#0F2031`, muted `#5A6B7D`, zebra `#F5F9FD`, border `#D7DEE5`.
 
-## Page-by-page changes
+## Arabic rendering (the "no more bugs" fix)
 
-### 1. Overview (`finance.index.tsx`) — friendly landing
-- Big greeting header: "أهلاً {name}" / "Hi {name}" + today's date.
-- **4 large KPI tiles** (2×2 on mobile, 1×4 on desktop): Income this month, Expenses this month, Net, Unpaid invoices — each 120px tall with big number + trend arrow + one-line label.
-- Below: **"Quick actions"** row of 3 big buttons (56px): **Log income**, **Log expense**, **Run payroll** — matches the user's priorities.
-- Remove/collapse dense charts into a single "This month" summary card; move detailed charts behind a "See details" link.
+- Embed **Montserrat Arabic Regular + Bold** (already in `src/assets/`) into jsPDF once via `addFileToVFS` + `addFont`. Add an English companion (Inter or Roboto) for Latin.
+- New helper `getBrandedPdf(lang)` returns a jsPDF instance with the fonts pre-registered and the correct `R2L` flag set when `lang === "ar"`.
+- All native text calls go through a `drawText(doc, text, x, y, opts)` helper that:
+  - picks the Arabic font when the string contains Arabic characters (mixed lines auto-detected),
+  - flips alignment for RTL,
+  - shapes Arabic-Indic digits when `lang === "ar"`,
+  - never falls back to the default Helvetica (that's the source of tofu boxes / mirrored text).
 
-### 2. Income (`finance.income.tsx`) — priority
-- Sticky top bar: month picker + big "＋ Add income" primary button.
-- Card list style (not compressed table) on mobile; on desktop a spacious table with 56px rows.
-- Each row shows: date · source · amount (large, right-aligned) · method pill. Extra columns collapse into an expand toggle.
-- Empty state with illustration + single "Log first income" CTA.
+## Two rendering modes, one chrome
 
-### 3. Expenses (`finance.expenses.tsx`) — priority
-- Same pattern as Income: sticky filter bar (month + category), big "＋ Add expense" button.
-- Category shown as colored chip; amount large and red-tinted (`#F0676A`) so the eye finds it fast.
-- Approve/reject actions become 44×44 icon buttons with tooltips + labels on hover; on mobile they appear inline as full labeled buttons.
+**Native mode** (crisp, selectable text, tiny files) — used for tabular / structured documents:
+- Invoices
+- Pay slips
+- Finance summary reports (monthly / statement PDFs from `finance.reports`)
+- Team & activity reports
 
-### 4. Payroll (`finance.payroll.tsx`) — priority
-- Reframe as a **step-by-step month card**: 1) Select month → 2) Review members → 3) Finalize → 4) Mark paid. Each step is a tall clickable card with a checkmark when complete.
-- Member rows: avatar 40px, name 17px, salary large. Big status pill (draft/finalized/paid).
-- Primary action button ("Finalize" / "Mark all paid") sits sticky at the bottom of the card, always 48px tall.
+**HTML mode** (needed only where rich, arbitrary formatting matters):
+- Notes (rich text, images, links, headings, lists)
+- Kept, but Arabic is fixed by forcing `font-family: "Montserrat Arabic"` + `direction: rtl` on the mirror, and the header/footer chrome is drawn natively by jsPDF on top of each rasterized page — so even Notes get the same crisp logo + page numbers.
 
-### 5. Invoices (`finance.invoices.index.tsx` + detail)
-- List: big status pills, larger customer name, amount right-aligned in bold.
-- Detail page: title 28px, customer block enlarged, line items table with 56px rows, totals block on the right stacked and roomy.
-- Actions (Issue / Record payment / Download PDF) become a horizontal row of labeled buttons instead of a menu.
+## New shared library
 
-### 6. Customers (`finance.customers.tsx`)
-- Card grid (2 cols mobile, 3-4 desktop) instead of a dense table; each card shows name, phone, outstanding balance in large type, and a single "Open" button.
+Create `src/lib/pdf/` with:
 
-### 7. Subscriptions, Reports, Settings
-- Same type scale + button sizing; no structural rework.
-- Reports: bigger download buttons, plain-language descriptions under each report name.
-- Settings: group inputs in labeled cards with more vertical space; save button sticky at bottom.
+- `brand.ts` — palette, margins, page-size constants, `stampFilename(kind)`.
+- `fonts.ts` — one-time font registration; exports `getBrandedPdf(lang)`.
+- `chrome.ts` — `drawHeader(doc, page)` (logo only) and `drawFooter(doc, page, total, meta)` (Page X/Y + generated + user). Called after each `addPage()` and once at the end to backfill total pages.
+- `text.ts` — `drawText`, `drawParagraph`, Arabic-safe wrap and digit shaping.
+- `table.ts` — thin wrapper over `jspdf-autotable` pre-configured with brand colors, zebra rows, RTL support, money/date/percent cell formatters, automatic page-break that redraws chrome.
+- `html.ts` — replaces the current `pdf-render.ts` + `pdf-export.ts`: rasterizes an HTML root the way the existing pipeline does but on a doc created by `getBrandedPdf`, and calls `drawHeader/drawFooter` on each emitted page.
+- `index.ts` — public entrypoints: `renderNativePdf(spec)`, `renderHtmlPdf(rootEl, spec)`, `downloadPdf(doc, filename)`.
+
+Every generator (invoice, payslip, report, notes) will call one of the two entrypoints and pass only its content — the header/footer/font/chrome logic lives once in `src/lib/pdf/`.
+
+## Migration per surface
+
+- **`src/components/finance/BrandedDocuments.tsx`** — invoice + pay slip: rewritten as native jsPDF builders (`renderInvoice(doc, invoice, items, payments)`, `renderPaySlip(doc, entry, member)`). Uses `table.ts` for line items.
+- **`src/routes/_authenticated/finance.invoices.$id.tsx`** — swap `renderAndDownloadPdf(...)` call for `renderNativePdf({ kind: "invoice", ... })`.
+- **`src/routes/_authenticated/finance.payroll.tsx`** — swap the pay slip modal call for `renderNativePdf({ kind: "payslip", ... })`.
+- **`src/routes/_authenticated/finance.reports.tsx`** — new native builder `renderFinanceReport(doc, spec)` that mirrors the sheet layout from `finance-xlsx.ts` (title block, filter meta, table, totals row).
+- **`src/lib/report/generator.ts`, `report-html.ts`, `team-report.ts`** — keep the HTML composition (rich charts / status pills), route through `renderHtmlPdf` so header/footer/logo are drawn natively over each rasterized page. Arabic in the HTML is fixed by forcing the embedded font + `dir="rtl"` on the root.
+- **`src/lib/notes-pdf.tsx`** — same HTML path; the "page 2/3" indicator logic in `NoteEditor.tsx` keeps working because break hints from `pdf-render.ts` are preserved (moved to `pdf/html.ts`).
+- **Delete** `src/lib/pdf-render.ts` + `src/lib/pdf-export.ts` once all callers move to `src/lib/pdf/`.
+
+## Filenames (consistent scheme)
+
+`mechatro-{kind}-{ref}-{YYYYMMDD}.pdf`, e.g.
+- `mechatro-invoice-INV-0007-20260706.pdf`
+- `mechatro-payslip-2026-07-testuser-20260706.pdf`
+- `mechatro-finance-report-income-202607-20260706.pdf`
+- `mechatro-team-report-20260706.pdf`
+- `mechatro-note-project-alpha-20260706.pdf`
 
 ## Technical section
 
-- Add a scoped stylesheet `src/styles/finance.css` imported once in `src/routes/_authenticated/finance.tsx`, all rules under `.finance-root` so nothing leaks to other pages.
-- Wrap the finance `<Outlet />` in `<div className="finance-root">`.
-- Introduce shared components (finance-scoped) in `src/components/finance/`:
-  - `StatTile.tsx` — KPI tile
-  - `QuickAction.tsx` — big 56px labeled action button
-  - `SectionCard.tsx` — padded card wrapper
-  - `MoneyCell.tsx` — tabular-nums money display with size prop
-- Reuse existing `formatMoney`, `StatusPill`, `PriorityPill`, `RoleBadge` — no changes to logic, tokens, or data flow.
-- Keep all existing routes, loaders, mutations, and server functions untouched.
+- Packages already installed: `jspdf`, `html2canvas`, `file-saver`. Add **`jspdf-autotable`** for native tables (small, no native deps, Worker-safe — client only).
+- Fonts are loaded via `fetch(fontUrl).arrayBuffer()` → base64 → `addFileToVFS` inside a **module-level lazy promise** so the cost is paid once per session; all callers `await ensureFonts()` before drawing.
+- Chrome injection uses jsPDF's page counter: after building the body we iterate `doc.internal.pages` and stamp header/footer with the final total — this fixes the "Page 1 / ?" chicken-and-egg problem the current code has.
+- The HTML mode's break-hint computation is preserved verbatim so images no longer get sliced (that fix stays).
+- All tokens (colors, margins, fonts) live in `brand.ts` — future edits to the brand touch one file.
 
 ## Out of scope
-- No color palette change, no logo change, no font swap.
-- No changes to database, RLS, server functions, or business logic.
-- Non-finance pages (tasks, notes, projects, etc.) are untouched.
+
+- No changes to Excel/XLSX exports (already branded via `finance-xlsx.ts`).
+- No changes to the data being exported — only the rendering pipeline.
+- No new PDF surfaces; just polish + unify what exists today.
 
 ## Rollout order
-1. Shared CSS + components + layout wrapper.
-2. Income → Expenses → Payroll (priority).
-3. Overview KPI + quick actions.
-4. Invoices (list + detail) → Customers.
-5. Subscriptions, Reports, Settings.
+
+1. Add `jspdf-autotable`, build `src/lib/pdf/` skeleton with font embed + chrome + native/html entrypoints.
+2. Move Invoices → native. Verify AR + EN.
+3. Move Pay slips → native.
+4. Move Finance reports → native.
+5. Move Team/activity reports → HTML entrypoint (chrome drawn natively).
+6. Move Notes → HTML entrypoint. Verify page-break indicators still align.
+7. Delete legacy `pdf-render.ts` / `pdf-export.ts`. Smoke-test each surface in AR + EN, portrait A4.

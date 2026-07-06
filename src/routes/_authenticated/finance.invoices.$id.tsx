@@ -12,6 +12,7 @@ import { formatDate } from "@/lib/format";
 import { Plus, Trash2, Save, Send, Download, DollarSign, ArrowLeft, X, Ban, Receipt } from "lucide-react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { renderAndDownloadPdf } from "@/lib/pdf-render";
+import { stampFilename } from "@/lib/pdf/brand";
 import { InvoiceDocument, PaymentReceiptDocument, paymentMethodTextFor, type CompanySettings } from "@/components/finance/BrandedDocuments";
 
 export const Route = createFileRoute("/_authenticated/finance/invoices/$id")({
@@ -257,7 +258,8 @@ function InvoiceEditorPage() {
           settings={settings as CompanySettings | null}
           lang={lang}
         />,
-        `${existing.invoice.number ?? "invoice"}.pdf`,
+        stampFilename("invoice", existing.invoice.number ?? "draft"),
+        { chrome: { lang, generatedBy: user?.full_name ?? null } },
       );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
@@ -491,7 +493,7 @@ function PaymentReceiptModal({
   settings: CompanySettings | null;
   onClose: () => void;
 }) {
-  const { t, lang } = useApp();
+  const { t, lang, user } = useApp();
   const [downloading, setDownloading] = useState(false);
   const download = async () => {
     setDownloading(true);
@@ -505,7 +507,8 @@ function PaymentReceiptModal({
           lang={lang}
           methodLabel={paymentMethodTextFor(payment.method, lang)}
         />,
-        `receipt-${(payment.id ?? "").slice(0, 8)}.pdf`,
+        stampFilename("receipt", (payment.id ?? "").slice(0, 8)),
+        { chrome: { lang, generatedBy: user?.full_name ?? null } },
       );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
