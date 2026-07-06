@@ -1,128 +1,165 @@
-## ملاحظة مهمة قبل ما نبدأ
 
-**رفع إيصالات المصاريف موجود فعلاً وشغّال** في `finance.expenses.tsx`:
-- رفع الملف إلى bucket `expense-receipts` عند إنشاء/تعديل المصروف
-- عرض/تحميل الإيصال عبر `createSignedUrl` (سطر 71 و 216)
+## نظام ملاحظات (Admin Notes)
 
-فش شي ناقص هنا — إلا إذا بدك ميزات إضافية (رفع متعدد، معاينة داخل الصفحة، سحب وإفلات). خبّرني إذا بدك تحسينات وإلا رح أعتبرها منتهية وأركّز على الأربعة الباقية.
+نظام ملاحظات مخصص للمدير المسؤول (Master Admin) والمدراء العاديين، بتجربة شبيهة بتطبيقات الملاحظات على الهاتف (Apple Notes / Google Keep) — سريع، سلس، غني بالميزات، وبتصميم يتناسق مع باقي التطبيق.
 
----
+## المسار الرئيسي
 
-## المخطط: 4 مزايا
+`/notes` (تحت `_authenticated`) — محمي بحيث لا يظهر إلا للمدراء (`role='admin'` أو `is_master_admin`). يظهر رابط "الملاحظات" في الشريط الجانبي للمدراء فقط.
 
-### 1) PDF احترافي بالهوية البصرية
+## هيكل الواجهة (Two-Pane Layout)
 
-**النهج:** استبدال `window.print()` بـ edge function تولد PDF فعلي، لأن `@react-pdf/renderer` ما يشتغل على Cloudflare Workers (يحتاج Node runtime + native). الحل الموثوق: توليد HTML مصمم بالكامل مع الخطوط والشعار من داخل TanStack server function ثم استخدام مكتبة **pdfmake** (Pure JS، تشتغل على Workers) أو الأبسط: توليد HTML جاهز للطباعة + ملف `.pdf.html` يفتحه المستخدم ويطبعه بأمر واحد.
-
-**بعد بحث موجز:** الحل الأنظف على Cloudflare Workers = مكتبة **`pdf-lib`** (Pure JS، متوافقة مع Workers، تدعم النصوص العربية عبر custom fonts embed). لكنها بدون HTML — كل شي رسم يدوي.
-
-**النهج المختار (عملي وسريع):**
-- **Supabase Edge Function** `generate-pdf` (Deno runtime، يدعم كل شي) باستخدام `jspdf` + `jspdf-autotable` للجداول، مع تضمين خط Almarai كـ Base64 لدعم العربية.
-- الشعار يُضمّن كصورة PNG (base64) داخل الـ edge function.
-- يستقبل payload من ثلاث أنواع: `invoice`, `payment_receipt`, `payroll_slip`.
-- يرجّع PDF binary → المتصفح يحمّله مباشرة.
-
-**التصميم:**
-- Header بتدرج `--grad-blue` (#3B82F6 → #1E40AF)
-- شعار Mechatro يسار (أو يمين حسب اللغة)
-- Footer فيه رقم الوثيقة + تاريخ الإصدار + رقم الصفحة
-- ألوان: أزرق (رئيسي)، أخضر #50C878 (مدفوع)، أحمر #F0676A (متأخر)
-- خط Almarai للعربي، خط Montserrat للإنكليزي
-
-**نقاط الاستدعاء:**
-- `finance.invoices.$id.tsx` → زر "تحميل PDF" يستدعي `generate-pdf` بـ `type=invoice`
-- `finance.payroll.tsx` → قسيمة الراتب `type=payroll_slip`
-
-### 2) تذكيرات الاستحقاق (Cron Job)
-
-**Server Route:** `src/routes/api/public/hooks/finance-reminders.ts`
-- يُشغَّل يومياً الساعة 8 صباحاً (توقيت UTC)
-- يمر على:
-  - **اشتراكات صادرة** (`subscriptions_expense`) قريبة التجديد ضمن `reminder_days` → ينشئ إشعار للمشرفين الماليين نوع `subscription_due`
-  - **اشتراكات عملاء** (`subscriptions_income`) قريبة الفاتورة القادمة → إشعار
-  - **فواتير غير مدفوعة** (`invoices` بحالة `issued` أو `partially_paid`) خلال 3 أيام من `due_date` → إشعار
-  - **فواتير متأخرة** (`due_date < today` وليست `paid`) → إشعار + تحديث الحالة إلى `overdue`
-- يستخدم `supabaseAdmin` (خدمة داخلية) ومحمي بحقل `apikey` header
-- يمنع التكرار عبر جدول `finance_reminders_log(entity_type, entity_id, sent_on DATE)` مع unique constraint
-
-**pg_cron:**
-```sql
-SELECT cron.schedule('finance-daily-reminders','0 8 * * *', $$
-  SELECT net.http_post(
-    url:='https://project--70935899-f801-4b02-9f3a-e174fc26093c.lovable.app/api/public/hooks/finance-reminders',
-    headers:='{"Content-Type":"application/json","apikey":"..."}'::jsonb,
-    body:='{}'::jsonb
-  );
-$$);
+```text
+┌─────────────────┬─────────────────────────────────────┐
+│  Sidebar (280px)│  Editor Pane                        │
+│                 │                                     │
+│  [+ ملاحظة جديدة]│  [Title___________________]        │
+│  🔍 بحث          │  🏷️ tags   📁 folder   🎨 color     │
+│                 │  ─────────────────────────────       │
+│  📌 مثبتة       │  [B I U ~ H1 H2 • 1. ☑ 🖼 📎]      │
+│  ├ ملاحظة 1     │                                     │
+│  ├ ملاحظة 2     │  محرر Rich Text كامل...              │
+│                 │                                     │
+│  📁 مجلدات      │                                     │
+│  ├ عمل          │                                     │
+│  ├ اجتماعات     │                                     │
+│                 │                                     │
+│  الكل           │  ─────────────────────────           │
+│  ├ ملاحظة أ     │  آخر تعديل: منذ دقيقتين              │
+│  ├ ملاحظة ب     │  [🗑 حذف] [📌 تثبيت] [📄 PDF] [⋯]   │
+└─────────────────┴─────────────────────────────────────┘
 ```
 
-**نوع إشعار جديد** يُضاف لجدول `notifications` (النوع موجود كنص، لا يحتاج enum).
+على الموبايل: عرض واحد يتبدّل بين قائمة الملاحظات والمحرر (slide transition).
 
-### 3) إيصالات الدفع (Payment Receipts)
+## الميزات
 
-- في `finance.invoices.$id.tsx` بجانب كل دفعة → زر "إيصال" (Receipt icon)
-- يفتح modal فيه معاينة الإيصال ثم زر "تحميل PDF"
-- يستدعي نفس `generate-pdf` بـ `type=payment_receipt` مع payload:
-  ```
-  { invoiceNumber, customerName, paymentAmount, paymentMethod, paidAt, reference, remainingBalance }
-  ```
-- تصميم الإيصال: صفحة A5 أو A4 مبسّطة، فيها ختم "RECEIVED" أخضر مائل، أرقام الفاتورة والإيصال، توقيع الشركة
+**المحرر (Rich Text)** — باستخدام TipTap (خفيف، RTL، متوافق مع React):
+- Bold, Italic, Underline, Strike
+- Headings (H1, H2, H3)
+- قوائم نقطية ومرقمة
+- Checkboxes (task list) قابلة للنقر
+- Blockquote, code inline
+- روابط
+- محاذاة يمين/يسار/وسط
+- Undo/Redo
 
-### 4) تصدير Excel حقيقي (.xlsx)
+**التنظيم:**
+- **مجلدات (Folders):** المستخدم ينشئها ويعيد تسميتها ويحذفها
+- **تثبيت (Pin):** ملاحظات مهمة تظهر في الأعلى مع أيقونة 📌
+- **وسوم (Tags):** متعددة لكل ملاحظة، تعرض كـ pills ملوّنة
+- **لون خلفية:** 6 ألوان جاهزة (أصفر، وردي، أزرق، أخضر، برتقالي، أرجواني) + رمادي/أبيض افتراضي
 
-- إضافة مكتبة `xlsx` (SheetJS، Pure JS، شغّالة في المتصفح)
-- استبدال جميع `downloadCsv` في `finance.reports.tsx` بـ `downloadXlsx` تولد ملف واحد فيه sheets متعددة:
-  - Sheet "P&L"
-  - Sheet "A/R Aging"
-  - Sheet "Project Profitability"
-  - Sheet "Client Balances"
-- تنسيق مع rich formatting: عمود العملة يستخدم `numFmt: '#,##0.00'`، الرؤوس ملوّنة بالأزرق، RTL sheet direction إذا كان العرض بالعربي
-- زر جديد "تصدير Excel" بجانب "تصدير / طباعة PDF" في الهيدر، مع الاحتفاظ بأزرار CSV لكل قسم منفصل
+**البحث والفلترة:**
+- بحث فوري (debounced) بالعنوان + المحتوى النصي
+- فلتر حسب المجلد / الوسم / اللون
+- ترتيب: آخر تعديل (افتراضي) / تاريخ الإنشاء / أبجدي
 
----
+**المشاركة:**
+- كل ملاحظة خاصة بمنشئها افتراضياً
+- زر "مشاركة" يفتح modal لاختيار مدراء محددين أو "جميع المدراء"
+- الشخص المشارك معه يرى الملاحظة للقراءة فقط (لا يعدّل)
+- شارة "مشاركة معي" على الملاحظات المستلمة
 
-## Technical details
+**المرفقات:**
+- رفع صور ومستندات (PDF/DOCX/…) في bucket جديد `note-attachments`
+- الصور تُدرج inline في المحرر
+- المرفقات الأخرى تظهر كبطاقات ملفات قابلة للتحميل
 
-**الملفات الجديدة:**
-- `supabase/functions/generate-pdf/index.ts` (Deno edge function)
-- `supabase/functions/generate-pdf/assets/almarai-base64.ts` (خط عربي)
-- `supabase/functions/generate-pdf/assets/logo-base64.ts` (شعار)
-- `supabase/functions/generate-pdf/templates.ts` (قوالب الفاتورة/الإيصال/قسيمة الراتب)
-- `src/routes/api/public/hooks/finance-reminders.ts` (TanStack server route)
-- `src/lib/xlsx-export.ts` (helper لبناء sheets)
-- `src/components/finance/PaymentReceiptModal.tsx`
+**تجربة الاستخدام:**
+- **حفظ تلقائي** كل ~1.5 ثانية بعد التوقف عن الكتابة (Debounced autosave)
+- عدّاد كلمات/أحرف في الأسفل
+- اختصارات لوحة مفاتيح (Ctrl+N جديد، Ctrl+S حفظ فوري، Ctrl+F بحث، Ctrl+K لوحة أوامر)
+- Empty state جميل عند عدم وجود ملاحظات
+- Skeleton loading
 
-**تعديل:**
-- `src/routes/_authenticated/finance.invoices.$id.tsx`: `downloadPdf` يستدعي edge function، زر إيصال لكل دفعة
-- `src/routes/_authenticated/finance.payroll.tsx`: زر PDF لقسيمة الراتب
-- `src/routes/_authenticated/finance.reports.tsx`: زر Excel
-- `src/i18n/dict.ts`: مفاتيح جديدة (receipt, paymentReceipt, exportXlsx, dueSoon, etc.)
+**تصدير PDF (Branded):**
+- زر "📄 تصدير PDF" في شريط الأدوات
+- يستخدم نفس نظام العلامة التجارية الموجود (`html2canvas + jsPDF` من `pdf-export.ts` و `BrandedDocuments.tsx`)
+- الـ PDF يتضمن:
+  - Header بتدرج `--grad-blue` مع لوغو Mechatro
+  - عنوان الملاحظة
+  - meta: الكاتب، التاريخ، الوسوم، المجلد
+  - المحتوى بالكامل مع الحفاظ على التنسيق (bold, headings, lists, checkboxes, صور inline)
+  - Footer بالتاريخ ورقم الصفحة
+  - خط Almarai للعربي + Montserrat للإنكليزي
+- تصدير ملاحظة واحدة في كل مرة (كما اخترت)
 
-**هجرات SQL:**
-- جدول `finance_reminders_log` مع RLS ومنح صلاحيات
-- تفعيل `pg_cron` و `pg_net` إذا لم تكن مفعّلة
-- schedule الـ cron عبر supabase--insert tool (بعد نشر الـ route)
+## قاعدة البيانات
 
-**الأمان:**
-- edge function `generate-pdf`: `verify_jwt=false` مع فحص داخلي أن المستخدم مصادق عبر بيرر توكن ممرر يدوياً، أو نجعله عام لأن الـ payload يأتي كامل من العميل (لا نقرأ من DB)
-- `finance-reminders` route: يتحقق من header `apikey` يطابق anon key + logic كلها من داخل SQL/service role
-- Excel export: كلياً client-side، بدون endpoint
+**جدول `notes`:**
+- `id`, `owner_id` → `profiles.id`
+- `title` (text)
+- `content_html` (text) — HTML الناتج من TipTap
+- `content_text` (text) — نسخة plain للبحث
+- `folder_id` (uuid, nullable)
+- `color` (text: default/yellow/pink/blue/green/orange/purple)
+- `is_pinned` (bool)
+- `created_at`, `updated_at`
 
-**مكتبات جديدة:**
-- `xlsx` (~700kb لكن lazy-imported فقط عند الضغط على زر التصدير)
-- edge function تستخدم `jspdf` + `jspdf-autotable` عبر esm.sh
+**جدول `note_folders`:**
+- `id`, `owner_id`, `name`, `color`, `sort_order`, `created_at`
 
----
+**جدول `note_tags`:** (tags خاصة بكل مدير)
+- `id`, `owner_id`, `name`, `color`
+
+**جدول `note_tag_links`:** (many-to-many)
+- `note_id`, `tag_id`
+
+**جدول `note_shares`:**
+- `note_id`, `shared_with_user_id`, `created_at`
+- (لا وجود لهذا الصف = خاصة)
+
+**جدول `note_attachments`:**
+- `id`, `note_id`, `file_path`, `file_name`, `mime_type`, `size`, `created_at`
+
+**Storage bucket:** `note-attachments` (private) + RLS.
+
+**RLS Policies (باختصار):**
+- `notes`: المالك يرى/يعدّل ملاحظاته + المشارك معه يرى فقط. الإنشاء مقيّد للمدراء عبر `has_role(auth.uid(),'admin')` أو `is_master_admin`.
+- المجلدات والوسوم: خاصة بالمالك بالكامل.
+- المرفقات: المالك يديرها، المشارك معه يقرأ فقط.
+- Storage: مسار `{owner_id}/{note_id}/…` مع policy تتحقق من العلاقة بالجدول.
+- GRANT `SELECT, INSERT, UPDATE, DELETE` للـ `authenticated` و `ALL` للـ `service_role`.
+
+## الملفات الجديدة
+
+- `src/routes/_authenticated/notes.tsx` — layout ثنائي مع sidebar وeditor
+- `src/routes/_authenticated/notes.$id.tsx` — عرض/تحرير ملاحظة (nested)
+- `src/routes/_authenticated/notes.index.tsx` — الحالة الافتراضية (empty state)
+- `src/components/notes/NotesSidebar.tsx` — قائمة الملاحظات + بحث + مجلدات
+- `src/components/notes/NoteEditor.tsx` — محرر TipTap + toolbar
+- `src/components/notes/NoteToolbar.tsx` — أزرار التنسيق
+- `src/components/notes/FolderManager.tsx` — إدارة المجلدات
+- `src/components/notes/TagPicker.tsx` — اختيار/إنشاء وسوم
+- `src/components/notes/ColorPicker.tsx` — 6 ألوان
+- `src/components/notes/ShareNoteModal.tsx` — مشاركة مع مدراء
+- `src/components/notes/NotePdfDocument.tsx` — قالب PDF مبرَند (يعاد استخدام نمط `BrandedDocuments`)
+- `src/lib/notes.ts` — types + helpers + query functions
+- `src/lib/notes-pdf.ts` — دالة `exportNoteToPdf(note)` تستخدم `renderAndDownloadPdf`
+
+## الملفات المعدَّلة
+
+- `src/components/layout/Sidebar.tsx` — إضافة رابط "الملاحظات" للمدراء
+- `src/components/layout/MobileTabBar.tsx` — إضافة الأيقونة (اختياري)
+- `src/i18n/dict.ts` — مفاتيح جديدة (notes, newNote, folder, pin, share, exportPdf, colors, tags, searchNotes, لا ملاحظات، إلخ)
+- `src/routeTree.gen.ts` — يُحدَّث تلقائياً
+
+## الحزم الجديدة
+
+- `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-task-list`, `@tiptap/extension-task-item`, `@tiptap/extension-link`, `@tiptap/extension-image`, `@tiptap/extension-text-align`, `@tiptap/extension-placeholder`
 
 ## ترتيب التنفيذ
 
-1. Excel exports (أسرع، بدون backend)
-2. Migration جدول التذكيرات + إشعارات
-3. Server route + جدولة cron
-4. Edge function `generate-pdf` + قوالب
-5. ربط PDF بالفواتير + قسائم الرواتب
-6. Modal إيصال الدفع
+1. **Migration:** جميع الجداول + RLS + GRANTs + bucket + policies تخزين
+2. **الأنواع والـ helpers:** `src/lib/notes.ts`
+3. **الواجهة الأساسية:** الـ layout + sidebar + list
+4. **المحرر:** TipTap + toolbar + autosave
+5. **المجلدات والوسوم والألوان**
+6. **البحث والفلترة**
+7. **المرفقات (رفع صور + ملفات)**
+8. **المشاركة (modal + عرض المستلمة)**
+9. **تصدير PDF المبرَند**
+10. **رابط الشريط الجانبي + التحقق من الصلاحيات + i18n**
 
----
-
-هل الخطة توافق توقعاتك؟ ولا بدك تعديل على أي جزء (مثلاً: PDF بدون edge function، أو تذكيرات كل ساعة بدل يومي، أو تصدير Excel لكل قسم منفصل بدل ملف واحد)؟
+هل تريد أي تعديل قبل ما نبدأ التنفيذ؟ (مثلاً: نستخدم Lexical أو ProseMirror بدل TipTap، أو ما نحتاج المرفقات، أو نضيف تصدير PDF لعدة ملاحظات مختارة أيضاً؟)
