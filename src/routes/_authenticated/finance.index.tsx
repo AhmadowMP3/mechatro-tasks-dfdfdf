@@ -283,12 +283,14 @@ function FinanceDashboard() {
 function KpiCard({ icon: Icon, label, value, tone }: { icon: React.ComponentType<{ size?: number; color?: string }>; label: string; value: string; tone: "green" | "red" | "blue" | "orange" }) {
   const toneColor = tone === "green" ? "#50C878" : tone === "red" ? "#F0676A" : tone === "orange" ? "#FBBF24" : "#60A5FA";
   return (
-    <div className="brand-card" style={{ padding: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 12, color: "var(--muted)" }}>
-        <Icon size={14} color={toneColor} />
-        {label}
+    <div className="brand-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12, minHeight: 128 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ width: 40, height: 40, borderRadius: 12, background: toneColor + "22", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon size={20} color={toneColor} />
+        </span>
+        <span className="kpi-label" style={{ flex: 1 }}>{label}</span>
       </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: toneColor }}>{value}</div>
+      <div className="kpi-value money" style={{ color: toneColor }}>{value}</div>
     </div>
   );
 }
