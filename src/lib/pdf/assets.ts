@@ -2,7 +2,9 @@
 // and the Montserrat Arabic font (as base64 for jsPDF font embedding).
 
 import logoUrl from "@/assets/mechatro-logo.png";
-import fontUrl from "@/assets/MontserratArabic-Regular.ttf";
+import fontAsset from "@/assets/MontserratArabic-Regular.ttf.asset.json";
+
+const fontUrl: string = fontAsset.url;
 
 let logoPromise: Promise<{ dataUrl: string; widthPx: number; heightPx: number } | null> | null = null;
 let fontPromise: Promise<string | null> | null = null;

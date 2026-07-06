@@ -107,12 +107,13 @@ export function invoiceStatusKey(status: InvoiceStatus): "invoiceDraft" | "invoi
   }
 }
 
-export function paymentMethodKey(m: PaymentMethod): "methodCash" | "methodBankTransfer" | "methodCheque" | "methodCard" | "methodOther" {
+export function paymentMethodKey(m: PaymentMethod): "methodCash" | "methodBankTransfer" | "methodCheque" | "methodCard" | "methodShamCash" | "methodOther" {
   switch (m) {
     case "cash": return "methodCash";
     case "bank_transfer": return "methodBankTransfer";
     case "cheque": return "methodCheque";
     case "card": return "methodCard";
+    case "sham_cash": return "methodShamCash";
     case "other": return "methodOther";
   }
 }

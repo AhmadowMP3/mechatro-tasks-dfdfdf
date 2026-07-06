@@ -653,6 +653,7 @@ export const dict = {
   methodBankTransfer: { ar: "تحويل بنكي", en: "Bank Transfer" },
   methodCheque: { ar: "شيك", en: "Cheque" },
   methodCard: { ar: "بطاقة", en: "Card" },
+  methodShamCash: { ar: "شام كاش", en: "Sham Cash" },
   methodOther: { ar: "أخرى", en: "Other" },
   proof: { ar: "الإثبات", en: "Proof" },
   reference: { ar: "المرجع", en: "Reference" },

@@ -523,6 +523,7 @@ export function paymentMethodTextFor(method: PaymentMethod, lang: Lang): string 
     bank_transfer: { ar: "حوالة بنكية", en: "Bank transfer" },
     cheque: { ar: "شيك", en: "Cheque" },
     card: { ar: "بطاقة", en: "Card" },
+    sham_cash: { ar: "شام كاش", en: "Sham Cash" },
     other: { ar: "أخرى", en: "Other" },
   };
   return lang === "ar" ? map[method].ar : map[method].en;

@@ -2142,7 +2142,13 @@ export type Database = {
         | "paid"
         | "overdue"
         | "void"
-      payment_method: "cash" | "bank_transfer" | "cheque" | "card" | "other"
+      payment_method:
+        | "cash"
+        | "bank_transfer"
+        | "cheque"
+        | "card"
+        | "other"
+        | "sham_cash"
       payroll_period_status: "draft" | "finalized" | "paid"
       profile_status: "pending" | "active" | "suspended"
       project_status: "active" | "on_hold" | "done" | "archived"
@@ -2298,7 +2304,14 @@ export const Constants = {
         "overdue",
         "void",
       ],
-      payment_method: ["cash", "bank_transfer", "cheque", "card", "other"],
+      payment_method: [
+        "cash",
+        "bank_transfer",
+        "cheque",
+        "card",
+        "other",
+        "sham_cash",
+      ],
       payroll_period_status: ["draft", "finalized", "paid"],
       profile_status: ["pending", "active", "suspended"],
       project_status: ["active", "on_hold", "done", "archived"],
