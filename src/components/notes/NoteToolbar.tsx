@@ -2,6 +2,7 @@ import type { Editor } from "@tiptap/react";
 import { Bold, Italic, Underline as UIcon, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, ListChecks, Quote, Link as LinkIcon, AlignRight, AlignCenter, AlignLeft, Image as ImageIcon, Undo2, Redo2 } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import type { DictKey } from "@/i18n/dict";
+import { openPrompt } from "@/components/notes/PromptDialog";
 
 export function NoteToolbar({ editor, onInsertImageClick }: { editor: Editor | null; onInsertImageClick?: () => void }) {
   const { t } = useApp();
