@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { X, Check } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
-import { listShares, setNoteShares } from "@/lib/notes";
+import { listShares, setNoteShares, errMsg } from "@/lib/notes";
 import { toast } from "sonner";
 
 type AdminRow = { id: string; full_name: string; email: string | null; is_master_admin: boolean | null };
@@ -45,7 +45,7 @@ export function ShareNoteModal({ noteId, onClose }: { noteId: string; onClose: (
       toast.success(lang === "ar" ? "تم حفظ المشاركة" : "Sharing saved");
       onClose();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     } finally {
       setSaving(false);
     }

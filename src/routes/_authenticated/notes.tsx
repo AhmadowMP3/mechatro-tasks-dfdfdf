@@ -5,7 +5,7 @@ import { useApp } from "@/lib/app-context";
 import {
   listNotes, listFolders, listTags, listNoteTagLinks, createNote, updateNote, deleteNote,
   createFolder, renameFolder, deleteFolder, createTag, setNoteTags, htmlToPlain, countWords, preview,
-  listAttachments, uploadAttachment, deleteAttachment, signedAttachmentUrl,
+  listAttachments, uploadAttachment, deleteAttachment, signedAttachmentUrl, errMsg,
   NOTE_COLORS, colorPalette,
   type Note, type NoteFolder, type NoteTag, type NoteColor, type NoteAttachment,
 } from "@/lib/notes";
@@ -33,6 +33,8 @@ export const Route = createFileRoute("/_authenticated/notes")({
 });
 
 type FilterKey = "all" | "pinned" | "shared" | `folder:${string}`;
+
+
 
 function NotesPage() {
   const { user, lang, t } = useApp();
@@ -80,7 +82,7 @@ function NotesPage() {
       const links = await listNoteTagLinks(n.map((x) => x.id));
       setTagLinks(links);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     } finally {
       setLoading(false);
     }
@@ -120,7 +122,7 @@ function NotesPage() {
         setSavedAt(new Date());
         setDirty(false);
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : String(e));
+        toast.error(errMsg(e));
       } finally {
         setSaving(false);
       }
@@ -136,7 +138,7 @@ function NotesPage() {
       setSelectedId(n.id);
       setShowList(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -148,7 +150,7 @@ function NotesPage() {
       setNotes((cur) => cur.filter((n) => n.id !== selectedNote.id));
       setSelectedId(null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -159,7 +161,7 @@ function NotesPage() {
       await updateNote(selectedNote.id, { is_pinned: nv });
       setNotes((cur) => cur.map((n) => n.id === selectedNote.id ? { ...n, is_pinned: nv } : n));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -170,7 +172,7 @@ function NotesPage() {
       setNotes((cur) => cur.map((n) => n.id === selectedNote.id ? { ...n, color } : n));
       setColorMenu(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -181,7 +183,7 @@ function NotesPage() {
       setNotes((cur) => cur.map((n) => n.id === selectedNote.id ? { ...n, folder_id: folderId } : n));
       setFolderMenu(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -192,7 +194,7 @@ function NotesPage() {
       const f = await createFolder(userId, name.trim());
       setFolders((cur) => [...cur, f].sort((a, b) => a.name.localeCompare(b.name)));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -203,7 +205,7 @@ function NotesPage() {
       await renameFolder(f.id, name.trim());
       setFolders((cur) => cur.map((x) => x.id === f.id ? { ...x, name: name.trim() } : x));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -214,7 +216,7 @@ function NotesPage() {
       setFolders((cur) => cur.filter((x) => x.id !== f.id));
       setNotes((cur) => cur.map((n) => n.folder_id === f.id ? { ...n, folder_id: null } : n));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -231,7 +233,7 @@ function NotesPage() {
         ...next.map((tag_id) => ({ note_id: selectedNote.id, tag_id })),
       ]);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -242,7 +244,7 @@ function NotesPage() {
       const tag = await createTag(userId, name.trim());
       setTags((cur) => [...cur, tag].sort((a, b) => a.name.localeCompare(b.name)));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -257,7 +259,7 @@ function NotesPage() {
         editor.chain().focus().setImage({ src: url, alt: att.file_name }).run();
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -269,7 +271,7 @@ function NotesPage() {
       const url = await signedAttachmentUrl(att.file_path);
       if (url) setAttachUrls((cur) => ({ ...cur, [att.id]: url }));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -279,7 +281,7 @@ function NotesPage() {
       await deleteAttachment(att);
       setAttachments((cur) => cur.filter((a) => a.id !== att.id));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
@@ -291,7 +293,7 @@ function NotesPage() {
       const noteTags = tags.filter((tag) => noteTagIds.has(tag.id));
       await exportNoteToPdf({ note: selectedNote, authorName: author, folderName: folder, tags: noteTags, lang });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e));
     }
   };
 
