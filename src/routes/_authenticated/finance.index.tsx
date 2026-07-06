@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { formatMoney, convertAmount, type Currency, type Invoice, type Expense, type IncomeEntry, type FxRate } from "@/lib/finance";
-import { TrendingUp, TrendingDown, DollarSign, AlertCircle, RefreshCw } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, AlertCircle, RefreshCw, Plus, Wallet } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import { Link } from "@tanstack/react-router";
 
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/finance/")({
 });
 
 function FinanceDashboard() {
-  const { t, lang } = useApp();
+  const { t, lang, user } = useApp();
   const [displayCurrency, setDisplayCurrency] = useState<Currency>("SYP");
 
   const { data: latestFx } = useQuery({
@@ -130,13 +130,21 @@ function FinanceDashboard() {
 
   const outstanding = (invoices ?? []).filter((i) => i.status === "issued" || i.status === "partially_paid" || i.status === "overdue").slice(0, 5);
 
+  const firstName = (user?.full_name ?? "").trim().split(/\s+/)[0] || "";
+  const today = new Date().toLocaleDateString(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const greetingAr = firstName ? `أهلاً ${firstName}` : "أهلاً بك";
+  const greetingEn = firstName ? `Hi ${firstName}` : "Welcome";
+
   return (
-    <div style={{ display: "grid", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <h1 style={{ margin: 0, fontSize: 24 }}>{t("financeDashboard")}</h1>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("currency")}:</span>
-          <div style={{ display: "inline-flex", background: "var(--surface-2)", borderRadius: 10, padding: 3, border: "1px solid var(--border)" }}>
+    <div style={{ display: "grid", gap: 20 }}>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <h1 style={{ margin: 0 }}>{lang === "ar" ? greetingAr : greetingEn}</h1>
+          <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 15 }}>{today}</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("currency")}:</span>
+          <div style={{ display: "inline-flex", background: "var(--surface-2)", borderRadius: 12, padding: 4, border: "1px solid var(--border)" }}>
             {(["SYP", "USD"] as Currency[]).map((c) => (
               <button
                 key={c}
@@ -146,7 +154,7 @@ function FinanceDashboard() {
                   background: displayCurrency === c ? "var(--grad-blue)" : "transparent",
                   color: displayCurrency === c ? "#fff" : "var(--foreground)",
                   border: "none",
-                  minWidth: 60,
+                  minWidth: 68,
                 }}
               >
                 {c === "SYP" ? t("syp") : t("usd")}
@@ -161,8 +169,33 @@ function FinanceDashboard() {
         </div>
       </div>
 
+      {/* Quick actions — priorities for master admin */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+        <Link to="/finance/income" className="quick-action">
+          <span className="qa-icon" style={{ background: "linear-gradient(135deg,#50C878,#3d9c5e)" }}><Plus size={22} /></span>
+          <span>
+            {lang === "ar" ? "تسجيل دخل" : "Log income"}
+            <span className="qa-sub">{lang === "ar" ? "أضف مدخول جديد" : "Add new income entry"}</span>
+          </span>
+        </Link>
+        <Link to="/finance/expenses" className="quick-action">
+          <span className="qa-icon" style={{ background: "linear-gradient(135deg,#F0676A,#c94446)" }}><Plus size={22} /></span>
+          <span>
+            {lang === "ar" ? "تسجيل مصروف" : "Log expense"}
+            <span className="qa-sub">{lang === "ar" ? "أضف مصروف جديد" : "Add new expense"}</span>
+          </span>
+        </Link>
+        <Link to="/finance/payroll" className="quick-action">
+          <span className="qa-icon"><Wallet size={22} /></span>
+          <span>
+            {lang === "ar" ? "الرواتب" : "Run payroll"}
+            <span className="qa-sub">{lang === "ar" ? "احسب رواتب الشهر" : "Compute this month's payroll"}</span>
+          </span>
+        </Link>
+      </div>
+
       {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
         <KpiCard icon={TrendingUp} label={t("totalIncome") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdIncome, displayCurrency, lang)} tone="green" />
         <KpiCard icon={TrendingDown} label={t("totalExpenses") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdExpenses, displayCurrency, lang)} tone="red" />
         <KpiCard icon={DollarSign} label={t("netProfit") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdNet, displayCurrency, lang)} tone={kpi.mtdNet >= 0 ? "green" : "red"} />
@@ -250,12 +283,14 @@ function FinanceDashboard() {
 function KpiCard({ icon: Icon, label, value, tone }: { icon: React.ComponentType<{ size?: number; color?: string }>; label: string; value: string; tone: "green" | "red" | "blue" | "orange" }) {
   const toneColor = tone === "green" ? "#50C878" : tone === "red" ? "#F0676A" : tone === "orange" ? "#FBBF24" : "#60A5FA";
   return (
-    <div className="brand-card" style={{ padding: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 12, color: "var(--muted)" }}>
-        <Icon size={14} color={toneColor} />
-        {label}
+    <div className="brand-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12, minHeight: 128 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ width: 40, height: 40, borderRadius: 12, background: toneColor + "22", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon size={20} color={toneColor} />
+        </span>
+        <span className="kpi-label" style={{ flex: 1 }}>{label}</span>
       </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: toneColor }}>{value}</div>
+      <div className="kpi-value money" style={{ color: toneColor }}>{value}</div>
     </div>
   );
 }

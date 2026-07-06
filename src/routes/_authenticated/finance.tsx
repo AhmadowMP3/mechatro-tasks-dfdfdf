@@ -2,6 +2,7 @@ import { createFileRoute, redirect, Outlet, Link, useRouterState } from "@tansta
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { BarChart3, FileText, Building2, TrendingDown, TrendingUp, Settings as SettingsIcon, Wallet, Repeat, FileBarChart2 } from "lucide-react";
+import "@/styles/finance.css";
 
 export const Route = createFileRoute("/_authenticated/finance")({
   ssr: false,
@@ -39,11 +40,12 @@ function FinanceLayout() {
     <div style={{ padding: "0 0 60px" }}>
       <div
         role="tablist"
+        className="finance-tabs"
         style={{
           display: "flex",
-          gap: 4,
+          gap: 6,
           overflowX: "auto",
-          padding: "8px 12px",
+          padding: "10px 14px",
           background: "var(--surface-2)",
           borderBottom: "1px solid var(--border)",
           position: "sticky",
@@ -58,14 +60,12 @@ function FinanceLayout() {
             <Link
               key={tab.to}
               to={tab.to}
+              data-active={active ? "true" : "false"}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
-                padding: "8px 14px",
-                borderRadius: 10,
-                fontWeight: 600,
-                fontSize: 13,
+                gap: 8,
+                fontWeight: 700,
                 whiteSpace: "nowrap",
                 textDecoration: "none",
                 color: active ? "#fff" : "var(--foreground)",
@@ -73,13 +73,13 @@ function FinanceLayout() {
                 border: active ? "none" : "1px solid var(--border)",
               }}
             >
-              <Icon size={15} />
+              <Icon size={17} />
               {ar ? tab.label.ar : tab.label.en}
             </Link>
           );
         })}
       </div>
-      <div style={{ padding: 16 }}>
+      <div className="finance-root" style={{ padding: 20 }}>
         <Outlet />
       </div>
     </div>

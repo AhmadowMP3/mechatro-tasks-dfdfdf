@@ -1,0 +1,174 @@
+/* ============================================================
+   Finance-scoped polish — larger, calmer, easier-to-read UI
+   Every rule is nested under .finance-root so it never leaks
+   to other pages. Colors reuse the Mechatro brand tokens.
+   ============================================================ */
+
+.finance-root {
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+/* -------- Typography -------- */
+.finance-root h1 {
+  font-size: 28px !important;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.finance-root h2 { font-size: 22px !important; font-weight: 800; }
+.finance-root h3 { font-size: 18px !important; font-weight: 700; }
+
+/* Numbers/money — tabular figures so amounts line up */
+.finance-root td,
+.finance-root th,
+.finance-root .money,
+.finance-root input[type="number"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------- Cards -------- */
+.finance-root .brand-card {
+  border-radius: 16px;
+}
+
+/* -------- Buttons (top-level actions become bigger) -------- */
+.finance-root > div > .brand-btn,
+.finance-root .finance-primary {
+  min-height: 52px;
+  padding: 14px 24px;
+  font-size: 16px;
+  border-radius: 13px;
+}
+
+/* Icon-only action buttons in tables: enlarge tap target */
+.finance-root .brand-btn-sm {
+  min-height: 42px;
+  min-width: 42px;
+  border-radius: 10px;
+}
+
+/* -------- Inputs & selects -------- */
+.finance-root input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.finance-root select,
+.finance-root textarea {
+  font-size: 16px !important;
+  min-height: 46px;
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+}
+.finance-root input[type="date"] { min-height: 46px; }
+
+.finance-root input:focus-visible,
+.finance-root select:focus-visible,
+.finance-root textarea:focus-visible {
+  outline: 3px solid color-mix(in oklab, #189FD1 40%, transparent);
+  outline-offset: 1px;
+  border-color: #189FD1 !important;
+}
+
+/* -------- Tables — roomier rows, larger cells -------- */
+.finance-root table { font-size: 15px !important; }
+.finance-root table thead th {
+  font-size: 12px !important;
+  padding: 14px 14px !important;
+  letter-spacing: 0.04em;
+  color: color-mix(in oklab, var(--muted) 85%, #fff 15%);
+}
+.finance-root table tbody td {
+  padding: 16px 14px !important;
+  vertical-align: middle;
+}
+.finance-root table tbody tr:hover td {
+  background: color-mix(in oklab, var(--surface-2) 60%, transparent);
+}
+/* Money columns pop */
+.finance-root table td[style*="fontWeight: 600"],
+.finance-root table td[style*="fontWeight: 700"] {
+  font-size: 16px !important;
+}
+
+/* -------- Search bar (spot the magnifier + wider input) -------- */
+.finance-root input[placeholder] { line-height: 1.4; }
+
+/* -------- KPI-style value emphasis (used on dashboard) -------- */
+.finance-root .kpi-value {
+  font-size: 28px !important;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.finance-root .kpi-label {
+  font-size: 13px !important;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* -------- Quick action pill buttons (dashboard) -------- */
+.finance-root .quick-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--foreground);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 17px;
+  min-height: 68px;
+  transition: transform .15s ease, filter .18s ease, border-color .18s ease, box-shadow .2s ease;
+  cursor: pointer;
+}
+.finance-root .quick-action:hover {
+  transform: translateY(-1px);
+  border-color: #189FD1;
+  box-shadow: 0 8px 24px -12px color-mix(in oklab, #189FD1 50%, transparent);
+}
+.finance-root .quick-action .qa-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--grad-blue);
+  color: #fff;
+  flex-shrink: 0;
+}
+.finance-root .quick-action .qa-sub {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* -------- Status pill enlargement -------- */
+.finance-root span[style*="borderRadius: 12"],
+.finance-root span[style*="borderRadius:12"],
+.finance-root span[style*="borderRadius: 999"] {
+  font-size: 12.5px !important;
+}
+
+/* -------- Tabs bar (finance layout) -------- */
+.finance-tabs a {
+  min-height: 44px;
+  font-size: 14.5px !important;
+  padding: 10px 18px !important;
+  border-radius: 12px !important;
+}
+.finance-tabs a[data-active="true"] {
+  box-shadow: 0 0 0 2px color-mix(in oklab, #C8A24B 55%, transparent);
+}
+
+/* -------- Empty state prompts feel warmer -------- */
+.finance-root .brand-card[style*="textAlign: center"] {
+  font-size: 16px;
+}
+
+/* Reduce visual density on mobile — even more air */
+@media (max-width: 640px) {
+  .finance-root { font-size: 16.5px; }
+  .finance-root table tbody td { padding: 14px 12px !important; }
+}
