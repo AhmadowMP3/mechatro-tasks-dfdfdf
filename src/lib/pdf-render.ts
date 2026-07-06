@@ -45,7 +45,23 @@ export async function renderAndDownloadPdf(node: ReactNode, filename: string): P
 
     const target = host.firstElementChild as HTMLElement | null;
     if (!target) throw new Error("No document rendered");
-    await htmlToPdf(target, filename);
+
+    // Compute block-boundary break hints (in CSS px relative to target top)
+    // so htmlToPdf can slice pages at safe block boundaries — prevents
+    // images and paragraphs from being chopped mid-render.
+    const breakHintsPx: number[] = [];
+    const rootRect = target.getBoundingClientRect();
+    const contentEl = target.querySelector(".note-pdf-content") as HTMLElement | null;
+    if (contentEl) {
+      for (const kid of Array.from(contentEl.children) as HTMLElement[]) {
+        const r = kid.getBoundingClientRect();
+        breakHintsPx.push(r.top - rootRect.top);
+      }
+      const cr = contentEl.getBoundingClientRect();
+      breakHintsPx.push(cr.bottom - rootRect.top);
+    }
+
+    await htmlToPdf(target, filename, breakHintsPx);
   } finally {
     root.unmount();
     document.body.removeChild(host);
