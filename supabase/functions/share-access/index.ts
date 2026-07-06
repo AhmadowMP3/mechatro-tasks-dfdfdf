@@ -511,7 +511,9 @@ Deno.serve(async (req) => {
           if ("revoked" in body) patch.revoked = !!body.revoked;
           if ("password" in body) {
             const pw = body.password ? String(body.password) : null;
-            patch.password_hash = pw ? await sha256hex(pw) : null;
+            const hashed = pw ? await hashPassword(pw) : null;
+            patch.password_hash = hashed?.hash ?? null;
+            patch.password_salt = hashed?.salt ?? null;
           }
           if ("reset_uses" in body && body.reset_uses) patch.use_count = 0;
           const { data, error } = await admin.from("share_links")
