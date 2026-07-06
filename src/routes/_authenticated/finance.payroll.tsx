@@ -766,7 +766,7 @@ function NewPeriodModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
               {loading ? (
                 <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>…</div>
               ) : rows.length === 0 ? (
-                <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noMembers") || "—"}</div>
+                <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>—</div>
               ) : (
                 <div style={{ display: "grid", gap: 10 }}>
                   {rows.map((r, i) => {
