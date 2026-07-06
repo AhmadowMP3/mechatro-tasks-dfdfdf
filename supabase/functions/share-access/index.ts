@@ -161,8 +161,8 @@ Deno.serve(async (req) => {
     }
     if (link.password_hash) {
       if (!password) return json(401, { error: "password_required" });
-      const h = await sha256hex(password);
-      if (h !== link.password_hash) return json(401, { error: "wrong_password" });
+      const ok = await verifyPassword(password, link.password_hash as string, (link.password_salt as string | null) ?? null);
+      if (!ok) return json(401, { error: "wrong_password" });
     }
     await admin.from("share_links")
       .update({ use_count: link.use_count + 1, last_used_at: new Date().toISOString() })
