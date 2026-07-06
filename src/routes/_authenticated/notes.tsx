@@ -22,7 +22,7 @@ import type { Editor } from "@tiptap/react";
 import {
   Plus, Search, Pin, PinOff, Trash2, Share2, FileDown, Folder as FolderIcon,
   FolderPlus, Tag as TagIcon, X, StickyNote, Users, Star, ImagePlus,
-  Smile, MessageSquare, Sparkles, ArrowLeft, MoreHorizontal,
+  Smile, MessageSquare, Sparkles, ArrowLeft, MoreHorizontal, Camera,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/notes")({
