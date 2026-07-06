@@ -240,7 +240,7 @@ function NotesPage() {
   };
 
   const onCreateTag = async () => {
-    const name = window.prompt(t("newTag") + " —");
+    const name = await openPrompt({ title: t("newTag"), placeholder: t("newTag") });
     if (!name?.trim() || !userId) return;
     try {
       const tag = await createTag(userId, name.trim());
