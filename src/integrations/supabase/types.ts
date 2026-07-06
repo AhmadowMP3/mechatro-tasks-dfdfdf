@@ -1004,6 +1004,41 @@ export type Database = {
           },
         ]
       }
+      note_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          note_id: string
+          resolved: boolean
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          note_id: string
+          resolved?: boolean
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          note_id?: string
+          resolved?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_comments_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       note_folders: {
         Row: {
           color: string | null
@@ -1038,16 +1073,19 @@ export type Database = {
         Row: {
           created_at: string
           note_id: string
+          permission: string
           shared_with_user_id: string
         }
         Insert: {
           created_at?: string
           note_id: string
+          permission?: string
           shared_with_user_id: string
         }
         Update: {
           created_at?: string
           note_id?: string
+          permission?: string
           shared_with_user_id?: string
         }
         Relationships: [
@@ -1119,9 +1157,12 @@ export type Database = {
           color: string
           content_html: string
           content_text: string
+          cover_url: string | null
           created_at: string
+          emoji: string | null
           folder_id: string | null
           id: string
+          is_favorite: boolean
           is_pinned: boolean
           owner_id: string
           title: string
@@ -1131,9 +1172,12 @@ export type Database = {
           color?: string
           content_html?: string
           content_text?: string
+          cover_url?: string | null
           created_at?: string
+          emoji?: string | null
           folder_id?: string | null
           id?: string
+          is_favorite?: boolean
           is_pinned?: boolean
           owner_id: string
           title?: string
@@ -1143,9 +1187,12 @@ export type Database = {
           color?: string
           content_html?: string
           content_text?: string
+          cover_url?: string | null
           created_at?: string
+          emoji?: string | null
           folder_id?: string | null
           id?: string
+          is_favorite?: boolean
           is_pinned?: boolean
           owner_id?: string
           title?: string

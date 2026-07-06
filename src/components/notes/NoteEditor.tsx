@@ -7,9 +7,14 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/lib/app-context";
 import { NoteToolbar } from "./NoteToolbar";
+import { SlashMenu } from "./SlashMenu";
 
 type Props = {
   noteId: string;
@@ -44,7 +49,11 @@ export function NoteEditor({ noteId, content, onChange, editable = true, onEdito
       TaskList,
       TaskItem.configure({ nested: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Placeholder.configure({ placeholder: t("selectOrCreateNote") }),
+      Placeholder.configure({ placeholder: t("slashHint") }),
+      Table.configure({ resizable: true, HTMLAttributes: { class: "note-table" } }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -150,6 +159,7 @@ export function NoteEditor({ noteId, content, onChange, editable = true, onEdito
       <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "20px 24px", position: "relative" }}>
         <div style={{ position: "relative" }}>
           <EditorContent editor={editor} />
+          <SlashMenu editor={editor} />
           {breaks.map((b, i) => (
             <div
               key={`${i}-${b.page}`}
@@ -212,6 +222,13 @@ export function NoteEditor({ noteId, content, onChange, editable = true, onEdito
         .note-pdf-mirror ul, .note-pdf-mirror ol { padding-inline-start: 24px; margin: 6px 0; }
         .note-pdf-mirror img { display: block; max-width: 70%; max-height: 380px; height: auto; margin: 12px auto; }
         .note-pdf-mirror pre { padding: 12px; }
+        .note-editor-content .note-table, .note-pdf-mirror table { border-collapse: collapse; width: 100%; margin: 12px 0; table-layout: fixed; overflow: hidden; border-radius: 8px; }
+        .note-editor-content .note-table td, .note-editor-content .note-table th,
+        .note-pdf-mirror table td, .note-pdf-mirror table th { border: 1px solid var(--border); padding: 8px 10px; vertical-align: top; min-width: 40px; position: relative; }
+        .note-editor-content .note-table th, .note-pdf-mirror table th { background: rgba(24,159,209,.15); font-weight: 700; text-align: start; }
+        .note-editor-content .note-table .selectedCell { background: rgba(24,159,209,.2); }
+        .note-editor-content hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+        .note-editor-content blockquote[data-callout="info"] { background: rgba(24,159,209,.10); border-inline-start: 3px solid #189FD1; border-radius: 8px; padding: 10px 14px; color: var(--foreground); }
       `}</style>
     </div>
   );

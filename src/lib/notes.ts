@@ -45,8 +45,20 @@ export type Note = {
   folder_id: string | null;
   color: NoteColor;
   is_pinned: boolean;
+  is_favorite: boolean;
+  emoji: string | null;
+  cover_url: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type NoteComment = {
+  id: string;
+  note_id: string;
+  author_id: string;
+  body: string;
+  resolved: boolean;
+  created_at: string;
 };
 
 export type NoteFolder = {
@@ -238,3 +250,34 @@ export function preview(text: string, len = 90): string {
   const t = text.replace(/\s+/g, " ").trim();
   return t.length > len ? t.slice(0, len) + "…" : t;
 }
+
+// ─── Comments ────────────────────────────────────────────────
+export async function listComments(noteId: string): Promise<NoteComment[]> {
+  const { data, error } = await db.from("note_comments").select("*").eq("note_id", noteId).order("created_at");
+  if (error) throw error;
+  return (data ?? []) as NoteComment[];
+}
+export async function addComment(noteId: string, authorId: string, body: string): Promise<NoteComment> {
+  const { data, error } = await db.from("note_comments").insert({ note_id: noteId, author_id: authorId, body }).select("*").single();
+  if (error) throw error;
+  return data as NoteComment;
+}
+export async function resolveComment(id: string, resolved: boolean): Promise<void> {
+  const { error } = await db.from("note_comments").update({ resolved }).eq("id", id);
+  if (error) throw error;
+}
+export async function deleteComment(id: string): Promise<void> {
+  const { error } = await db.from("note_comments").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── Cover image ─────────────────────────────────────────────
+export async function uploadCover(ownerId: string, noteId: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${ownerId}/${noteId}/cover-${Date.now()}.${ext}`;
+  const { error: upErr } = await supabase.storage.from("note-attachments").upload(path, file, { contentType: file.type, upsert: true });
+  if (upErr) throw upErr;
+  const { data } = await supabase.storage.from("note-attachments").createSignedUrl(path, 60 * 60 * 24 * 365);
+  return data?.signedUrl ?? "";
+}
+
