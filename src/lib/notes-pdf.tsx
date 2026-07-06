@@ -81,6 +81,7 @@ export async function exportNoteToPdf(p: Params): Promise<void> {
       </div>
 
       <style>{`
+        .note-pdf-content h1, .note-pdf-content h2, .note-pdf-content h3 { page-break-after: avoid; break-after: avoid; }
         .note-pdf-content h1 { font-size: 22px; font-weight: 800; margin: 14px 0 8px; color: #0F172A; }
         .note-pdf-content h2 { font-size: 18px; font-weight: 800; margin: 12px 0 6px; color: #0F172A; }
         .note-pdf-content h3 { font-size: 16px; font-weight: 700; margin: 10px 0 4px; color: #0F172A; }
@@ -91,9 +92,9 @@ export async function exportNoteToPdf(p: Params): Promise<void> {
         .note-pdf-content ul[data-type="taskList"] li input[type="checkbox"] { margin-top: 5px; }
         .note-pdf-content blockquote { border-inline-start: 3px solid #3B82F6; padding-inline-start: 12px; color: #64748B; margin: 8px 0; }
         .note-pdf-content a { color: #3B82F6; text-decoration: underline; }
-        .note-pdf-content img { max-width: 100%; border-radius: 6px; margin: 8px 0; }
+        .note-pdf-content img { display: block; max-width: 70%; max-height: 380px; height: auto; object-fit: contain; border-radius: 6px; margin: 12px auto; page-break-inside: avoid; break-inside: avoid; }
         .note-pdf-content code { background: #F1F5F9; padding: 2px 6px; border-radius: 4px; font-size: 12.5px; }
-        .note-pdf-content pre { background: #0F172A; color: #F8FAFC; padding: 12px; border-radius: 8px; }
+        .note-pdf-content pre { background: #0F172A; color: #F8FAFC; padding: 12px; border-radius: 8px; page-break-inside: avoid; break-inside: avoid; }
       `}</style>
     </div>
   );
