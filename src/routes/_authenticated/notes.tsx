@@ -22,7 +22,7 @@ import type { Editor } from "@tiptap/react";
 import {
   Plus, Search, Pin, PinOff, Trash2, Share2, FileDown, Folder as FolderIcon,
   FolderPlus, Tag as TagIcon, X, StickyNote, Users, Star, ImagePlus,
-  Smile, MessageSquare, Sparkles, ArrowLeft, MoreHorizontal,
+  Smile, MessageSquare, Sparkles, ArrowLeft, MoreHorizontal, Camera,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/notes")({
@@ -504,9 +504,18 @@ function NotesPage() {
                 }}>
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.1) 0%, rgba(15,23,42,.6) 100%)" }} />
                   {isOwner && (
-                    <div style={{ position: "absolute", top: 10, insetInlineEnd: 12, display: "flex", gap: 6 }}>
-                      <button onClick={() => coverFileRef.current?.click()} style={coverBtn}>{t("changeCover")}</button>
-                      <button onClick={onRemoveCover} style={coverBtn}>{t("removeCover")}</button>
+                    <div style={{
+                      position: "absolute", bottom: 12, right: 12,
+                      display: "flex", gap: 6, flexWrap: "wrap",
+                      justifyContent: "flex-end",
+                      maxWidth: "calc(100% - 24px)",
+                    }}>
+                      <button onClick={() => coverFileRef.current?.click()} style={coverBtn}>
+                        <Camera size={12} /> {t("changeCover")}
+                      </button>
+                      <button onClick={onRemoveCover} style={coverBtn}>
+                        <Trash2 size={12} /> {t("removeCover")}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -806,8 +815,9 @@ const roBadge: React.CSSProperties = {
 
 const coverBtn: React.CSSProperties = {
   fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 8,
-  background: "rgba(0,0,0,.55)", color: "#fff",
+  background: "rgba(0,0,0,.65)", color: "#fff",
   border: "1px solid rgba(255,255,255,.25)", cursor: "pointer", backdropFilter: "blur(6px)",
+  display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
 };
 
 const menuItem: React.CSSProperties = {
