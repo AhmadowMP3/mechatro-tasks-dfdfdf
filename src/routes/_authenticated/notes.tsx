@@ -659,6 +659,7 @@ function NotesPage() {
       </main>
 
       {shareOpen && selectedNote && <ShareNoteModal noteId={selectedNote.id} onClose={() => setShareOpen(false)} />}
+      <PromptHost />
 
       <style>{`
         @media (max-width: 768px) {
