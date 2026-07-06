@@ -6,6 +6,7 @@ import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { Plus, Trash2, Pencil, Search, Paperclip, Download } from "lucide-react";
 import { formatMoney, paymentMethodKey, type Expense, type ExpenseCategory, type Currency, type PaymentMethod, type ExpenseStatus, type FxRate } from "@/lib/finance";
+import { PaymentMethodSelect } from "@/components/finance/PaymentMethodSelect";
 import { formatDate } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-dialog";
 
