@@ -57,8 +57,9 @@ export function ShareNoteModal({ noteId, onClose }: { noteId: string; onClose: (
       display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
+        background: "var(--card, #0f172a)", backdropFilter: "none", border: "1px solid var(--border)", borderRadius: 14,
         width: "min(520px, 100%)", maxHeight: "80vh", display: "flex", flexDirection: "column",
+        boxShadow: "0 20px 60px rgba(0,0,0,.5)",
       }}>
         <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ fontWeight: 800, fontSize: 15.5 }}>{t("shareWith")}</div>
