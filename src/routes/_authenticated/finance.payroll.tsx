@@ -520,46 +520,317 @@ function SlipRow({ label, value, negative }: { label: string; value: string; neg
   );
 }
 
+type WizardMode = "manual" | "auto";
+type WizardRow = {
+  user_id: string;
+  full_name: string;
+  job_title: string | null;
+  currency: Currency;
+  base_salary: number;
+  transport_allowance: number;
+  other_allowance: number;
+  points_bonus: number;
+  manual_bonus: number;
+  deductions: number;
+  points_snapshot: number;
+  tasks_done_snapshot: number;
+};
+
 function NewPeriodModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const { t, user } = useApp();
+  const { t, lang, user } = useApp();
   const now = new Date();
-  const [form, setForm] = useState({ year: now.getFullYear(), month: now.getMonth() + 1, notes: "" });
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [mode, setMode] = useState<WizardMode>("manual");
+  const [rows, setRows] = useState<WizardRow[]>([]);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const monthNames = useMemo(() => Array.from({ length: 12 }, (_, i) => monthLabel(i + 1, lang)), [lang]);
+
+  const loadRows = async (m: WizardMode) => {
+    setLoading(true);
+    try {
+      const { data: profs, error: e1 } = await supabase
+        .from("profiles")
+        .select("id, full_name, job_title, total_points, current_streak")
+        .eq("active", true)
+        .eq("status", "active")
+        .order("full_name");
+      if (e1) throw e1;
+      const { data: settings } = await supabase.from("member_salary_settings").select("*");
+      const sMap = new Map<string, MemberSalarySettings>();
+      (settings ?? []).forEach((s) => sMap.set(s.user_id, s as MemberSalarySettings));
+
+      let taskAgg = new Map<string, { pts: number; count: number }>();
+      if (m === "auto") {
+        const from = new Date(year, month - 1, 1).toISOString();
+        const to = new Date(year, month, 1).toISOString();
+        const { data: taskRows } = await supabase
+          .from("tasks")
+          .select("assignee_id, points_awarded_amount")
+          .not("points_awarded_at", "is", null)
+          .gte("points_awarded_at", from)
+          .lt("points_awarded_at", to);
+        (taskRows ?? []).forEach((r) => {
+          if (!r.assignee_id) return;
+          const cur = taskAgg.get(r.assignee_id) ?? { pts: 0, count: 0 };
+          cur.pts += Number(r.points_awarded_amount ?? 0);
+          cur.count += 1;
+          taskAgg.set(r.assignee_id, cur);
+        });
+      }
+
+      const next: WizardRow[] = (profs ?? []).map((p) => {
+        const s = sMap.get(p.id);
+        const agg = taskAgg.get(p.id) ?? { pts: 0, count: 0 };
+        const rate = Number(s?.points_bonus_rate ?? 0);
+        const pointsBonus = m === "auto" ? Math.round(agg.pts * rate * 100) / 100 : 0;
+        return {
+          user_id: p.id,
+          full_name: p.full_name,
+          job_title: (p as { job_title?: string | null }).job_title ?? null,
+          currency: (s?.currency ?? "SYP") as Currency,
+          base_salary: Number(s?.base_salary ?? 0),
+          transport_allowance: Number(s?.transport_allowance ?? 0),
+          other_allowance: Number(s?.other_fixed_allowance ?? 0),
+          points_bonus: pointsBonus,
+          manual_bonus: 0,
+          deductions: 0,
+          points_snapshot: agg.pts,
+          tasks_done_snapshot: agg.count,
+        };
+      });
+      setRows(next);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const goNext = async () => {
+    if (step === 1) { setStep(2); return; }
+    if (step === 2) { await loadRows(mode); setStep(3); return; }
+  };
 
   const save = async () => {
     setSaving(true);
-    const { error } = await supabase.from("payroll_periods").insert({ year: form.year, month: form.month, notes: form.notes || null, created_by: user?.id });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success(t("saved"));
-    onSaved();
+    try {
+      const { data: period, error: e1 } = await supabase
+        .from("payroll_periods")
+        .insert({ year, month, created_by: user?.id })
+        .select("id")
+        .single();
+      if (e1) throw e1;
+      if (rows.length > 0) {
+        const inserts = rows.map((r) => {
+          const net = r.base_salary + r.transport_allowance + r.other_allowance + r.points_bonus + r.manual_bonus - r.deductions;
+          return {
+            period_id: period.id,
+            user_id: r.user_id,
+            currency: r.currency,
+            base_salary: r.base_salary,
+            transport_allowance: r.transport_allowance,
+            other_allowance: r.other_allowance,
+            points_bonus: r.points_bonus,
+            streak_bonus: 0,
+            manual_bonus: r.manual_bonus,
+            deductions: r.deductions,
+            net_amount: net,
+            points_snapshot: r.points_snapshot,
+            tasks_done_snapshot: r.tasks_done_snapshot,
+          };
+        });
+        const { error: e2 } = await supabase.from("payroll_entries").insert(inserts);
+        if (e2) throw e2;
+      }
+      toast.success(t("saved"));
+      onSaved();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateRow = (idx: number, patch: Partial<WizardRow>) => {
+    setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   };
 
   return (
     <div style={backdrop} onClick={onClose}>
-      <div className="brand-card" onClick={(e) => e.stopPropagation()} style={{ background: "var(--card)", padding: 20, borderRadius: 16, maxWidth: 420, width: "100%" }}>
-        <h2 style={{ margin: "0 0 16px", fontSize: 18 }}>{t("newPayrollPeriod")}</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Field label={t("year")}>
-            <input type="number" value={form.year} onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || form.year })} style={inp} />
-          </Field>
-          <Field label={t("month")}>
-            <select value={form.month} onChange={(e) => setForm({ ...form, month: parseInt(e.target.value) })} style={inp}>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </Field>
+      <div
+        className="brand-card"
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: "var(--card)", padding: 0, borderRadius: 16, maxWidth: step === 3 ? 820 : 560, width: "100%", maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden" }}
+      >
+        {/* Header + progress */}
+        <div style={{ padding: "18px 20px 12px", borderBottom: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <h2 style={{ margin: 0, fontSize: 20 }}>{t("newPayrollPeriod")}</h2>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>{step} / 3</div>
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[1, 2, 3].map((n) => (
+              <div key={n} style={{ flex: 1, height: 6, borderRadius: 3, background: n <= step ? "var(--grad-blue)" : "var(--surface-2)" }} />
+            ))}
+          </div>
         </div>
-        <Field label={t("notesEnglish")}>
-          <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={inp} />
-        </Field>
-        <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
-          <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
-          <button onClick={save} disabled={saving} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", opacity: saving ? 0.6 : 1 }}>{t("save")}</button>
+
+        {/* Body */}
+        <div style={{ padding: 20, overflow: "auto", flex: 1 }}>
+          {step === 1 && (
+            <div>
+              <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>{t("pickMonth")}</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 20 }}>
+                <button onClick={() => setYear(year - 1)} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)", width: 44, height: 44, padding: 0, fontSize: 20 }}>‹</button>
+                <div style={{ fontSize: 28, fontWeight: 800, minWidth: 100, textAlign: "center" }}>{year}</div>
+                <button onClick={() => setYear(year + 1)} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)", width: 44, height: 44, padding: 0, fontSize: 20 }}>›</button>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                {monthNames.map((name, i) => {
+                  const m = i + 1;
+                  const active = m === month;
+                  return (
+                    <button
+                      key={m}
+                      onClick={() => setMonth(m)}
+                      style={{
+                        padding: "18px 8px",
+                        borderRadius: 12,
+                        border: active ? "2px solid transparent" : "1px solid var(--border)",
+                        background: active ? "var(--grad-blue)" : "var(--surface-2)",
+                        color: active ? "#fff" : "var(--foreground)",
+                        fontSize: 16,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        transition: "transform .1s",
+                      }}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div>
+              <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>{t("chooseMode")}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {(["manual", "auto"] as const).map((m) => {
+                  const active = mode === m;
+                  const title = m === "manual" ? t("manualEntry") : t("autoFromPoints");
+                  const hint = m === "manual" ? t("manualEntryHint") : t("autoFromPointsHint");
+                  return (
+                    <button
+                      key={m}
+                      onClick={() => setMode(m)}
+                      style={{
+                        textAlign: "start",
+                        padding: 18,
+                        borderRadius: 14,
+                        border: active ? "2px solid #189FD1" : "1px solid var(--border)",
+                        background: active ? "rgba(24,159,209,.10)" : "var(--surface-2)",
+                        color: "var(--foreground)",
+                        cursor: "pointer",
+                        minHeight: 160,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 22, height: 22, borderRadius: 999, border: active ? "6px solid #189FD1" : "2px solid var(--border)", background: "var(--card)" }} />
+                        <div style={{ fontSize: 17, fontWeight: 800 }}>{title}</div>
+                        {m === "manual" && (
+                          <span style={{ marginInlineStart: "auto", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: "rgba(80,200,120,.18)", color: "#50C878" }}>{t("recommended")}</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>{hint}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div>
+              <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 12 }}>
+                {monthLabel(month, lang)} {year} · {mode === "manual" ? t("manualEntry") : t("autoFromPoints")}
+              </div>
+              {loading ? (
+                <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>…</div>
+              ) : rows.length === 0 ? (
+                <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>—</div>
+              ) : (
+                <div style={{ display: "grid", gap: 10 }}>
+                  {rows.map((r, i) => {
+                    const net = r.base_salary + r.transport_allowance + r.other_allowance + r.points_bonus + r.manual_bonus - r.deductions;
+                    return (
+                      <div key={r.user_id} style={{ padding: 12, borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface-2)" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, gap: 8 }}>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 15 }}>{r.full_name}</div>
+                            {r.job_title && <div style={{ fontSize: 11, color: "var(--muted)" }}>{r.job_title}</div>}
+                          </div>
+                          <div style={{ fontSize: 16, fontWeight: 800, color: "#50C878" }}>{formatMoney(net, r.currency, lang)}</div>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                          <WizField label={t("baseSalary")} value={r.base_salary} onChange={(v) => updateRow(i, { base_salary: v })} />
+                          <WizField label={t("pointsBonus") + " + " + t("manualBonus")} value={r.points_bonus + r.manual_bonus} onChange={(v) => updateRow(i, { manual_bonus: Math.max(0, v - r.points_bonus) })} />
+                          <WizField label={t("transportAllowance")} value={r.transport_allowance} onChange={(v) => updateRow(i, { transport_allowance: v })} />
+                          <WizField label={t("deductions")} value={r.deductions} onChange={(v) => updateRow(i, { deductions: v })} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: 14, borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "space-between", background: "var(--card)" }}>
+          <button
+            onClick={step === 1 ? onClose : () => setStep((s) => (s - 1) as 1 | 2 | 3)}
+            className="brand-btn"
+            style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)", minHeight: 52, minWidth: 120, fontSize: 15, fontWeight: 700 }}
+          >
+            {step === 1 ? t("cancel") : t("back")}
+          </button>
+          {step < 3 ? (
+            <button onClick={goNext} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", minHeight: 52, minWidth: 160, fontSize: 16, fontWeight: 800 }}>
+              {t("next")} ›
+            </button>
+          ) : (
+            <button onClick={save} disabled={saving || loading} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", minHeight: 52, minWidth: 200, fontSize: 16, fontWeight: 800, opacity: saving ? 0.6 : 1 }}>
+              {saving ? "…" : t("savePayroll")}
+            </button>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function WizField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <label style={{ display: "grid", gap: 4 }}>
+      <span style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.3 }}>{label}</span>
+      <input
+        type="number"
+        step="0.01"
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        style={{ padding: "10px 10px", background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--foreground)", fontSize: 15, fontWeight: 600, width: "100%" }}
+      />
+    </label>
   );
 }
 
