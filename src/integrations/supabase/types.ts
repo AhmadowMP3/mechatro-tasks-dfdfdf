@@ -2108,7 +2108,15 @@ export type Database = {
         }
         Returns: string
       }
+      can_view_note: {
+        Args: { _note_id: string; _user_id: string }
+        Returns: boolean
+      }
       close_ended_seasons: { Args: never; Returns: number }
+      is_note_owner: {
+        Args: { _note_id: string; _user_id: string }
+        Returns: boolean
+      }
       next_invoice_number: { Args: never; Returns: string }
       resolve_login_email: { Args: { p_name: string }; Returns: string }
       sync_master_admin: { Args: never; Returns: undefined }
