@@ -11,6 +11,7 @@ import {
 } from "@/lib/notes";
 import { NoteEditor } from "@/components/notes/NoteEditor";
 import { ShareNoteModal } from "@/components/notes/ShareNoteModal";
+import { PromptHost, openPrompt, openConfirm } from "@/components/notes/PromptDialog";
 import { exportNoteToPdf } from "@/lib/notes-pdf";
 import { toast } from "sonner";
 import type { Editor } from "@tiptap/react";
