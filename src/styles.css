@@ -51,6 +51,7 @@
   /* Dark defaults (Mechatro brand) */
   --background: #081320;
   --card: #0F2031;
+  --surface: #0F2031;
   --surface-2: #0B1A2A;
   --surface-3: #13283D;
   --border: #1E364D;
@@ -92,6 +93,7 @@
 .light {
   --background: #F4F7FB;
   --card: #FFFFFF;
+  --surface: #FFFFFF;
   --surface-2: #EEF3F8;
   --surface-3: #E4EBF3;
   --border: #DAE2EB;
