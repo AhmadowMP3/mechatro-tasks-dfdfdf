@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/finance/")({
 });
 
 function FinanceDashboard() {
-  const { t, lang } = useApp();
+  const { t, lang, user } = useApp();
   const [displayCurrency, setDisplayCurrency] = useState<Currency>("SYP");
 
   const { data: latestFx } = useQuery({
