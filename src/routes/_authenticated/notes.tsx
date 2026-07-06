@@ -815,8 +815,9 @@ const roBadge: React.CSSProperties = {
 
 const coverBtn: React.CSSProperties = {
   fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 8,
-  background: "rgba(0,0,0,.55)", color: "#fff",
+  background: "rgba(0,0,0,.65)", color: "#fff",
   border: "1px solid rgba(255,255,255,.25)", cursor: "pointer", backdropFilter: "blur(6px)",
+  display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
 };
 
 const menuItem: React.CSSProperties = {
