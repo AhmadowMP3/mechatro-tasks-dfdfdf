@@ -39,6 +39,7 @@ export const provisionTestUsers = createServerFn({ method: "POST" })
     const results: SeedResult[] = [];
 
     for (const s of SEEDS) {
+      const password = generatePassword();
       // Look up existing auth user by email
       const { data: list, error: listErr } = await supabaseAdmin.auth.admin.listUsers({
         page: 1, perPage: 200,
@@ -50,7 +51,7 @@ export const provisionTestUsers = createServerFn({ method: "POST" })
       let action: SeedResult["action"];
       if (existing) {
         const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
-          password: s.password,
+          password,
           email_confirm: true,
           user_metadata: { full_name: s.full_name },
         });
@@ -60,7 +61,7 @@ export const provisionTestUsers = createServerFn({ method: "POST" })
       } else {
         const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
           email: s.email,
-          password: s.password,
+          password,
           email_confirm: true,
           user_metadata: { full_name: s.full_name },
         });
@@ -90,7 +91,7 @@ export const provisionTestUsers = createServerFn({ method: "POST" })
       );
       if (upsertErr) throw new Error(upsertErr.message);
 
-      results.push({ ...s, action });
+      results.push({ ...s, password, action });
     }
 
     return { results };
