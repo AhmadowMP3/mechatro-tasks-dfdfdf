@@ -21,6 +21,30 @@ export async function htmlToPdf(
     import("jspdf"),
   ]);
 
+  // Capture anchor positions (in CSS px, relative to `element`) BEFORE
+  // rasterisation so we can convert them to PDF link annotations after
+  // pages are laid out. This keeps hyperlinks clickable in the exported PDF.
+  const elementRect = element.getBoundingClientRect();
+  const anchors: { href: string; cssTop: number; cssLeft: number; cssWidth: number; cssHeight: number }[] = [];
+  const anchorEls = element.querySelectorAll("a[href]");
+  anchorEls.forEach((a) => {
+    const href = (a as HTMLAnchorElement).href;
+    if (!href || href.startsWith("javascript:")) return;
+    // A single <a> may wrap text that spans multiple lines — capture every
+    // client rect so multi-line links get one annotation per line.
+    const rects = (a as HTMLAnchorElement).getClientRects();
+    for (const r of Array.from(rects)) {
+      if (r.width <= 0 || r.height <= 0) continue;
+      anchors.push({
+        href,
+        cssTop: r.top - elementRect.top,
+        cssLeft: r.left - elementRect.left,
+        cssWidth: r.width,
+        cssHeight: r.height,
+      });
+    }
+  });
+
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
@@ -40,6 +64,13 @@ export async function htmlToPdf(
   // The captured HTML is A4-width (~794px), so map: canvas.width == pdfWidth.
   const pxPerMm = canvas.width / pdfWidth;
   const pageContentPx = Math.floor(contentH * pxPerMm);
+  // html2canvas scale=2 → 1 CSS px = 2 canvas px.
+  const canvasPxPerCssPx = canvas.width / (elementRect.width || (pdfWidth * (canvas.width / pdfWidth) / 2));
+  // Fallback to scale=2 if the computed ratio is off (element hidden/0-width).
+  const cssToCanvas = Number.isFinite(canvasPxPerCssPx) && canvasPxPerCssPx > 0 ? canvasPxPerCssPx : 2;
+  // Vertical: mm per canvas px inside the content zone.
+  const mmPerCanvasPxY = contentH / pageContentPx;
+  const mmPerCanvasPxX = pdfWidth / canvas.width;
 
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
@@ -48,9 +79,6 @@ export async function htmlToPdf(
     pdf.addImage(data, "JPEG", x, y, w, h);
   };
 
-  // Renders a canvas slice onto a scratch canvas sized to the content area
-  // (with white padding at the bottom), then places it as an image at the
-  // content-zone top of the current PDF page.
   const drawContentSlice = (sliceSourceY: number, sliceHeight: number) => {
     const pageCanvas = document.createElement("canvas");
     pageCanvas.width = canvas.width;
@@ -68,10 +96,13 @@ export async function htmlToPdf(
     addImageSafe(data, 0, contentTop, pdfWidth, contentH);
   };
 
+  // Record each page's canvas Y range so we can place link annotations later.
+  const pages: { yOffset: number; sliceHeightPx: number }[] = [];
   const totalPages = Math.max(1, Math.ceil(canvas.height / pageContentPx));
 
   if (totalPages <= 1) {
     drawContentSlice(0, canvas.height);
+    pages.push({ yOffset: 0, sliceHeightPx: canvas.height });
   } else {
     const srcCtx = canvas.getContext("2d");
     const findSafeBreak = (from: number, maxBack: number): number => {
@@ -97,7 +128,6 @@ export async function htmlToPdf(
       return from;
     };
 
-    // html2canvas scale=2 → canvas pixels are 2× the CSS px hints.
     const hintsCanvasPx = (options.breakHintsPx ?? []).map((h) => h * 2).sort((a, b) => a - b);
 
     let yOffset = 0;
@@ -122,8 +152,32 @@ export async function htmlToPdf(
       }
       const sliceHeightPx = Math.max(1, nextY - yOffset);
       drawContentSlice(yOffset, sliceHeightPx);
+      pages.push({ yOffset, sliceHeightPx });
       yOffset = nextY;
       pageIndex++;
+    }
+  }
+
+  // Place clickable link annotations for every anchor rect, on whichever
+  // page(s) it falls onto. Multi-page anchors are clipped per page.
+  for (const a of anchors) {
+    const aTopCanvas = a.cssTop * cssToCanvas;
+    const aBotCanvas = (a.cssTop + a.cssHeight) * cssToCanvas;
+    const aLeftCanvas = a.cssLeft * cssToCanvas;
+    const aWidthCanvas = a.cssWidth * cssToCanvas;
+    for (let i = 0; i < pages.length; i++) {
+      const p = pages[i];
+      const pageTop = p.yOffset;
+      const pageBot = p.yOffset + p.sliceHeightPx;
+      const top = Math.max(aTopCanvas, pageTop);
+      const bot = Math.min(aBotCanvas, pageBot);
+      if (bot <= top) continue;
+      const yMm = contentTop + (top - pageTop) * mmPerCanvasPxY;
+      const hMm = (bot - top) * mmPerCanvasPxY;
+      const xMm = aLeftCanvas * mmPerCanvasPxX;
+      const wMm = aWidthCanvas * mmPerCanvasPxX;
+      pdf.setPage(i + 1);
+      pdf.link(xMm, yMm, wMm, hMm, { url: a.href });
     }
   }
 
