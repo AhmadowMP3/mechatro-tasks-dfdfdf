@@ -11,6 +11,7 @@ import {
 } from "@/lib/notes";
 import { NoteEditor } from "@/components/notes/NoteEditor";
 import { ShareNoteModal } from "@/components/notes/ShareNoteModal";
+import { PromptHost, openPrompt, openConfirm } from "@/components/notes/PromptDialog";
 import { exportNoteToPdf } from "@/lib/notes-pdf";
 import { toast } from "sonner";
 import type { Editor } from "@tiptap/react";
@@ -144,7 +145,8 @@ function NotesPage() {
 
   const onDelete = async () => {
     if (!selectedNote || !isOwner) return;
-    if (!window.confirm(t("confirmDeleteNote"))) return;
+    const ok = await openConfirm(t("confirmDeleteNote"), { destructive: true });
+    if (!ok) return;
     try {
       await deleteNote(selectedNote.id);
       setNotes((cur) => cur.filter((n) => n.id !== selectedNote.id));
@@ -188,7 +190,7 @@ function NotesPage() {
   };
 
   const onCreateFolder = async () => {
-    const name = window.prompt(t("newFolder") + " —");
+    const name = await openPrompt({ title: t("newFolder"), placeholder: t("newFolder") });
     if (!name?.trim() || !userId) return;
     try {
       const f = await createFolder(userId, name.trim());
@@ -199,7 +201,7 @@ function NotesPage() {
   };
 
   const onRenameFolder = async (f: NoteFolder) => {
-    const name = window.prompt(t("renameFolder"), f.name);
+    const name = await openPrompt({ title: t("renameFolder"), defaultValue: f.name });
     if (!name?.trim()) return;
     try {
       await renameFolder(f.id, name.trim());
@@ -210,7 +212,8 @@ function NotesPage() {
   };
 
   const onDeleteFolder = async (f: NoteFolder) => {
-    if (!window.confirm(t("deleteFolder") + "؟")) return;
+    const ok = await openConfirm(t("deleteFolder") + "؟", { destructive: true });
+    if (!ok) return;
     try {
       await deleteFolder(f.id);
       setFolders((cur) => cur.filter((x) => x.id !== f.id));
@@ -238,7 +241,7 @@ function NotesPage() {
   };
 
   const onCreateTag = async () => {
-    const name = window.prompt(t("newTag") + " —");
+    const name = await openPrompt({ title: t("newTag"), placeholder: t("newTag") });
     if (!name?.trim() || !userId) return;
     try {
       const tag = await createTag(userId, name.trim());
@@ -656,6 +659,7 @@ function NotesPage() {
       </main>
 
       {shareOpen && selectedNote && <ShareNoteModal noteId={selectedNote.id} onClose={() => setShareOpen(false)} />}
+      <PromptHost />
 
       <style>{`
         @media (max-width: 768px) {

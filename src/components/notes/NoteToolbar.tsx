@@ -2,6 +2,7 @@ import type { Editor } from "@tiptap/react";
 import { Bold, Italic, Underline as UIcon, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, ListChecks, Quote, Link as LinkIcon, AlignRight, AlignCenter, AlignLeft, Image as ImageIcon, Undo2, Redo2 } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import type { DictKey } from "@/i18n/dict";
+import { openPrompt } from "@/components/notes/PromptDialog";
 
 export function NoteToolbar({ editor, onInsertImageClick }: { editor: Editor | null; onInsertImageClick?: () => void }) {
   const { t } = useApp();
@@ -56,9 +57,9 @@ export function NoteToolbar({ editor, onInsertImageClick }: { editor: Editor | n
       {btn(editor.isActive({ textAlign: "center" }), false, () => editor.chain().focus().setTextAlign("center").run(), <AlignCenter size={16} />, "alignCenter")}
       {btn(editor.isActive({ textAlign: "left" }), false, () => editor.chain().focus().setTextAlign("left").run(), <AlignLeft size={16} />, "alignLeft")}
       {sep}
-      {btn(editor.isActive("link"), false, () => {
+      {btn(editor.isActive("link"), false, async () => {
         const prev = editor.getAttributes("link").href as string | undefined;
-        const url = window.prompt(t("addNoteLink"), prev ?? "https://");
+        const url = await openPrompt({ title: t("addNoteLink"), defaultValue: prev ?? "https://", placeholder: "https://" });
         if (url === null) return;
         if (url === "") editor.chain().focus().extendMarkRange("link").unsetLink().run();
         else editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
