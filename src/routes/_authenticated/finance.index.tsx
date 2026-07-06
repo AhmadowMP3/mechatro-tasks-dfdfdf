@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { formatMoney, convertAmount, type Currency, type Invoice, type Expense, type IncomeEntry, type FxRate } from "@/lib/finance";
-import { TrendingUp, TrendingDown, DollarSign, AlertCircle, RefreshCw } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, AlertCircle, RefreshCw, Plus, Wallet, ArrowRight } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import { Link } from "@tanstack/react-router";
 
