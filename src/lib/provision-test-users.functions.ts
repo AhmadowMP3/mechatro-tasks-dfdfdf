@@ -9,10 +9,19 @@ type SeedResult = {
   action: "created" | "updated";
 };
 
-const SEEDS: Array<Omit<SeedResult, "action">> = [
-  { email: "admin.test@mechatro.test", password: "Admin!2026", role: "admin", full_name: "Admin Test" },
-  { email: "member.test@mechatro.test", password: "Member!2026", role: "member", full_name: "Member Test" },
+const SEEDS: Array<Omit<SeedResult, "action" | "password">> = [
+  { email: "admin.test@mechatro.test", role: "admin", full_name: "Admin Test" },
+  { email: "member.test@mechatro.test", role: "member", full_name: "Member Test" },
 ];
+
+// Generate a cryptographically strong random password for each seeded account.
+// Passwords are returned to the caller once and never stored in source.
+function generatePassword(): string {
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  const b64 = Buffer.from(bytes).toString("base64");
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") + "!A1";
+}
 
 export const provisionTestUsers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -30,6 +39,7 @@ export const provisionTestUsers = createServerFn({ method: "POST" })
     const results: SeedResult[] = [];
 
     for (const s of SEEDS) {
+      const password = generatePassword();
       // Look up existing auth user by email
       const { data: list, error: listErr } = await supabaseAdmin.auth.admin.listUsers({
         page: 1, perPage: 200,
@@ -41,7 +51,7 @@ export const provisionTestUsers = createServerFn({ method: "POST" })
       let action: SeedResult["action"];
       if (existing) {
         const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
-          password: s.password,
+          password,
           email_confirm: true,
           user_metadata: { full_name: s.full_name },
         });
@@ -51,7 +61,7 @@ export const provisionTestUsers = createServerFn({ method: "POST" })
       } else {
         const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
           email: s.email,
-          password: s.password,
+          password,
           email_confirm: true,
           user_metadata: { full_name: s.full_name },
         });
@@ -81,7 +91,7 @@ export const provisionTestUsers = createServerFn({ method: "POST" })
       );
       if (upsertErr) throw new Error(upsertErr.message);
 
-      results.push({ ...s, action });
+      results.push({ ...s, password, action });
     }
 
     return { results };

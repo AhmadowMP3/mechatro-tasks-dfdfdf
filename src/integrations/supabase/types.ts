@@ -1609,6 +1609,7 @@ export type Database = {
           last_used_at: string | null
           max_uses: number | null
           password_hash: string | null
+          password_salt: string | null
           revoked: boolean
           token: string
           updated_at: string
@@ -1624,6 +1625,7 @@ export type Database = {
           last_used_at?: string | null
           max_uses?: number | null
           password_hash?: string | null
+          password_salt?: string | null
           revoked?: boolean
           token: string
           updated_at?: string
@@ -1639,6 +1641,7 @@ export type Database = {
           last_used_at?: string | null
           max_uses?: number | null
           password_hash?: string | null
+          password_salt?: string | null
           revoked?: boolean
           token?: string
           updated_at?: string

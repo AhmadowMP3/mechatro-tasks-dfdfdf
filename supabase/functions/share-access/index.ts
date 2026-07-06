@@ -25,9 +25,57 @@ function newToken(): string {
   crypto.getRandomValues(bytes);
   return b64url(bytes);
 }
+// Legacy hash (unsalted SHA-256). Kept only to reject legacy hashes explicitly;
+// all new/updated share-link passwords use PBKDF2-SHA-256 with a per-record salt.
 async function sha256hex(s: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+const PBKDF2_ITERS = 100_000;
+
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function fromHex(hex: string): Uint8Array {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+function newSaltHex(): string {
+  const s = new Uint8Array(16);
+  crypto.getRandomValues(s);
+  return toHex(s);
+}
+async function pbkdf2Hex(password: string, saltHex: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(password), { name: "PBKDF2" }, false, ["deriveBits"],
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: fromHex(saltHex), iterations: PBKDF2_ITERS },
+    key, 256,
+  );
+  return toHex(new Uint8Array(bits));
+}
+function timingSafeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+async function hashPassword(password: string): Promise<{ hash: string; salt: string }> {
+  const salt = newSaltHex();
+  const hash = await pbkdf2Hex(password, salt);
+  return { hash, salt };
+}
+async function verifyPassword(password: string, storedHash: string, saltHex: string | null): Promise<boolean> {
+  if (saltHex) {
+    const h = await pbkdf2Hex(password, saltHex);
+    return timingSafeEqualHex(h, storedHash);
+  }
+  // Legacy unsalted SHA-256 fallback for pre-migration links.
+  const h = await sha256hex(password);
+  return timingSafeEqualHex(h, storedHash);
 }
 
 const ALLOWED = new Set([
@@ -78,8 +126,8 @@ async function resolveLink(admin: ReturnType<typeof createClient>, token: string
   if (link.max_uses != null && link.use_count >= link.max_uses) return { error: "exhausted", status: 403 as const };
   if (link.password_hash) {
     if (!password) return { error: "password_required", status: 401 as const };
-    const h = await sha256hex(password);
-    if (h !== link.password_hash) return { error: "wrong_password", status: 401 as const };
+    const ok = await verifyPassword(password, link.password_hash as string, (link.password_salt as string | null) ?? null);
+    if (!ok) return { error: "wrong_password", status: 401 as const };
   }
   return { link };
 }
@@ -113,8 +161,8 @@ Deno.serve(async (req) => {
     }
     if (link.password_hash) {
       if (!password) return json(401, { error: "password_required" });
-      const h = await sha256hex(password);
-      if (h !== link.password_hash) return json(401, { error: "wrong_password" });
+      const ok = await verifyPassword(password, link.password_hash as string, (link.password_salt as string | null) ?? null);
+      if (!ok) return json(401, { error: "wrong_password" });
     }
     await admin.from("share_links")
       .update({ use_count: link.use_count + 1, last_used_at: new Date().toISOString() })
@@ -439,10 +487,12 @@ Deno.serve(async (req) => {
           const expires_at = body.expires_at ? String(body.expires_at) : null;
           const max_uses = body.max_uses != null && body.max_uses !== "" ? Number(body.max_uses) : null;
           const pw = body.password ? String(body.password) : null;
-          const password_hash = pw ? await sha256hex(pw) : null;
+          const hashed = pw ? await hashPassword(pw) : null;
           const t = newToken();
           const { data, error } = await admin.from("share_links").insert({
-            token: t, label, allowed_pages, expires_at, max_uses, password_hash,
+            token: t, label, allowed_pages, expires_at, max_uses,
+            password_hash: hashed?.hash ?? null,
+            password_salt: hashed?.salt ?? null,
             created_by: me.id,
           }).select("*").single();
           if (error) throw error;
@@ -461,7 +511,9 @@ Deno.serve(async (req) => {
           if ("revoked" in body) patch.revoked = !!body.revoked;
           if ("password" in body) {
             const pw = body.password ? String(body.password) : null;
-            patch.password_hash = pw ? await sha256hex(pw) : null;
+            const hashed = pw ? await hashPassword(pw) : null;
+            patch.password_hash = hashed?.hash ?? null;
+            patch.password_salt = hashed?.salt ?? null;
           }
           if ("reset_uses" in body && body.reset_uses) patch.use_count = 0;
           const { data, error } = await admin.from("share_links")
