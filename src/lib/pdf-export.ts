@@ -92,10 +92,9 @@ export async function htmlToPdf(element: HTMLElement, filename: string, breakHin
     let pageIndex = 0;
     const maxBacktrack = Math.floor(pageHeightPx * 0.15);
     while (yOffset < canvas.height) {
-      if (pageIndex > 0) pdf.addPage();
+      if (pageIndex > 0) pdf.addPage("a4", "portrait");
       let nextY = Math.min(canvas.height, yOffset + pageHeightPx);
       if (nextY < canvas.height) {
-        // Prefer a block-boundary hint that falls inside the current page window.
         const minAdvance = yOffset + Math.min(200, pageHeightPx * 0.25);
         const upper = yOffset + pageHeightPx;
         let bestHint = -1;
@@ -105,23 +104,12 @@ export async function htmlToPdf(element: HTMLElement, filename: string, breakHin
         if (bestHint > 0) {
           nextY = bestHint;
         } else {
-          // Fall back to whitespace-scan heuristic.
           const safe = findSafeBreak(nextY, maxBacktrack);
           if (safe > yOffset + 100) nextY = safe;
         }
       }
       const sliceHeightPx = Math.max(1, nextY - yOffset);
-      const sliceCanvas = document.createElement("canvas");
-      sliceCanvas.width = canvas.width;
-      sliceCanvas.height = sliceHeightPx;
-      const ctx = sliceCanvas.getContext("2d");
-      if (!ctx) break;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-      ctx.drawImage(canvas, 0, yOffset, canvas.width, sliceHeightPx, 0, 0, sliceCanvas.width, sliceCanvas.height);
-      const sliceData = sliceCanvas.toDataURL("image/jpeg", 0.95);
-      const sliceHeightMm = (sliceHeightPx / canvas.width) * pdfWidth;
-      addImageSafe(sliceData, pdfWidth, sliceHeightMm);
+      addFullA4Page(yOffset, sliceHeightPx);
       yOffset = nextY;
       pageIndex++;
     }
