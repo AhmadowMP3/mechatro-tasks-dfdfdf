@@ -36,10 +36,28 @@ export async function htmlToPdf(element: HTMLElement, filename: string, breakHin
 
   const totalPages = Math.ceil(canvas.height / pageHeightPx);
 
+  // Draw a canvas slice onto a full A4-sized (pageHeightPx tall) canvas with
+  // white padding at the bottom, then place it as a full A4 image in the PDF.
+  // This guarantees every emitted PDF page is exactly A4 (210×297 mm).
+  const addFullA4Page = (sliceSourceY: number, sliceHeight: number) => {
+    const pageCanvas = document.createElement("canvas");
+    pageCanvas.width = canvas.width;
+    pageCanvas.height = pageHeightPx;
+    const ctx = pageCanvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+    ctx.drawImage(
+      canvas,
+      0, sliceSourceY, canvas.width, sliceHeight,
+      0, 0, canvas.width, sliceHeight,
+    );
+    const data = pageCanvas.toDataURL("image/jpeg", 0.95);
+    addImageSafe(data, pdfWidth, pdfHeight);
+  };
+
   if (totalPages <= 1) {
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
-    const imgHeightMm = (canvas.height / canvas.width) * pdfWidth;
-    addImageSafe(imgData, pdfWidth, imgHeightMm);
+    addFullA4Page(0, canvas.height);
   } else {
     // Read source pixels once so we can find safe (mostly-white) break rows.
     const srcCtx = canvas.getContext("2d");
@@ -74,10 +92,9 @@ export async function htmlToPdf(element: HTMLElement, filename: string, breakHin
     let pageIndex = 0;
     const maxBacktrack = Math.floor(pageHeightPx * 0.15);
     while (yOffset < canvas.height) {
-      if (pageIndex > 0) pdf.addPage();
+      if (pageIndex > 0) pdf.addPage("a4", "portrait");
       let nextY = Math.min(canvas.height, yOffset + pageHeightPx);
       if (nextY < canvas.height) {
-        // Prefer a block-boundary hint that falls inside the current page window.
         const minAdvance = yOffset + Math.min(200, pageHeightPx * 0.25);
         const upper = yOffset + pageHeightPx;
         let bestHint = -1;
@@ -87,23 +104,12 @@ export async function htmlToPdf(element: HTMLElement, filename: string, breakHin
         if (bestHint > 0) {
           nextY = bestHint;
         } else {
-          // Fall back to whitespace-scan heuristic.
           const safe = findSafeBreak(nextY, maxBacktrack);
           if (safe > yOffset + 100) nextY = safe;
         }
       }
       const sliceHeightPx = Math.max(1, nextY - yOffset);
-      const sliceCanvas = document.createElement("canvas");
-      sliceCanvas.width = canvas.width;
-      sliceCanvas.height = sliceHeightPx;
-      const ctx = sliceCanvas.getContext("2d");
-      if (!ctx) break;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-      ctx.drawImage(canvas, 0, yOffset, canvas.width, sliceHeightPx, 0, 0, sliceCanvas.width, sliceCanvas.height);
-      const sliceData = sliceCanvas.toDataURL("image/jpeg", 0.95);
-      const sliceHeightMm = (sliceHeightPx / canvas.width) * pdfWidth;
-      addImageSafe(sliceData, pdfWidth, sliceHeightMm);
+      addFullA4Page(yOffset, sliceHeightPx);
       yOffset = nextY;
       pageIndex++;
     }
