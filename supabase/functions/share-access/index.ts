@@ -487,10 +487,12 @@ Deno.serve(async (req) => {
           const expires_at = body.expires_at ? String(body.expires_at) : null;
           const max_uses = body.max_uses != null && body.max_uses !== "" ? Number(body.max_uses) : null;
           const pw = body.password ? String(body.password) : null;
-          const password_hash = pw ? await sha256hex(pw) : null;
+          const hashed = pw ? await hashPassword(pw) : null;
           const t = newToken();
           const { data, error } = await admin.from("share_links").insert({
-            token: t, label, allowed_pages, expires_at, max_uses, password_hash,
+            token: t, label, allowed_pages, expires_at, max_uses,
+            password_hash: hashed?.hash ?? null,
+            password_salt: hashed?.salt ?? null,
             created_by: me.id,
           }).select("*").single();
           if (error) throw error;
