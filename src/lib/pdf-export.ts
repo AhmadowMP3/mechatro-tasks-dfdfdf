@@ -34,7 +34,7 @@ export async function htmlToPdf(element: HTMLElement, filename: string): Promise
     pdf.addImage(data, "JPEG", 0, 0, w, h);
   };
 
-  const totalPages = Math.max(1, Math.ceil(canvas.height / pageHeightPx));
+  const totalPages = Math.ceil(canvas.height / pageHeightPx);
 
   if (totalPages <= 1) {
     const imgData = canvas.toDataURL("image/jpeg", 0.95);
