@@ -121,17 +121,17 @@ export function NoteEditor({ noteId, content, onChange, editable = true, onEdito
 
       const result: { top: number; page: number }[] = [];
       let pageNum = 1;
-      let threshold = PDF_FIRST_PAGE_CONTENT;
+      let pageStart = 0;
 
       for (let i = 0; i < count; i++) {
         const mb = mBlocks[i];
         const bottom = mb.offsetTop + mb.offsetHeight;
-        while (bottom > threshold && pageNum < 30) {
+        const capacity = pageNum === 1 ? PDF_FIRST_PAGE_CONTENT : PDF_PAGE_HEIGHT;
+        if (bottom > pageStart + capacity && pageNum < 30) {
           const eb = eBlocks[i];
-          // Anchor indicator just above the block that overflows.
           result.push({ top: Math.max(0, eb.offsetTop - 4), page: pageNum + 1 });
           pageNum++;
-          threshold += PDF_PAGE_HEIGHT;
+          pageStart = mb.offsetTop;
         }
       }
       setBreaks(result);
