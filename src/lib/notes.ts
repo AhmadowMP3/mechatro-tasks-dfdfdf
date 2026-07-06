@@ -195,7 +195,13 @@ export async function setNoteShares(noteId: string, userIds: string[]): Promise<
   if (userIds.length > 0) {
     const rows = userIds.map((u) => ({ note_id: noteId, shared_with_user_id: u }));
     const { error } = await db.from("note_shares").insert(rows);
-    if (error) throw error;
+    if (error) {
+      // 23503 = FK violation → picked user isn't shareable
+      if ((error as { code?: string }).code === "23503") {
+        throw new Error("This user can't be shared with. Please refresh and try again.");
+      }
+      throw error;
+    }
   }
 }
 
