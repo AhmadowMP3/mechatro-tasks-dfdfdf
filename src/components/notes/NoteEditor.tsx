@@ -12,6 +12,7 @@ import { useApp } from "@/lib/app-context";
 import { NoteToolbar } from "./NoteToolbar";
 
 type Props = {
+  noteId: string;
   content: string;
   onChange: (html: string, text: string) => void;
   editable?: boolean;
@@ -19,7 +20,7 @@ type Props = {
   onInsertImageClick?: () => void;
 };
 
-export function NoteEditor({ content, onChange, editable = true, onEditor, onInsertImageClick }: Props) {
+export function NoteEditor({ noteId, content, onChange, editable = true, onEditor, onInsertImageClick }: Props) {
   const { lang, t } = useApp();
 
   const editor = useEditor({
