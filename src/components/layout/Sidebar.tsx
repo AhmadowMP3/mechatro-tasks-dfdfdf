@@ -83,6 +83,7 @@ const NAV_SECTIONS: NavSection[] = [
     icon: ShieldCheck,
     adminOnly: true,
     items: [
+      { to: "/notes",          icon: StickyNote, key: null, label: { ar: "الملاحظات", en: "Notes" } },
       { to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } },
       { to: "/share-links",    icon: Share2,   key: null, label: { ar: "روابط المشاركة", en: "Share Links" } },
     ],
