@@ -8,7 +8,7 @@ import { Banknote, Landmark, FileCheck2, CreditCard, Smartphone, MoreHorizontal 
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { useApp } from "@/lib/app-context";
 import type { PaymentMethod } from "@/lib/finance";
-import type { TKey } from "@/i18n/dict";
+import type { DictKey } from "@/i18n/dict";
 
 const ICONS: Record<PaymentMethod, React.ReactNode> = {
   cash:          <Banknote size={16} style={{ color: "#189FD1" }} />,
@@ -21,7 +21,7 @@ const ICONS: Record<PaymentMethod, React.ReactNode> = {
 
 // Ordered — Sham Cash lives near the top since it's the primary local option.
 const ORDER: readonly PaymentMethod[] = ["cash", "sham_cash", "bank_transfer", "cheque", "card", "other"];
-const LABEL_KEY: Record<PaymentMethod, TKey> = {
+const LABEL_KEY: Record<PaymentMethod, DictKey> = {
   cash: "methodCash",
   bank_transfer: "methodBankTransfer",
   cheque: "methodCheque",
