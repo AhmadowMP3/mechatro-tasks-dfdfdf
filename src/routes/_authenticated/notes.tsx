@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/notes")({
 
 type FilterKey = "all" | "pinned" | "shared" | `folder:${string}`;
 
-import { errMsg } from "@/lib/notes";
+
 
 function NotesPage() {
   const { user, lang, t } = useApp();
