@@ -57,9 +57,9 @@ export function NoteToolbar({ editor, onInsertImageClick }: { editor: Editor | n
       {btn(editor.isActive({ textAlign: "center" }), false, () => editor.chain().focus().setTextAlign("center").run(), <AlignCenter size={16} />, "alignCenter")}
       {btn(editor.isActive({ textAlign: "left" }), false, () => editor.chain().focus().setTextAlign("left").run(), <AlignLeft size={16} />, "alignLeft")}
       {sep}
-      {btn(editor.isActive("link"), false, () => {
+      {btn(editor.isActive("link"), false, async () => {
         const prev = editor.getAttributes("link").href as string | undefined;
-        const url = window.prompt(t("addNoteLink"), prev ?? "https://");
+        const url = await openPrompt({ title: t("addNoteLink"), defaultValue: prev ?? "https://", placeholder: "https://" });
         if (url === null) return;
         if (url === "") editor.chain().focus().extendMarkRange("link").unsetLink().run();
         else editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
