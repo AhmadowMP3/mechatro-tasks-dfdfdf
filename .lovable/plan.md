@@ -1,165 +1,79 @@
 
-## نظام ملاحظات (Admin Notes)
+# Finance UI Polish — Simple & Comfortable for Master Admin
 
-نظام ملاحظات مخصص للمدير المسؤول (Master Admin) والمدراء العاديين، بتجربة شبيهة بتطبيقات الملاحظات على الهاتف (Apple Notes / Google Keep) — سريع، سلس، غني بالميزات، وبتصميم يتناسق مع باقي التطبيق.
+Goal: make every finance page easy to read and tap for an older admin, while keeping the current Mechatro brand (deep navy `#0A2540`, blue `#189FD1`, gold `#C8A24B`, gradient blue). No color rebrand, no logic changes — only presentation.
 
-## المسار الرئيسي
+## Design rules (applied across all finance pages)
 
-`/notes` (تحت `_authenticated`) — محمي بحيث لا يظهر إلا للمدراء (`role='admin'` أو `is_master_admin`). يظهر رابط "الملاحظات" في الشريط الجانبي للمدراء فقط.
+- **Type scale bump** (finance-only, scoped via a `.finance-root` wrapper class on the layout):
+  - Body: 15px → **17px**
+  - Table cells: 13px → **16px**, row height 44 → **56px**
+  - Section titles: 18px → **22px**, page titles **28px** bold
+  - Numbers/money: **tabular-nums**, +1px, semibold
+- **Buttons**: min height **48px**, min width **120px**, radius 12, primary uses existing `--grad-blue`; icon+label always (no icon-only primary actions).
+- **Inputs**: height **48px**, 16px font (prevents mobile zoom), clearer focus ring using `--brand` at 40% alpha.
+- **Spacing**: card padding 16 → **24px**, gap between cards 12 → **20px**.
+- **Contrast**: muted text lightened one step for readability; keep dark surface.
+- **One primary action per page** (top-right on desktop, sticky bottom on mobile).
+- **Tabs bar** (`finance.tsx`): taller (48px), larger label (15px), active tab gets gold underline in addition to blue fill for clearer "you are here".
 
-## هيكل الواجهة (Two-Pane Layout)
+## Page-by-page changes
 
-```text
-┌─────────────────┬─────────────────────────────────────┐
-│  Sidebar (280px)│  Editor Pane                        │
-│                 │                                     │
-│  [+ ملاحظة جديدة]│  [Title___________________]        │
-│  🔍 بحث          │  🏷️ tags   📁 folder   🎨 color     │
-│                 │  ─────────────────────────────       │
-│  📌 مثبتة       │  [B I U ~ H1 H2 • 1. ☑ 🖼 📎]      │
-│  ├ ملاحظة 1     │                                     │
-│  ├ ملاحظة 2     │  محرر Rich Text كامل...              │
-│                 │                                     │
-│  📁 مجلدات      │                                     │
-│  ├ عمل          │                                     │
-│  ├ اجتماعات     │                                     │
-│                 │                                     │
-│  الكل           │  ─────────────────────────           │
-│  ├ ملاحظة أ     │  آخر تعديل: منذ دقيقتين              │
-│  ├ ملاحظة ب     │  [🗑 حذف] [📌 تثبيت] [📄 PDF] [⋯]   │
-└─────────────────┴─────────────────────────────────────┘
-```
+### 1. Overview (`finance.index.tsx`) — friendly landing
+- Big greeting header: "أهلاً {name}" / "Hi {name}" + today's date.
+- **4 large KPI tiles** (2×2 on mobile, 1×4 on desktop): Income this month, Expenses this month, Net, Unpaid invoices — each 120px tall with big number + trend arrow + one-line label.
+- Below: **"Quick actions"** row of 3 big buttons (56px): **Log income**, **Log expense**, **Run payroll** — matches the user's priorities.
+- Remove/collapse dense charts into a single "This month" summary card; move detailed charts behind a "See details" link.
 
-على الموبايل: عرض واحد يتبدّل بين قائمة الملاحظات والمحرر (slide transition).
+### 2. Income (`finance.income.tsx`) — priority
+- Sticky top bar: month picker + big "＋ Add income" primary button.
+- Card list style (not compressed table) on mobile; on desktop a spacious table with 56px rows.
+- Each row shows: date · source · amount (large, right-aligned) · method pill. Extra columns collapse into an expand toggle.
+- Empty state with illustration + single "Log first income" CTA.
 
-## الميزات
+### 3. Expenses (`finance.expenses.tsx`) — priority
+- Same pattern as Income: sticky filter bar (month + category), big "＋ Add expense" button.
+- Category shown as colored chip; amount large and red-tinted (`#F0676A`) so the eye finds it fast.
+- Approve/reject actions become 44×44 icon buttons with tooltips + labels on hover; on mobile they appear inline as full labeled buttons.
 
-**المحرر (Rich Text)** — باستخدام TipTap (خفيف، RTL، متوافق مع React):
-- Bold, Italic, Underline, Strike
-- Headings (H1, H2, H3)
-- قوائم نقطية ومرقمة
-- Checkboxes (task list) قابلة للنقر
-- Blockquote, code inline
-- روابط
-- محاذاة يمين/يسار/وسط
-- Undo/Redo
+### 4. Payroll (`finance.payroll.tsx`) — priority
+- Reframe as a **step-by-step month card**: 1) Select month → 2) Review members → 3) Finalize → 4) Mark paid. Each step is a tall clickable card with a checkmark when complete.
+- Member rows: avatar 40px, name 17px, salary large. Big status pill (draft/finalized/paid).
+- Primary action button ("Finalize" / "Mark all paid") sits sticky at the bottom of the card, always 48px tall.
 
-**التنظيم:**
-- **مجلدات (Folders):** المستخدم ينشئها ويعيد تسميتها ويحذفها
-- **تثبيت (Pin):** ملاحظات مهمة تظهر في الأعلى مع أيقونة 📌
-- **وسوم (Tags):** متعددة لكل ملاحظة، تعرض كـ pills ملوّنة
-- **لون خلفية:** 6 ألوان جاهزة (أصفر، وردي، أزرق، أخضر، برتقالي، أرجواني) + رمادي/أبيض افتراضي
+### 5. Invoices (`finance.invoices.index.tsx` + detail)
+- List: big status pills, larger customer name, amount right-aligned in bold.
+- Detail page: title 28px, customer block enlarged, line items table with 56px rows, totals block on the right stacked and roomy.
+- Actions (Issue / Record payment / Download PDF) become a horizontal row of labeled buttons instead of a menu.
 
-**البحث والفلترة:**
-- بحث فوري (debounced) بالعنوان + المحتوى النصي
-- فلتر حسب المجلد / الوسم / اللون
-- ترتيب: آخر تعديل (افتراضي) / تاريخ الإنشاء / أبجدي
+### 6. Customers (`finance.customers.tsx`)
+- Card grid (2 cols mobile, 3-4 desktop) instead of a dense table; each card shows name, phone, outstanding balance in large type, and a single "Open" button.
 
-**المشاركة:**
-- كل ملاحظة خاصة بمنشئها افتراضياً
-- زر "مشاركة" يفتح modal لاختيار مدراء محددين أو "جميع المدراء"
-- الشخص المشارك معه يرى الملاحظة للقراءة فقط (لا يعدّل)
-- شارة "مشاركة معي" على الملاحظات المستلمة
+### 7. Subscriptions, Reports, Settings
+- Same type scale + button sizing; no structural rework.
+- Reports: bigger download buttons, plain-language descriptions under each report name.
+- Settings: group inputs in labeled cards with more vertical space; save button sticky at bottom.
 
-**المرفقات:**
-- رفع صور ومستندات (PDF/DOCX/…) في bucket جديد `note-attachments`
-- الصور تُدرج inline في المحرر
-- المرفقات الأخرى تظهر كبطاقات ملفات قابلة للتحميل
+## Technical section
 
-**تجربة الاستخدام:**
-- **حفظ تلقائي** كل ~1.5 ثانية بعد التوقف عن الكتابة (Debounced autosave)
-- عدّاد كلمات/أحرف في الأسفل
-- اختصارات لوحة مفاتيح (Ctrl+N جديد، Ctrl+S حفظ فوري، Ctrl+F بحث، Ctrl+K لوحة أوامر)
-- Empty state جميل عند عدم وجود ملاحظات
-- Skeleton loading
+- Add a scoped stylesheet `src/styles/finance.css` imported once in `src/routes/_authenticated/finance.tsx`, all rules under `.finance-root` so nothing leaks to other pages.
+- Wrap the finance `<Outlet />` in `<div className="finance-root">`.
+- Introduce shared components (finance-scoped) in `src/components/finance/`:
+  - `StatTile.tsx` — KPI tile
+  - `QuickAction.tsx` — big 56px labeled action button
+  - `SectionCard.tsx` — padded card wrapper
+  - `MoneyCell.tsx` — tabular-nums money display with size prop
+- Reuse existing `formatMoney`, `StatusPill`, `PriorityPill`, `RoleBadge` — no changes to logic, tokens, or data flow.
+- Keep all existing routes, loaders, mutations, and server functions untouched.
 
-**تصدير PDF (Branded):**
-- زر "📄 تصدير PDF" في شريط الأدوات
-- يستخدم نفس نظام العلامة التجارية الموجود (`html2canvas + jsPDF` من `pdf-export.ts` و `BrandedDocuments.tsx`)
-- الـ PDF يتضمن:
-  - Header بتدرج `--grad-blue` مع لوغو Mechatro
-  - عنوان الملاحظة
-  - meta: الكاتب، التاريخ، الوسوم، المجلد
-  - المحتوى بالكامل مع الحفاظ على التنسيق (bold, headings, lists, checkboxes, صور inline)
-  - Footer بالتاريخ ورقم الصفحة
-  - خط Almarai للعربي + Montserrat للإنكليزي
-- تصدير ملاحظة واحدة في كل مرة (كما اخترت)
+## Out of scope
+- No color palette change, no logo change, no font swap.
+- No changes to database, RLS, server functions, or business logic.
+- Non-finance pages (tasks, notes, projects, etc.) are untouched.
 
-## قاعدة البيانات
-
-**جدول `notes`:**
-- `id`, `owner_id` → `profiles.id`
-- `title` (text)
-- `content_html` (text) — HTML الناتج من TipTap
-- `content_text` (text) — نسخة plain للبحث
-- `folder_id` (uuid, nullable)
-- `color` (text: default/yellow/pink/blue/green/orange/purple)
-- `is_pinned` (bool)
-- `created_at`, `updated_at`
-
-**جدول `note_folders`:**
-- `id`, `owner_id`, `name`, `color`, `sort_order`, `created_at`
-
-**جدول `note_tags`:** (tags خاصة بكل مدير)
-- `id`, `owner_id`, `name`, `color`
-
-**جدول `note_tag_links`:** (many-to-many)
-- `note_id`, `tag_id`
-
-**جدول `note_shares`:**
-- `note_id`, `shared_with_user_id`, `created_at`
-- (لا وجود لهذا الصف = خاصة)
-
-**جدول `note_attachments`:**
-- `id`, `note_id`, `file_path`, `file_name`, `mime_type`, `size`, `created_at`
-
-**Storage bucket:** `note-attachments` (private) + RLS.
-
-**RLS Policies (باختصار):**
-- `notes`: المالك يرى/يعدّل ملاحظاته + المشارك معه يرى فقط. الإنشاء مقيّد للمدراء عبر `has_role(auth.uid(),'admin')` أو `is_master_admin`.
-- المجلدات والوسوم: خاصة بالمالك بالكامل.
-- المرفقات: المالك يديرها، المشارك معه يقرأ فقط.
-- Storage: مسار `{owner_id}/{note_id}/…` مع policy تتحقق من العلاقة بالجدول.
-- GRANT `SELECT, INSERT, UPDATE, DELETE` للـ `authenticated` و `ALL` للـ `service_role`.
-
-## الملفات الجديدة
-
-- `src/routes/_authenticated/notes.tsx` — layout ثنائي مع sidebar وeditor
-- `src/routes/_authenticated/notes.$id.tsx` — عرض/تحرير ملاحظة (nested)
-- `src/routes/_authenticated/notes.index.tsx` — الحالة الافتراضية (empty state)
-- `src/components/notes/NotesSidebar.tsx` — قائمة الملاحظات + بحث + مجلدات
-- `src/components/notes/NoteEditor.tsx` — محرر TipTap + toolbar
-- `src/components/notes/NoteToolbar.tsx` — أزرار التنسيق
-- `src/components/notes/FolderManager.tsx` — إدارة المجلدات
-- `src/components/notes/TagPicker.tsx` — اختيار/إنشاء وسوم
-- `src/components/notes/ColorPicker.tsx` — 6 ألوان
-- `src/components/notes/ShareNoteModal.tsx` — مشاركة مع مدراء
-- `src/components/notes/NotePdfDocument.tsx` — قالب PDF مبرَند (يعاد استخدام نمط `BrandedDocuments`)
-- `src/lib/notes.ts` — types + helpers + query functions
-- `src/lib/notes-pdf.ts` — دالة `exportNoteToPdf(note)` تستخدم `renderAndDownloadPdf`
-
-## الملفات المعدَّلة
-
-- `src/components/layout/Sidebar.tsx` — إضافة رابط "الملاحظات" للمدراء
-- `src/components/layout/MobileTabBar.tsx` — إضافة الأيقونة (اختياري)
-- `src/i18n/dict.ts` — مفاتيح جديدة (notes, newNote, folder, pin, share, exportPdf, colors, tags, searchNotes, لا ملاحظات، إلخ)
-- `src/routeTree.gen.ts` — يُحدَّث تلقائياً
-
-## الحزم الجديدة
-
-- `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-task-list`, `@tiptap/extension-task-item`, `@tiptap/extension-link`, `@tiptap/extension-image`, `@tiptap/extension-text-align`, `@tiptap/extension-placeholder`
-
-## ترتيب التنفيذ
-
-1. **Migration:** جميع الجداول + RLS + GRANTs + bucket + policies تخزين
-2. **الأنواع والـ helpers:** `src/lib/notes.ts`
-3. **الواجهة الأساسية:** الـ layout + sidebar + list
-4. **المحرر:** TipTap + toolbar + autosave
-5. **المجلدات والوسوم والألوان**
-6. **البحث والفلترة**
-7. **المرفقات (رفع صور + ملفات)**
-8. **المشاركة (modal + عرض المستلمة)**
-9. **تصدير PDF المبرَند**
-10. **رابط الشريط الجانبي + التحقق من الصلاحيات + i18n**
-
-هل تريد أي تعديل قبل ما نبدأ التنفيذ؟ (مثلاً: نستخدم Lexical أو ProseMirror بدل TipTap، أو ما نحتاج المرفقات، أو نضيف تصدير PDF لعدة ملاحظات مختارة أيضاً؟)
+## Rollout order
+1. Shared CSS + components + layout wrapper.
+2. Income → Expenses → Payroll (priority).
+3. Overview KPI + quick actions.
+4. Invoices (list + detail) → Customers.
+5. Subscriptions, Reports, Settings.
