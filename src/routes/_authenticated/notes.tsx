@@ -504,9 +504,18 @@ function NotesPage() {
                 }}>
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.1) 0%, rgba(15,23,42,.6) 100%)" }} />
                   {isOwner && (
-                    <div style={{ position: "absolute", top: 10, insetInlineEnd: 12, display: "flex", gap: 6 }}>
-                      <button onClick={() => coverFileRef.current?.click()} style={coverBtn}>{t("changeCover")}</button>
-                      <button onClick={onRemoveCover} style={coverBtn}>{t("removeCover")}</button>
+                    <div style={{
+                      position: "absolute", bottom: 12, right: 12,
+                      display: "flex", gap: 6, flexWrap: "wrap",
+                      justifyContent: "flex-end",
+                      maxWidth: "calc(100% - 24px)",
+                    }}>
+                      <button onClick={() => coverFileRef.current?.click()} style={coverBtn}>
+                        <Camera size={12} /> {t("changeCover")}
+                      </button>
+                      <button onClick={onRemoveCover} style={coverBtn}>
+                        <Trash2 size={12} /> {t("removeCover")}
+                      </button>
                     </div>
                   )}
                 </div>
