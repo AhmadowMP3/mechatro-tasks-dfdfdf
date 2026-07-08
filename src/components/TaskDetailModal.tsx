@@ -5,12 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
 import { StatusPill, PriorityPill, OverduePill } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
+import { AssigneeStack } from "@/components/AssigneeStack";
 import { formatDate, formatMinutes, isOverdue, relativeTime, toLocalDigits } from "@/lib/format";
 import { driveFileType, isDriveUrl, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { notify } from "@/lib/activity";
 import { toast } from "sonner";
 import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
+import { AssigneeMultiSelect } from "@/components/ui/AssigneeMultiSelect";
+import { saveTaskAssignees } from "@/lib/task-assignees";
 
 type Task = {
   id: string; project_id: string; title: string; description: string | null;
