@@ -5,6 +5,7 @@ import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { Avatar } from "@/components/Avatar";
 import { AssigneeStack } from "@/components/AssigneeStack";
+import { BulkCheckbox } from "@/lib/bulk-selection";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 
 import type { TaskRow } from "@/components/TaskCard";
@@ -15,6 +16,7 @@ type ColStatus = (typeof COLUMNS)[number];
 
 export function KanbanView({
   tasks, projects, users, assigneesByTask, onOpen, onChanged,
+  selectable, isSelected, onToggle,
 }: {
   tasks: TaskRow[];
   projects: Project[];
@@ -22,6 +24,9 @@ export function KanbanView({
   assigneesByTask?: Record<string, string[]>;
   onOpen: (id: string) => void;
   onChanged: () => void;
+  selectable?: boolean;
+  isSelected?: (id: string) => boolean;
+  onToggle?: (id: string) => void;
 }) {
   const { t, lang, isAdmin, user } = useApp();
   const [dragId, setDragId] = useState<string | null>(null);
