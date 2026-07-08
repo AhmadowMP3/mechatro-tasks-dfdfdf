@@ -143,7 +143,10 @@ function TasksPage() {
     const priorityRank: Record<string, number> = { urgent: 4, high: 3, normal: 2, low: 1 };
     let out = (data?.tasks ?? []).filter((tk) => {
       if (f.projects.length && !f.projects.includes(tk.project_id ?? "")) return false;
-      if (f.assignees.length && !f.assignees.includes(tk.assignee_id ?? "")) return false;
+      if (f.assignees.length) {
+        const taskAssignees = assigneesByTask[tk.id] ?? (tk.assignee_id ? [tk.assignee_id] : []);
+        if (!taskAssignees.some((a) => f.assignees.includes(a))) return false;
+      }
       if (f.statuses.length && !f.statuses.includes(tk.status)) return false;
       if (f.priorities.length && !f.priorities.includes(tk.priority)) return false;
       if (f.overdue && !isOverdue(tk.due_date, tk.status)) return false;
