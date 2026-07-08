@@ -65,11 +65,36 @@ function ProjectDetail() {
     },
   });
 
+  const tasksForSelection = data?.tasks ?? [];
+  const { isSelected, toggle, ids: selectedIds, clear: clearSelection } = useBulkSelection({
+    pageId: `project:${id}`,
+    items: tasksForSelection as Array<{ id: string }>,
+    deps: [tasksForSelection.length, isAdmin, lang],
+    buildBar: isAdmin
+      ? (sel) => ({
+          count: sel.length,
+          totalLabel: lang === "ar"
+            ? `${sel.length} مهمة محددة`
+            : `${sel.length} task${sel.length === 1 ? "" : "s"} selected`,
+          actions: [
+            {
+              id: "assign",
+              label: lang === "ar" ? "تعيين إلى…" : "Assign to…",
+              icon: <Users size={14} />,
+              onRun: () => setBulkAssignOpen(true),
+            },
+          ],
+        })
+      : () => null,
+  });
+  const bulkMode = selectedIds.length > 0;
+
   if (!data?.project) return <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>…</div>;
   const p = data.project;
   const total = data.tasks.length;
   const done = data.tasks.filter((t) => t.status === "done").length;
   const progress = total ? Math.round((done / total) * 100) : 0;
+
 
   return (
     <div>
