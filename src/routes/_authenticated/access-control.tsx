@@ -857,6 +857,33 @@ function InviteModal({ lang, onClose, onInvited }: {
               </div>
             </Field>
 
+            <Field label={l ? "عدد الأجهزة المسموحة" : "Max devices"}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                {[1, 2, 3, 5, 0].map((n) => (
+                  <button key={n} type="button" onClick={() => setMaxDevices(n)} style={{
+                    padding: "8px 14px", borderRadius: 999, cursor: "pointer", minHeight: 36,
+                    border: `1.5px solid ${maxDevices === n ? "#1D9BF0" : "var(--border)"}`,
+                    background: maxDevices === n ? "rgba(29,155,240,.12)" : "transparent",
+                    color: maxDevices === n ? "#1D9BF0" : "var(--muted)",
+                    fontWeight: 700, fontSize: 12.5,
+                  }}>
+                    {n === 0 ? (l ? "غير محدود" : "Unlimited") : n}
+                  </button>
+                ))}
+                <input
+                  type="number" min={0} max={20} value={maxDevices}
+                  onChange={(e) => setMaxDevices(Math.max(0, Math.min(20, Number(e.target.value) || 0)))}
+                  style={{ ...inputCss, width: 90, minHeight: 36, padding: "6px 10px" }}
+                />
+              </div>
+              <div style={{ fontSize: 11, color: "#7A94A9", marginTop: 4 }}>
+                {l
+                  ? "عند تسجيل الدخول من جهاز إضافي يتم تسجيل الخروج من الأقدم تلقائيًا. اختر 0 لإلغاء الحد."
+                  : "When a new device signs in beyond the limit, the oldest device is signed out automatically. Use 0 for unlimited."}
+              </div>
+            </Field>
+
+
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
               <button type="button" onClick={onClose} style={ghostBtn}>{l ? "إلغاء" : "Cancel"}</button>
               <button type="submit" disabled={busy} style={{ ...primaryBtn, opacity: busy ? 0.6 : 1 }}>
