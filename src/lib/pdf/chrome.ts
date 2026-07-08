@@ -28,10 +28,9 @@ async function ensureFonts(pdf: jsPDF): Promise<boolean> {
   }
 }
 
-/** Convert ASCII digits to Arabic-Indic when producing Arabic text. */
-function shapeDigits(s: string, lang: "ar" | "en"): string {
-  if (lang !== "ar") return s;
-  return s.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d, 10)]);
+/** Digits are always rendered in Latin/ASCII across the app, even in Arabic. */
+function shapeDigits(s: string, _lang: "ar" | "en"): string {
+  return s;
 }
 
 /** Choose the safest font for a given string (uses embedded Arabic when the

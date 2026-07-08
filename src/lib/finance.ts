@@ -54,7 +54,7 @@ export function formatMoney(amount: number | string | null | undefined, currency
   const parts = abs.toFixed(2).split(".");
   const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   const raw = `${isNegative ? "-" : ""}${intPart}.${parts[1]}`;
-  const withLocale = lang === "ar" ? raw.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d, 10)]) : raw;
+  const withLocale = raw;
   const sym = currency === "USD" ? "$" : (lang === "ar" ? "ل.س" : "SYP");
   return currency === "USD" ? `${sym}${withLocale}` : `${withLocale} ${sym}`;
 }
