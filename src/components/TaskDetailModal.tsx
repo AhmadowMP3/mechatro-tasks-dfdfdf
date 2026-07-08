@@ -103,30 +103,51 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
       : true;
   const editValid = titleOk && dirtyFieldsValid && pointsOk;
 
+  const assigneesDirty = canEditAll && (
+    assigneeIds.length !== assigneeIdsBase.length ||
+    assigneeIds.some((id, i) => id !== assigneeIdsBase[i])
+  );
+
   const saveChanges = async () => {
-    if (Object.keys(dirty).length === 0) return;
+    if (Object.keys(dirty).length === 0 && !assigneesDirty) return;
     if (!editValid) { toast.error(lang === "ar" ? "يرجى ملء جميع الحقول" : "Please fill in all fields"); return; }
-    const patch: Record<string, unknown> = { ...dirty };
-    const approvingNow = dirty.status === "done" && task.status !== "done";
-    if (approvingNow) patch.completed_at = new Date().toISOString();
-    if (dirty.status && dirty.status !== "done") patch.completed_at = null;
-    const { error } = await supabase.from("tasks").update(patch as never).eq("id", taskId);
-    if (error) { toast.error(error.message); return; }
+
+    if (Object.keys(dirty).length > 0) {
+      const patch: Record<string, unknown> = { ...dirty };
+      const approvingNow = dirty.status === "done" && task.status !== "done";
+      if (approvingNow) patch.completed_at = new Date().toISOString();
+      if (dirty.status && dirty.status !== "done") patch.completed_at = null;
+      // Never let a manual patch overwrite the primary assignee — the join-table
+      // save below owns that column.
+      delete patch.assignee_id;
+      if (Object.keys(patch).length > 0) {
+        const { error } = await supabase.from("tasks").update(patch as never).eq("id", taskId);
+        if (error) { toast.error(error.message); return; }
+      }
+
+      if (approvingNow && (merged.points ?? 0) > 0) {
+        try {
+          confetti({ particleCount: 120, spread: 75, origin: { y: 0.6 }, colors: ["#FFD700", "#42C2EE", "#3ECF8E", "#F0676A"] });
+          setTimeout(() => confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0 } }), 150);
+          setTimeout(() => confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1 } }), 300);
+        } catch { /* noop */ }
+        toast.success(`⭐ +${merged.points} ${t("points")}`);
+      }
+    }
+
+    if (assigneesDirty) {
+      const res = await saveTaskAssignees(taskId, assigneeIds, { assignedBy: user?.id ?? null });
+      if (res.error) { toast.error(res.error.message); return; }
+      // Notify newly added assignees.
+      const added = assigneeIds.filter((id) => !assigneeIdsBase.includes(id));
+      for (const uid of added) {
+        if (uid !== user?.id) {
+          await notify(uid, "task_assigned", `تم تكليفك بمهمة: ${task.title}`, `Assigned to task: ${task.title}`, undefined, taskId);
+        }
+      }
+    }
+
     toast.success(t("saved"));
-
-    if (approvingNow && (merged.points ?? 0) > 0) {
-      // Celebrate! Fire confetti burst.
-      try {
-        confetti({ particleCount: 120, spread: 75, origin: { y: 0.6 }, colors: ["#FFD700", "#42C2EE", "#3ECF8E", "#F0676A"] });
-        setTimeout(() => confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0 } }), 150);
-        setTimeout(() => confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1 } }), 300);
-      } catch { /* noop */ }
-      toast.success(`⭐ +${merged.points} ${t("points")}`);
-    }
-
-    if (dirty.assignee_id && dirty.assignee_id !== task.assignee_id) {
-      await notify(dirty.assignee_id as string, "task_assigned", `تم تكليفك بمهمة: ${task.title}`, `Assigned to task: ${task.title}`, undefined, taskId);
-    }
     setDirty({});
     onChanged();
     load();
