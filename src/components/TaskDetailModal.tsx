@@ -292,14 +292,21 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
 
         {/* Fields grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBottom: 16 }}>
-          <Field label={t("assignee")}>
+          <Field label={t("assignees")}>
             {canEditAll ? (
-              <ThemedSelect
-                value={merged.assignee_id ?? ""}
-                onChange={(v) => setField("assignee_id", v || null)}
+              <AssigneeMultiSelect
+                users={users.filter((u) => u.active)}
+                value={assigneeIds}
+                onChange={setAssigneeIds}
                 placeholder="—"
-                options={users.filter((u) => u.active).map((u) => ({ value: u.id, label: u.full_name }))}
               />
+            ) : assignedUsers.length > 0 ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <AssigneeStack users={assignedUsers} size={28} max={4} />
+                <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                  {assignedUsers.map((u) => u.full_name).join(lang === "ar" ? "، " : ", ")}
+                </span>
+              </div>
             ) : assignee ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Avatar id={assignee.id} name={assignee.full_name} size={28} /><span>{assignee.full_name}</span></div>
             ) : "—"}
