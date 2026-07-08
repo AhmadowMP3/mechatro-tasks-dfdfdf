@@ -184,7 +184,7 @@ function TasksPage() {
   }, [isAdmin]);
 
   // Bulk selection — admins only.
-  const { isSelected, toggle, ids: selectedIds } = useBulkSelection({
+  const { isSelected, toggle, ids: selectedIds, clear: clearSelection } = useBulkSelection({
     pageId: "tasks",
     items: filtered as Array<{ id: string }>,
     deps: [filtered.length, isAdmin, lang],
