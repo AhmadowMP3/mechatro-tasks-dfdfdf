@@ -493,14 +493,34 @@ function TasksPage() {
             })}
           </div>
         ) : view === "kanban" ? (
-          <KanbanView tasks={filtered} projects={projects} users={displayUsers} assigneesByTask={assigneesByTask} onOpen={setSelected} onChanged={refetch} />
+          <KanbanView
+            tasks={filtered} projects={projects} users={displayUsers}
+            assigneesByTask={assigneesByTask} onOpen={setSelected} onChanged={refetch}
+            selectable={isAdmin} isSelected={isSelected} onToggle={toggle}
+          />
         ) : (
-          <TableView tasks={filtered} projects={projects} users={displayUsers} assigneesByTask={assigneesByTask} onOpen={setSelected} />
+          <TableView
+            tasks={filtered} projects={projects} users={displayUsers}
+            assigneesByTask={assigneesByTask} onOpen={setSelected}
+            selectable={isAdmin} isSelected={isSelected} onToggle={toggle}
+            onToggleAll={(ids, allSel) => {
+              if (allSel) ids.forEach((id) => { if (isSelected(id)) toggle(id); });
+              else ids.forEach((id) => { if (!isSelected(id)) toggle(id); });
+            }}
+          />
         );
       })()}
 
       {selected && <TaskDetailModal taskId={selected} onClose={closeTaskModal} onChanged={refetch} />}
       {newOpen && <NewTaskModal onClose={() => setNewOpen(false)} onCreated={() => { setNewOpen(false); refetch(); }} />}
+      {bulkAssignOpen && (
+        <BulkAssigneeModal
+          taskIds={selectedIds}
+          users={users}
+          onClose={() => setBulkAssignOpen(false)}
+          onDone={() => { clearSelection(); refetch(); }}
+        />
+      )}
     </div>
   );
 }
