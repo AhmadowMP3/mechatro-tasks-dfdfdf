@@ -3,6 +3,7 @@ import { ArrowUp, ArrowDown } from "lucide-react";
 import { useApp, type Profile } from "@/lib/app-context";
 import { StatusPill, PriorityPill } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
+import { AssigneeStack } from "@/components/AssigneeStack";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 import type { TaskRow } from "@/components/TaskCard";
@@ -13,11 +14,12 @@ const PRIO_RANK: Record<string, number> = { urgent: 4, high: 3, normal: 2, low: 
 const STATUS_RANK: Record<string, number> = { todo: 1, in_progress: 2, paused: 3, in_review: 4, done: 5 };
 
 export function TableView({
-  tasks, projects, users, onOpen,
+  tasks, projects, users, assigneesByTask, onOpen,
 }: {
   tasks: TaskRow[];
   projects: Project[];
   users: Profile[];
+  assigneesByTask?: Record<string, string[]>;
   onOpen: (id: string) => void;
 }) {
   const { t, lang } = useApp();
