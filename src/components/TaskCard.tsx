@@ -1,5 +1,6 @@
 import { StatusPill, PriorityPill, OverduePill } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
+import { AssigneeStack } from "@/components/AssigneeStack";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 import { useApp } from "@/lib/app-context";
@@ -14,10 +15,11 @@ export type TaskRow = {
 };
 
 
-export function TaskCard({ task, project, assignee, onClick }: {
+export function TaskCard({ task, project, assignee, assignees, onClick }: {
   task: TaskRow;
   project?: { name_ar: string; name_en: string; color: string } | null;
   assignee?: Profile | null;
+  assignees?: Profile[];
   onClick: () => void;
 }) {
   const { lang, t } = useApp();
@@ -86,7 +88,9 @@ export function TaskCard({ task, project, assignee, onClick }: {
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8, fontSize: 12, color: "var(--muted)", alignItems: "center", gap: 8 }}>
-          {assignee && <Avatar id={assignee.id} name={assignee.full_name} size={24} />}
+          {assignees && assignees.length > 0
+            ? <AssigneeStack users={assignees} size={24} />
+            : assignee && <Avatar id={assignee.id} name={assignee.full_name} size={24} />}
           <span style={{ color: overdue ? "#F0676A" : "var(--muted)", fontWeight: overdue ? 700 : 500 }}>
             {task.due_date ? formatDate(task.due_date, lang) : t("na")}
           </span>
