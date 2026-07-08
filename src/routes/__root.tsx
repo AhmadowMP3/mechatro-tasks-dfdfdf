@@ -8,7 +8,7 @@ import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { AppProvider, useApp } from "@/lib/app-context";
+import { AppProvider } from "@/lib/app-context";
 import { AppShell } from "@/components/layout/AppShell";
 import { CustomCursor } from "@/components/CustomCursor";
 import { QueryPersistProvider } from "@/lib/QueryPersistProvider";
