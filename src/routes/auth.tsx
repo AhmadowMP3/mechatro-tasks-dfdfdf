@@ -44,6 +44,22 @@ function AuthPage() {
       if (rpcErr) throw rpcErr;
       const loginEmail = typeof resolved === "string" ? resolved : null;
       if (!loginEmail) {
+        // Distinguish "not activated / suspended" from "wrong credentials" so the
+        // client knows to open their invite link instead of retrying passwords.
+        const { data: pendingHit } = await supabase
+          .from("profiles")
+          .select("status")
+          .or(`username.ilike.${trimmed},full_name.ilike.${trimmed}`)
+          .limit(1)
+          .maybeSingle();
+        if (pendingHit?.status === "pending") {
+          throw new Error(l
+            ? "لم يتم تفعيل هذا الحساب بعد. افتح رابط الدعوة المُرسل إليك أولًا."
+            : "This account isn't activated yet. Open the invite link you were sent first.");
+        }
+        if (pendingHit?.status === "suspended") {
+          throw new Error(l ? "الحساب موقوف. تواصل مع المدير." : "Account suspended. Contact the admin.");
+        }
         throw new Error(l ? "الاسم أو كلمة المرور غير صحيحة" : "Invalid name or password");
       }
 
