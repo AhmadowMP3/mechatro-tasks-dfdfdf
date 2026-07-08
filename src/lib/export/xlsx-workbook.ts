@@ -244,7 +244,7 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
   s2.columns = [
     { header: T("العنوان", "Title", lang), key: "title", width: 40 },
     { header: T("المشروع", "Project", lang), key: "project", width: 24 },
-    { header: T("المسؤول", "Assignee", lang), key: "assignee", width: 22 },
+    { header: T("المسؤولون", "Assignees", lang), key: "assignee", width: 34 },
     { header: T("الحالة", "Status", lang), key: "status", width: 14 },
     { header: T("الأولوية", "Priority", lang), key: "prio", width: 12 },
     { header: T("النقاط", "Points", lang), key: "points", width: 10 },
