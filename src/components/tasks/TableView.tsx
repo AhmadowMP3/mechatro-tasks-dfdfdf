@@ -109,19 +109,41 @@ export function TableView({
                 .map((uid) => users.find((u) => u.id === uid))
                 .filter(Boolean) as Profile[];
               const overdue = isOverdue(tk.due_date, tk.status);
+              const rowSelected = selectable && isSelected?.(tk.id);
               return (
                 <tr
                   key={tk.id}
-                  onClick={() => onOpen(tk.id)}
+                  onClick={(e) => {
+                    if (selectable && (e.metaKey || e.ctrlKey || e.shiftKey)) {
+                      onToggle?.(tk.id);
+                      return;
+                    }
+                    onOpen(tk.id);
+                  }}
                   style={{
                     cursor: "pointer",
-                    background: i % 2 === 0 ? "transparent" : "color-mix(in oklab, var(--surface-2) 40%, transparent)",
+                    background: rowSelected
+                      ? "color-mix(in oklab, var(--grad-blue, #189FD1) 15%, transparent)"
+                      : i % 2 === 0 ? "transparent" : "color-mix(in oklab, var(--surface-2) 40%, transparent)",
                     borderBottom: "1px solid var(--border)",
                     transition: "background .12s ease",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 === 0 ? "transparent" : "color-mix(in oklab, var(--surface-2) 40%, transparent)")}
+                  onMouseEnter={(e) => { if (!rowSelected) e.currentTarget.style.background = "var(--surface-2)"; }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = rowSelected
+                      ? "color-mix(in oklab, var(--grad-blue, #189FD1) 15%, transparent)"
+                      : i % 2 === 0 ? "transparent" : "color-mix(in oklab, var(--surface-2) 40%, transparent)";
+                  }}
                 >
+                  {selectable && (
+                    <td style={{ ...td, width: 36, padding: "12px 8px" }} onClick={(e) => e.stopPropagation()}>
+                      <BulkCheckbox
+                        checked={!!rowSelected}
+                        onChange={() => onToggle?.(tk.id)}
+                        label={lang === "ar" ? "تحديد" : "Select"}
+                      />
+                    </td>
+                  )}
                   <td style={{ ...td, fontWeight: 700, color: "var(--foreground)" }}>{tk.title}</td>
                   <td className="hide-md" style={td}>
                     {project && (
