@@ -144,6 +144,7 @@ function ProjectDetail() {
           {data.tasks.map((tk) => (
             <TaskCard key={tk.id} task={tk} project={p}
               assignee={users.find((u) => u.id === tk.assignee_id) ?? null}
+              assignees={(data.assigneesByTask[tk.id] ?? []).map((uid) => users.find((u) => u.id === uid)).filter(Boolean) as never}
               onClick={() => setSelected(tk.id)} />
           ))}
         </div>
