@@ -479,6 +479,7 @@ function TasksPage() {
                     <TaskCard task={tk}
                       project={projects.find((p) => p.id === tk.project_id) ?? null}
                       assignee={displayUsers.find((u) => u.id === tk.assignee_id) ?? null}
+                      assignees={(assigneesByTask[tk.id] ?? []).map((uid) => displayUsers.find((u) => u.id === uid)).filter(Boolean) as never}
                       onClick={() => setSelected(tk.id)} />
                   </div>
                 </div>
