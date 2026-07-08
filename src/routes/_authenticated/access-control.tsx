@@ -524,6 +524,7 @@ function InviteModal({ lang, onClose, onInvited }: {
   const [access, setAccess] = useState<"self_serve" | "preset">("self_serve");
   const [fullName, setFullName] = useState("");
   const [presetPassword, setPresetPassword] = useState("");
+  const [maxDevices, setMaxDevices] = useState<number>(1);
 
   const [showPreset, setShowPreset] = useState(false);
   const [expiry, setExpiry] = useState<"24h" | "7d" | "30d" | "never">("7d");
@@ -556,6 +557,7 @@ function InviteModal({ lang, onClose, onInvited }: {
           role,
           expires_in: expiry,
           full_name: fullName.trim() || null,
+          max_devices: Math.max(0, Math.min(20, Math.floor(maxDevices || 0))),
 
           preset_password: access === "preset" ? presetPassword.trim() : null,
         },
