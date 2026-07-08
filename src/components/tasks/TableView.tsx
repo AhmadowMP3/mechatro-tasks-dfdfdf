@@ -3,6 +3,7 @@ import { ArrowUp, ArrowDown } from "lucide-react";
 import { useApp, type Profile } from "@/lib/app-context";
 import { StatusPill, PriorityPill } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
+import { AssigneeStack } from "@/components/AssigneeStack";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 import type { TaskRow } from "@/components/TaskCard";
@@ -13,11 +14,12 @@ const PRIO_RANK: Record<string, number> = { urgent: 4, high: 3, normal: 2, low: 
 const STATUS_RANK: Record<string, number> = { todo: 1, in_progress: 2, paused: 3, in_review: 4, done: 5 };
 
 export function TableView({
-  tasks, projects, users, onOpen,
+  tasks, projects, users, assigneesByTask, onOpen,
 }: {
   tasks: TaskRow[];
   projects: Project[];
   users: Profile[];
+  assigneesByTask?: Record<string, string[]>;
   onOpen: (id: string) => void;
 }) {
   const { t, lang } = useApp();
@@ -82,6 +84,10 @@ export function TableView({
             {sorted.map((tk, i) => {
               const project = projects.find((p) => p.id === tk.project_id);
               const assignee = users.find((u) => u.id === tk.assignee_id);
+              const taskAssigneeIds = assigneesByTask?.[tk.id] ?? [];
+              const taskAssignees = taskAssigneeIds
+                .map((uid) => users.find((u) => u.id === uid))
+                .filter(Boolean) as Profile[];
               const overdue = isOverdue(tk.due_date, tk.status);
               return (
                 <tr
@@ -106,7 +112,14 @@ export function TableView({
                     )}
                   </td>
                   <td style={td}>
-                    {assignee ? (
+                    {taskAssignees.length > 1 ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                        <AssigneeStack users={taskAssignees} size={24} max={3} />
+                        <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                          {taskAssignees.length} {/* count hint */}
+                        </span>
+                      </span>
+                    ) : assignee ? (
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                         <Avatar id={assignee.id} name={assignee.full_name} size={24} />
                         <span style={{ fontSize: 13 }}>{assignee.full_name}</span>

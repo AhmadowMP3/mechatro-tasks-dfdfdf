@@ -49,7 +49,16 @@ function ProjectDetail() {
         supabase.from("projects").select("*").eq("id", id).maybeSingle(),
         supabase.from("tasks").select("*").eq("project_id", id).order("created_at", { ascending: false }),
       ]);
-      return { project: pr.data, tasks: tk.data ?? [] };
+      const taskIds = (tk.data ?? []).map((t) => t.id);
+      let assigneesByTask: Record<string, string[]> = {};
+      if (taskIds.length > 0) {
+        const { data: ta } = await supabase
+          .from("task_assignees").select("task_id,user_id,assigned_at")
+          .in("task_id", taskIds)
+          .order("assigned_at", { ascending: true });
+        for (const row of ta ?? []) (assigneesByTask[row.task_id] ||= []).push(row.user_id);
+      }
+      return { project: pr.data, tasks: tk.data ?? [], assigneesByTask };
     },
   });
 
@@ -135,6 +144,7 @@ function ProjectDetail() {
           {data.tasks.map((tk) => (
             <TaskCard key={tk.id} task={tk} project={p}
               assignee={users.find((u) => u.id === tk.assignee_id) ?? null}
+              assignees={(data.assigneesByTask[tk.id] ?? []).map((uid) => users.find((u) => u.id === uid)).filter(Boolean) as never}
               onClick={() => setSelected(tk.id)} />
           ))}
         </div>

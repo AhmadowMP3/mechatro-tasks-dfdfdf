@@ -103,28 +103,50 @@ function TasksPage() {
   const { data, refetch } = useQuery({
     queryKey: ["tasks-list", memberScope],
     queryFn: async () => {
+      // Members: include tasks where they're primary OR co-assignee via task_assignees.
+      let scopedIds: string[] | null = null;
+      if (memberScope) {
+        const { data: ta } = await supabase.from("task_assignees").select("task_id").eq("user_id", memberScope);
+        scopedIds = Array.from(new Set((ta ?? []).map((r) => r.task_id)));
+      }
       const tasksQ = supabase.from("tasks").select("*").order("created_at", { ascending: false });
-      if (memberScope) tasksQ.eq("assignee_id", memberScope);
-      const [tasks, projects, files] = await Promise.all([
+      if (memberScope) {
+        // Union of primary assignee and co-assignee task ids.
+        const orClauses = [`assignee_id.eq.${memberScope}`];
+        if (scopedIds && scopedIds.length > 0) {
+          orClauses.push(`id.in.(${scopedIds.join(",")})`);
+        }
+        tasksQ.or(orClauses.join(","));
+      }
+      const [tasks, projects, files, allAssignees] = await Promise.all([
         tasksQ,
         supabase.from("projects").select("id,name_ar,name_en,color"),
         supabase.from("task_files").select("task_id"),
+        supabase.from("task_assignees").select("task_id,user_id,assigned_at").order("assigned_at", { ascending: true }),
       ]);
       const fileCounts: Record<string, number> = {};
       for (const row of files.data ?? []) fileCounts[row.task_id] = (fileCounts[row.task_id] ?? 0) + 1;
-      return { tasks: tasks.data ?? [], projects: projects.data ?? [], fileCounts };
+      const assigneesByTask: Record<string, string[]> = {};
+      for (const row of allAssignees.data ?? []) {
+        (assigneesByTask[row.task_id] ||= []).push(row.user_id);
+      }
+      return { tasks: tasks.data ?? [], projects: projects.data ?? [], fileCounts, assigneesByTask };
     },
   });
 
   const projects = data?.projects ?? [];
   const fileCounts = data?.fileCounts ?? {};
+  const assigneesByTask = data?.assigneesByTask ?? {};
 
   const filtered = useMemo(() => {
     const { since, until } = resolveDateRange(f.datePreset, f.dateFrom, f.dateTo);
     const priorityRank: Record<string, number> = { urgent: 4, high: 3, normal: 2, low: 1 };
     let out = (data?.tasks ?? []).filter((tk) => {
       if (f.projects.length && !f.projects.includes(tk.project_id ?? "")) return false;
-      if (f.assignees.length && !f.assignees.includes(tk.assignee_id ?? "")) return false;
+      if (f.assignees.length) {
+        const taskAssignees = assigneesByTask[tk.id] ?? (tk.assignee_id ? [tk.assignee_id] : []);
+        if (!taskAssignees.some((a) => f.assignees.includes(a))) return false;
+      }
       if (f.statuses.length && !f.statuses.includes(tk.status)) return false;
       if (f.priorities.length && !f.priorities.includes(tk.priority)) return false;
       if (f.overdue && !isOverdue(tk.due_date, tk.status)) return false;
@@ -457,6 +479,7 @@ function TasksPage() {
                     <TaskCard task={tk}
                       project={projects.find((p) => p.id === tk.project_id) ?? null}
                       assignee={displayUsers.find((u) => u.id === tk.assignee_id) ?? null}
+                      assignees={(assigneesByTask[tk.id] ?? []).map((uid) => displayUsers.find((u) => u.id === uid)).filter(Boolean) as never}
                       onClick={() => setSelected(tk.id)} />
                   </div>
                 </div>
@@ -464,9 +487,9 @@ function TasksPage() {
             })}
           </div>
         ) : view === "kanban" ? (
-          <KanbanView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} onChanged={refetch} />
+          <KanbanView tasks={filtered} projects={projects} users={displayUsers} assigneesByTask={assigneesByTask} onOpen={setSelected} onChanged={refetch} />
         ) : (
-          <TableView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} />
+          <TableView tasks={filtered} projects={projects} users={displayUsers} assigneesByTask={assigneesByTask} onOpen={setSelected} />
         );
       })()}
 

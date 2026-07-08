@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { Avatar } from "@/components/Avatar";
+import { AssigneeStack } from "@/components/AssigneeStack";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 
 import type { TaskRow } from "@/components/TaskCard";
@@ -13,11 +14,12 @@ const COLUMNS = ["todo", "in_progress", "paused", "in_review", "done"] as const;
 type ColStatus = (typeof COLUMNS)[number];
 
 export function KanbanView({
-  tasks, projects, users, onOpen, onChanged,
+  tasks, projects, users, assigneesByTask, onOpen, onChanged,
 }: {
   tasks: TaskRow[];
   projects: Project[];
   users: Profile[];
+  assigneesByTask?: Record<string, string[]>;
   onOpen: (id: string) => void;
   onChanged: () => void;
 }) {
@@ -121,7 +123,11 @@ export function KanbanView({
               const project = projects.find((p) => p.id === tk.project_id);
               const assignee = users.find((u) => u.id === tk.assignee_id);
               const overdue = isOverdue(tk.due_date, tk.status);
-              const dragThis = isAdmin || tk.assignee_id === user?.id;
+              const taskAssigneeIds = assigneesByTask?.[tk.id] ?? [];
+              const taskAssignees = taskAssigneeIds
+                .map((uid) => users.find((u) => u.id === uid))
+                .filter(Boolean) as Profile[];
+              const dragThis = isAdmin || tk.assignee_id === user?.id || taskAssigneeIds.includes(user?.id ?? "");
               return (
                 <div
                   key={tk.id}
@@ -153,7 +159,9 @@ export function KanbanView({
                       <PriorityDot p={tk.priority} />
                       <span>{tk.due_date ? formatDate(tk.due_date, lang) : "—"}</span>
                     </div>
-                    {assignee && <Avatar id={assignee.id} name={assignee.full_name} size={22} />}
+                    {taskAssignees.length > 1
+                      ? <AssigneeStack users={taskAssignees} size={22} max={3} />
+                      : assignee && <Avatar id={assignee.id} name={assignee.full_name} size={22} />}
                   </div>
                 </div>
               );

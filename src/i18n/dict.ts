@@ -86,6 +86,7 @@ export const dict = {
   title: { ar: "العنوان", en: "Title" },
   description: { ar: "الوصف", en: "Description" },
   assignee: { ar: "المكلَّف", en: "Assignee" },
+  assignees: { ar: "المكلَّفون", en: "Assignees" },
   priority: { ar: "الأولوية", en: "Priority" },
   status: { ar: "الحالة", en: "Status" },
   startWork: { ar: "بدء العمل", en: "Start work" },

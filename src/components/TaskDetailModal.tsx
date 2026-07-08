@@ -5,12 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
 import { StatusPill, PriorityPill, OverduePill } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
+import { AssigneeStack } from "@/components/AssigneeStack";
 import { formatDate, formatMinutes, isOverdue, relativeTime, toLocalDigits } from "@/lib/format";
 import { driveFileType, isDriveUrl, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { notify } from "@/lib/activity";
 import { toast } from "sonner";
 import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
+import { AssigneeMultiSelect } from "@/components/ui/AssigneeMultiSelect";
+import { saveTaskAssignees } from "@/lib/task-assignees";
 
 type Task = {
   id: string; project_id: string; title: string; description: string | null;
@@ -38,6 +41,8 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
   const [linkUrl, setLinkUrl] = useState("");
   const [savingLink, setSavingLink] = useState(false);
   const [dirty, setDirty] = useState<Partial<Task>>({});
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+  const [assigneeIdsBase, setAssigneeIdsBase] = useState<string[]>([]);
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
   useEffect(() => { load(); }, [taskId]);
@@ -55,15 +60,24 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     setFiles(fl ?? []);
     const { data: ws } = await supabase.from("work_sessions").select("*").eq("task_id", taskId).order("started_at");
     setSessions(ws ?? []);
+    const { data: ta } = await supabase.from("task_assignees").select("user_id,assigned_at").eq("task_id", taskId).order("assigned_at", { ascending: true });
+    const ids = (ta ?? []).map((r) => r.user_id);
+    // Fall back to primary assignee if the join table is empty (legacy tasks that haven't been re-saved).
+    const finalIds = ids.length > 0 ? ids : (tk.assignee_id ? [tk.assignee_id] : []);
+    setAssigneeIds(finalIds);
+    setAssigneeIdsBase(finalIds);
   };
 
   if (!task) return null;
 
   const merged: Task = { ...task, ...dirty };
   const projectName = project ? (lang === "ar" ? project.name_ar : project.name_en) : "";
+  const assignedUsers: Profile[] = assigneeIds
+    .map((id) => users.find((u) => u.id === id))
+    .filter(Boolean) as Profile[];
   const assignee = users.find((u) => u.id === merged.assignee_id) ?? null;
   const canEditAll = can("manage_tasks");
-  const canEditOwn = user && merged.assignee_id === user.id && can("edit_own_task");
+  const canEditOwn = user && (merged.assignee_id === user.id || assigneeIds.includes(user.id)) && can("edit_own_task");
   const canEdit = canEditAll || canEditOwn;
   const readOnlyForMember = !canEditAll && canEditOwn;
 
@@ -89,30 +103,51 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
       : true;
   const editValid = titleOk && dirtyFieldsValid && pointsOk;
 
+  const assigneesDirty = canEditAll && (
+    assigneeIds.length !== assigneeIdsBase.length ||
+    assigneeIds.some((id, i) => id !== assigneeIdsBase[i])
+  );
+
   const saveChanges = async () => {
-    if (Object.keys(dirty).length === 0) return;
+    if (Object.keys(dirty).length === 0 && !assigneesDirty) return;
     if (!editValid) { toast.error(lang === "ar" ? "يرجى ملء جميع الحقول" : "Please fill in all fields"); return; }
-    const patch: Record<string, unknown> = { ...dirty };
-    const approvingNow = dirty.status === "done" && task.status !== "done";
-    if (approvingNow) patch.completed_at = new Date().toISOString();
-    if (dirty.status && dirty.status !== "done") patch.completed_at = null;
-    const { error } = await supabase.from("tasks").update(patch as never).eq("id", taskId);
-    if (error) { toast.error(error.message); return; }
+
+    if (Object.keys(dirty).length > 0) {
+      const patch: Record<string, unknown> = { ...dirty };
+      const approvingNow = dirty.status === "done" && task.status !== "done";
+      if (approvingNow) patch.completed_at = new Date().toISOString();
+      if (dirty.status && dirty.status !== "done") patch.completed_at = null;
+      // Never let a manual patch overwrite the primary assignee — the join-table
+      // save below owns that column.
+      delete patch.assignee_id;
+      if (Object.keys(patch).length > 0) {
+        const { error } = await supabase.from("tasks").update(patch as never).eq("id", taskId);
+        if (error) { toast.error(error.message); return; }
+      }
+
+      if (approvingNow && (merged.points ?? 0) > 0) {
+        try {
+          confetti({ particleCount: 120, spread: 75, origin: { y: 0.6 }, colors: ["#FFD700", "#42C2EE", "#3ECF8E", "#F0676A"] });
+          setTimeout(() => confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0 } }), 150);
+          setTimeout(() => confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1 } }), 300);
+        } catch { /* noop */ }
+        toast.success(`⭐ +${merged.points} ${t("points")}`);
+      }
+    }
+
+    if (assigneesDirty) {
+      const res = await saveTaskAssignees(taskId, assigneeIds, { assignedBy: user?.id ?? null });
+      if (res.error) { toast.error(res.error.message); return; }
+      // Notify newly added assignees.
+      const added = assigneeIds.filter((id) => !assigneeIdsBase.includes(id));
+      for (const uid of added) {
+        if (uid !== user?.id) {
+          await notify(uid, "task_assigned", `تم تكليفك بمهمة: ${task.title}`, `Assigned to task: ${task.title}`, undefined, taskId);
+        }
+      }
+    }
+
     toast.success(t("saved"));
-
-    if (approvingNow && (merged.points ?? 0) > 0) {
-      // Celebrate! Fire confetti burst.
-      try {
-        confetti({ particleCount: 120, spread: 75, origin: { y: 0.6 }, colors: ["#FFD700", "#42C2EE", "#3ECF8E", "#F0676A"] });
-        setTimeout(() => confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0 } }), 150);
-        setTimeout(() => confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1 } }), 300);
-      } catch { /* noop */ }
-      toast.success(`⭐ +${merged.points} ${t("points")}`);
-    }
-
-    if (dirty.assignee_id && dirty.assignee_id !== task.assignee_id) {
-      await notify(dirty.assignee_id as string, "task_assigned", `تم تكليفك بمهمة: ${task.title}`, `Assigned to task: ${task.title}`, undefined, taskId);
-    }
     setDirty({});
     onChanged();
     load();
@@ -257,14 +292,21 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
 
         {/* Fields grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBottom: 16 }}>
-          <Field label={t("assignee")}>
+          <Field label={t("assignees")}>
             {canEditAll ? (
-              <ThemedSelect
-                value={merged.assignee_id ?? ""}
-                onChange={(v) => setField("assignee_id", v || null)}
+              <AssigneeMultiSelect
+                users={users.filter((u) => u.active)}
+                value={assigneeIds}
+                onChange={setAssigneeIds}
                 placeholder="—"
-                options={users.filter((u) => u.active).map((u) => ({ value: u.id, label: u.full_name }))}
               />
+            ) : assignedUsers.length > 0 ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <AssigneeStack users={assignedUsers} size={28} max={4} />
+                <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                  {assignedUsers.map((u) => u.full_name).join(lang === "ar" ? "، " : ", ")}
+                </span>
+              </div>
             ) : assignee ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Avatar id={assignee.id} name={assignee.full_name} size={28} /><span>{assignee.full_name}</span></div>
             ) : "—"}
@@ -343,7 +385,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
         </div>
 
         {/* Save button */}
-        {canEdit && Object.keys(dirty).length > 0 && (
+        {canEdit && (Object.keys(dirty).length > 0 || assigneesDirty) && (
           <button
             onClick={saveChanges}
             disabled={!editValid}
