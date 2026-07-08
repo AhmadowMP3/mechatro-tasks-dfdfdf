@@ -138,36 +138,39 @@ function FinanceDashboard() {
   return (
     <div style={{ display: "grid", gap: 20 }}>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <h1 style={{ margin: 0 }}>{lang === "ar" ? greetingAr : greetingEn}</h1>
           <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 15 }}>{today}</div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("currency")}:</span>
-          <div style={{ display: "inline-flex", background: "var(--surface-2)", borderRadius: 12, padding: 4, border: "1px solid var(--border)" }}>
-            {(["SYP", "USD"] as Currency[]).map((c) => (
-              <button
-                key={c}
-                onClick={() => setDisplayCurrency(c)}
-                className="brand-btn-sm"
-                style={{
-                  background: displayCurrency === c ? "var(--grad-blue)" : "transparent",
-                  color: displayCurrency === c ? "#fff" : "var(--foreground)",
-                  border: "none",
-                  minWidth: 68,
-                }}
-              >
-                {c === "SYP" ? t("syp") : t("usd")}
-              </button>
-            ))}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", rowGap: 8 }}>
+          <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("currency")}:</span>
+            <div style={{ display: "inline-flex", background: "var(--surface-2)", borderRadius: 12, padding: 4, border: "1px solid var(--border)" }}>
+              {(["SYP", "USD"] as Currency[]).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setDisplayCurrency(c)}
+                  className="brand-btn-sm"
+                  style={{
+                    background: displayCurrency === c ? "var(--grad-blue)" : "transparent",
+                    color: displayCurrency === c ? "#fff" : "var(--foreground)",
+                    border: "none",
+                    minWidth: 68,
+                  }}
+                >
+                  {c === "SYP" ? t("syp") : t("usd")}
+                </button>
+              ))}
+            </div>
           </div>
           {latestFx && (
-            <span style={{ fontSize: 12, color: "var(--muted)", marginInlineStart: 8 }}>
+            <span style={{ fontSize: 12, color: "var(--muted)", flexBasis: "100%" }}>
               1 USD = {Number(latestFx.syp_per_usd).toLocaleString()} SYP
             </span>
           )}
         </div>
       </div>
+
 
       {/* Quick actions — priorities for master admin */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
@@ -195,7 +198,7 @@ function FinanceDashboard() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         <KpiCard icon={TrendingUp} label={t("totalIncome") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdIncome, displayCurrency, lang)} tone="green" />
         <KpiCard icon={TrendingDown} label={t("totalExpenses") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdExpenses, displayCurrency, lang)} tone="red" />
         <KpiCard icon={DollarSign} label={t("netProfit") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdNet, displayCurrency, lang)} tone={kpi.mtdNet >= 0 ? "green" : "red"} />
@@ -207,17 +210,20 @@ function FinanceDashboard() {
       {/* Monthly Chart */}
       <section className="brand-card" style={{ padding: 20 }}>
         <h3 style={{ margin: "0 0 16px", fontSize: 16 }}>{t("incomeVsExpenses")} · 12 {lang === "ar" ? "شهر" : "months"}</h3>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${monthlySeries.length}, 1fr)`, gap: 6, alignItems: "end", height: 180 }}>
-          {monthlySeries.map((m) => (
-            <div key={m.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-              <div style={{ display: "flex", gap: 2, alignItems: "end", height: 140, width: "100%", justifyContent: "center" }}>
-                <div title={`Income: ${formatMoney(m.income, displayCurrency, lang)}`} style={{ width: 10, background: "var(--grad-green, linear-gradient(135deg,#50C878,#3d9c5e))", height: `${(m.income / maxBar) * 100}%`, borderRadius: "3px 3px 0 0", minHeight: m.income > 0 ? 2 : 0 }} />
-                <div title={`Expenses: ${formatMoney(m.expenses, displayCurrency, lang)}`} style={{ width: 10, background: "linear-gradient(135deg,#F0676A,#c94446)", height: `${(m.expenses / maxBar) * 100}%`, borderRadius: "3px 3px 0 0", minHeight: m.expenses > 0 ? 2 : 0 }} />
+        <div style={{ overflowX: "auto", margin: "0 -4px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${monthlySeries.length}, 1fr)`, gap: 6, alignItems: "end", height: 180, minWidth: 480, padding: "0 4px" }}>
+            {monthlySeries.map((m) => (
+              <div key={m.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <div style={{ display: "flex", gap: 2, alignItems: "end", height: 140, width: "100%", justifyContent: "center" }}>
+                  <div title={`Income: ${formatMoney(m.income, displayCurrency, lang)}`} style={{ width: 10, background: "var(--grad-green, linear-gradient(135deg,#50C878,#3d9c5e))", height: `${(m.income / maxBar) * 100}%`, borderRadius: "3px 3px 0 0", minHeight: m.income > 0 ? 2 : 0 }} />
+                  <div title={`Expenses: ${formatMoney(m.expenses, displayCurrency, lang)}`} style={{ width: 10, background: "linear-gradient(135deg,#F0676A,#c94446)", height: `${(m.expenses / maxBar) * 100}%`, borderRadius: "3px 3px 0 0", minHeight: m.expenses > 0 ? 2 : 0 }} />
+                </div>
+                <span style={{ fontSize: 10, color: "var(--muted)" }}>{m.label}</span>
               </div>
-              <span style={{ fontSize: 10, color: "var(--muted)" }}>{m.label}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
         <div style={{ display: "flex", gap: 14, marginTop: 12, fontSize: 12, color: "var(--muted)", justifyContent: "center" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <span style={{ width: 10, height: 10, background: "#50C878", borderRadius: 2 }} /> {t("totalIncome")}
@@ -283,14 +289,14 @@ function FinanceDashboard() {
 function KpiCard({ icon: Icon, label, value, tone }: { icon: React.ComponentType<{ size?: number; color?: string }>; label: string; value: string; tone: "green" | "red" | "blue" | "orange" }) {
   const toneColor = tone === "green" ? "#50C878" : tone === "red" ? "#F0676A" : tone === "orange" ? "#FBBF24" : "#60A5FA";
   return (
-    <div className="brand-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12, minHeight: 128 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ width: 40, height: 40, borderRadius: 12, background: toneColor + "22", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+    <div className="brand-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        <span style={{ width: 40, height: 40, borderRadius: 12, background: toneColor + "22", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <Icon size={20} color={toneColor} />
         </span>
-        <span className="kpi-label" style={{ flex: 1 }}>{label}</span>
+        <span className="kpi-label" style={{ flex: 1, minWidth: 0 }}>{label}</span>
       </div>
-      <div className="kpi-value money" style={{ color: toneColor }}>{value}</div>
+      <div className="kpi-value money" style={{ color: toneColor, minWidth: 0 }}>{value}</div>
     </div>
   );
 }

@@ -169,6 +169,30 @@
 
 /* Reduce visual density on mobile — even more air */
 @media (max-width: 640px) {
-  .finance-root { font-size: 16.5px; }
+  .finance-root { font-size: 16.5px; padding: 14px !important; }
   .finance-root table tbody td { padding: 14px 12px !important; }
+  .finance-root h1 { font-size: 22px !important; }
+  .finance-root h2 { font-size: 19px !important; }
+  .finance-root .kpi-value {
+    font-size: 22px !important;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .finance-root .brand-card { padding: 16px !important; }
+  .finance-root .quick-action {
+    padding: 14px 16px;
+    min-height: 60px;
+    font-size: 15px;
+  }
+  .finance-root .quick-action .qa-icon { width: 40px; height: 40px; }
+  .finance-tabs { scrollbar-width: none; }
+  .finance-tabs::-webkit-scrollbar { display: none; }
+  .finance-tabs a {
+    min-height: 40px;
+    font-size: 13.5px !important;
+    padding: 8px 14px !important;
+  }
 }
+.finance-tabs::-webkit-scrollbar { display: none; }
+
