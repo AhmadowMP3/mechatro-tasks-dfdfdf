@@ -70,10 +70,24 @@ export async function loadTeamReportData(range: TeamReportRange, generatedByName
   const sessions = sessR.data ?? [];
   const projects = projR.data ?? [];
 
+  // Load co-assignees for the tasks in scope.
+  const taskIds = tasks.map((t) => t.id);
+  const assigneesByTask: Record<string, string[]> = {};
+  if (taskIds.length) {
+    const chunkSize = 500;
+    for (let i = 0; i < taskIds.length; i += chunkSize) {
+      const slice = taskIds.slice(i, i + chunkSize);
+      const { data: ta } = await supabase.from("task_assignees").select("task_id,user_id").in("task_id", slice);
+      for (const row of ta ?? []) (assigneesByTask[row.task_id] ||= []).push(row.user_id);
+    }
+  }
+  const memberOnTask = (taskId: string, primaryId: string | null, memberId: string) =>
+    primaryId === memberId || (assigneesByTask[taskId] ?? []).includes(memberId);
+
   const now = new Date();
 
   const members: TeamMemberSlice[] = profiles.map((p) => {
-    const mine = tasks.filter((tk) => tk.assignee_id === p.id);
+    const mine = tasks.filter((tk) => memberOnTask(tk.id, tk.assignee_id, p.id));
     const done = mine.filter((tk) => tk.status === "done");
     const overdue = mine.filter((tk) => tk.status !== "done" && tk.due_date && new Date(tk.due_date) < now).length;
     const onTime = done.filter((tk) => tk.due_date && tk.completed_at && new Date(tk.completed_at) <= new Date(tk.due_date + "T23:59:59")).length;

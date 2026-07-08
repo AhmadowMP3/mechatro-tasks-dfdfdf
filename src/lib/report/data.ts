@@ -56,8 +56,12 @@ export async function loadMemberReportData(memberId: string, r: ReportRange): Pr
     });
   };
 
-  // Tasks assigned to member (all, then filter)
-  const tasksQ = supabase.from("tasks").select("id,title,status,priority,project_id,start_date,due_date,completed_at,created_at,progress").eq("assignee_id", memberId).order("created_at", { ascending: false });
+  // Tasks assigned to member: primary assignee OR co-assignee via task_assignees.
+  const coAssignedR = await supabase.from("task_assignees").select("task_id").eq("user_id", memberId);
+  const coIds = Array.from(new Set((coAssignedR.data ?? []).map((r) => r.task_id).filter(Boolean))) as string[];
+  const orClauses = [`assignee_id.eq.${memberId}`];
+  if (coIds.length) orClauses.push(`id.in.(${coIds.join(",")})`);
+  const tasksQ = supabase.from("tasks").select("id,title,status,priority,project_id,start_date,due_date,completed_at,created_at,progress").or(orClauses.join(",")).order("created_at", { ascending: false });
   const sessionsQ = supabase.from("work_sessions").select("id,task_id,started_at,ended_at,duration_minutes").eq("user_id", memberId).order("started_at", { ascending: false });
   const commentsQ = supabase.from("task_comments").select("id,task_id,body,created_at").eq("author_id", memberId).order("created_at", { ascending: false });
   const filesQ = supabase.from("task_files").select("id,task_id,file_name,drive_url,file_type,created_at").eq("added_by", memberId).order("created_at", { ascending: false });

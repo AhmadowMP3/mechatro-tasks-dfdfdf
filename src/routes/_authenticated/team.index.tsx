@@ -47,16 +47,22 @@ function TeamPage() {
   const { data: aggregates } = useQuery({
     queryKey: ["team-agg"],
     queryFn: async () => {
-      const [tasks, sessions] = await Promise.all([
-        supabase.from("tasks").select("assignee_id,status,due_date,completed_at"),
+      const [tasks, sessions, ta] = await Promise.all([
+        supabase.from("tasks").select("id,assignee_id,status,due_date,completed_at"),
         supabase.from("work_sessions").select("user_id,duration_minutes"),
+        supabase.from("task_assignees").select("task_id,user_id"),
       ]);
-      return { tasks: tasks.data ?? [], sessions: sessions.data ?? [] };
+      const coByUser: Record<string, Set<string>> = {};
+      for (const row of ta.data ?? []) {
+        (coByUser[row.user_id] ||= new Set()).add(row.task_id);
+      }
+      return { tasks: tasks.data ?? [], sessions: sessions.data ?? [], coByUser };
     },
   });
 
   const statsFor = (uid: string) => {
-    const ts = (aggregates?.tasks ?? []).filter((x) => x.assignee_id === uid);
+    const co = aggregates?.coByUser[uid];
+    const ts = (aggregates?.tasks ?? []).filter((x) => x.assignee_id === uid || (co?.has(x.id) ?? false));
     const open = ts.filter((x) => x.status !== "done").length;
     const done = ts.filter((x) => x.status === "done").length;
     const total = ts.length;

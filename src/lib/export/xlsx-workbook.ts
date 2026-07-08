@@ -150,6 +150,28 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
   const projById: Record<string, Project> = Object.fromEntries(projects.map((p) => [p.id, p]));
   const memberById: Record<string, Profile> = Object.fromEntries(profiles.map((p) => [p.id, p]));
 
+  // Load all co-assignees for the tasks in scope.
+  const taskIds = tasks.map((t) => t.id);
+  const assigneesByTask: Record<string, string[]> = {};
+  if (taskIds.length) {
+    // Chunk to avoid URL-length limits on very large task sets.
+    const chunkSize = 500;
+    for (let i = 0; i < taskIds.length; i += chunkSize) {
+      const slice = taskIds.slice(i, i + chunkSize);
+      const { data: ta } = await supabase.from("task_assignees").select("task_id,user_id,assigned_at").in("task_id", slice).order("assigned_at", { ascending: true });
+      for (const row of ta ?? []) (assigneesByTask[row.task_id] ||= []).push(row.user_id);
+    }
+  }
+  const allAssignees = (t: Task): string[] => {
+    const ids = [...(assigneesByTask[t.id] ?? [])];
+    if (t.assignee_id && !ids.includes(t.assignee_id)) ids.unshift(t.assignee_id);
+    return ids;
+  };
+  const joinNames = (ids: string[]): string => {
+    const names = ids.map((id) => memberById[id]?.full_name).filter(Boolean) as string[];
+    return names.length ? names.join(lang === "ar" ? "، " : ", ") : "—";
+  };
+
   const wb = new ExcelJS.Workbook();
   wb.creator = "Mechatro Tasks";
   wb.created = new Date();
@@ -222,7 +244,7 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
   s2.columns = [
     { header: T("العنوان", "Title", lang), key: "title", width: 40 },
     { header: T("المشروع", "Project", lang), key: "project", width: 24 },
-    { header: T("المسؤول", "Assignee", lang), key: "assignee", width: 22 },
+    { header: T("المسؤولون", "Assignees", lang), key: "assignee", width: 34 },
     { header: T("الحالة", "Status", lang), key: "status", width: 14 },
     { header: T("الأولوية", "Priority", lang), key: "prio", width: 12 },
     { header: T("النقاط", "Points", lang), key: "points", width: 10 },
@@ -237,7 +259,7 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
     const row = s2.addRow([
       t.title,
       projectName(projById[t.project_id ?? ""], lang),
-      t.assignee_id ? memberById[t.assignee_id]?.full_name ?? "—" : "—",
+      joinNames(allAssignees(t)),
       t.status,
       t.priority,
       t.points_awarded_amount ?? t.points ?? 0,
@@ -306,7 +328,7 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
     addBrandedHeader(sm, `${m.full_name} · ${m.job_title ?? m.role}`, period, generatedBy, lang, 8);
 
     // Row 5-6: KPI banner strip
-    const mine = tasks.filter((t) => t.assignee_id === m.id);
+    const mine = tasks.filter((t) => allAssignees(t).includes(m.id));
     const mineDone = mine.filter((t) => t.status === "done").length;
     const overdueCount = mine.filter((t) => t.status !== "done" && t.due_date && new Date(t.due_date) < now).length;
     sm.spliceRows(5, 0, [], []);

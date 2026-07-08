@@ -288,8 +288,18 @@ function TasksPage() {
         { key: "project", header: t("filterProject"), width: 26, get: (r) => {
           const p = projects.find((x) => x.id === r.project_id); return p ? (lang === "ar" ? p.name_ar : p.name_en) : "";
         }},
-        { key: "assignee", header: t("filterAssignee"), width: 24, get: (r) => {
-          const u = peopleForFilters.find((x) => x.id === r.assignee_id); return u?.full_name ?? "";
+        { key: "assignee", header: t("filterAssignee"), width: 34, get: (r) => {
+          const ids = assigneesByTask[r.id] ?? (r.assignee_id ? [r.assignee_id] : []);
+          const dedup = Array.from(new Set(ids));
+          const names = dedup.map((id) => peopleForFilters.find((x) => x.id === id)?.full_name).filter(Boolean) as string[];
+          if (names.length === 0 && r.assignee_id) {
+            const u = peopleForFilters.find((x) => x.id === r.assignee_id); return u?.full_name ?? "";
+          }
+          return names.join(lang === "ar" ? "، " : ", ");
+        }},
+        { key: "assignees_count", header: lang === "ar" ? "عدد المسؤولين" : "Assignees", width: 12, kind: "number", get: (r) => {
+          const ids = assigneesByTask[r.id] ?? (r.assignee_id ? [r.assignee_id] : []);
+          return Array.from(new Set(ids)).length;
         }},
         { key: "status", header: t("filterStatus"), width: 16, kind: "status", get: (r) => r.status },
         { key: "priority", header: t("filterPriority"), width: 14, kind: "priority", get: (r) => r.priority },
