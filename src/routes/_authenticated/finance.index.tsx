@@ -138,36 +138,39 @@ function FinanceDashboard() {
   return (
     <div style={{ display: "grid", gap: 20 }}>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <h1 style={{ margin: 0 }}>{lang === "ar" ? greetingAr : greetingEn}</h1>
           <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 15 }}>{today}</div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("currency")}:</span>
-          <div style={{ display: "inline-flex", background: "var(--surface-2)", borderRadius: 12, padding: 4, border: "1px solid var(--border)" }}>
-            {(["SYP", "USD"] as Currency[]).map((c) => (
-              <button
-                key={c}
-                onClick={() => setDisplayCurrency(c)}
-                className="brand-btn-sm"
-                style={{
-                  background: displayCurrency === c ? "var(--grad-blue)" : "transparent",
-                  color: displayCurrency === c ? "#fff" : "var(--foreground)",
-                  border: "none",
-                  minWidth: 68,
-                }}
-              >
-                {c === "SYP" ? t("syp") : t("usd")}
-              </button>
-            ))}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", rowGap: 8 }}>
+          <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("currency")}:</span>
+            <div style={{ display: "inline-flex", background: "var(--surface-2)", borderRadius: 12, padding: 4, border: "1px solid var(--border)" }}>
+              {(["SYP", "USD"] as Currency[]).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setDisplayCurrency(c)}
+                  className="brand-btn-sm"
+                  style={{
+                    background: displayCurrency === c ? "var(--grad-blue)" : "transparent",
+                    color: displayCurrency === c ? "#fff" : "var(--foreground)",
+                    border: "none",
+                    minWidth: 68,
+                  }}
+                >
+                  {c === "SYP" ? t("syp") : t("usd")}
+                </button>
+              ))}
+            </div>
           </div>
           {latestFx && (
-            <span style={{ fontSize: 12, color: "var(--muted)", marginInlineStart: 8 }}>
+            <span style={{ fontSize: 12, color: "var(--muted)", flexBasis: "100%" }}>
               1 USD = {Number(latestFx.syp_per_usd).toLocaleString()} SYP
             </span>
           )}
         </div>
       </div>
+
 
       {/* Quick actions — priorities for master admin */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
