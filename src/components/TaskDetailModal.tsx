@@ -385,7 +385,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
         </div>
 
         {/* Save button */}
-        {canEdit && Object.keys(dirty).length > 0 && (
+        {canEdit && (Object.keys(dirty).length > 0 || assigneesDirty) && (
           <button
             onClick={saveChanges}
             disabled={!editValid}
