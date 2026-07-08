@@ -16,6 +16,10 @@ export async function saveTaskAssignees(
   const ids = Array.from(new Set(userIds.filter(Boolean)));
   const primary = ids[0] ?? null;
 
+  // 0. Snapshot current assignees so we can notify only newly added users.
+  const before = await supabase.from("task_assignees").select("user_id").eq("task_id", taskId);
+  const previous = new Set<string>((before.data ?? []).map((r) => r.user_id));
+
   // 1. Primary on tasks row.
   const upd = await supabase.from("tasks").update({ assignee_id: primary }).eq("id", taskId);
   if (upd.error) return { error: upd.error };
@@ -45,7 +49,35 @@ export async function saveTaskAssignees(
     .upsert(rows, { onConflict: "task_id,user_id", ignoreDuplicates: true });
   if (ins.error) return { error: ins.error };
 
+  // 4. Notify newly added assignees (not the actor).
+  const actor = opts?.assignedBy ?? null;
+  const added = ids.filter((id) => !previous.has(id) && id !== actor);
+  if (added.length > 0) {
+    await notifyAssignees(taskId, added, actor);
+  }
+
   return { error: null };
+}
+
+/** Insert a "task_assigned" notification for each newly added user. */
+async function notifyAssignees(taskId: string, userIds: string[], actorId: string | null) {
+  const [taskR, actorR] = await Promise.all([
+    supabase.from("tasks").select("title").eq("id", taskId).maybeSingle(),
+    actorId ? supabase.from("profiles").select("full_name").eq("id", actorId).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const title = taskR.data?.title ?? "";
+  const actorName = (actorR.data as { full_name?: string } | null)?.full_name ?? null;
+  const bodyAr = actorName ? `${actorName} أضافك إلى: ${title}` : `تمت إضافتك إلى: ${title}`;
+  const bodyEn = actorName ? `${actorName} assigned you to: ${title}` : `You were assigned to: ${title}`;
+  const rows = userIds.map((uid) => ({
+    user_id: uid,
+    type: "task_assigned",
+    title_ar: "تم تعيينك على مهمة",
+    title_en: "You were assigned a task",
+    body: `${bodyAr} · ${bodyEn}`,
+    entity_id: taskId,
+  }));
+  await supabase.from("notifications").insert(rows);
 }
 
 /**
