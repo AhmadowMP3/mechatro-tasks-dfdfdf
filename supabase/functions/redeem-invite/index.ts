@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
   const uid = created.user.id;
 
   // handle_new_user() already inserted a profile row; upgrade role/status + username here.
-  const { error: profErr } = await admin.from("profiles").update({
+  const { data: updatedRows, error: profErr } = await admin.from("profiles").update({
     full_name,
     username,
     role: inv.role,
@@ -148,8 +148,15 @@ Deno.serve(async (req) => {
     active: true,
     invited_by: inv.created_by,
     invited_at: new Date().toISOString(),
-  }).eq("id", uid);
-  if (profErr) console.warn("profile update failed", profErr.message);
+  }).eq("id", uid).select("id, status");
+  if (profErr) {
+    console.error("profile update failed", profErr.message);
+    return json(500, { error: "profile_update_failed" });
+  }
+  if (!updatedRows || updatedRows.length === 0 || updatedRows[0].status !== "active") {
+    console.error("profile did not activate", updatedRows);
+    return json(500, { error: "profile_update_failed" });
+  }
 
   // Mark the invite consumed.
   const { error: markErr } = await admin.from("invites").update({
