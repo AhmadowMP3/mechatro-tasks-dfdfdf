@@ -87,10 +87,13 @@ Deno.serve(async (req) => {
           ? null
           : new Date(Date.now() + (hoursMap[expiresIn] ?? 168) * 3600 * 1000).toISOString();
 
+        const rawMax = Number(body.max_devices);
+        const max_devices = Number.isFinite(rawMax) && rawMax >= 0 ? Math.min(20, Math.floor(rawMax)) : 1;
+
         const t = newToken();
         const { data: row, error } = await admin.from("invites").insert({
-          token: t, role, email, full_name, expires_at, created_by: me!.id, password_hash,
-        }).select("id, token, role, email, full_name, created_by, created_at, expires_at, revoked_at, used_at, used_by").single();
+          token: t, role, email, full_name, expires_at, created_by: me!.id, password_hash, max_devices,
+        }).select("id, token, role, email, full_name, created_by, created_at, expires_at, revoked_at, used_at, used_by, max_devices").single();
         if (error) throw error;
         const invite = { ...row, has_password: !!password_hash };
         return json(200, { invite, preset_password });
@@ -99,7 +102,7 @@ Deno.serve(async (req) => {
       case "list": {
         const { data, error } = await admin
           .from("invites")
-          .select("id, token, role, email, full_name, created_by, created_at, expires_at, revoked_at, used_at, used_by, password_hash")
+          .select("id, token, role, email, full_name, created_by, created_at, expires_at, revoked_at, used_at, used_by, password_hash, max_devices")
           .order("created_at", { ascending: false })
           .limit(100);
         if (error) throw error;

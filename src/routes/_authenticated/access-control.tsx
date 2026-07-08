@@ -524,6 +524,7 @@ function InviteModal({ lang, onClose, onInvited }: {
   const [access, setAccess] = useState<"self_serve" | "preset">("self_serve");
   const [fullName, setFullName] = useState("");
   const [presetPassword, setPresetPassword] = useState("");
+  const [maxDevices, setMaxDevices] = useState<number>(1);
 
   const [showPreset, setShowPreset] = useState(false);
   const [expiry, setExpiry] = useState<"24h" | "7d" | "30d" | "never">("7d");
@@ -556,6 +557,7 @@ function InviteModal({ lang, onClose, onInvited }: {
           role,
           expires_in: expiry,
           full_name: fullName.trim() || null,
+          max_devices: Math.max(0, Math.min(20, Math.floor(maxDevices || 0))),
 
           preset_password: access === "preset" ? presetPassword.trim() : null,
         },
@@ -854,6 +856,33 @@ function InviteModal({ lang, onClose, onInvited }: {
                 ))}
               </div>
             </Field>
+
+            <Field label={l ? "عدد الأجهزة المسموحة" : "Max devices"}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                {[1, 2, 3, 5, 0].map((n) => (
+                  <button key={n} type="button" onClick={() => setMaxDevices(n)} style={{
+                    padding: "8px 14px", borderRadius: 999, cursor: "pointer", minHeight: 36,
+                    border: `1.5px solid ${maxDevices === n ? "#1D9BF0" : "var(--border)"}`,
+                    background: maxDevices === n ? "rgba(29,155,240,.12)" : "transparent",
+                    color: maxDevices === n ? "#1D9BF0" : "var(--muted)",
+                    fontWeight: 700, fontSize: 12.5,
+                  }}>
+                    {n === 0 ? (l ? "غير محدود" : "Unlimited") : n}
+                  </button>
+                ))}
+                <input
+                  type="number" min={0} max={20} value={maxDevices}
+                  onChange={(e) => setMaxDevices(Math.max(0, Math.min(20, Number(e.target.value) || 0)))}
+                  style={{ ...inputCss, width: 90, minHeight: 36, padding: "6px 10px" }}
+                />
+              </div>
+              <div style={{ fontSize: 11, color: "#7A94A9", marginTop: 4 }}>
+                {l
+                  ? "عند تسجيل الدخول من جهاز إضافي يتم تسجيل الخروج من الأقدم تلقائيًا. اختر 0 لإلغاء الحد."
+                  : "When a new device signs in beyond the limit, the oldest device is signed out automatically. Use 0 for unlimited."}
+              </div>
+            </Field>
+
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
               <button type="button" onClick={onClose} style={ghostBtn}>{l ? "إلغاء" : "Cancel"}</button>
