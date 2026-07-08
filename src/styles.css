@@ -311,19 +311,23 @@ button:hover > .icon-tile { transform: scale(1.06); }
 }
 .mtab-pill {
   position: absolute;
-  top: 6px;
+  top: 4px;
   left: 50%;
   transform: translateX(-50%) scale(0.6);
-  width: 44px;
-  height: 30px;
+  width: 46px;
+  height: 34px;
   border-radius: 12px;
-  background: color-mix(in oklab, var(--primary) 14%, transparent);
+  background: var(--grad-blue);
+  box-shadow: 0 6px 18px -6px color-mix(in oklab, #189FD1 70%, transparent);
   opacity: 0;
   transition: opacity .22s ease, transform .22s ease;
   z-index: 0;
 }
 .mtab.is-active .mtab-pill { opacity: 1; transform: translateX(-50%) scale(1); }
+.mtab.is-active { color: var(--primary) !important; }
+.mtab.is-active svg { color: #fff; stroke: #fff; position: relative; z-index: 1; }
 .mtab > * { position: relative; z-index: 1; }
+
 
 /* Global input focus polish */
 input:focus-visible, textarea:focus-visible, select:focus-visible {
