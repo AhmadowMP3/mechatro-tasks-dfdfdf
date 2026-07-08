@@ -23,7 +23,8 @@ import { toast } from "sonner";
 import type { DictKey } from "@/i18n/dict";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
-import { Trash2, CircleDot } from "lucide-react";
+import { BulkAssigneeModal } from "@/components/tasks/BulkAssigneeModal";
+import { Trash2, CircleDot, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
 
@@ -65,6 +66,7 @@ function TasksPage() {
   const { t, lang, users, directory, isAdmin, user } = useApp();
   const [selected, setSelected] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
 
   // Deep-link: open task modal from ?task=<id>
   useEffect(() => {
@@ -182,7 +184,7 @@ function TasksPage() {
   }, [isAdmin]);
 
   // Bulk selection — admins only.
-  const { isSelected, toggle, ids: selectedIds } = useBulkSelection({
+  const { isSelected, toggle, ids: selectedIds, clear: clearSelection } = useBulkSelection({
     pageId: "tasks",
     items: filtered as Array<{ id: string }>,
     deps: [filtered.length, isAdmin, lang],
@@ -201,6 +203,10 @@ function TasksPage() {
               ? `${sel.length} مهمة محددة`
               : `${sel.length} task${sel.length === 1 ? "" : "s"} selected`,
             actions: [
+              {
+                id: "assign", label: lang === "ar" ? "تعيين إلى…" : "Assign to…",
+                icon: <Users size={14} />, onRun: () => setBulkAssignOpen(true),
+              },
               {
                 id: "todo", label: lang === "ar" ? "قيد الانتظار" : "To do",
                 icon: <CircleDot size={14} />, onRun: () => runBulk({ status: "todo" }),
@@ -487,14 +493,34 @@ function TasksPage() {
             })}
           </div>
         ) : view === "kanban" ? (
-          <KanbanView tasks={filtered} projects={projects} users={displayUsers} assigneesByTask={assigneesByTask} onOpen={setSelected} onChanged={refetch} />
+          <KanbanView
+            tasks={filtered} projects={projects} users={displayUsers}
+            assigneesByTask={assigneesByTask} onOpen={setSelected} onChanged={refetch}
+            selectable={isAdmin} isSelected={isSelected} onToggle={toggle}
+          />
         ) : (
-          <TableView tasks={filtered} projects={projects} users={displayUsers} assigneesByTask={assigneesByTask} onOpen={setSelected} />
+          <TableView
+            tasks={filtered} projects={projects} users={displayUsers}
+            assigneesByTask={assigneesByTask} onOpen={setSelected}
+            selectable={isAdmin} isSelected={isSelected} onToggle={toggle}
+            onToggleAll={(ids, allSel) => {
+              if (allSel) ids.forEach((id) => { if (isSelected(id)) toggle(id); });
+              else ids.forEach((id) => { if (!isSelected(id)) toggle(id); });
+            }}
+          />
         );
       })()}
 
       {selected && <TaskDetailModal taskId={selected} onClose={closeTaskModal} onChanged={refetch} />}
       {newOpen && <NewTaskModal onClose={() => setNewOpen(false)} onCreated={() => { setNewOpen(false); refetch(); }} />}
+      {bulkAssignOpen && (
+        <BulkAssigneeModal
+          taskIds={selectedIds}
+          users={users}
+          onClose={() => setBulkAssignOpen(false)}
+          onDone={() => { clearSelection(); refetch(); }}
+        />
+      )}
     </div>
   );
 }

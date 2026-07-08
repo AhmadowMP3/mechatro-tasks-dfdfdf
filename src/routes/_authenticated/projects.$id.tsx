@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ArrowRight, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
@@ -12,6 +12,8 @@ import { formatDate, toLocalDigits } from "@/lib/format";
 import { toast } from "sonner";
 import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
+import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
+import { BulkAssigneeModal } from "@/components/tasks/BulkAssigneeModal";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({ component: ProjectDetail });
 
@@ -41,6 +43,7 @@ function ProjectDetail() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
 
   const { data, refetch } = useQuery({
     queryKey: ["project", id],
@@ -62,11 +65,36 @@ function ProjectDetail() {
     },
   });
 
+  const tasksForSelection = data?.tasks ?? [];
+  const { isSelected, toggle, ids: selectedIds, clear: clearSelection } = useBulkSelection({
+    pageId: `project:${id}`,
+    items: tasksForSelection as Array<{ id: string }>,
+    deps: [tasksForSelection.length, isAdmin, lang],
+    buildBar: isAdmin
+      ? (sel) => ({
+          count: sel.length,
+          totalLabel: lang === "ar"
+            ? `${sel.length} مهمة محددة`
+            : `${sel.length} task${sel.length === 1 ? "" : "s"} selected`,
+          actions: [
+            {
+              id: "assign",
+              label: lang === "ar" ? "تعيين إلى…" : "Assign to…",
+              icon: <Users size={14} />,
+              onRun: () => setBulkAssignOpen(true),
+            },
+          ],
+        })
+      : () => null,
+  });
+  const bulkMode = selectedIds.length > 0;
+
   if (!data?.project) return <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>…</div>;
   const p = data.project;
   const total = data.tasks.length;
   const done = data.tasks.filter((t) => t.status === "done").length;
   const progress = total ? Math.round((done / total) * 100) : 0;
+
 
   return (
     <div>
@@ -141,14 +169,52 @@ function ProjectDetail() {
         <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noTasks")}</div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 300px), 1fr))", gap: 14 }}>
-          {data.tasks.map((tk) => (
-            <TaskCard key={tk.id} task={tk} project={p}
-              assignee={users.find((u) => u.id === tk.assignee_id) ?? null}
-              assignees={(data.assigneesByTask[tk.id] ?? []).map((uid) => users.find((u) => u.id === uid)).filter(Boolean) as never}
-              onClick={() => setSelected(tk.id)} />
-          ))}
+          {data.tasks.map((tk) => {
+            const checked = isSelected(tk.id);
+            return (
+              <div
+                key={tk.id}
+                style={{
+                  position: "relative",
+                  borderRadius: 16,
+                  outline: checked ? "2px solid var(--primary, #189FD1)" : "none",
+                  outlineOffset: 2,
+                  transition: "outline .12s",
+                }}
+                onClick={(e) => { if (bulkMode && isAdmin) { e.stopPropagation(); toggle(tk.id); } }}
+              >
+                {isAdmin && (
+                  <div
+                    onClick={(e) => { e.stopPropagation(); toggle(tk.id); }}
+                    style={{
+                      position: "absolute", top: 10, insetInlineStart: 10, zIndex: 5,
+                      opacity: checked || bulkMode ? 1 : 0, transition: "opacity .12s",
+                    }}
+                  >
+                    <BulkCheckbox checked={checked} onChange={() => toggle(tk.id)} label={lang === "ar" ? "تحديد" : "Select"} />
+                  </div>
+                )}
+                <div style={{ pointerEvents: bulkMode ? "none" : "auto" }}>
+                  <TaskCard task={tk} project={p}
+                    assignee={users.find((u) => u.id === tk.assignee_id) ?? null}
+                    assignees={(data.assigneesByTask[tk.id] ?? []).map((uid) => users.find((u) => u.id === uid)).filter(Boolean) as never}
+                    onClick={() => setSelected(tk.id)} />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
+
+      {bulkAssignOpen && (
+        <BulkAssigneeModal
+          taskIds={selectedIds}
+          users={users}
+          onClose={() => setBulkAssignOpen(false)}
+          onDone={() => { clearSelection(); refetch(); }}
+        />
+      )}
+
 
       {selected && <TaskDetailModal taskId={selected} onClose={closeTaskModal} onChanged={refetch} />}
       {newOpen && <NewTaskModal defaultProjectId={id} onClose={() => setNewOpen(false)} onCreated={() => { setNewOpen(false); refetch(); }} />}

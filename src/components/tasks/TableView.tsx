@@ -4,6 +4,7 @@ import { useApp, type Profile } from "@/lib/app-context";
 import { StatusPill, PriorityPill } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
 import { AssigneeStack } from "@/components/AssigneeStack";
+import { BulkCheckbox } from "@/lib/bulk-selection";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 import type { TaskRow } from "@/components/TaskCard";
@@ -15,12 +16,17 @@ const STATUS_RANK: Record<string, number> = { todo: 1, in_progress: 2, paused: 3
 
 export function TableView({
   tasks, projects, users, assigneesByTask, onOpen,
+  selectable, isSelected, onToggle, onToggleAll,
 }: {
   tasks: TaskRow[];
   projects: Project[];
   users: Profile[];
   assigneesByTask?: Record<string, string[]>;
   onOpen: (id: string) => void;
+  selectable?: boolean;
+  isSelected?: (id: string) => boolean;
+  onToggle?: (id: string) => void;
+  onToggleAll?: (ids: string[], allSelected: boolean) => void;
 }) {
   const { t, lang } = useApp();
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "due_date", dir: "asc" });
@@ -71,6 +77,20 @@ export function TableView({
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
           <thead style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
             <tr>
+              {selectable && (
+                <th style={{ ...thStatic(lang), width: 36, padding: "12px 8px" }}>
+                  <BulkCheckbox
+                    checked={sorted.length > 0 && sorted.every((tk) => isSelected?.(tk.id))}
+                    onChange={() => {
+                      const ids = sorted.map((tk) => tk.id);
+                      const allSel = ids.length > 0 && ids.every((id) => isSelected?.(id));
+                      onToggleAll?.(ids, allSel);
+                    }}
+                    stopPropagation={false}
+                    label={lang === "ar" ? "تحديد الكل" : "Select all"}
+                  />
+                </th>
+              )}
               <H k="title" label={t("title")} />
               <th className="hide-md" style={thStatic(lang)}>{t("filterProject")}</th>
               <th style={thStatic(lang)}>{t("assignee")}</th>
@@ -89,19 +109,41 @@ export function TableView({
                 .map((uid) => users.find((u) => u.id === uid))
                 .filter(Boolean) as Profile[];
               const overdue = isOverdue(tk.due_date, tk.status);
+              const rowSelected = selectable && isSelected?.(tk.id);
               return (
                 <tr
                   key={tk.id}
-                  onClick={() => onOpen(tk.id)}
+                  onClick={(e) => {
+                    if (selectable && (e.metaKey || e.ctrlKey || e.shiftKey)) {
+                      onToggle?.(tk.id);
+                      return;
+                    }
+                    onOpen(tk.id);
+                  }}
                   style={{
                     cursor: "pointer",
-                    background: i % 2 === 0 ? "transparent" : "color-mix(in oklab, var(--surface-2) 40%, transparent)",
+                    background: rowSelected
+                      ? "color-mix(in oklab, var(--grad-blue, #189FD1) 15%, transparent)"
+                      : i % 2 === 0 ? "transparent" : "color-mix(in oklab, var(--surface-2) 40%, transparent)",
                     borderBottom: "1px solid var(--border)",
                     transition: "background .12s ease",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 === 0 ? "transparent" : "color-mix(in oklab, var(--surface-2) 40%, transparent)")}
+                  onMouseEnter={(e) => { if (!rowSelected) e.currentTarget.style.background = "var(--surface-2)"; }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = rowSelected
+                      ? "color-mix(in oklab, var(--grad-blue, #189FD1) 15%, transparent)"
+                      : i % 2 === 0 ? "transparent" : "color-mix(in oklab, var(--surface-2) 40%, transparent)";
+                  }}
                 >
+                  {selectable && (
+                    <td style={{ ...td, width: 36, padding: "12px 8px" }} onClick={(e) => e.stopPropagation()}>
+                      <BulkCheckbox
+                        checked={!!rowSelected}
+                        onChange={() => onToggle?.(tk.id)}
+                        label={lang === "ar" ? "تحديد" : "Select"}
+                      />
+                    </td>
+                  )}
                   <td style={{ ...td, fontWeight: 700, color: "var(--foreground)" }}>{tk.title}</td>
                   <td className="hide-md" style={td}>
                     {project && (

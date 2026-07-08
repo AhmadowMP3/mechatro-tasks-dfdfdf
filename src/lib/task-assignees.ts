@@ -91,3 +91,58 @@ export function useTaskAssignees(taskId: string | null | undefined) {
     },
   });
 }
+
+export type BulkAssigneeMode = "add" | "replace" | "remove";
+
+/**
+ * Update assignees across many tasks at once.
+ * - add: union current ∪ userIds
+ * - replace: overwrite current with userIds
+ * - remove: current \ userIds
+ * Returns per-task success/failure.
+ */
+export async function bulkUpdateAssignees(
+  taskIds: string[],
+  userIds: string[],
+  mode: BulkAssigneeMode,
+  opts?: { assignedBy?: string | null },
+): Promise<{ ok: string[]; failed: { taskId: string; message: string }[] }> {
+  const ok: string[] = [];
+  const failed: { taskId: string; message: string }[] = [];
+  if (taskIds.length === 0) return { ok, failed };
+
+  // Load current assignees for all target tasks in one query.
+  const current = new Map<string, string[]>();
+  const { data, error } = await supabase
+    .from("task_assignees")
+    .select("task_id,user_id,assigned_at")
+    .in("task_id", taskIds)
+    .order("assigned_at", { ascending: true });
+  if (error) {
+    return { ok, failed: taskIds.map((taskId) => ({ taskId, message: error.message })) };
+  }
+  for (const row of data ?? []) {
+    const arr = current.get(row.task_id) ?? [];
+    arr.push(row.user_id);
+    current.set(row.task_id, arr);
+  }
+
+  const clean = Array.from(new Set(userIds.filter(Boolean)));
+  const results = await Promise.allSettled(
+    taskIds.map(async (taskId) => {
+      const existing = current.get(taskId) ?? [];
+      let next: string[];
+      if (mode === "replace") next = clean;
+      else if (mode === "add") next = Array.from(new Set([...existing, ...clean]));
+      else next = existing.filter((id) => !clean.includes(id));
+      const { error } = await saveTaskAssignees(taskId, next, opts);
+      if (error) throw new Error(error.message);
+      return taskId;
+    }),
+  );
+  results.forEach((r, i) => {
+    if (r.status === "fulfilled") ok.push(taskIds[i]);
+    else failed.push({ taskId: taskIds[i], message: (r.reason as Error).message });
+  });
+  return { ok, failed };
+}
