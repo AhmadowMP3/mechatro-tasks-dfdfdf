@@ -4,6 +4,7 @@ import { useApp, type Profile } from "@/lib/app-context";
 import { StatusPill, PriorityPill } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
 import { AssigneeStack } from "@/components/AssigneeStack";
+import { BulkCheckbox } from "@/lib/bulk-selection";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 import type { TaskRow } from "@/components/TaskCard";
@@ -15,12 +16,17 @@ const STATUS_RANK: Record<string, number> = { todo: 1, in_progress: 2, paused: 3
 
 export function TableView({
   tasks, projects, users, assigneesByTask, onOpen,
+  selectable, isSelected, onToggle, onToggleAll,
 }: {
   tasks: TaskRow[];
   projects: Project[];
   users: Profile[];
   assigneesByTask?: Record<string, string[]>;
   onOpen: (id: string) => void;
+  selectable?: boolean;
+  isSelected?: (id: string) => boolean;
+  onToggle?: (id: string) => void;
+  onToggleAll?: (ids: string[], allSelected: boolean) => void;
 }) {
   const { t, lang } = useApp();
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "due_date", dir: "asc" });
