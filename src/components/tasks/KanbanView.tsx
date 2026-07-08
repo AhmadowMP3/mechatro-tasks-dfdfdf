@@ -133,19 +133,29 @@ export function KanbanView({
                 .map((uid) => users.find((u) => u.id === uid))
                 .filter(Boolean) as Profile[];
               const dragThis = isAdmin || tk.assignee_id === user?.id || taskAssigneeIds.includes(user?.id ?? "");
+              const cardSelected = selectable && isSelected?.(tk.id);
               return (
                 <div
                   key={tk.id}
-                  draggable={dragThis}
+                  draggable={dragThis && !selectable}
                   onDragStart={() => setDragId(tk.id)}
                   onDragEnd={() => { setDragId(null); setOverCol(null); }}
-                  onClick={() => onOpen(tk.id)}
+                  onClick={(e) => {
+                    if (selectable && (e.metaKey || e.ctrlKey || e.shiftKey)) {
+                      onToggle?.(tk.id);
+                      return;
+                    }
+                    onOpen(tk.id);
+                  }}
                   style={{
+                    position: "relative",
                     padding: 10,
                     borderRadius: 10,
                     background: "var(--surface-2)",
-                    border: `1px solid ${overdue ? "rgba(240,103,106,.5)" : "var(--border)"}`,
-                    cursor: dragThis ? "grab" : "pointer",
+                    border: `1px solid ${cardSelected ? "var(--grad-blue, #189FD1)" : overdue ? "rgba(240,103,106,.5)" : "var(--border)"}`,
+                    outline: cardSelected ? "2px solid var(--grad-blue, #189FD1)" : "none",
+                    outlineOffset: 1,
+                    cursor: dragThis && !selectable ? "grab" : "pointer",
                     opacity: dragId === tk.id ? 0.4 : 1,
                     borderInlineStart: project ? `3px solid transparent` : undefined,
                     backgroundImage: project
@@ -156,7 +166,19 @@ export function KanbanView({
                     transition: "transform .1s ease",
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35, marginBottom: 8, color: "var(--foreground)" }}>
+                  {selectable && (
+                    <div
+                      onClick={(e) => { e.stopPropagation(); onToggle?.(tk.id); }}
+                      style={{ position: "absolute", top: 6, insetInlineStart: 6, zIndex: 2 }}
+                    >
+                      <BulkCheckbox
+                        checked={!!cardSelected}
+                        onChange={() => onToggle?.(tk.id)}
+                        label={lang === "ar" ? "تحديد" : "Select"}
+                      />
+                    </div>
+                  )}
+                  <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35, marginBottom: 8, color: "var(--foreground)", paddingInlineStart: selectable ? 26 : 0 }}>
                     {tk.title}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
