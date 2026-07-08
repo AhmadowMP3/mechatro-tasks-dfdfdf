@@ -259,7 +259,7 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
     const row = s2.addRow([
       t.title,
       projectName(projById[t.project_id ?? ""], lang),
-      t.assignee_id ? memberById[t.assignee_id]?.full_name ?? "—" : "—",
+      joinNames(allAssignees(t)),
       t.status,
       t.priority,
       t.points_awarded_amount ?? t.points ?? 0,
