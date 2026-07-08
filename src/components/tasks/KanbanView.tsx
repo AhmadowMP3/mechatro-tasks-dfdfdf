@@ -123,7 +123,11 @@ export function KanbanView({
               const project = projects.find((p) => p.id === tk.project_id);
               const assignee = users.find((u) => u.id === tk.assignee_id);
               const overdue = isOverdue(tk.due_date, tk.status);
-              const dragThis = isAdmin || tk.assignee_id === user?.id;
+              const taskAssigneeIds = assigneesByTask?.[tk.id] ?? [];
+              const taskAssignees = taskAssigneeIds
+                .map((uid) => users.find((u) => u.id === uid))
+                .filter(Boolean) as Profile[];
+              const dragThis = isAdmin || tk.assignee_id === user?.id || taskAssigneeIds.includes(user?.id ?? "");
               return (
                 <div
                   key={tk.id}
@@ -155,7 +159,9 @@ export function KanbanView({
                       <PriorityDot p={tk.priority} />
                       <span>{tk.due_date ? formatDate(tk.due_date, lang) : "—"}</span>
                     </div>
-                    {assignee && <Avatar id={assignee.id} name={assignee.full_name} size={22} />}
+                    {taskAssignees.length > 1
+                      ? <AssigneeStack users={taskAssignees} size={22} max={3} />
+                      : assignee && <Avatar id={assignee.id} name={assignee.full_name} size={22} />}
                   </div>
                 </div>
               );
