@@ -317,6 +317,7 @@ button:hover > .icon-tile { transform: scale(1.06); }
   width: 44px;
   height: 44px;
   border-radius: 14px;
+  z-index: 2;
   transition: transform .22s ease, color .22s ease, filter .22s ease;
 }
 .mtab-icon svg {
@@ -325,7 +326,7 @@ button:hover > .icon-tile { transform: scale(1.06); }
 }
 .mtab-icon-glow {
   position: absolute;
-  top: 6px;
+  top: 7px;
   left: 50%;
   transform: translateX(-50%) scale(0.6);
   width: 42px;
@@ -333,14 +334,14 @@ button:hover > .icon-tile { transform: scale(1.06); }
   border-radius: 50%;
   background: radial-gradient(circle, color-mix(in oklab, var(--primary) 55%, transparent) 0%, transparent 70%);
   opacity: 0;
-  filter: blur(8px);
+  filter: blur(9px);
   transition: opacity .28s ease, transform .28s ease;
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
 }
 .mtab.is-active .mtab-icon-glow {
   opacity: 1;
-  transform: translateX(-50%) scale(1.2);
+  transform: translateX(-50%) scale(1.25);
 }
 .mtab.is-active .mtab-icon {
   color: var(--primary);
@@ -351,7 +352,7 @@ button:hover > .icon-tile { transform: scale(1.06); }
   fill: color-mix(in oklab, var(--primary) 18%, transparent);
   stroke-width: 2.2;
 }
-.mtab > * { position: relative; z-index: 1; }
+.mtab > span:last-of-type { position: relative; z-index: 2; }
 .mtab.is-active { color: var(--primary) !important; font-weight: 800; }
 
 
