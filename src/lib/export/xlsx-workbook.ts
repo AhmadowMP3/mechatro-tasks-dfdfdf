@@ -150,6 +150,28 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
   const projById: Record<string, Project> = Object.fromEntries(projects.map((p) => [p.id, p]));
   const memberById: Record<string, Profile> = Object.fromEntries(profiles.map((p) => [p.id, p]));
 
+  // Load all co-assignees for the tasks in scope.
+  const taskIds = tasks.map((t) => t.id);
+  const assigneesByTask: Record<string, string[]> = {};
+  if (taskIds.length) {
+    // Chunk to avoid URL-length limits on very large task sets.
+    const chunkSize = 500;
+    for (let i = 0; i < taskIds.length; i += chunkSize) {
+      const slice = taskIds.slice(i, i + chunkSize);
+      const { data: ta } = await supabase.from("task_assignees").select("task_id,user_id,assigned_at").in("task_id", slice).order("assigned_at", { ascending: true });
+      for (const row of ta ?? []) (assigneesByTask[row.task_id] ||= []).push(row.user_id);
+    }
+  }
+  const allAssignees = (t: Task): string[] => {
+    const ids = [...(assigneesByTask[t.id] ?? [])];
+    if (t.assignee_id && !ids.includes(t.assignee_id)) ids.unshift(t.assignee_id);
+    return ids;
+  };
+  const joinNames = (ids: string[]): string => {
+    const names = ids.map((id) => memberById[id]?.full_name).filter(Boolean) as string[];
+    return names.length ? names.join(lang === "ar" ? "، " : ", ") : "—";
+  };
+
   const wb = new ExcelJS.Workbook();
   wb.creator = "Mechatro Tasks";
   wb.created = new Date();
