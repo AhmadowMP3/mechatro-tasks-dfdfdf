@@ -97,6 +97,7 @@ function RootComponent() {
     <QueryPersistProvider client={queryClient}>
       <AppProvider>
         <ConfirmProvider>
+          <DeviceEnforcer />
           <Outlet />
           <CustomCursor />
           <Toaster position="top-center" richColors />
@@ -104,4 +105,51 @@ function RootComponent() {
       </AppProvider>
     </QueryPersistProvider>
   );
+}
+
+function DeviceEnforcer() {
+  const router = useRouter();
+  useEffect(() => {
+    let stopped = false;
+    let ctrl: { stop: () => void } | null = null;
+
+    async function attach(userId: string) {
+      const { startDeviceEnforcement } = await import("@/lib/device");
+      if (stopped) return;
+      ctrl = startDeviceEnforcement(userId, async () => {
+        try {
+          const { toast } = await import("sonner");
+          toast.error(
+            typeof document !== "undefined" && document.documentElement.lang === "ar"
+              ? "تم تسجيل خروجك — دخل هذا الحساب من جهاز آخر."
+              : "You were signed out — this account signed in on another device.",
+          );
+        } catch { /* ignore */ }
+        const { supabase } = await import("@/integrations/supabase/client");
+        await supabase.auth.signOut();
+        router.navigate({ to: "/auth" });
+      });
+    }
+
+    (async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) void attach(data.session.user.id);
+
+      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_IN" && session?.user) void attach(session.user.id);
+        if (event === "SIGNED_OUT") {
+          if (ctrl) ctrl.stop();
+          ctrl = null;
+        }
+      });
+      return () => sub.subscription.unsubscribe();
+    })();
+
+    return () => {
+      stopped = true;
+      if (ctrl) ctrl.stop();
+    };
+  }, [router]);
+  return null;
 }
