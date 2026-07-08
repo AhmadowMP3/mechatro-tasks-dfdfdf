@@ -66,6 +66,7 @@ function TasksPage() {
   const { t, lang, users, directory, isAdmin, user } = useApp();
   const [selected, setSelected] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
 
   // Deep-link: open task modal from ?task=<id>
   useEffect(() => {
