@@ -204,6 +204,10 @@ function TasksPage() {
               : `${sel.length} task${sel.length === 1 ? "" : "s"} selected`,
             actions: [
               {
+                id: "assign", label: lang === "ar" ? "تعيين إلى…" : "Assign to…",
+                icon: <Users size={14} />, onRun: () => setBulkAssignOpen(true),
+              },
+              {
                 id: "todo", label: lang === "ar" ? "قيد الانتظار" : "To do",
                 icon: <CircleDot size={14} />, onRun: () => runBulk({ status: "todo" }),
               },
