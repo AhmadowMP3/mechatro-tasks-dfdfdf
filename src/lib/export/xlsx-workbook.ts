@@ -328,7 +328,7 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
     addBrandedHeader(sm, `${m.full_name} · ${m.job_title ?? m.role}`, period, generatedBy, lang, 8);
 
     // Row 5-6: KPI banner strip
-    const mine = tasks.filter((t) => t.assignee_id === m.id);
+    const mine = tasks.filter((t) => allAssignees(t).includes(m.id));
     const mineDone = mine.filter((t) => t.status === "done").length;
     const overdueCount = mine.filter((t) => t.status !== "done" && t.due_date && new Date(t.due_date) < now).length;
     sm.spliceRows(5, 0, [], []);
