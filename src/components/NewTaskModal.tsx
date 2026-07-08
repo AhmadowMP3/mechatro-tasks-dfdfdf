@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { notify } from "@/lib/activity";
 import { ModalShell, Field, inp } from "@/routes/_authenticated/projects.index";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
+import { AssigneeMultiSelect } from "@/components/ui/AssigneeMultiSelect";
+import { saveTaskAssignees } from "@/lib/task-assignees";
 import { useQuery } from "@tanstack/react-query";
 import { formatDate, toLocalDigits } from "@/lib/format";
 
@@ -37,9 +39,10 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
   });
   const [form, setForm] = useState({
     title: "", description: "", project_id: defaultProjectId ?? "",
-    assignee_id: "", priority: "normal", status: "todo", due_date: "",
+    priority: "normal", status: "todo", due_date: "",
     points: 25,
   });
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
 
   // Live clock — updates every second while modal is open.
   const [now, setNow] = useState(new Date());
@@ -66,7 +69,7 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
     form.title.trim().length > 0 &&
     form.description.trim().length > 0 &&
     form.project_id !== "" &&
-    form.assignee_id !== "" &&
+    assigneeIds.length > 0 &&
     form.due_date !== "" &&
     !!form.priority &&
     (!isAdmin || (Number(form.points) > 0 && Number(form.points) <= 1000));
@@ -74,9 +77,10 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
   const submit = async () => {
     if (!isValid) return;
     const startISO = new Date().toISOString();
+    const primaryAssignee = assigneeIds[0] ?? null;
     const { data, error } = await supabase.from("tasks").insert({
       title: form.title, description: form.description || null,
-      project_id: form.project_id, assignee_id: form.assignee_id || null,
+      project_id: form.project_id, assignee_id: primaryAssignee,
       priority: form.priority as never, status: form.status as never,
       due_date: form.due_date || null, progress: 0,
       start_date: startISO, created_by: user?.id ?? null,
@@ -91,10 +95,18 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
       return;
     }
     if (data) {
-      if (form.assignee_id && form.assignee_id !== user?.id) {
-        await notify(form.assignee_id, "task_assigned",
-          `تم إسنادك: ${form.title}`, `Assigned to you: ${form.title}`,
-          undefined, data.id);
+      // Persist the full assignee list (primary is auto-kept on tasks.assignee_id by the DB trigger too).
+      const saved = await saveTaskAssignees(data.id, assigneeIds, { assignedBy: user?.id ?? null });
+      if (saved.error) {
+        toast.error(saved.error.message);
+      }
+      // Notify every assignee except the creator.
+      for (const uid of assigneeIds) {
+        if (uid && uid !== user?.id) {
+          await notify(uid, "task_assigned",
+            `تم إسنادك: ${form.title}`, `Assigned to you: ${form.title}`,
+            undefined, data.id);
+        }
       }
     }
 
@@ -150,12 +162,12 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
           options={(projects ?? []).map((p) => ({ value: p.id, label: lang === "ar" ? p.name_ar : p.name_en }))}
         />
       </Field>
-      <Field label={t("assignee")}>
-        <ThemedSelect
-          value={form.assignee_id}
-          onChange={(v) => setForm({ ...form, assignee_id: v })}
+      <Field label={t("assignees")}>
+        <AssigneeMultiSelect
+          users={users.filter((u) => u.active !== false)}
+          value={assigneeIds}
+          onChange={setAssigneeIds}
           placeholder={t("none")}
-          options={users.map((u) => ({ value: u.id, label: u.full_name }))}
         />
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
