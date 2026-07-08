@@ -304,29 +304,56 @@ button:hover > .icon-tile { transform: scale(1.06); }
   50% { transform: translateY(-4px); }
 }
 
-/* Mobile tab bar — active pill under icon */
+/* Mobile tab bar — active icon filled with a soft glow behind it */
 .mtab {
   position: relative;
   transition: color .2s ease;
 }
-.mtab-pill {
+.mtab-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  z-index: 2;
+  transition: transform .22s ease, color .22s ease, filter .22s ease;
+}
+.mtab-icon svg {
+  transition: transform .22s ease, fill .22s ease, stroke .22s ease;
+  fill: transparent;
+}
+.mtab-icon-glow {
   position: absolute;
-  top: 4px;
+  top: 7px;
   left: 50%;
   transform: translateX(-50%) scale(0.6);
-  width: 46px;
-  height: 34px;
-  border-radius: 12px;
-  background: var(--grad-blue);
-  box-shadow: 0 6px 18px -6px color-mix(in oklab, #189FD1 70%, transparent);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in oklab, var(--primary) 55%, transparent) 0%, transparent 70%);
   opacity: 0;
-  transition: opacity .22s ease, transform .22s ease;
-  z-index: 0;
+  filter: blur(9px);
+  transition: opacity .28s ease, transform .28s ease;
+  z-index: 1;
+  pointer-events: none;
 }
-.mtab.is-active .mtab-pill { opacity: 1; transform: translateX(-50%) scale(1); }
-.mtab.is-active { color: var(--primary) !important; }
-.mtab.is-active svg { color: #fff; stroke: #fff; position: relative; z-index: 1; }
-.mtab > * { position: relative; z-index: 1; }
+.mtab.is-active .mtab-icon-glow {
+  opacity: 1;
+  transform: translateX(-50%) scale(1.25);
+}
+.mtab.is-active .mtab-icon {
+  color: var(--primary);
+  transform: translateY(-2px);
+  filter: drop-shadow(0 4px 10px color-mix(in oklab, var(--primary) 45%, transparent));
+}
+.mtab.is-active .mtab-icon svg {
+  fill: color-mix(in oklab, var(--primary) 18%, transparent);
+  stroke-width: 2.2;
+}
+.mtab > span:last-of-type { position: relative; z-index: 2; }
+.mtab.is-active { color: var(--primary) !important; font-weight: 800; }
 
 
 /* Global input focus polish */

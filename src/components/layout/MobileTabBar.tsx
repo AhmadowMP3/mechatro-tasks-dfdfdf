@@ -85,8 +85,10 @@ export function MobileTabBar({ onMoreClick }: { onMoreClick: () => void }) {
           const active = isActive(to);
           return (
             <Link key={to} to={to} className={`mtab ${active ? "is-active" : ""}`} style={cell(active)}>
-              <span className="mtab-pill" aria-hidden />
-              <Icon size={22} />
+              <span className="mtab-icon-glow" aria-hidden />
+              <span className="mtab-icon">
+                <Icon size={22} />
+              </span>
               <span
                 style={{
                   maxWidth: "100%",
@@ -108,8 +110,9 @@ export function MobileTabBar({ onMoreClick }: { onMoreClick: () => void }) {
           className="mtab"
           style={cell(false)}
         >
-          <span className="mtab-pill" aria-hidden />
-          <MoreHorizontal size={22} />
+          <span className="mtab-icon">
+            <MoreHorizontal size={22} />
+          </span>
           <span>{moreLabel}</span>
         </button>
       </div>
