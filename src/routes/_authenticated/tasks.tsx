@@ -23,7 +23,8 @@ import { toast } from "sonner";
 import type { DictKey } from "@/i18n/dict";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
-import { Trash2, CircleDot } from "lucide-react";
+import { BulkAssigneeModal } from "@/components/tasks/BulkAssigneeModal";
+import { Trash2, CircleDot, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
 
