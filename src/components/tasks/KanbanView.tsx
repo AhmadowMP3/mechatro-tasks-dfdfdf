@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { Avatar } from "@/components/Avatar";
+import { AssigneeStack } from "@/components/AssigneeStack";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 
 import type { TaskRow } from "@/components/TaskCard";
@@ -13,11 +14,12 @@ const COLUMNS = ["todo", "in_progress", "paused", "in_review", "done"] as const;
 type ColStatus = (typeof COLUMNS)[number];
 
 export function KanbanView({
-  tasks, projects, users, onOpen, onChanged,
+  tasks, projects, users, assigneesByTask, onOpen, onChanged,
 }: {
   tasks: TaskRow[];
   projects: Project[];
   users: Profile[];
+  assigneesByTask?: Record<string, string[]>;
   onOpen: (id: string) => void;
   onChanged: () => void;
 }) {
