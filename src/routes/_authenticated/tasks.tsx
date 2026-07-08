@@ -487,9 +487,9 @@ function TasksPage() {
             })}
           </div>
         ) : view === "kanban" ? (
-          <KanbanView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} onChanged={refetch} />
+          <KanbanView tasks={filtered} projects={projects} users={displayUsers} assigneesByTask={assigneesByTask} onOpen={setSelected} onChanged={refetch} />
         ) : (
-          <TableView tasks={filtered} projects={projects} users={displayUsers} onOpen={setSelected} />
+          <TableView tasks={filtered} projects={projects} users={displayUsers} assigneesByTask={assigneesByTask} onOpen={setSelected} />
         );
       })()}
 
