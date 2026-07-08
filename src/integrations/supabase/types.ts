@@ -460,6 +460,7 @@ export type Database = {
           expires_at: string | null
           full_name: string | null
           id: string
+          max_devices: number
           password_attempts: number
           password_hash: string | null
           password_locked_until: string | null
@@ -476,6 +477,7 @@ export type Database = {
           expires_at?: string | null
           full_name?: string | null
           id?: string
+          max_devices?: number
           password_attempts?: number
           password_hash?: string | null
           password_locked_until?: string | null
@@ -492,6 +494,7 @@ export type Database = {
           expires_at?: string | null
           full_name?: string | null
           id?: string
+          max_devices?: number
           password_attempts?: number
           password_hash?: string | null
           password_locked_until?: string | null
@@ -1432,6 +1435,7 @@ export type Database = {
           language_pref: string
           last_task_done_on: string | null
           longest_streak: number
+          max_devices: number
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           status: Database["public"]["Enums"]["profile_status"]
@@ -1458,6 +1462,7 @@ export type Database = {
           language_pref?: string
           last_task_done_on?: string | null
           longest_streak?: number
+          max_devices?: number
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["profile_status"]
@@ -1484,6 +1489,7 @@ export type Database = {
           language_pref?: string
           last_task_done_on?: string | null
           longest_streak?: number
+          max_devices?: number
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["profile_status"]
@@ -2119,6 +2125,36 @@ export type Database = {
           code?: string
           id?: string
           meta?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          last_seen_at: string
+          revoked_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          last_seen_at?: string
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          last_seen_at?: string
+          revoked_at?: string | null
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
