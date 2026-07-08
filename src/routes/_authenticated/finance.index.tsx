@@ -210,17 +210,20 @@ function FinanceDashboard() {
       {/* Monthly Chart */}
       <section className="brand-card" style={{ padding: 20 }}>
         <h3 style={{ margin: "0 0 16px", fontSize: 16 }}>{t("incomeVsExpenses")} · 12 {lang === "ar" ? "شهر" : "months"}</h3>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${monthlySeries.length}, 1fr)`, gap: 6, alignItems: "end", height: 180 }}>
-          {monthlySeries.map((m) => (
-            <div key={m.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-              <div style={{ display: "flex", gap: 2, alignItems: "end", height: 140, width: "100%", justifyContent: "center" }}>
-                <div title={`Income: ${formatMoney(m.income, displayCurrency, lang)}`} style={{ width: 10, background: "var(--grad-green, linear-gradient(135deg,#50C878,#3d9c5e))", height: `${(m.income / maxBar) * 100}%`, borderRadius: "3px 3px 0 0", minHeight: m.income > 0 ? 2 : 0 }} />
-                <div title={`Expenses: ${formatMoney(m.expenses, displayCurrency, lang)}`} style={{ width: 10, background: "linear-gradient(135deg,#F0676A,#c94446)", height: `${(m.expenses / maxBar) * 100}%`, borderRadius: "3px 3px 0 0", minHeight: m.expenses > 0 ? 2 : 0 }} />
+        <div style={{ overflowX: "auto", margin: "0 -4px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${monthlySeries.length}, 1fr)`, gap: 6, alignItems: "end", height: 180, minWidth: 480, padding: "0 4px" }}>
+            {monthlySeries.map((m) => (
+              <div key={m.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <div style={{ display: "flex", gap: 2, alignItems: "end", height: 140, width: "100%", justifyContent: "center" }}>
+                  <div title={`Income: ${formatMoney(m.income, displayCurrency, lang)}`} style={{ width: 10, background: "var(--grad-green, linear-gradient(135deg,#50C878,#3d9c5e))", height: `${(m.income / maxBar) * 100}%`, borderRadius: "3px 3px 0 0", minHeight: m.income > 0 ? 2 : 0 }} />
+                  <div title={`Expenses: ${formatMoney(m.expenses, displayCurrency, lang)}`} style={{ width: 10, background: "linear-gradient(135deg,#F0676A,#c94446)", height: `${(m.expenses / maxBar) * 100}%`, borderRadius: "3px 3px 0 0", minHeight: m.expenses > 0 ? 2 : 0 }} />
+                </div>
+                <span style={{ fontSize: 10, color: "var(--muted)" }}>{m.label}</span>
               </div>
-              <span style={{ fontSize: 10, color: "var(--muted)" }}>{m.label}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
         <div style={{ display: "flex", gap: 14, marginTop: 12, fontSize: 12, color: "var(--muted)", justifyContent: "center" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <span style={{ width: 10, height: 10, background: "#50C878", borderRadius: 2 }} /> {t("totalIncome")}
