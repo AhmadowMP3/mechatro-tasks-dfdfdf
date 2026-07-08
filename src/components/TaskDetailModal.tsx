@@ -41,6 +41,8 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
   const [linkUrl, setLinkUrl] = useState("");
   const [savingLink, setSavingLink] = useState(false);
   const [dirty, setDirty] = useState<Partial<Task>>({});
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+  const [assigneeIdsBase, setAssigneeIdsBase] = useState<string[]>([]);
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
   useEffect(() => { load(); }, [taskId]);
@@ -58,15 +60,24 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     setFiles(fl ?? []);
     const { data: ws } = await supabase.from("work_sessions").select("*").eq("task_id", taskId).order("started_at");
     setSessions(ws ?? []);
+    const { data: ta } = await supabase.from("task_assignees").select("user_id,assigned_at").eq("task_id", taskId).order("assigned_at", { ascending: true });
+    const ids = (ta ?? []).map((r) => r.user_id);
+    // Fall back to primary assignee if the join table is empty (legacy tasks that haven't been re-saved).
+    const finalIds = ids.length > 0 ? ids : (tk.assignee_id ? [tk.assignee_id] : []);
+    setAssigneeIds(finalIds);
+    setAssigneeIdsBase(finalIds);
   };
 
   if (!task) return null;
 
   const merged: Task = { ...task, ...dirty };
   const projectName = project ? (lang === "ar" ? project.name_ar : project.name_en) : "";
+  const assignedUsers: Profile[] = assigneeIds
+    .map((id) => users.find((u) => u.id === id))
+    .filter(Boolean) as Profile[];
   const assignee = users.find((u) => u.id === merged.assignee_id) ?? null;
   const canEditAll = can("manage_tasks");
-  const canEditOwn = user && merged.assignee_id === user.id && can("edit_own_task");
+  const canEditOwn = user && (merged.assignee_id === user.id || assigneeIds.includes(user.id)) && can("edit_own_task");
   const canEdit = canEditAll || canEditOwn;
   const readOnlyForMember = !canEditAll && canEditOwn;
 
