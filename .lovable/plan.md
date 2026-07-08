@@ -1,39 +1,60 @@
-## Goal
-Wherever an export (XLSX report or PDF report) lists a task's assignee or aggregates per-member work, include **all** assignees (primary + co-assignees from `task_assignees`), not just `tasks.assignee_id`.
+# Fix Finance mobile UI
 
-## Surfaces to update
+The uploaded screenshots show four concrete breakages on the Finance section at mobile widths (~360–420px):
 
-### 1. Tasks page XLSX (`src/routes/_authenticated/tasks.tsx`)
-`assigneesByTask` is already in scope. Change the Assignee column's `get` to join every name in `assigneesByTask[r.id]` with `، ` (AR) / `, ` (EN), falling back to the primary if the join map is empty. Add a numeric "Assignees" column (count) right after — small and useful for filtering.
+1. **Tab bar clips the last tab** and gives no scroll affordance — "المصاريف" appears cut to "المصار" at the right edge.
+2. **Header row is cramped** — greeting, currency toggle, and the "1 USD = … SYP" hint jam into the same row and wrap awkwardly.
+3. **KPI cards overflow** — the big 28px `kpi-value` (e.g. `500,000,000.00 ل.س`) touches the card edge and wraps mid-number.
+4. **12-month chart is too tight** — twelve equal columns in the mobile width squeeze the bars to hair-thin, month labels overlap.
 
-### 2. Admin Reports workbook (`src/lib/export/xlsx-workbook.ts`)
-- Load `task_assignees` alongside `tasks`, `profiles`, `projects` (single fetch).
-- Build `assigneesByTask: Map<taskId, userId[]>`.
-- **Sheet 2 "All Tasks"** — change the `Assignee` cell to the joined full names of every assignee for that task (fallback: primary). Widen the column to 34.
-- **Per-member sheets (Sheets 4..N)** — replace `tasks.filter(t => t.assignee_id === m.id)` with "member is either primary OR in `assigneesByTask[t.id]`". The KPI banner (`mine.length`, `mineDone`, `overdueCount`) and the row list both pick up co-assigned tasks.
+Everything below is presentation-only. No changes to data flow, queries, currency logic, or i18n keys.
 
-### 3. Team PDF report (`src/lib/report/team-report.ts`)
-- In `loadTeamReportData`, fetch `task_assignees` (bounded to the loaded task ids) and build the same map.
-- For each member, `mine = tasks` where the member is primary OR appears in `assigneesByTask[task.id]`. `tasks_total`, `tasks_done`, `tasks_overdue`, `on_time_pct` all follow.
-- Team totals stay based on the raw task list (no double counting).
+## Changes
 
-### 4. Per-member PDF report (`src/lib/report/data.ts`)
-- Currently `tasks` are pulled with `.eq("assignee_id", memberId)`. Change to a two-step fetch:
-  1. `task_assignees.select("task_id").eq("user_id", memberId)` → co-assigned ids.
-  2. `tasks.select(...).or("assignee_id.eq.<id>,id.in.(<co-ids>)")` — dedup by id, order by created_at desc.
-- Downstream code that renders the task table in `report-html.ts` is unchanged (no assignee column there).
+### 1. `src/routes/_authenticated/finance.tsx` — tab bar
 
-### 5. Team overview stats (`src/routes/_authenticated/team.index.tsx`)
-- The header aggregate (`ts = tasks.filter(x => x.assignee_id === uid)`) understates co-assigned work. Also fetch `task_assignees(user_id,task_id)` in that same query and treat a member as "on the task" if primary OR co-assignee. Applies to the per-member stat rows shown/exported on that page.
+- Add horizontal end padding (14 → 20) plus `scroll-padding-inline: 20px` so the first/last tab breathe.
+- Add `-webkit-mask-image` fade on both edges of the scroller to make it obvious the row is scrollable.
+- Add `scrollbar-width: none` / `::-webkit-scrollbar { display: none }` for a cleaner mobile look.
+
+### 2. `src/styles/finance.css` — mobile-specific rules under `@media (max-width: 640px)`
+
+- `.finance-tabs a` — drop min-height to 40, font 13.5px, padding `8px 14px`, keep icons.
+- `.finance-root { padding: 14px !important; }` on the outer container (currently 20).
+- `.finance-root h1 { font-size: 22px !important; }` (down from 28).
+- `.finance-root .kpi-value` — `font-size: 22px !important; overflow-wrap: anywhere; word-break: break-word; line-height: 1.15;` so long money strings wrap on the comma/space instead of pushing the card.
+- `.finance-root .quick-action` — reduce padding to `14px 16px`, min-height 60, font 15.
+- `.finance-root .brand-card` — reduce inner padding on cards from 20/22 → 16 via a mobile override (`.finance-root section.brand-card, .finance-root .brand-card { padding: 16px !important; }` scoped to the media query only).
+
+### 3. `src/routes/_authenticated/finance.index.tsx` — header + KPI + chart
+
+**Header row (lines 140–170)** — restructure so it stacks cleanly:
+
+```
+[ Greeting + date          ]
+[ Currency label + toggle  ]  ← same row on mobile
+[ 1 USD = … SYP hint       ]  ← own line on mobile
+```
+
+Concretely: wrap the right-side controls in a container that uses `flex-wrap: wrap`, move the FX hint into its own `<div>` with `width: 100%` / `flex-basis: 100%` so it drops to a new line rather than dangling next to the toggle.
+
+**KPI grid (line 198)** — change `minmax(240px, 1fr)` → `minmax(200px, 1fr)` so two cards fit side-by-side around 420px width instead of stacking to one column too early.
+
+**KPI card body (line 286)** — remove `minHeight: 128` (mobile doesn't need the fixed height once the value wraps), and add `min-w-0` semantics via inline `minWidth: 0` on the outer card and on the value div, so text wrapping actually kicks in inside grids.
+
+**Monthly chart (line 210)** — on mobile the 12-column grid becomes scrollable:
+- Wrap the bar grid in a `<div style={{ overflowX: "auto" }}>`.
+- Give the inner grid `minWidth: 480` so bars stay legible; on desktop it fills naturally because 480px is less than any real desktop width there.
 
 ## Out of scope
-- `projects.index.tsx` project stats (aggregate counts, not per-task assignee display).
-- Invoices/payroll PDFs — no task-assignee content.
-- Reordering columns or changing the visual style.
 
-## Technical details
-- Join separator: `، ` for `lang === "ar"`, `, ` for English.
-- Deduplicate ids per task (`Array.from(new Set([primary, ...coAssignees]))`) so a primary who is also in the join table isn't listed twice.
-- `task_assignees` fetch is scoped by task ids already in memory (`in("task_id", taskIds)`) to keep payload small — never a full-table scan.
-- No schema changes.
-- No new i18n keys required (join separator is the only string, chosen by `lang`).
+- Other finance sub-routes (invoices/customers/expenses/etc.) — the reported issues are on `/finance` overview and the shared tab bar; those two already cover both screenshots. If specific sub-pages need mobile polish later, that's a separate pass.
+- No changes to Arabic/English digit rules (already Latin-only), no changes to numbers formatting, currency conversion, or any business logic.
+- No new dependencies; pure CSS + small JSX restructure.
+
+## Verification
+
+After changes I will:
+1. Set the preview to mobile viewport and load `/finance` in Arabic — check tabs scroll edge-to-edge with fade, KPI amounts wrap inside cards, header stacks in the order above.
+2. Switch language to English — sanity check that the same layout holds LTR.
+3. Confirm desktop (`>= 1024px`) is visually unchanged by re-checking the current preview after the edit.
