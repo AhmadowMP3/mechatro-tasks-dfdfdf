@@ -169,14 +169,52 @@ function ProjectDetail() {
         <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noTasks")}</div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 300px), 1fr))", gap: 14 }}>
-          {data.tasks.map((tk) => (
-            <TaskCard key={tk.id} task={tk} project={p}
-              assignee={users.find((u) => u.id === tk.assignee_id) ?? null}
-              assignees={(data.assigneesByTask[tk.id] ?? []).map((uid) => users.find((u) => u.id === uid)).filter(Boolean) as never}
-              onClick={() => setSelected(tk.id)} />
-          ))}
+          {data.tasks.map((tk) => {
+            const checked = isSelected(tk.id);
+            return (
+              <div
+                key={tk.id}
+                style={{
+                  position: "relative",
+                  borderRadius: 16,
+                  outline: checked ? "2px solid var(--primary, #189FD1)" : "none",
+                  outlineOffset: 2,
+                  transition: "outline .12s",
+                }}
+                onClick={(e) => { if (bulkMode && isAdmin) { e.stopPropagation(); toggle(tk.id); } }}
+              >
+                {isAdmin && (
+                  <div
+                    onClick={(e) => { e.stopPropagation(); toggle(tk.id); }}
+                    style={{
+                      position: "absolute", top: 10, insetInlineStart: 10, zIndex: 5,
+                      opacity: checked || bulkMode ? 1 : 0, transition: "opacity .12s",
+                    }}
+                  >
+                    <BulkCheckbox checked={checked} onChange={() => toggle(tk.id)} label={lang === "ar" ? "تحديد" : "Select"} />
+                  </div>
+                )}
+                <div style={{ pointerEvents: bulkMode ? "none" : "auto" }}>
+                  <TaskCard task={tk} project={p}
+                    assignee={users.find((u) => u.id === tk.assignee_id) ?? null}
+                    assignees={(data.assigneesByTask[tk.id] ?? []).map((uid) => users.find((u) => u.id === uid)).filter(Boolean) as never}
+                    onClick={() => setSelected(tk.id)} />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
+
+      {bulkAssignOpen && (
+        <BulkAssigneeModal
+          taskIds={selectedIds}
+          users={users}
+          onClose={() => setBulkAssignOpen(false)}
+          onDone={() => { clearSelection(); refetch(); }}
+        />
+      )}
+
 
       {selected && <TaskDetailModal taskId={selected} onClose={closeTaskModal} onChanged={refetch} />}
       {newOpen && <NewTaskModal defaultProjectId={id} onClose={() => setNewOpen(false)} onCreated={() => { setNewOpen(false); refetch(); }} />}
