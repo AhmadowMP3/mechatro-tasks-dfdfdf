@@ -28,6 +28,7 @@ type Invite = {
   password_hash: string | null;
   password_attempts: number | null;
   password_locked_until: string | null;
+  max_devices: number | null;
 };
 
 Deno.serve(async (req) => {
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
 
   const { data: raw } = await admin
     .from("invites")
-    .select("id, token, role, email, full_name, expires_at, revoked_at, used_at, created_by, password_hash, password_attempts, password_locked_until")
+    .select("id, token, role, email, full_name, expires_at, revoked_at, used_at, created_by, password_hash, password_attempts, password_locked_until, max_devices")
     .eq("token", token)
     .maybeSingle();
   const inv = raw as Invite | null;
@@ -148,6 +149,7 @@ Deno.serve(async (req) => {
     active: true,
     invited_by: inv.created_by,
     invited_at: new Date().toISOString(),
+    max_devices: Math.max(0, Number(inv.max_devices ?? 1)),
   }).eq("id", uid).select("id, status");
   if (profErr) {
     console.error("profile update failed", profErr.message);
