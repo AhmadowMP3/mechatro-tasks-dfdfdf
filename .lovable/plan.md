@@ -1,55 +1,39 @@
 ## Goal
-Let admins/leads select multiple tasks and bulk assign or unassign members in one action, in both Table and Kanban views on `/tasks` and inside each project's tasks tab.
+Wherever an export (XLSX report or PDF report) lists a task's assignee or aggregates per-member work, include **all** assignees (primary + co-assignees from `task_assignees`), not just `tasks.assignee_id`.
 
-## UX
+## Surfaces to update
 
-### Selection
-- Add a checkbox to each row (Table) and each card (Kanban). A shared `selectedIds: Set<string>` lives in `src/routes/_authenticated/tasks.tsx` and in `projects.$id.tsx`.
-- Table gets a header "select-all" checkbox for the currently filtered/sorted list.
-- Card checkbox sits top-left, click stops propagation so it doesn't open the task modal or start a drag.
+### 1. Tasks page XLSX (`src/routes/_authenticated/tasks.tsx`)
+`assigneesByTask` is already in scope. Change the Assignee column's `get` to join every name in `assigneesByTask[r.id]` with `، ` (AR) / `, ` (EN), falling back to the primary if the join map is empty. Add a numeric "Assignees" column (count) right after — small and useful for filtering.
 
-### Bulk action bar
-When `selectedIds.size > 0`, a sticky action bar appears at the top of the list area:
-- "N selected" counter.
-- `Assign to…` button → opens the existing `AssigneeMultiSelect` in a popover.
-- `Clear all assignees` button (destructive style).
-- `Clear selection` / close.
+### 2. Admin Reports workbook (`src/lib/export/xlsx-workbook.ts`)
+- Load `task_assignees` alongside `tasks`, `profiles`, `projects` (single fetch).
+- Build `assigneesByTask: Map<taskId, userId[]>`.
+- **Sheet 2 "All Tasks"** — change the `Assignee` cell to the joined full names of every assignee for that task (fallback: primary). Widen the column to 34.
+- **Per-member sheets (Sheets 4..N)** — replace `tasks.filter(t => t.assignee_id === m.id)` with "member is either primary OR in `assigneesByTask[t.id]`". The KPI banner (`mine.length`, `mineDone`, `overdueCount`) and the row list both pick up co-assigned tasks.
 
-Popover has three apply modes (radio at the top):
-- **Add** — union current assignees ∪ selected users. *(default)*
-- **Replace** — overwrite each task's assignees with selected users.
-- **Remove** — subtract selected users from each task.
+### 3. Team PDF report (`src/lib/report/team-report.ts`)
+- In `loadTeamReportData`, fetch `task_assignees` (bounded to the loaded task ids) and build the same map.
+- For each member, `mine = tasks` where the member is primary OR appears in `assigneesByTask[task.id]`. `tasks_total`, `tasks_done`, `tasks_overdue`, `on_time_pct` all follow.
+- Team totals stay based on the raw task list (no double counting).
 
-### Feedback
-- Toast: "Updated N tasks". If some fail (RLS), show "Updated X of N, Y failed" with failing task titles listed.
-- Bar hides on Escape and on route change.
+### 4. Per-member PDF report (`src/lib/report/data.ts`)
+- Currently `tasks` are pulled with `.eq("assignee_id", memberId)`. Change to a two-step fetch:
+  1. `task_assignees.select("task_id").eq("user_id", memberId)` → co-assigned ids.
+  2. `tasks.select(...).or("assignee_id.eq.<id>,id.in.(<co-ids>)")` — dedup by id, order by created_at desc.
+- Downstream code that renders the task table in `report-html.ts` is unchanged (no assignee column there).
 
-## Data flow
-- New helper `bulkUpdateAssignees(taskIds, userIds, mode)` in `src/lib/task-assignees.ts`:
-  - One `SELECT task_id,user_id FROM task_assignees WHERE task_id IN (...)` to load current sets.
-  - Compute per-task target set based on mode.
-  - Call existing `saveTaskAssignees(taskId, nextIds)` per task via `Promise.allSettled`.
-  - Return `{ ok: string[]; failed: {taskId,message}[] }`.
-- After success: `queryClient.invalidateQueries({ queryKey: ["task-assignees-map"] })` and refetch the tasks list.
-
-## Files to touch
-- `src/lib/task-assignees.ts` — add `bulkUpdateAssignees`.
-- `src/components/tasks/TableView.tsx` — checkbox column + header select-all; accept `selectedIds`, `onToggle`, `onToggleAll` props.
-- `src/components/tasks/KanbanView.tsx` — checkbox on card; same props.
-- New `src/components/tasks/BulkAssigneeBar.tsx` — the sticky bar + popover using existing `AssigneeMultiSelect`.
-- `src/routes/_authenticated/tasks.tsx` — own `selectedIds` state, render `<BulkAssigneeBar />`, pass props down; clear selection on filter/tab change.
-- `src/routes/_authenticated/projects.$id.tsx` — same wiring for the project view.
-- `src/i18n/dict.ts` — new EN + AR keys: `selectedCount`, `bulkAssign`, `clearAllAssignees`, `modeAdd`, `modeReplace`, `modeRemove`, `updatedNTasks`, `updatedSomeFailed`.
-
-## Permissions
-- Bar hidden entirely for viewer-only roles (reuse the role gating already applied to per-task assignee edits).
-- RLS on `tasks` / `task_assignees` still enforces server-side; rejected rows appear in the failed list.
+### 5. Team overview stats (`src/routes/_authenticated/team.index.tsx`)
+- The header aggregate (`ts = tasks.filter(x => x.assignee_id === uid)`) understates co-assigned work. Also fetch `task_assignees(user_id,task_id)` in that same query and treat a member as "on the task" if primary OR co-assignee. Applies to the per-member stat rows shown/exported on that page.
 
 ## Out of scope
-- Bulk status / priority / due-date changes (future, using the same selection primitive).
-- Undo.
+- `projects.index.tsx` project stats (aggregate counts, not per-task assignee display).
+- Invoices/payroll PDFs — no task-assignee content.
+- Reordering columns or changing the visual style.
 
 ## Technical details
-- Selection state is not persisted across route changes.
-- Kanban drag-and-drop unaffected: checkbox click uses `stopPropagation` and is not a drag handle.
-- `saveTaskAssignees` is reused so primary-assignee logic (points, notifications) stays consistent.
+- Join separator: `، ` for `lang === "ar"`, `, ` for English.
+- Deduplicate ids per task (`Array.from(new Set([primary, ...coAssignees]))`) so a primary who is also in the join table isn't listed twice.
+- `task_assignees` fetch is scoped by task ids already in memory (`in("task_id", taskIds)`) to keep payload small — never a full-table scan.
+- No schema changes.
+- No new i18n keys required (join separator is the only string, chosen by `lang`).
