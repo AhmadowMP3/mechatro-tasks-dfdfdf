@@ -77,6 +77,20 @@ export function TableView({
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
           <thead style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
             <tr>
+              {selectable && (
+                <th style={{ ...thStatic(lang), width: 36, padding: "12px 8px" }}>
+                  <BulkCheckbox
+                    checked={sorted.length > 0 && sorted.every((tk) => isSelected?.(tk.id))}
+                    onChange={() => {
+                      const ids = sorted.map((tk) => tk.id);
+                      const allSel = ids.length > 0 && ids.every((id) => isSelected?.(id));
+                      onToggleAll?.(ids, allSel);
+                    }}
+                    stopPropagation={false}
+                    label={lang === "ar" ? "تحديد الكل" : "Select all"}
+                  />
+                </th>
+              )}
               <H k="title" label={t("title")} />
               <th className="hide-md" style={thStatic(lang)}>{t("filterProject")}</th>
               <th style={thStatic(lang)}>{t("assignee")}</th>
