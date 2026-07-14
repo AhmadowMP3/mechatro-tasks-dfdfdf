@@ -1,45 +1,50 @@
-## Reset users & wipe demo data
+# Fix Arabic in invoice/receipt PDFs
 
-**Goal**: Delete all existing users + demo data, then create exactly 3 fresh users (super admin, admin, member) with clean state and no deletion errors.
+## Problem
+The current export renders the React `InvoiceDocument` offscreen, then uses `html2canvas` to rasterize it and `jsPDF` to place the image. `html2canvas` draws Arabic through the Canvas 2D text API, which does not do complex-script shaping — letters render disconnected and sometimes in the wrong order. Even with the Montserrat Arabic font embedded, ligatures come out broken.
 
-### New users
+## Approach
+Replace the raster pipeline for invoices and payment receipts with a **direct jsPDF text layout**. Text goes into the PDF as real Unicode strings, so Arabic characters are searchable, selectable, and — with proper shaping + BiDi — rendered correctly.
 
-| Role | Name | Email | Password | Master admin? |
-|---|---|---|---|---|
-| Super Admin | Zizo | `zizo@mechatro.com` | `Mechatro@2026` | Yes |
-| Admin | Client | `client@mechatro.com` | `Mechatro@2026` | No |
-| Member | Ahmad | `ahmad@mechatro.com` | `Mechatro@2026` | No |
+Nothing else changes: the on-screen `InvoiceDocument` preview, Excel/xlsx exports, and note/report PDFs (which use different flows) are untouched.
 
-All three emails auto-confirmed so they can log in immediately. You can change any of these later from the app.
+## Changes
 
-### What gets deleted (single migration, correct FK order)
+### 1. New Arabic text engine
+- Add `src/lib/pdf/arabic-text.ts` exporting `shapeArabic(text)` and `drawRtlText(pdf, text, x, y, opts)`.
+- Internally use `arabic-persian-reshaper` (presentation-form ligatures) + `bidi-js` (logical→visual reordering for mixed AR/EN/numbers).
+- Register the existing Montserrat Arabic TTF (already bundled at `src/lib/pdf/assets`) into every jsPDF instance via `pdf.addFileToVFS` + `pdf.addFont`.
 
-All rows from these tables (data only — schema stays intact):
+### 2. New invoice PDF builder
+- Add `src/lib/pdf/invoice-pdf.ts` with `buildInvoicePdf({ invoice, items, customer, settings, lang })` returning a `jsPDF` instance.
+- Reproduce the current `InvoiceDocument` visual layout using jsPDF primitives:
+  - Header band with brand logo (loaded as image), colored rule
+  - Invoice title + number, status pill
+  - Issue/due dates block
+  - "Bill to" card with customer name/company/email/phone
+  - Items table (description, qty, price, discount, total) — RTL column order in Arabic
+  - Totals block (subtotal, total emphasis box, paid, balance due)
+  - Notes block
+- Text drawing goes through `drawRtlText` when `lang === "ar"`, plain `text()` otherwise.
+- Stamp the unified header/footer chrome using the existing `stampChrome()` (already jsPDF-native).
 
-- Tasks & related: `task_assignees`, `task_comments`, `task_files`, `tasks`
-- Notes & related: `note_attachments`, `note_comments`, `note_shares`, `note_tag_links`, `note_tags`, `note_folders`, `notes`
-- Finance: `invoice_payments`, `invoice_items`, `invoices`, `expenses`, `income_entries`, `subscriptions_income`, `subscriptions_expense`, `finance_reminders_log`, `customers`, `expense_categories`, `fx_rates`
-- Payroll: `payroll_entries`, `payroll_periods`, `member_salary_settings`, `member_reports`
-- League/gamification: `season_scores`, `league_seasons`, `user_badges`
-- System: `notifications`, `activity_log`, `work_sessions`, `user_sessions`, `share_links`, `backup_requests`, `references`, `invites`, `projects`
-- Users: `profiles`, then `auth.users`
+### 3. New payment receipt PDF builder
+- Add `src/lib/pdf/receipt-pdf.ts` with `buildReceiptPdf({ payment, invoice, customer, settings, lang })` mirroring `PaymentReceiptDocument`.
 
-Everything is wiped in one transaction, children before parents, so no FK / RLS deletion errors.
+### 4. Wire buttons
+- In `src/routes/_authenticated/finance.invoices.$id.tsx`, replace the two `renderAndDownloadPdf(<InvoiceDocument .../>, ...)` and `renderAndDownloadPdf(<PaymentReceiptDocument .../>, ...)` call sites with `buildInvoicePdf(...).save(filename)` and `buildReceiptPdf(...).save(filename)`.
+- Keep `stampFilename` and the current filename/chrome behavior.
 
-### Then create the 3 users (same migration)
+### 5. Dependencies
+- `bun add arabic-persian-reshaper bidi-js`.
 
-For each user:
-1. Insert into `auth.users` with `encrypted_password = crypt('Mechatro@2026', gen_salt('bf'))`, `email_confirmed_at = now()`, `aud='authenticated'`, `role='authenticated'`.
-2. Insert into `auth.identities` with a provider record so email login works.
-3. Insert into `public.profiles` with the correct `role` (`admin`/`member`), `status='active'`, `active=true`, and `is_master_admin=true` for Zizo only.
-4. Set `app_config.master_admin_email = 'zizo@mechatro.com'` so master-admin sync stays consistent.
+## Out of scope
+- Notes PDF export, reports PDF, and any other `renderAndDownloadPdf` callers keep the raster flow.
+- No visual change to the on-screen invoice preview.
+- No data or database changes.
 
-### Why the earlier delete errors happened
-
-Deleting a user hit FK cascades and audit triggers (`log_row_change`, `award_task_points`, `sync_task_primary_assignee`) that were firing mid-cascade on rows whose parent was already gone. Doing the wipe in strict child→parent order inside one migration bypasses that — no partial cascade, no dangling references.
-
-### Out of scope
-
-- No schema changes, no policy changes, no trigger changes.
-- Storage bucket files (invoices, receipts, note attachments, backups, member-reports) stay — only DB rows are cleared. Say if you want those wiped too.
-- No app code changes; sign in from the auth page with the credentials above.
+## Technical notes
+- jsPDF requires the font to be added per instance (or per document) before `setFont("MontserratArabic")`. The Arabic TTF asset is fetched once and cached as a base64 string module-level to avoid re-fetch per export.
+- `bidi-js` operates on paragraph-level strings; each drawn line is shaped independently, which matches how the layout emits text.
+- Numbers and currency stay in Latin digits (`$30,000.00`) so no digit-shaping toggle is needed.
+- Table rows measured with `pdf.getTextWidth()` after shaping to ensure the RTL right-anchored columns line up under Arabic headers.

@@ -11,10 +11,11 @@ import {
 import { formatDate } from "@/lib/format";
 import { Plus, Trash2, Save, Send, Download, DollarSign, ArrowLeft, X, Ban, Receipt } from "lucide-react";
 import { useConfirm } from "@/components/confirm-dialog";
-import { renderAndDownloadPdf } from "@/lib/pdf-render";
 import { stampFilename } from "@/lib/pdf/brand";
-import { InvoiceDocument, PaymentReceiptDocument, paymentMethodTextFor, type CompanySettings } from "@/components/finance/BrandedDocuments";
+import { paymentMethodTextFor, type CompanySettings } from "@/components/finance/BrandedDocuments";
 import { PaymentMethodSelect } from "@/components/finance/PaymentMethodSelect";
+import { buildInvoicePdf } from "@/lib/pdf/invoice-pdf";
+import { buildReceiptPdf } from "@/lib/pdf/receipt-pdf";
 
 export const Route = createFileRoute("/_authenticated/finance/invoices/$id")({
   component: InvoiceEditorPage,
@@ -251,17 +252,15 @@ function InvoiceEditorPage() {
     if (isNew || !existing) { toast.error(t("saveDraft")); return; }
     const cust = customers?.find((c) => c.id === existing.invoice.customer_id) ?? null;
     try {
-      await renderAndDownloadPdf(
-        <InvoiceDocument
-          invoice={existing.invoice}
-          items={existing.items}
-          customer={cust}
-          settings={settings as CompanySettings | null}
-          lang={lang}
-        />,
-        stampFilename("invoice", existing.invoice.number ?? "draft"),
-        { chrome: { lang, generatedBy: user?.full_name ?? null } },
-      );
+      const pdf = await buildInvoicePdf({
+        invoice: existing.invoice,
+        items: existing.items,
+        customer: cust,
+        settings: settings as CompanySettings | null,
+        lang,
+        chrome: { lang, generatedBy: user?.full_name ?? null },
+      });
+      pdf.save(stampFilename("invoice", existing.invoice.number ?? "draft"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     }
@@ -499,18 +498,16 @@ function PaymentReceiptModal({
   const download = async () => {
     setDownloading(true);
     try {
-      await renderAndDownloadPdf(
-        <PaymentReceiptDocument
-          payment={payment}
-          invoice={invoice}
-          customer={customer}
-          settings={settings}
-          lang={lang}
-          methodLabel={paymentMethodTextFor(payment.method, lang)}
-        />,
-        stampFilename("receipt", (payment.id ?? "").slice(0, 8)),
-        { chrome: { lang, generatedBy: user?.full_name ?? null } },
-      );
+      const pdf = await buildReceiptPdf({
+        payment,
+        invoice,
+        customer,
+        settings,
+        lang,
+        methodLabel: paymentMethodTextFor(payment.method, lang),
+        chrome: { lang, generatedBy: user?.full_name ?? null },
+      });
+      pdf.save(stampFilename("receipt", (payment.id ?? "").slice(0, 8)));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
