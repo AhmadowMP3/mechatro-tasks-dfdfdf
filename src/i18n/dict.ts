@@ -566,6 +566,8 @@ export const dict = {
   themeExecutiveDesc: { ar: "أبيض راقٍ للطباعة", en: "Print-friendly corporate" },
   themeMinimal: { ar: "أنيق بسيط", en: "Bold Minimal" },
   themeMinimalDesc: { ar: "فراغات وأرقام كبيرة", en: "Whitespace + big numbers" },
+  themeCreative: { ar: "إبداعي بسيط", en: "Creative Minimal" },
+  themeCreativeDesc: { ar: "تحريري ثنائي اللغة مع شعار وتذييل", en: "Editorial bilingual with header & footer" },
   next: { ar: "التالي", en: "Next" },
   back: { ar: "السابق", en: "Back" },
   step: { ar: "الخطوة", en: "Step" },
