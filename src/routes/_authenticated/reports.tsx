@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/reports")({
 });
 
 type Scope = "team" | "member";
-type WizardStep = 1 | 2 | 3 | 4 | 5;
+type WizardStep = 1 | 2 | 3 | 4;
 
 function ReportsPage() {
   const { t, isAdmin, lang, user } = useApp();
