@@ -47,6 +47,15 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
   useEffect(() => { load(); }, [taskId]);
 
+  // Realtime: refresh sessions/task on any change to this task's work_sessions.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`ws-${taskId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "work_sessions", filter: `task_id=eq.${taskId}` }, () => { load(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [taskId]);
+
   const load = async () => {
     const { data: tk } = await supabase.from("tasks").select("*").eq("id", taskId).maybeSingle();
     if (!tk) return;
