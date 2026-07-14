@@ -24,7 +24,9 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [btnHover, setBtnHover] = useState(false);
   const l = lang === "ar";
+  const isLight = theme === "light";
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -44,8 +46,6 @@ function AuthPage() {
       if (rpcErr) throw rpcErr;
       const loginEmail = typeof resolved === "string" ? resolved : null;
       if (!loginEmail) {
-        // Distinguish "not activated / suspended" from "wrong credentials" so the
-        // client knows to open their invite link instead of retrying passwords.
         const { data: pendingHit } = await supabase
           .from("profiles")
           .select("status")
@@ -65,7 +65,6 @@ function AuthPage() {
 
       const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
       if (error) {
-        // Mask provider error to avoid confirming which half was wrong.
         throw new Error(l ? "الاسم أو كلمة المرور غير صحيحة" : "Invalid name or password");
       }
       if (data.user) {
@@ -93,92 +92,163 @@ function AuthPage() {
     }
   }
 
+  // Theme-aware palette
+  const pageBg = isLight
+    ? "radial-gradient(circle at 85% 0%, #DDEAFB 0%, transparent 55%), radial-gradient(circle at 10% 100%, #E4F5EC 0%, transparent 55%), #F6F9FC"
+    : "linear-gradient(160deg,var(--sidebar) 0%,var(--sidebar) 60%,#0E2338 100%)";
+  const cardBg = isLight ? "#FFFFFF" : "rgba(10,26,43,.85)";
+  const cardBorder = isLight ? "1px solid #E2E8F0" : "1px solid var(--border)";
+  const cardShadow = isLight
+    ? "0 1px 2px rgba(15,32,49,.04), 0 24px 60px -20px rgba(24,100,180,.22)"
+    : "0 24px 60px rgba(0,0,0,.5)";
+  const subtitleColor = isLight ? "#5A6B7D" : "var(--muted)";
+  const bannerBg = isLight ? "#F1F7FE" : "rgba(29,155,240,.10)";
+  const bannerBorder = isLight ? "1px solid #BFDBFA" : "1px solid rgba(29,155,240,.3)";
+  const bannerText = isLight ? "#1E3A5F" : "var(--muted)";
+  const inputBg = isLight ? "#F5F8FB" : "var(--surface-3)";
+  const inputBorder = isLight ? "#D7DEE5" : "var(--border)";
+  const inputText = isLight ? "#0F2031" : "var(--foreground)";
+  const labelColor = isLight ? "#5A6B7D" : "var(--muted)";
+  const ghostColor = isLight ? "#5A6B7D" : "var(--muted)";
+  const glow1 = isLight ? "rgba(29,155,240,.14)" : "rgba(29,155,240,.25)";
+  const glow2 = isLight ? "rgba(48,192,116,.10)" : "rgba(48,192,116,.18)";
+
+  const pillBtnStyle: React.CSSProperties = {
+    minHeight: 40, padding: "0 14px", borderRadius: 999,
+    background: isLight ? "#FFFFFF" : "rgba(255,255,255,.08)",
+    color: isLight ? "#0F2031" : "var(--foreground)",
+    border: isLight ? "1px solid #E2E8F0" : "1px solid var(--border)",
+    fontWeight: 700, fontSize: 13, cursor: "pointer",
+    boxShadow: isLight ? "0 1px 2px rgba(15,32,49,.04)" : "none",
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "12px 14px", borderRadius: 10,
+    background: inputBg, color: inputText,
+    border: `1px solid ${inputBorder}`, fontSize: 14, minHeight: 44, outline: "none",
+    transition: "border-color .15s ease, box-shadow .15s ease",
+  };
+
+  function onInputFocus(e: React.FocusEvent<HTMLInputElement>) {
+    e.currentTarget.style.borderColor = "#1D9BF0";
+    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(29,155,240,.18)";
+  }
+  function onInputBlur(e: React.FocusEvent<HTMLInputElement>) {
+    e.currentTarget.style.borderColor = inputBorder;
+    e.currentTarget.style.boxShadow = "none";
+  }
 
   return (
     <div
+      data-theme={theme}
       dir={l ? "rtl" : "ltr"}
       style={{
         minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center",
         padding: 20,
-        background: "linear-gradient(160deg,var(--sidebar) 0%,var(--sidebar) 60%,#0E2338 100%)",
-        color: "var(--foreground)",
+        background: pageBg,
+        color: isLight ? "#0F2031" : "var(--foreground)",
         fontFamily: l ? "'Almarai', system-ui, sans-serif" : "'Montserrat', system-ui, sans-serif",
         position: "relative", overflow: "hidden",
       }}
     >
-      {/* Decorative glow */}
+      {/* Decorative glows */}
       <div style={{
         position: "absolute", top: "-20%", insetInlineEnd: "-10%",
         width: 480, height: 480, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(29,155,240,.25), transparent 70%)",
+        background: `radial-gradient(circle, ${glow1}, transparent 70%)`,
         pointerEvents: "none",
       }} />
       <div style={{
         position: "absolute", bottom: "-25%", insetInlineStart: "-10%",
         width: 520, height: 520, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(48,192,116,.18), transparent 70%)",
+        background: `radial-gradient(circle, ${glow2}, transparent 70%)`,
         pointerEvents: "none",
       }} />
 
       <div style={{ position: "absolute", top: 16, insetInlineEnd: 16, display: "flex", gap: 8, zIndex: 2 }}>
-        <button onClick={() => setLang(l ? "en" : "ar")} style={pillBtn}>{l ? "English" : "عربي"}</button>
-        <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={pillBtn}>
+        <button onClick={() => setLang(l ? "en" : "ar")} style={pillBtnStyle}>{l ? "English" : "عربي"}</button>
+        <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={pillBtnStyle}>
           {theme === "dark" ? "☀︎" : "☾"}
         </button>
       </div>
 
       <div style={{
+        position: "relative",
         width: "100%", maxWidth: 440, zIndex: 1,
-        background: "rgba(10,26,43,.85)",
-        border: "1px solid var(--border)",
+        background: cardBg,
+        border: cardBorder,
         borderRadius: 20, padding: 32,
-        boxShadow: "0 24px 60px rgba(0,0,0,.5)",
-        backdropFilter: "blur(6px)",
+        boxShadow: cardShadow,
+        backdropFilter: isLight ? "none" : "blur(6px)",
+        overflow: "hidden",
       }}>
+        {/* Cool blue accent stroke on top edge */}
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0, height: 1,
+          background: "linear-gradient(90deg, transparent, #1D9BF0, transparent)",
+          opacity: isLight ? 0.9 : 0.5,
+          pointerEvents: "none",
+        }} />
+
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 22 }}>
           <img src={logo} alt="Mechatro" style={{ width: 200, marginBottom: 10 }} />
-          <div style={{ fontSize: 13, color: "var(--muted)", fontWeight: 700 }}>{t("appName")}</div>
+          <div style={{ fontSize: 13, color: subtitleColor, fontWeight: 700 }}>{t("appName")}</div>
         </div>
 
         <div style={{
           padding: "10px 14px", marginBottom: 18,
-          background: "rgba(29,155,240,.10)", border: "1px solid rgba(29,155,240,.3)",
-          borderRadius: 10, fontSize: 12.5, color: "var(--muted)", textAlign: "center",
+          background: bannerBg, border: bannerBorder,
+          borderRadius: 10, fontSize: 12.5, color: bannerText, textAlign: "center",
         }}>
           {l ? "الدخول بالدعوة فقط. اطلب من مسؤول النظام إنشاء رابط دعوة لك." : "Invite-only access. Ask your master admin for an invite link."}
         </div>
 
         <form onSubmit={handleSignIn} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Field label={l ? "الاسم" : "Name"}>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="username" style={inputStyle} dir="ltr" />
+          <Field label={l ? "الاسم" : "Name"} color={labelColor}>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="username" style={inputStyle} dir="ltr" onFocus={onInputFocus} onBlur={onInputBlur} />
           </Field>
 
-          <Field label={l ? "كلمة المرور" : "Password"}>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} style={inputStyle} dir="ltr" />
+          <Field label={l ? "كلمة المرور" : "Password"} color={labelColor}>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} style={inputStyle} dir="ltr" onFocus={onInputFocus} onBlur={onInputBlur} />
           </Field>
 
-          <button type="submit" disabled={busy} style={{
-            marginTop: 6, minHeight: 48, borderRadius: 12,
-            background: "linear-gradient(135deg,#1D9BF0,#0F6BB8)",
-            color: "#fff", fontWeight: 800, fontSize: 15,
-            border: "none", cursor: busy ? "wait" : "pointer",
-            opacity: busy ? 0.6 : 1,
-          }}>{busy ? "…" : (l ? "تسجيل الدخول" : "Sign in")}</button>
+          <button
+            type="submit"
+            disabled={busy}
+            onMouseEnter={() => setBtnHover(true)}
+            onMouseLeave={() => setBtnHover(false)}
+            style={{
+              marginTop: 6, minHeight: 48, borderRadius: 12,
+              background: "linear-gradient(135deg,#1D9BF0,#0F6BB8)",
+              color: "#fff", fontWeight: 800, fontSize: 15,
+              border: "none", cursor: busy ? "wait" : "pointer",
+              opacity: busy ? 0.6 : 1,
+              transform: btnHover && !busy ? "translateY(-1px)" : "translateY(0)",
+              boxShadow: btnHover && !busy
+                ? "0 10px 24px -8px rgba(29,155,240,.55)"
+                : "0 4px 12px -6px rgba(29,155,240,.4)",
+              transition: "transform .15s ease, box-shadow .15s ease, opacity .15s ease",
+            }}
+          >{busy ? "…" : (l ? "تسجيل الدخول" : "Sign in")}</button>
 
           <button
             type="button"
             onClick={() => setShowInfo((s) => !s)}
             style={{
-              background: "transparent", border: "none", color: "var(--muted)",
+              background: "transparent", border: "none", color: ghostColor,
               cursor: "pointer", fontSize: 12.5, padding: "8px 0", fontWeight: 600,
+              textDecoration: "none",
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
           >{l ? "طلب صلاحية الوصول" : "Request access"}</button>
 
           {showInfo && (
             <div style={{
               padding: 12, borderRadius: 10,
-              background: "var(--card)", border: "1px dashed var(--border)",
-              fontSize: 12.5, color: "var(--muted)", lineHeight: 1.7,
+              background: isLight ? "#F8FAFC" : "var(--card)",
+              border: isLight ? "1px dashed #CBD5E1" : "1px dashed var(--border)",
+              fontSize: 12.5, color: isLight ? "#475569" : "var(--muted)", lineHeight: 1.7,
             }}>
               {l
                 ? "أرسل بريدًا إلى مسؤول النظام في ميكاترو مع اسمك الكامل والقسم المطلوب. سيقوم بإصدار دعوة تفعيل الحساب على بريدك."
@@ -191,21 +261,10 @@ function AuthPage() {
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "12px 14px", borderRadius: 10,
-  background: "var(--surface-3)", color: "var(--foreground)",
-  border: "1px solid var(--border)", fontSize: 14, minHeight: 44, outline: "none",
-};
-const pillBtn: React.CSSProperties = {
-  minHeight: 40, padding: "0 14px", borderRadius: 999,
-  background: "rgba(255,255,255,.08)", color: "var(--foreground)",
-  border: "1px solid var(--border)", fontWeight: 700, fontSize: 13, cursor: "pointer",
-};
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, color, children }: { label: string; color: string; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700 }}>{label}</span>
+      <span style={{ fontSize: 12, color, fontWeight: 700 }}>{label}</span>
       {children}
     </label>
   );
