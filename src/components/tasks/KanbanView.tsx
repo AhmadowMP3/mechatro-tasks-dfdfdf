@@ -27,7 +27,7 @@ import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { Avatar } from "@/components/Avatar";
 import { AssigneeStack } from "@/components/AssigneeStack";
-import { BulkCheckbox } from "@/lib/bulk-selection";
+
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 
 import type { TaskRow } from "@/components/TaskCard";
