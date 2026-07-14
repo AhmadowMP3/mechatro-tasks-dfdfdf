@@ -252,17 +252,15 @@ function InvoiceEditorPage() {
     if (isNew || !existing) { toast.error(t("saveDraft")); return; }
     const cust = customers?.find((c) => c.id === existing.invoice.customer_id) ?? null;
     try {
-      await renderAndDownloadPdf(
-        <InvoiceDocument
-          invoice={existing.invoice}
-          items={existing.items}
-          customer={cust}
-          settings={settings as CompanySettings | null}
-          lang={lang}
-        />,
-        stampFilename("invoice", existing.invoice.number ?? "draft"),
-        { chrome: { lang, generatedBy: user?.full_name ?? null } },
-      );
+      const pdf = await buildInvoicePdf({
+        invoice: existing.invoice,
+        items: existing.items,
+        customer: cust,
+        settings: settings as CompanySettings | null,
+        lang,
+        chrome: { lang, generatedBy: user?.full_name ?? null },
+      });
+      pdf.save(stampFilename("invoice", existing.invoice.number ?? "draft"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     }
