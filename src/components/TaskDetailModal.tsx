@@ -98,7 +98,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     }
     return sum + Math.max(0, Math.floor((now - new Date(s.started_at).getTime()) / 1000));
   }, 0);
-  const totalMins = Math.floor(totalSecs / 60);
+  
   const formatHMS = (totalSeconds: number) => {
     const s = Math.max(0, Math.floor(totalSeconds));
     const h = Math.floor(s / 3600);
