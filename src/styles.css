@@ -630,3 +630,178 @@ img, svg, video { max-width: 100%; }
   background: color-mix(in oklab, #189FD1 22%, transparent);
   color: var(--foreground);
 }
+
+/* ============================================================
+   MOBILE POLISH PASS — tap targets, motion, RTL, alignment.
+   Everything below is scoped to ≤767px or uses safe global rules
+   so desktop stays untouched.
+   ============================================================ */
+
+/* Motion tokens */
+:root {
+  --ease-out: cubic-bezier(.2,.7,.2,1);
+  --ease-spring: cubic-bezier(.4,1.3,.5,1);
+}
+
+/* Respect reduced motion everywhere */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Global press feedback on touch surfaces (safe on desktop, subtle) */
+button:active:not(:disabled),
+a[role="button"]:active,
+.brand-card.is-interactive:active,
+a.brand-card:active {
+  transform: translateY(0) scale(.985);
+}
+
+/* Consistent focus ring (touch users benefit too) */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* RTL helper — flip directional icons opt-in */
+[dir="rtl"] .rtl-flip { transform: scaleX(-1); }
+
+/* ---- Mobile tab bar — richer active state & press feedback ---- */
+.mtab {
+  transition: color .22s var(--ease-out), transform .18s var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+.mtab:active .mtab-icon { transform: translateY(-1px) scale(.94); }
+.mtab.is-active .mtab-icon {
+  transform: translateY(-2px) scale(1.06);
+  transition: transform .28s var(--ease-spring), filter .22s var(--ease-out), color .22s var(--ease-out);
+}
+.mtab > span:last-of-type {
+  letter-spacing: 0.01em;
+  transition: font-weight .2s ease, transform .2s var(--ease-out);
+}
+.mtab.is-active > span:last-of-type {
+  font-weight: 900;
+  transform: translateY(-1px);
+}
+/* Active accent dot under label — subtle brand marker */
+.mtab.is-active::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 14px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--grad-blue);
+  transform: translateX(-50%);
+  opacity: .9;
+  animation: mtabDotIn .28s var(--ease-spring);
+}
+@keyframes mtabDotIn {
+  from { opacity: 0; transform: translateX(-50%) scaleX(.2); }
+  to   { opacity: .9; transform: translateX(-50%) scaleX(1); }
+}
+
+/* ---- Mobile-only refinements ---- */
+@media (max-width: 767px) {
+  /* Typography rhythm */
+  body { line-height: 1.5; }
+  h1, h2, h3 { text-wrap: balance; overflow-wrap: anywhere; }
+  h3 { font-size: 16px !important; }
+
+  /* Long, unbroken strings (URLs, emails, IDs) never blow layout */
+  p, span, div, td, li, a { overflow-wrap: anywhere; }
+
+  /* Tap-target guarantee for icon buttons */
+  button[aria-label], a[aria-label] {
+    min-width: 44px;
+  }
+
+  /* Cards — slightly tighter radius/padding for calmer rhythm */
+  .brand-card { border-radius: 14px; }
+
+  /* Sticky top bar keeps a subtle shadow while scrolled */
+  header[style*="position: sticky"] {
+    box-shadow: 0 6px 20px -18px rgba(0,0,0,.5);
+  }
+
+  /* Any horizontal scroll strip fades the edges instead of showing scrollbars */
+  .mobile-hscroll {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+  }
+
+  /* Modals & drawers — panels breathe more, always internally scrollable */
+  .brand-modal {
+    max-height: calc(100dvh - 24px);
+    width: min(560px, calc(100vw - 16px));
+    margin: 12px;
+    border-radius: 16px;
+  }
+
+  /* Tables that must scroll horizontally — hint with soft mask */
+  .finance-root .brand-card > div[style*="overflowX"] {
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 24px), transparent 100%);
+            mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 24px), transparent 100%);
+  }
+
+  /* Filter chips / segmented controls get consistent 40px height */
+  [role="tablist"] > button,
+  [role="tab"] {
+    min-height: 40px;
+  }
+
+  /* Kanban board horizontal snap */
+  .kanban-col {
+    scroll-snap-align: start;
+    min-width: min(85vw, 320px);
+  }
+
+  /* Route transition — subtle fade-in on the main content */
+  main > * {
+    animation: pageIn .22s var(--ease-out) both;
+  }
+  @keyframes pageIn {
+    from { opacity: 0; transform: translateY(3px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Ensure the mobile tab bar never overlaps floating action content */
+  main {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* Skeleton shimmer (used where a class .skeleton is applied) */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 0%,
+    color-mix(in oklab, var(--surface-2) 60%, var(--surface-3)) 50%,
+    var(--surface-2) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 8px;
+}
+
+/* RTL: default flip for common directional icons inside nav/breadcrumbs */
+[dir="rtl"] .lucide-chevron-right,
+[dir="rtl"] .lucide-chevron-left,
+[dir="rtl"] .lucide-arrow-right,
+[dir="rtl"] .lucide-arrow-left {
+  transform: scaleX(-1);
+}
+
