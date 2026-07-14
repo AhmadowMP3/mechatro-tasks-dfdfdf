@@ -111,13 +111,16 @@ function donutSVG(entries: [string, number, string][], size = 200): string {
 function barsSVG(entries: [string, number, string][], width = 340, height = 180): string {
   const max = Math.max(1, ...entries.map(([, v]) => v));
   const pad = 24, gap = 12;
-  const bw = (width - pad * 2 - gap * (entries.length - 1)) / Math.max(1, entries.length);
+  const rawBw = (width - pad * 2 - gap * (entries.length - 1)) / Math.max(1, entries.length);
+  const bw = Math.min(rawBw, 56); // cap bar width so 1-2 entries don't span full card
+  const groupW = bw * entries.length + gap * Math.max(0, entries.length - 1);
+  const startX = (width - groupW) / 2; // center the bar cluster
   const chartH = height - 44;
   return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
     <line x1="${pad}" y1="${pad + chartH}" x2="${width - pad}" y2="${pad + chartH}" stroke="${C.line}"/>
     ${entries.map(([label, v, color], i) => {
       const h = (v / max) * chartH;
-      const x = pad + i * (bw + gap);
+      const x = startX + i * (bw + gap);
       const y = pad + chartH - h;
       return `<g>
         <rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="4" fill="${color}"/>
