@@ -268,7 +268,7 @@ function InvoiceEditorPage() {
       toast.error(e instanceof Error ? e.message : String(e));
     }
   };
-  void user;
+  
 
   const [receiptPayment, setReceiptPayment] = useState<InvoicePayment | null>(null);
 
