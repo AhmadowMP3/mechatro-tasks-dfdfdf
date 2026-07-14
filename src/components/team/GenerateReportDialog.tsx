@@ -18,7 +18,7 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
   const { t, lang } = useApp();
   const [langChoice, setLangChoice] = useState<ReportLangChoice>("bilingual");
   const [rangeKey, setRangeKey] = useState<RangeKey>("30d");
-  const [theme, setTheme] = useState<ThemeId>("aurora");
+  const [theme, setTheme] = useState<ThemeId>("creative");
   const today = new Date().toISOString().slice(0, 10);
   const monthAgo = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
   const [from, setFrom] = useState(monthAgo);
