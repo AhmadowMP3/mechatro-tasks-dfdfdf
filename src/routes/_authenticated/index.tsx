@@ -9,6 +9,7 @@ import { TaskDetailModal } from "@/components/TaskDetailModal";
 import type { DictKey } from "@/i18n/dict";
 import { FilterBar, DEFAULT_FILTERS, resolveRange, type DashboardFilters } from "@/components/dashboard/FilterBar";
 import { LeaguePodiumCard } from "@/components/dashboard/LeaguePodiumCard";
+import { useTasksRealtime } from "@/hooks/useTasksRealtime";
 
 type SearchParams = Partial<DashboardFilters>;
 
@@ -84,6 +85,9 @@ function Dashboard() {
       };
     },
   });
+
+  useTasksRealtime(() => { refetch(); }, "dashboard");
+
 
   const allTasks = data?.tasks ?? [];
   const projects = data?.projects ?? [];

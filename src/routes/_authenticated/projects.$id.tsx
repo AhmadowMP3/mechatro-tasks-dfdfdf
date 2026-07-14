@@ -14,6 +14,7 @@ import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 import { BulkAssigneeModal } from "@/components/tasks/BulkAssigneeModal";
+import { useTasksRealtime } from "@/hooks/useTasksRealtime";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({ component: ProjectDetail });
 
@@ -64,6 +65,9 @@ function ProjectDetail() {
       return { project: pr.data, tasks: tk.data ?? [], assigneesByTask };
     },
   });
+
+  useTasksRealtime(() => { refetch(); }, `project-${id}`);
+
 
   const tasksForSelection = data?.tasks ?? [];
   const { isSelected, toggle, ids: selectedIds, clear: clearSelection } = useBulkSelection({
