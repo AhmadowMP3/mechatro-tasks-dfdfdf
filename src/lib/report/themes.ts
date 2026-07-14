@@ -2,7 +2,7 @@
 // text color, accent, and card style. Content section builders read from
 // the currently active theme via getTheme().
 
-export type ThemeId = "aurora" | "executive" | "minimal";
+export type ThemeId = "aurora" | "executive" | "minimal" | "creative";
 
 export type Theme = {
   id: ThemeId;
@@ -103,6 +103,29 @@ export const THEMES: Record<ThemeId, Theme> = {
     coverSub: "#8A8A8A",
     coverGlow: "none",
     chartPalette: ["#111111", "#8A8A8A", "#D4A017", "#0C7C4A", "#D97706", "#DC2626"],
+  },
+  creative: {
+    id: "creative",
+    name: { ar: "إبداعي بسيط", en: "Creative Minimal" },
+    tagline: { ar: "تحريري ثنائي اللغة", en: "Editorial bilingual" },
+    paper: "#FCFCFC",
+    ink: "#0B0B0B",
+    ink2: "#1A1A1A",
+    muted: "#8A8A8A",
+    line: "#ECECEC",
+    soft: "#F6F7F9",
+    card: "#FFFFFF",
+    blue: "#42C2EE",
+    blueDark: "#189FD1",
+    green: "#0C7C4A",
+    orange: "#D97706",
+    red: "#DC2626",
+    gold: "#D4A017",
+    coverBg: "#FCFCFC",
+    coverInk: "#0B0B0B",
+    coverSub: "#8A8A8A",
+    coverGlow: "none",
+    chartPalette: ["#42C2EE", "#0B0B0B", "#D4A017", "#0C7C4A", "#D97706", "#DC2626"],
   },
 };
 
