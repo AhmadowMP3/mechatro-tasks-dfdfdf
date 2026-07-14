@@ -485,9 +485,9 @@ function contentPage(data: ReportData, lang: Lang, s: Stats, blocks: string[], p
     <div style="display:flex;flex-direction:column;gap:20px;position:relative">
       ${blocks.join("")}
     </div>
-    <div style="position:absolute;bottom:18px;left:44px;right:44px;display:flex;justify-content:space-between;font-size:10.5px;color:${C.muted};border-top:1px solid ${C.line};padding-top:8px">
-      <div>Mechatro © ${new Date().getFullYear()}</div>
-      <div>${esc(t("page", lang))} ${pageNum} ${esc(t("of", lang))} ${totalPages}</div>
+    <div style="position:absolute;bottom:18px;left:44px;right:44px;display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:${C.muted};border-top:1px solid ${C.line};padding-top:8px">
+      <div style="display:flex;align-items:center;gap:6px"><img src="${logo}" style="width:14px;height:14px;object-fit:contain;opacity:.8"/> mechatro @ mechatro.hub4tech.net</div>
+      <div style="letter-spacing:1px">${esc(t("page", lang))} ${pageNum} / ${totalPages}</div>
     </div>
   </section>`;
   void s;
