@@ -42,7 +42,6 @@ function isColumnId(id: string): id is ColStatus {
 
 export function KanbanView({
   tasks, projects, users, assigneesByTask, onOpen, onChanged,
-  selectable, isSelected, onToggle,
 }: {
   tasks: TaskRow[];
   projects: Project[];
@@ -50,10 +49,8 @@ export function KanbanView({
   assigneesByTask?: Record<string, string[]>;
   onOpen: (id: string) => void;
   onChanged: () => void;
-  selectable?: boolean;
-  isSelected?: (id: string) => boolean;
-  onToggle?: (id: string) => void;
 }) {
+
   const { t, lang, isAdmin, user } = useApp();
 
   // Local sort/status overlay so drags feel instant while Supabase catches up.
