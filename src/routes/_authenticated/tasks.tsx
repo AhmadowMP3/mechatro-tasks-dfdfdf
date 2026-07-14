@@ -137,6 +137,8 @@ function TasksPage() {
     },
   });
 
+  useTasksRealtime(() => { refetch(); }, "tasks-list");
+
   const projects = data?.projects ?? [];
   const fileCounts = data?.fileCounts ?? {};
   const assigneesByTask = data?.assigneesByTask ?? {};
