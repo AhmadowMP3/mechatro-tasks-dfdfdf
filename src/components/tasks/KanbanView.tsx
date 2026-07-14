@@ -1,17 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
   TouchSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
-  useDraggable,
   useDroppable,
+  closestCorners,
   type DragStartEvent,
   type DragEndEvent,
+  type DragOverEvent,
 } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
@@ -25,6 +35,10 @@ import type { TaskRow } from "@/components/TaskCard";
 type Project = { id: string; name_ar: string; name_en: string; color: string };
 const COLUMNS = ["todo", "in_progress", "paused", "in_review", "done"] as const;
 type ColStatus = (typeof COLUMNS)[number];
+
+function isColumnId(id: string): id is ColStatus {
+  return (COLUMNS as readonly string[]).includes(id);
+}
 
 export function KanbanView({
   tasks, projects, users, assigneesByTask, onOpen, onChanged,
@@ -41,12 +55,15 @@ export function KanbanView({
   onToggle?: (id: string) => void;
 }) {
   const { t, lang, isAdmin, user } = useApp();
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [overCol, setOverCol] = useState<string | null>(null);
+
+  // Local sort/status overlay so drags feel instant while Supabase catches up.
+  const [override, setOverride] = useState<Record<string, { status: ColStatus; sort_order: number }>>({});
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   function canMove(task: TaskRow | undefined, target: ColStatus): boolean {
@@ -57,44 +74,137 @@ export function KanbanView({
     return true;
   }
 
-  async function moveTask(id: string, status: ColStatus) {
-    const task = tasks.find((x) => x.id === id);
-    if (!task || task.status === status) return;
-    if (!canMove(task, status)) {
-      toast.error(t("onlyAdminCanComplete"));
-      return;
+  // Build columns from tasks + overrides, sorted by sort_order.
+  const columns = useMemo(() => {
+    const byCol: Record<ColStatus, TaskRow[]> = {
+      todo: [], in_progress: [], paused: [], in_review: [], done: [],
+    };
+    for (const raw of tasks) {
+      const ov = override[raw.id];
+      const merged: TaskRow = ov
+        ? { ...raw, status: ov.status, sort_order: ov.sort_order }
+        : raw;
+      const col = (merged.status as ColStatus);
+      if (byCol[col]) byCol[col].push(merged);
     }
-    const patch: { status: ColStatus; completed_at?: string | null } = { status };
-    if (status === "done") patch.completed_at = new Date().toISOString();
-    if (task.status === "done" && status !== "done") patch.completed_at = null;
-    const { error } = await supabase.from("tasks").update(patch).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    if (status === "in_review") toast.success(t("awaitingReview"));
-    onChanged();
-  }
+    for (const c of COLUMNS) {
+      byCol[c].sort((a, b) => {
+        const ao = a.sort_order ?? Number.POSITIVE_INFINITY;
+        const bo = b.sort_order ?? Number.POSITIVE_INFINITY;
+        if (ao !== bo) return ao - bo;
+        return (a.id < b.id ? -1 : 1);
+      });
+    }
+    return byCol;
+  }, [tasks, override]);
+
+  const findContainer = (id: string): ColStatus | null => {
+    if (isColumnId(id)) return id;
+    for (const c of COLUMNS) if (columns[c].some((x) => x.id === id)) return c;
+    return null;
+  };
 
   function handleDragStart(e: DragStartEvent) {
-    setDragId(String(e.active.id));
-  }
-  function handleDragEnd(e: DragEndEvent) {
-    const id = String(e.active.id);
-    const overId = e.over?.id ? String(e.over.id) : null;
-    setDragId(null);
-    setOverCol(null);
-    if (overId && (COLUMNS as readonly string[]).includes(overId)) {
-      moveTask(id, overId as ColStatus);
-    }
+    setActiveId(String(e.active.id));
   }
 
-  const draggingTask = dragId ? tasks.find((x) => x.id === dragId) : undefined;
+  function handleDragOver(e: DragOverEvent) {
+    const activeIdStr = String(e.active.id);
+    const overId = e.over?.id ? String(e.over.id) : null;
+    if (!overId) return;
+    const from = findContainer(activeIdStr);
+    const to = findContainer(overId);
+    if (!from || !to || from === to) return;
+
+    const active = tasks.find((x) => x.id === activeIdStr);
+    if (!canMove(active, to)) return;
+
+    // Cross-column preview: move active to end of target col.
+    const targetList = columns[to];
+    const last = targetList[targetList.length - 1];
+    const nextOrder = (last?.sort_order ?? 0) + 1000;
+    setOverride((cur) => ({
+      ...cur,
+      [activeIdStr]: { status: to, sort_order: nextOrder },
+    }));
+  }
+
+  async function handleDragEnd(e: DragEndEvent) {
+    const activeIdStr = String(e.active.id);
+    const overId = e.over?.id ? String(e.over.id) : null;
+    setActiveId(null);
+    if (!overId) { setOverride({}); return; }
+
+    const originalTask = tasks.find((x) => x.id === activeIdStr);
+    if (!originalTask) { setOverride({}); return; }
+
+    const previewStatus = override[activeIdStr]?.status ?? (originalTask.status as ColStatus);
+    const to = findContainer(overId) ?? previewStatus;
+    if (!to || !isColumnId(to)) { setOverride({}); return; }
+
+    if (!canMove(originalTask, to)) {
+      toast.error(t("onlyAdminCanComplete"));
+      setOverride({});
+      return;
+    }
+
+    // Compute final position within target column (excluding the active item).
+    const listWithoutActive = columns[to].filter((x) => x.id !== activeIdStr);
+    let insertAt = listWithoutActive.length;
+    if (!isColumnId(overId)) {
+      const overIdx = listWithoutActive.findIndex((x) => x.id === overId);
+      if (overIdx >= 0) insertAt = overIdx;
+    }
+    // Reinsert active to compute neighbors.
+    const reordered = [...listWithoutActive];
+    reordered.splice(insertAt, 0, { ...originalTask, status: to } as TaskRow);
+    const idx = reordered.findIndex((x) => x.id === activeIdStr);
+    const prev = reordered[idx - 1];
+    const next = reordered[idx + 1];
+    const prevO = prev?.sort_order ?? null;
+    const nextO = next?.sort_order ?? null;
+    let newOrder: number;
+    if (prevO == null && nextO == null) newOrder = 1000;
+    else if (prevO == null) newOrder = (nextO as number) - 1000;
+    else if (nextO == null) newOrder = (prevO as number) + 1000;
+    else newOrder = ((prevO as number) + (nextO as number)) / 2;
+
+    const statusChanged = originalTask.status !== to;
+    const orderChanged = originalTask.sort_order !== newOrder;
+    if (!statusChanged && !orderChanged) { setOverride({}); return; }
+
+    // Optimistic local overlay.
+    setOverride({ [activeIdStr]: { status: to, sort_order: newOrder } });
+
+    const patch: { sort_order: number; status?: ColStatus; completed_at?: string | null } = { sort_order: newOrder };
+    if (statusChanged) {
+      patch.status = to;
+      if (to === "done") patch.completed_at = new Date().toISOString();
+      if (originalTask.status === "done" && to !== "done") patch.completed_at = null;
+    }
+
+    const { error } = await supabase.from("tasks").update(patch).eq("id", activeIdStr);
+    if (error) {
+      toast.error(error.message);
+      setOverride({});
+      return;
+    }
+    if (statusChanged && to === "in_review") toast.success(t("awaitingReview"));
+    // Refresh from server, then drop the overlay.
+    onChanged();
+    setOverride({});
+  }
+
+  const draggingTask = activeId ? tasks.find((x) => x.id === activeId) : undefined;
 
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={closestCorners}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => { setDragId(null); setOverCol(null); }}
-      onDragOver={(e) => setOverCol(e.over?.id ? String(e.over.id) : null)}
+      onDragCancel={() => { setActiveId(null); setOverride({}); }}
     >
       <div
         style={{
@@ -112,12 +222,12 @@ export function KanbanView({
         }}
       >
         {COLUMNS.map((col) => {
-          const dropAllowed = !!draggingTask && canMove(draggingTask, col);
+          const dropAllowed = !draggingTask || canMove(draggingTask, col);
           return (
             <KanbanColumn
               key={col}
               col={col}
-              tasks={tasks.filter((x) => x.status === col)}
+              tasks={columns[col]}
               projects={projects}
               users={users}
               assigneesByTask={assigneesByTask}
@@ -125,9 +235,8 @@ export function KanbanView({
               selectable={selectable}
               isSelected={isSelected}
               onToggle={onToggle}
-              isOver={overCol === col && dropAllowed}
               dropAllowed={dropAllowed}
-              draggingId={dragId}
+              draggingId={activeId}
               currentUserId={user?.id}
               isAdmin={!!isAdmin}
               lang={lang}
@@ -163,7 +272,7 @@ export function KanbanView({
 function KanbanColumn({
   col, tasks, projects, users, assigneesByTask, onOpen,
   selectable, isSelected, onToggle,
-  isOver, dropAllowed, draggingId, currentUserId, isAdmin, lang, t,
+  dropAllowed, draggingId, currentUserId, isAdmin, lang, t,
 }: {
   col: ColStatus;
   tasks: TaskRow[];
@@ -174,7 +283,6 @@ function KanbanColumn({
   selectable?: boolean;
   isSelected?: (id: string) => boolean;
   onToggle?: (id: string) => void;
-  isOver: boolean;
   dropAllowed: boolean;
   draggingId: string | null;
   currentUserId: string | undefined;
@@ -182,10 +290,11 @@ function KanbanColumn({
   lang: "ar" | "en";
   t: (k: never) => string;
 }) {
-  const { setNodeRef } = useDroppable({ id: col });
+  const { setNodeRef, isOver } = useDroppable({ id: col });
   const style = STATUS_STYLES[col];
   const isReview = col === "in_review";
   const isDone = col === "done";
+  const highlight = isOver && dropAllowed && draggingId;
 
   return (
     <div
@@ -195,8 +304,8 @@ function KanbanColumn({
         padding: 12,
         minHeight: 200,
         scrollSnapAlign: "start",
-        background: isOver ? "var(--surface-2)" : "var(--card)",
-        border: `1px solid ${isOver ? style.text : (isReview ? "rgba(168,85,247,.35)" : "var(--border)")}`,
+        background: highlight ? "var(--surface-2)" : "var(--card)",
+        border: `1px solid ${highlight ? style.text : (isReview ? "rgba(168,85,247,.35)" : "var(--border)")}`,
         boxShadow: isReview ? `0 0 0 1px rgba(168,85,247,.15) inset, 0 8px 24px -18px ${style.text}` : undefined,
         backgroundImage: isReview
           ? "radial-gradient(120% 60% at 50% 0%, rgba(168,85,247,.08), transparent 70%)"
@@ -224,47 +333,48 @@ function KanbanColumn({
           {lang === "ar" ? "المهام هنا بانتظار اعتماد المدير." : "Tasks here await admin approval."}
         </div>
       )}
-      {tasks.length === 0 && (
-        <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "18px 6px" }}>—</div>
-      )}
-      {tasks.map((tk) => {
-        const project = projects.find((p) => p.id === tk.project_id);
-        const assignee = users.find((u) => u.id === tk.assignee_id);
-        const overdue = isOverdue(tk.due_date, tk.status);
-        const taskAssigneeIds = assigneesByTask?.[tk.id] ?? [];
-        const taskAssignees = taskAssigneeIds
-          .map((uid) => users.find((u) => u.id === uid))
-          .filter(Boolean) as Profile[];
-        const dragThis = isAdmin || tk.assignee_id === currentUserId || taskAssigneeIds.includes(currentUserId ?? "");
-        const cardSelected = selectable && isSelected?.(tk.id);
-        return (
-          <KanbanCard
-            key={tk.id}
-            id={tk.id}
-            title={tk.title}
-            due={tk.due_date}
-            priority={tk.priority}
-            overdue={overdue}
-            project={project}
-            assignee={assignee}
-            taskAssignees={taskAssignees}
-            draggable={dragThis && !selectable}
-            dimmed={draggingId === tk.id}
-            cardSelected={!!cardSelected}
-            selectable={!!selectable}
-            onOpen={() => onOpen(tk.id)}
-            onToggle={onToggle ? () => onToggle(tk.id) : undefined}
-            lang={lang}
-          />
-        );
-      })}
+      <SortableContext items={tasks.map((tk) => tk.id)} strategy={verticalListSortingStrategy}>
+        {tasks.length === 0 && (
+          <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "18px 6px" }}>—</div>
+        )}
+        {tasks.map((tk) => {
+          const project = projects.find((p) => p.id === tk.project_id);
+          const assignee = users.find((u) => u.id === tk.assignee_id);
+          const overdue = isOverdue(tk.due_date, tk.status);
+          const taskAssigneeIds = assigneesByTask?.[tk.id] ?? [];
+          const taskAssignees = taskAssigneeIds
+            .map((uid) => users.find((u) => u.id === uid))
+            .filter(Boolean) as Profile[];
+          const dragThis = isAdmin || tk.assignee_id === currentUserId || taskAssigneeIds.includes(currentUserId ?? "");
+          const cardSelected = selectable && isSelected?.(tk.id);
+          return (
+            <SortableCard
+              key={tk.id}
+              id={tk.id}
+              title={tk.title}
+              due={tk.due_date}
+              priority={tk.priority}
+              overdue={overdue}
+              project={project}
+              assignee={assignee}
+              taskAssignees={taskAssignees}
+              draggable={dragThis && !selectable}
+              cardSelected={!!cardSelected}
+              selectable={!!selectable}
+              onOpen={() => onOpen(tk.id)}
+              onToggle={onToggle ? () => onToggle(tk.id) : undefined}
+              lang={lang}
+            />
+          );
+        })}
+      </SortableContext>
     </div>
   );
 }
 
-function KanbanCard({
+function SortableCard({
   id, title, due, priority, overdue, project, assignee, taskAssignees,
-  draggable, dimmed, cardSelected, selectable, onOpen, onToggle, lang,
+  draggable, cardSelected, selectable, onOpen, onToggle, lang,
 }: {
   id: string;
   title: string;
@@ -275,17 +385,20 @@ function KanbanCard({
   assignee: Profile | undefined;
   taskAssignees: Profile[];
   draggable: boolean;
-  dimmed: boolean;
   cardSelected: boolean;
   selectable: boolean;
   onOpen: () => void;
   onToggle?: () => void;
   lang: "ar" | "en";
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
     disabled: !draggable,
   });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
   return (
     <div
       ref={setNodeRef}
@@ -299,6 +412,7 @@ function KanbanCard({
         onOpen();
       }}
       style={{
+        ...style,
         position: "relative",
         padding: 10,
         borderRadius: 10,
@@ -307,14 +421,13 @@ function KanbanCard({
         outline: cardSelected ? "2px solid var(--grad-blue, #189FD1)" : "none",
         outlineOffset: 1,
         cursor: draggable ? (isDragging ? "grabbing" : "grab") : "pointer",
-        opacity: dimmed || isDragging ? 0.4 : 1,
+        opacity: isDragging ? 0.4 : 1,
         borderInlineStart: project ? `3px solid transparent` : undefined,
         backgroundImage: project
           ? `linear-gradient(var(--surface-2),var(--surface-2)), ${PROJECT_COLORS[project.color] ?? PROJECT_COLORS.blue}`
           : undefined,
         backgroundOrigin: "border-box",
         backgroundClip: "padding-box, border-box",
-        transition: "transform .1s ease",
         touchAction: draggable ? "none" : "auto",
         userSelect: "none",
       }}
