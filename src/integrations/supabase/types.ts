@@ -2023,6 +2023,78 @@ export type Database = {
           },
         ]
       }
+      task_point_awards: {
+        Row: {
+          awarded_amount: number | null
+          awarded_at: string | null
+          awarded_by: string | null
+          created_at: string
+          id: string
+          points: number
+          task_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          awarded_amount?: number | null
+          awarded_at?: string | null
+          awarded_by?: string | null
+          created_at?: string
+          id?: string
+          points?: number
+          task_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          awarded_amount?: number | null
+          awarded_at?: string | null
+          awarded_by?: string | null
+          created_at?: string
+          id?: string
+          points?: number
+          task_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_point_awards_awarded_by_fkey"
+            columns: ["awarded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_point_awards_awarded_by_fkey"
+            columns: ["awarded_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_point_awards_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_point_awards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_point_awards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assignee_id: string | null
@@ -2253,6 +2325,14 @@ export type Database = {
           c: Database["public"]["Enums"]["subscription_cycle"]
         }
         Returns: string
+      }
+      award_points_to_user: {
+        Args: {
+          p_base_points: number
+          p_task: Database["public"]["Tables"]["tasks"]["Row"]
+          p_user_id: string
+        }
+        Returns: number
       }
       can_view_note: {
         Args: { _note_id: string; _user_id: string }

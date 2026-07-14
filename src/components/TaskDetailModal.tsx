@@ -14,6 +14,7 @@ import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { AssigneeMultiSelect } from "@/components/ui/AssigneeMultiSelect";
 import { saveTaskAssignees } from "@/lib/task-assignees";
+import { AwardPointsPanel } from "@/components/tasks/AwardPointsPanel";
 
 type Task = {
   id: string; project_id: string; title: string; description: string | null;
@@ -389,17 +390,22 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
               </button>
             )}
             {canEditAll && merged.status === "in_review" && (
-              <button
-                type="button"
-                onClick={() => setField("status", "done")}
-                style={{ marginTop: 8, width: "100%", padding: "8px 12px", borderRadius: 10, background: "var(--grad-green)", color: "#fff", border: "none", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
-              >
-                ✓ {t("approveDone")}
-              </button>
+              <div style={{ marginTop: 8, fontSize: 11, color: "var(--muted)", textAlign: "center" }}>
+                ↓ {t("awardPointsTitle")}
+              </div>
             )}
           </Field>
         </div>
 
+        {/* Per-assignee points award panel (admin, in_review) */}
+        {canEditAll && merged.status === "in_review" && assigneeIds.length > 0 && (
+          <AwardPointsPanel
+            taskId={taskId}
+            taskPoints={merged.points ?? 0}
+            assigneeIds={assigneeIds}
+            onApproved={() => { onChanged(); load(); }}
+          />
+        )}
 
         {/* Description */}
         <div style={{ marginBottom: 16 }}>
