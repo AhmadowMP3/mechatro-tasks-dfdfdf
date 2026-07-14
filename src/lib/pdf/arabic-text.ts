@@ -4,6 +4,7 @@
 // pre-shape here and hand it a visual-order string to draw.
 
 import type { jsPDF } from "jspdf";
+// @ts-expect-error - no bundled types for bidi-js
 import bidiFactory from "bidi-js";
 // @ts-expect-error - no bundled types for this pure-JS CJS module
 import reshaper from "arabic-persian-reshaper";
