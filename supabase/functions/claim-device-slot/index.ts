@@ -38,10 +38,11 @@ Deno.serve(async (req) => {
 
   const { data: prof } = await admin
     .from("profiles")
-    .select("max_devices")
+    .select("max_devices, is_master_admin, role")
     .eq("id", userId)
     .maybeSingle();
-  const maxDevices = Math.max(0, Number(prof?.max_devices ?? 1));
+  const unlimited = prof?.is_master_admin === true || prof?.role === "admin";
+  const maxDevices = unlimited ? 0 : Math.max(0, Number(prof?.max_devices ?? 1));
 
   // Upsert this device's row (marks as active, refreshes last_seen_at).
   const now = new Date().toISOString();
