@@ -230,7 +230,7 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
 
   if (logoId != null) {
     s1.addImage(logoId, {
-      tl: { col: lang === "ar" ? 0.15 : 2 + 0.15, row: 0.15 },
+      tl: { col: 2 + 0.15, row: 0.15 },
       ext: { width: 120, height: 34 },
       editAs: "oneCell",
     });
@@ -272,7 +272,7 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
   s2.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: 9 } };
   if (logoId != null) {
     s2.addImage(logoId, {
-      tl: { col: lang === "ar" ? 0.15 : 8 + 0.15, row: 0.15 },
+      tl: { col: 8 + 0.15, row: 0.15 },
       ext: { width: 120, height: 34 },
       editAs: "oneCell",
     });
@@ -367,7 +367,7 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
 
     if (logoId != null) {
       sm.addImage(logoId, {
-        tl: { col: lang === "ar" ? 0.15 : 7 + 0.15, row: 0.15 },
+        tl: { col: 7 + 0.15, row: 0.15 },
         ext: { width: 120, height: 34 },
         editAs: "oneCell",
       });
