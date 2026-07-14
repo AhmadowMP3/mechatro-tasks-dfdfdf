@@ -1,21 +1,19 @@
-## Remove click-to-select from Kanban, keep pure drag-and-drop
+## Fix Finance KPI number overflow
 
-Currently the Kanban shows a checkbox on each card (for admins) and clicking enters bulk-select mode, which disables drag. The user wants Kanban to be drag-and-drop only.
+**Problem**: On the finance dashboard, large numbers (e.g. `520,000,000.00 SYP`) overflow the KPI card and get visually clipped at the right edge.
 
-### Changes
+**Root cause**:
+- `.kpi-value` has `font-size: 28px` and no wrapping rules, so long money strings render on a single line and overflow the card.
+- The grid uses `minmax(200px, 1fr)` — too narrow for 9–12-digit currency strings at 28px.
 
-1. `src/routes/_authenticated/tasks.tsx`
-   - When rendering `<KanbanView>`, do NOT pass `selectable`, `isSelected`, `onToggle`. Kanban never enters bulk mode.
-   - Leave bulk selection intact for Table and Cards views (unchanged).
+**Changes** (presentation only, no logic touched):
 
-2. `src/components/tasks/KanbanView.tsx`
-   - Remove the `selectable`/`isSelected`/`onToggle` props and all related code: `BulkCheckbox` import, checkbox overlay, `cardSelected` styling, meta/ctrl/shift click-to-toggle branch, and `draggable = dragThis && !selectable` gate becomes just `dragThis`.
-   - Card click always opens the task; drag always moves/reorders it (subject to existing `canMove` permissions).
+1. `src/styles/finance.css` — `.finance-root .kpi-value` (base, ~line 94):
+   - Reduce `font-size` from `28px` to `24px`.
+   - Add `overflow-wrap: anywhere;` and `word-break: break-word;` so the number+currency can wrap gracefully inside the card instead of clipping.
+   - Add `font-variant-numeric: tabular-nums;` for cleaner digit alignment.
 
-### Out of scope
-- Table and Cards bulk selection stays.
-- No DB, no permission, no mobile layout changes (already handled in previous turn).
+2. `src/routes/_authenticated/finance.index.tsx` (line 201) — widen the KPI grid track:
+   - Change `minmax(200px, 1fr)` → `minmax(240px, 1fr)` so each card has more room before wrapping and layout stays balanced.
 
-### Verify
-- Typecheck.
-- Drag a card across columns and within a column on desktop + mobile viewport; click a card opens the detail modal; no checkbox appears on Kanban.
+No changes to KPI calculations, formatting, currency conversion, or card structure.
