@@ -14,6 +14,7 @@ import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { AssigneeMultiSelect } from "@/components/ui/AssigneeMultiSelect";
 import { saveTaskAssignees } from "@/lib/task-assignees";
+import { AwardPointsPanel } from "@/components/tasks/AwardPointsPanel";
 
 type Task = {
   id: string; project_id: string; title: string; description: string | null;
