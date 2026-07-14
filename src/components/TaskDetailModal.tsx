@@ -434,7 +434,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, marginBottom: 4 }}>{t("totalLogged")}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#42C2EE" }}>{formatMinutes(totalMins, lang)}</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: "#42C2EE", fontVariantNumeric: "tabular-nums", letterSpacing: 1 }}>{formatHMS(totalSecs)}</div>
               </div>
               <button onClick={toggleTimer} className="brand-btn" style={{
                 background: openSession ? "var(--grad-orange)" : "var(--grad-green)", color: "#fff",
@@ -444,6 +444,60 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
             </div>
           </div>
         ) : null}
+
+        {/* Admin: who's working now + history */}
+        {canEditAll && sessions.length > 0 && (
+          <div className="brand-card" style={{ padding: 16, marginBottom: 16, background: "var(--surface-2)" }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "var(--muted)", marginBottom: 10 }}>{t("activeSessions")}</div>
+            {sessions.filter((s) => !s.ended_at).length === 0 ? (
+              <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 12 }}>{t("noActiveSessions")}</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                {sessions.filter((s) => !s.ended_at).map((s) => {
+                  const u = users.find((x) => x.id === s.user_id);
+                  const liveSecs = Math.max(0, Math.floor((now - new Date(s.started_at).getTime()) / 1000));
+                  return (
+                    <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: 10 }}>
+                      {u && <Avatar user={u} size={32} />}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{u?.full_name ?? "—"}</div>
+                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{t("startedAt")}: {formatDateTime(s.started_at)}</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 999, background: "#22c55e", boxShadow: "0 0 8px #22c55e", animation: "pulse 1.5s ease-in-out infinite" }} />
+                        <span style={{ fontSize: 18, fontWeight: 800, color: "#22c55e", fontVariantNumeric: "tabular-nums", letterSpacing: 1 }}>{formatHMS(liveSecs)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {sessions.filter((s) => !!s.ended_at).length > 0 && (
+              <>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "var(--muted)", marginBottom: 8 }}>{t("sessionsHistory")}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 240, overflowY: "auto" }}>
+                  {sessions.filter((s) => !!s.ended_at).slice().reverse().map((s) => {
+                    const u = users.find((x) => x.id === s.user_id);
+                    const secs = Math.max(0, Math.floor((new Date(s.ended_at!).getTime() - new Date(s.started_at).getTime()) / 1000));
+                    return (
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: 10 }}>
+                        {u && <Avatar user={u} size={26} />}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>{u?.full_name ?? "—"}</div>
+                          <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                            {t("startedAt")}: {formatDateTime(s.started_at)} · {t("endedAt")}: {formatDateTime(s.ended_at!)}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: "#42C2EE", fontVariantNumeric: "tabular-nums", letterSpacing: 1 }}>{formatHMS(secs)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
 
         {/* Drive links */}
         <div style={{ marginBottom: 16 }}>
