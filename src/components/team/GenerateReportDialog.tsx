@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, FileText, Loader2, RefreshCw, X, Check } from "lucide-react";
+import { Download, Eye, FileText, Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { ModalShell } from "@/routes/_authenticated/projects.index";
 import { useApp, type Profile } from "@/lib/app-context";
@@ -10,7 +10,8 @@ import {
   type PreparedMemberReport,
   type ReportLangChoice,
 } from "@/lib/report/generator";
-import type { ThemeId } from "@/lib/report/themes";
+
+
 
 type RangeKey = "all" | "7d" | "30d" | "90d" | "custom";
 
@@ -18,7 +19,6 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
   const { t, lang } = useApp();
   const [langChoice, setLangChoice] = useState<ReportLangChoice>("bilingual");
   const [rangeKey, setRangeKey] = useState<RangeKey>("30d");
-  const [theme, setTheme] = useState<ThemeId>("creative");
   const today = new Date().toISOString().slice(0, 10);
   const monthAgo = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
   const [from, setFrom] = useState(monthAgo);
@@ -35,7 +35,7 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
         rangeKey === "all" ? { kind: "all" } :
         { kind: rangeKey };
       const data = await loadMemberReportData(member.id, range);
-      const p = await buildMemberReportPdf(data, langChoice, theme);
+      const p = await buildMemberReportPdf(data, langChoice);
       setPrepared(p);
 
     } catch (e: unknown) {
