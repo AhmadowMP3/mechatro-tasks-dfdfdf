@@ -230,7 +230,7 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
 
   if (logoId != null) {
     s1.addImage(logoId, {
-      tl: { col: lang === "ar" ? 0.15 : 2 + 0.15, row: 0.15 },
+      tl: { col: 2 + 0.15, row: 0.15 },
       ext: { width: 120, height: 34 },
       editAs: "oneCell",
     });
