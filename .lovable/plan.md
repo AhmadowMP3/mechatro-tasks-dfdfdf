@@ -1,19 +1,45 @@
-## Fix Finance KPI number overflow
+## Reset users & wipe demo data
 
-**Problem**: On the finance dashboard, large numbers (e.g. `520,000,000.00 SYP`) overflow the KPI card and get visually clipped at the right edge.
+**Goal**: Delete all existing users + demo data, then create exactly 3 fresh users (super admin, admin, member) with clean state and no deletion errors.
 
-**Root cause**:
-- `.kpi-value` has `font-size: 28px` and no wrapping rules, so long money strings render on a single line and overflow the card.
-- The grid uses `minmax(200px, 1fr)` — too narrow for 9–12-digit currency strings at 28px.
+### New users
 
-**Changes** (presentation only, no logic touched):
+| Role | Name | Email | Password | Master admin? |
+|---|---|---|---|---|
+| Super Admin | Zizo | `zizo@mechatro.com` | `Mechatro@2026` | Yes |
+| Admin | Client | `client@mechatro.com` | `Mechatro@2026` | No |
+| Member | Ahmad | `ahmad@mechatro.com` | `Mechatro@2026` | No |
 
-1. `src/styles/finance.css` — `.finance-root .kpi-value` (base, ~line 94):
-   - Reduce `font-size` from `28px` to `24px`.
-   - Add `overflow-wrap: anywhere;` and `word-break: break-word;` so the number+currency can wrap gracefully inside the card instead of clipping.
-   - Add `font-variant-numeric: tabular-nums;` for cleaner digit alignment.
+All three emails auto-confirmed so they can log in immediately. You can change any of these later from the app.
 
-2. `src/routes/_authenticated/finance.index.tsx` (line 201) — widen the KPI grid track:
-   - Change `minmax(200px, 1fr)` → `minmax(240px, 1fr)` so each card has more room before wrapping and layout stays balanced.
+### What gets deleted (single migration, correct FK order)
 
-No changes to KPI calculations, formatting, currency conversion, or card structure.
+All rows from these tables (data only — schema stays intact):
+
+- Tasks & related: `task_assignees`, `task_comments`, `task_files`, `tasks`
+- Notes & related: `note_attachments`, `note_comments`, `note_shares`, `note_tag_links`, `note_tags`, `note_folders`, `notes`
+- Finance: `invoice_payments`, `invoice_items`, `invoices`, `expenses`, `income_entries`, `subscriptions_income`, `subscriptions_expense`, `finance_reminders_log`, `customers`, `expense_categories`, `fx_rates`
+- Payroll: `payroll_entries`, `payroll_periods`, `member_salary_settings`, `member_reports`
+- League/gamification: `season_scores`, `league_seasons`, `user_badges`
+- System: `notifications`, `activity_log`, `work_sessions`, `user_sessions`, `share_links`, `backup_requests`, `references`, `invites`, `projects`
+- Users: `profiles`, then `auth.users`
+
+Everything is wiped in one transaction, children before parents, so no FK / RLS deletion errors.
+
+### Then create the 3 users (same migration)
+
+For each user:
+1. Insert into `auth.users` with `encrypted_password = crypt('Mechatro@2026', gen_salt('bf'))`, `email_confirmed_at = now()`, `aud='authenticated'`, `role='authenticated'`.
+2. Insert into `auth.identities` with a provider record so email login works.
+3. Insert into `public.profiles` with the correct `role` (`admin`/`member`), `status='active'`, `active=true`, and `is_master_admin=true` for Zizo only.
+4. Set `app_config.master_admin_email = 'zizo@mechatro.com'` so master-admin sync stays consistent.
+
+### Why the earlier delete errors happened
+
+Deleting a user hit FK cascades and audit triggers (`log_row_change`, `award_task_points`, `sync_task_primary_assignee`) that were firing mid-cascade on rows whose parent was already gone. Doing the wipe in strict child→parent order inside one migration bypasses that — no partial cascade, no dangling references.
+
+### Out of scope
+
+- No schema changes, no policy changes, no trigger changes.
+- Storage bucket files (invoices, receipts, note attachments, backups, member-reports) stay — only DB rows are cleared. Say if you want those wiped too.
+- No app code changes; sign in from the auth page with the credentials above.
