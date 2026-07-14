@@ -96,7 +96,6 @@ export const dict = {
   sessionsHistory: { ar: "سجل الجلسات", en: "Sessions history" },
   startedAt: { ar: "بدأ في", en: "Started at" },
   endedAt: { ar: "انتهى في", en: "Ended at" },
-  duration: { ar: "المدة", en: "Duration" },
   noActiveSessions: { ar: "لا توجد جلسات نشطة", en: "No active sessions" },
   comments: { ar: "التعليقات", en: "Comments" },
   addComment: { ar: "اكتب تعليقًا…", en: "Write a comment…" },
