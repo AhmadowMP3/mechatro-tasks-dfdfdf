@@ -118,6 +118,22 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => {
+    // Successful mount → clear the stale-chunk reload guard.
+    try { sessionStorage.removeItem("chunk-reload"); } catch { /* ignore */ }
+    const onRejection = (ev: PromiseRejectionEvent) => {
+      if (isChunkLoadError(ev.reason) && tryChunkReload()) ev.preventDefault();
+    };
+    const onError = (ev: ErrorEvent) => {
+      if (isChunkLoadError(ev.error ?? ev.message) && tryChunkReload()) ev.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", onRejection);
+    window.addEventListener("error", onError);
+    return () => {
+      window.removeEventListener("unhandledrejection", onRejection);
+      window.removeEventListener("error", onError);
+    };
+  }, []);
   return (
     <QueryPersistProvider client={queryClient}>
       <AppProvider>
@@ -131,6 +147,7 @@ function RootComponent() {
     </QueryPersistProvider>
   );
 }
+
 
 function DeviceEnforcer() {
   const router = useRouter();
