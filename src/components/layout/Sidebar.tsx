@@ -357,7 +357,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               >
                 {section.items.map((item) => {
                   const { to, icon: Icon } = item;
-                  const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
+                  const active = isItemActive(to);
                   const label = "label" in item && item.label
                     ? item.label[lang]
                     : t(item.key as DictKey);
