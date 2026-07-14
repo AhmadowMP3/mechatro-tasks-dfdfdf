@@ -526,29 +526,62 @@ function activitySection(data: ReportData, lang: Lang): string {
   </div>`;
 }
 
-function contentPage(data: ReportData, lang: Lang, s: Stats, blocks: string[], pageNum: number, totalPages: number): string {
-  const th = getTheme();
-  return `<section class="pdf-page" dir="${lang === 'ar' ? 'rtl' : 'ltr'}" style="background:${C.paper};color:${C.ink};padding:40px 44px;position:relative">
-    <img src="${logo}" style="position:absolute;bottom:56px;${lang === 'ar' ? 'left' : 'right'}:44px;width:70px;height:70px;object-fit:contain;opacity:0.06;pointer-events:none"/>
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:12px;margin-bottom:20px;border-bottom:1px solid ${C.line};position:relative">
-      <div style="display:flex;align-items:center;gap:10px">
-        <img src="${logo}" style="width:26px;height:26px;object-fit:contain"/>
-        <div>
-          <div style="font-size:12px;font-weight:800;color:${C.ink};line-height:1.1">${esc(t("appName", lang))} · ${esc(t("memberReport", lang))}</div>
-          <div style="width:36px;height:2px;background:${th.gold};margin-top:4px;border-radius:2px"></div>
-        </div>
-      </div>
-      <div style="font-size:11px;color:${C.muted}">${esc(data.member.full_name)} · ${esc(rangeLabel(data, lang))}</div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:20px;position:relative">
-      ${blocks.join("")}
-    </div>
-    <div style="position:absolute;bottom:18px;left:44px;right:44px;display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:${C.muted};border-top:1px solid ${C.line};padding-top:8px">
-      <div style="display:flex;align-items:center;gap:6px"><img src="${logo}" style="width:14px;height:14px;object-fit:contain;opacity:.8"/> mechatro @ mechatro.hub4tech.net</div>
-      <div style="letter-spacing:1px">${esc(t("page", lang))} ${pageNum} / ${totalPages}</div>
-    </div>
-  </section>`;
-  void s;
+// Wrap any block-level HTML fragment in a `.pdf-block` div. Generator packs
+// these into physical PDF pages by measured height so nothing gets sliced.
+function block(html: string, lang: Lang): string {
+  if (!html) return "";
+  return `<div class="pdf-block" dir="${lang === "ar" ? "rtl" : "ltr"}" lang="${lang}" style="background:${C.paper};color:${C.ink};font-family:'Montserrat','Montserrat Arabic',sans-serif">${html}</div>`;
+}
+
+// Break the giant tasks/sessions/activity tables into chunks of N rows each
+// wrapped in individual .pdf-block divs so a table can never straddle a page
+// break in the middle of a row.
+function chunkTableSection(fullHtml: string, rowsPerChunk: number, lang: Lang): string[] {
+  // Extract the <tbody>…</tbody> block, then split its <tr> rows into chunks
+  // and reassemble one full table per chunk keeping the same header.
+  const tbodyMatch = fullHtml.match(/<tbody>([\s\S]*?)<\/tbody>/);
+  if (!tbodyMatch) return [block(fullHtml, lang)];
+  const rows = tbodyMatch[1].match(/<tr[\s\S]*?<\/tr>/g) ?? [];
+  if (rows.length <= rowsPerChunk) return [block(fullHtml, lang)];
+  const chunks: string[] = [];
+  for (let i = 0; i < rows.length; i += rowsPerChunk) {
+    const slice = rows.slice(i, i + rowsPerChunk).join("");
+    const rebuilt = fullHtml.replace(/<tbody>[\s\S]*?<\/tbody>/, `<tbody>${slice}</tbody>`);
+    // Only include the section header on the first chunk; suppress it on the
+    // continuation chunks so the block is just the continued table.
+    if (i === 0) {
+      chunks.push(block(rebuilt, lang));
+    } else {
+      const withoutHeader = rebuilt.replace(/^<div>[\s\S]*?<\/div>\s*(<table)/, "$1");
+      chunks.push(block(withoutHeader, lang));
+    }
+  }
+  return chunks;
+}
+
+// Build content-page blocks for a single language.
+function buildLangBlocks(data: ReportData, lang: Lang, s: Stats): string[] {
+  const out: string[] = [];
+  const push = (html: string) => { if (html) out.push(block(html, lang)); };
+
+  push(profileSection(data, lang));
+  push(kpiGrid(s, lang));
+  push(chartsSection(data, s, lang));
+  push(projectsSection(data, s, lang));
+
+  // Chunk long tables so page break never lands mid-row.
+  const tasksHtml = tasksSection(data, lang);
+  if (tasksHtml) chunkTableSection(tasksHtml, 14, lang).forEach((c) => out.push(c));
+
+  const sessionsHtml = sessionsSection(data, s, lang);
+  if (sessionsHtml) chunkTableSection(sessionsHtml, 14, lang).forEach((c) => out.push(c));
+
+  push(commentsFilesSection(data, lang));
+
+  const activityHtml = activitySection(data, lang);
+  if (activityHtml) chunkTableSection(activityHtml, 16, lang).forEach((c) => out.push(c));
+
+  return out.filter(Boolean);
 }
 
 // Refresh derived palette maps after a theme change.
@@ -563,57 +596,28 @@ export function buildReportHtml(data: ReportData, lang: Lang, theme?: ThemeId): 
   if (theme) setTheme(theme);
   refreshPalette();
   const s = computeStats(data);
-  const contentPages: string[][] = [
-    [profileSection(data, lang), kpiGrid(s, lang), chartsSection(data, s, lang)],
-    [projectsSection(data, s, lang), tasksSection(data, lang)],
-    [sessionsSection(data, s, lang), commentsFilesSection(data, lang), activitySection(data, lang)],
-  ].map((blocks) => blocks.filter(Boolean)).filter((b) => b.length);
-
-  const rendered: string[] = [coverPage(data, lang, s)];
-  const total = 1 + contentPages.length;
-  contentPages.forEach((blocks, i) => rendered.push(contentPage(data, lang, s, blocks, i + 2, total)));
-  return rendered.join("");
+  const cover = coverPage(data, lang, s);
+  const blocks = buildLangBlocks(data, lang, s).join("");
+  return cover + blocks;
 }
 
 export function buildBilingualHtml(data: ReportData, theme?: ThemeId): string {
-  // Creative theme: single unified doc — cover in AR, each content page shows
-  // Arabic block above English block so header/footer/logo stay consistent.
-  if (theme === "creative") {
-    setTheme("creative");
-    refreshPalette();
-    const s = computeStats(data);
-    const pairs: Array<{ ar: string; en: string }[]> = [
-      [
-        { ar: profileSection(data, "ar"), en: profileSection(data, "en") },
-        { ar: kpiGrid(s, "ar"), en: kpiGrid(s, "en") },
-      ],
-      [{ ar: chartsSection(data, s, "ar"), en: chartsSection(data, s, "en") }],
-      [
-        { ar: projectsSection(data, s, "ar"), en: projectsSection(data, s, "en") },
-      ].filter((p) => p.ar || p.en),
-      [{ ar: tasksSection(data, "ar"), en: tasksSection(data, "en") }],
-      [
-        { ar: sessionsSection(data, s, "ar"), en: sessionsSection(data, s, "en") },
-      ].filter((p) => p.ar || p.en),
-      [
-        { ar: activitySection(data, "ar"), en: activitySection(data, "en") },
-      ].filter((p) => p.ar || p.en),
-    ].filter((page) => page.length);
-
-    const rendered: string[] = [coverPage(data, "ar", s)];
-    const total = 1 + pairs.length;
-    pairs.forEach((pairList, i) => {
-      const blocks = pairList.flatMap(({ ar, en }) => [
-        `<div dir="rtl" lang="ar">${ar}</div>`,
-        `<div style="height:1px;background:var(--none,#ECECEC);margin:8px 0;opacity:.6"></div>`,
-        `<div dir="ltr" lang="en">${en}</div>`,
-      ]);
-      rendered.push(contentPage(data, "ar", s, blocks, i + 2, total));
-    });
-    return rendered.join("");
+  if (theme) setTheme(theme);
+  refreshPalette();
+  const s = computeStats(data);
+  // Cover always in Arabic first for RTL-first branding.
+  const cover = coverPage(data, "ar", s);
+  const ar = buildLangBlocks(data, "ar", s);
+  const en = buildLangBlocks(data, "en", s);
+  // Interleave AR then EN section-by-section so a reader sees each topic in
+  // both languages next to each other, matching the creative bilingual spec.
+  const maxLen = Math.max(ar.length, en.length);
+  const interleaved: string[] = [];
+  for (let i = 0; i < maxLen; i++) {
+    if (ar[i]) interleaved.push(ar[i]);
+    if (en[i]) interleaved.push(en[i]);
   }
-  // Legacy behavior: two full docs stacked (AR then EN).
-  return buildReportHtml(data, "ar", theme) + `<div class="html2pdf__page-break"></div>` + buildReportHtml(data, "en", theme);
+  return cover + interleaved.join("");
 }
 
 
