@@ -329,7 +329,10 @@ export async function buildMemberReportPdf(
   const html = choice === "bilingual" ? buildBilingualHtml(data, theme) : buildReportHtml(data, choice as Lang, theme);
   const safeName = data.member.full_name.replace(/[^\w\-\u0600-\u06FF]+/g, "_");
   const filename = `Mechatro_Report_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`;
-  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename);
+  const rangeText = data.range.from
+    ? `${data.range.from.toISOString().slice(0, 10)} — ${(data.range.to ?? new Date()).toISOString().slice(0, 10)}`
+    : "All time";
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, data.member.full_name, rangeText);
   return { blob, filename, pageCount, data, choice, theme };
 }
 
