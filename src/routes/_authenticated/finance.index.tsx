@@ -198,7 +198,7 @@ function FinanceDashboard() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
         <KpiCard icon={TrendingUp} label={t("totalIncome") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdIncome, displayCurrency, lang)} tone="green" />
         <KpiCard icon={TrendingDown} label={t("totalExpenses") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdExpenses, displayCurrency, lang)} tone="red" />
         <KpiCard icon={DollarSign} label={t("netProfit") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdNet, displayCurrency, lang)} tone={kpi.mtdNet >= 0 ? "green" : "red"} />
