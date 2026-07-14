@@ -498,18 +498,16 @@ function PaymentReceiptModal({
   const download = async () => {
     setDownloading(true);
     try {
-      await renderAndDownloadPdf(
-        <PaymentReceiptDocument
-          payment={payment}
-          invoice={invoice}
-          customer={customer}
-          settings={settings}
-          lang={lang}
-          methodLabel={paymentMethodTextFor(payment.method, lang)}
-        />,
-        stampFilename("receipt", (payment.id ?? "").slice(0, 8)),
-        { chrome: { lang, generatedBy: user?.full_name ?? null } },
-      );
+      const pdf = await buildReceiptPdf({
+        payment,
+        invoice,
+        customer,
+        settings,
+        lang,
+        methodLabel: paymentMethodTextFor(payment.method, lang),
+        chrome: { lang, generatedBy: user?.full_name ?? null },
+      });
+      pdf.save(stampFilename("receipt", (payment.id ?? "").slice(0, 8)));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
