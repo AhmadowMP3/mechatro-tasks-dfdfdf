@@ -1,10 +1,10 @@
-// Team-wide PDF report — aggregates all members within a period.
-// Uses the same theme system as per-member reports.
+// Team-wide PDF report — one Dashboard Card per member, plus team KPI cover.
+// Single locked style, colorful Mechatro logo, bilingual side-by-side cards.
 
 import { supabase } from "@/integrations/supabase/client";
 import { dict, type Lang } from "@/i18n/dict";
-import { getTheme, setTheme, type ThemeId } from "./themes";
 import logo from "@/assets/mechatro-logo.png";
+import { P, CARD_STYLE, esc, fmtDate, card, cardHeader, block, kpiTile, miniKpi } from "./pdf-chrome";
 
 export type TeamReportRange = {
   from: Date | null;
@@ -22,6 +22,7 @@ export type TeamMemberSlice = {
   current_streak: number;
   tasks_total: number;
   tasks_done: number;
+  tasks_in_progress: number;
   tasks_overdue: number;
   on_time_pct: number;
   hours_logged: number;
@@ -36,6 +37,7 @@ export type TeamReportData = {
     done: number;
     in_progress: number;
     overdue: number;
+    on_time_pct: number;
     points: number;
     hours: number;
     projects: number;
@@ -44,11 +46,7 @@ export type TeamReportData = {
   projectRows: Array<{ id: string; name_ar: string; name_en: string; color: string; total: number; done: number }>;
 };
 
-const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 const t = (k: keyof typeof dict, lang: Lang) => dict[k]?.[lang] ?? String(k);
-
-const fmtDate = (d: Date | null, lang: Lang) =>
-  d ? d.toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB", { year: "numeric", month: "short", day: "numeric" }) : "—";
 
 /** Load team-wide report data for admins. */
 export async function loadTeamReportData(range: TeamReportRange, generatedByName: string): Promise<TeamReportData> {
@@ -71,7 +69,7 @@ export async function loadTeamReportData(range: TeamReportRange, generatedByName
   const projects = projR.data ?? [];
 
   // Load co-assignees for the tasks in scope.
-  const taskIds = tasks.map((t) => t.id);
+  const taskIds = tasks.map((tk) => tk.id);
   const assigneesByTask: Record<string, string[]> = {};
   if (taskIds.length) {
     const chunkSize = 500;
@@ -85,12 +83,16 @@ export async function loadTeamReportData(range: TeamReportRange, generatedByName
     primaryId === memberId || (assigneesByTask[taskId] ?? []).includes(memberId);
 
   const now = new Date();
+  let teamOnTimeNum = 0, teamOnTimeDen = 0;
 
   const members: TeamMemberSlice[] = profiles.map((p) => {
     const mine = tasks.filter((tk) => memberOnTask(tk.id, tk.assignee_id, p.id));
     const done = mine.filter((tk) => tk.status === "done");
+    const inProgress = mine.filter((tk) => tk.status === "in_progress").length;
     const overdue = mine.filter((tk) => tk.status !== "done" && tk.due_date && new Date(tk.due_date) < now).length;
     const onTime = done.filter((tk) => tk.due_date && tk.completed_at && new Date(tk.completed_at) <= new Date(tk.due_date + "T23:59:59")).length;
+    teamOnTimeNum += onTime;
+    teamOnTimeDen += done.length;
     const hoursMin = sessions.filter((s) => s.user_id === p.id).reduce((a, s) => a + (s.duration_minutes ?? 0), 0);
     return {
       id: p.id,
@@ -102,6 +104,7 @@ export async function loadTeamReportData(range: TeamReportRange, generatedByName
       current_streak: p.current_streak ?? 0,
       tasks_total: mine.length,
       tasks_done: done.length,
+      tasks_in_progress: inProgress,
       tasks_overdue: overdue,
       on_time_pct: done.length ? Math.round((onTime / done.length) * 100) : 0,
       hours_logged: Math.round(hoursMin / 60),
@@ -111,7 +114,7 @@ export async function loadTeamReportData(range: TeamReportRange, generatedByName
   const projectRows = projects.map((p) => {
     const list = tasks.filter((tk) => tk.project_id === p.id);
     return {
-      id: p.id, name_ar: p.name_ar, name_en: p.name_en, color: p.color ?? "#189FD1",
+      id: p.id, name_ar: p.name_ar, name_en: p.name_en, color: p.color ?? P.cyan,
       total: list.length,
       done: list.filter((tk) => tk.status === "done").length,
     };
@@ -126,6 +129,7 @@ export async function loadTeamReportData(range: TeamReportRange, generatedByName
       done: tasks.filter((tk) => tk.status === "done").length,
       in_progress: tasks.filter((tk) => tk.status === "in_progress").length,
       overdue: tasks.filter((tk) => tk.status !== "done" && tk.due_date && new Date(tk.due_date) < now).length,
+      on_time_pct: teamOnTimeDen ? Math.round((teamOnTimeNum / teamOnTimeDen) * 100) : 0,
       points: profiles.reduce((a, p) => a + (p.total_points ?? 0), 0),
       hours: Math.round(sessions.reduce((a, s) => a + (s.duration_minutes ?? 0), 0) / 60),
       projects: projects.length,
@@ -135,147 +139,184 @@ export async function loadTeamReportData(range: TeamReportRange, generatedByName
   };
 }
 
-/** Build the HTML for a team-wide report using the currently selected theme. */
-export function buildTeamReportHtml(data: TeamReportData, lang: Lang, theme?: ThemeId): string {
-  if (theme) setTheme(theme);
-  const th = getTheme();
-  const isMinimal = th.id === "minimal";
-  const softOverlay = th.id === "aurora" || th.id === "executive" ? "rgba(255,255,255,.14)" : "rgba(0,0,0,.05)";
-  const softBorder = th.id === "aurora" || th.id === "executive" ? "rgba(255,255,255,.18)" : "rgba(0,0,0,.08)";
-  const softSubtle = th.coverSub;
+// ---------- Cover ----------
+function coverPage(data: TeamReportData): string {
+  const rangeText = data.range.from
+    ? `${fmtDate(data.range.from, "en")} — ${fmtDate(data.range.to ?? new Date(), "en")}`
+    : "All time";
 
-  const cover = `
-  <section class="pdf-page cover" style="background:${th.coverBg};color:${th.coverInk};position:relative;overflow:hidden">
-    <div style="position:absolute;inset:0;background:${th.coverGlow}"></div>
-    <div style="position:relative;padding:${isMinimal ? "80px 72px 56px" : "56px"};height:100%;display:flex;flex-direction:column;gap:${isMinimal ? 32 : 20}px">
-      <div style="display:flex;align-items:center;gap:14px">
-        <img src="${logo}" style="width:44px;height:44px;object-fit:contain"/>
-        <div>
-          <div style="font-size:18px;font-weight:800">${esc(t("appName", lang))}</div>
-          <div style="font-size:11px;color:${softSubtle};letter-spacing:2px">${isMinimal ? "MECHATRO · TEAM REPORT" : "TEAM PERFORMANCE REPORT"}</div>
-        </div>
-      </div>
-      ${isMinimal ? `<div style="width:64px;height:3px;background:${th.gold};margin-top:20px"></div>` : ""}
-      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px">
-        <div style="font-size:${isMinimal ? 60 : 44}px;font-weight:900;line-height:1;letter-spacing:-1px">
-          ${lang === "ar" ? "تقرير الفريق" : "Team Report"}
-        </div>
-        <div style="font-size:${isMinimal ? 20 : 16}px;color:${softSubtle}">
-          ${lang === "ar" ? "Team Performance Report" : "تقرير أداء الفريق"}
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px">
-          ${teamBigStat(t("kpi_total_tasks", lang), String(data.totals.tasks), softOverlay, softBorder, softSubtle, th.coverInk)}
-          ${teamBigStat(t("kpi_completed", lang), String(data.totals.done), softOverlay, softBorder, softSubtle, th.coverInk)}
-          ${teamBigStat(lang === "ar" ? "النقاط" : "Points", String(data.totals.points), softOverlay, softBorder, softSubtle, th.coverInk)}
-          ${teamBigStat(lang === "ar" ? "أعضاء" : "Members", String(data.totals.active_members), softOverlay, softBorder, softSubtle, th.coverInk)}
-        </div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:${softSubtle};border-top:1px solid ${softBorder};padding-top:14px">
-        <div>${esc(t("reportPeriod", lang))}: <b style="color:${th.coverInk}">${esc(fmtDate(data.range.from, lang))} — ${esc(fmtDate(data.range.to, lang))}</b></div>
-        <div>${esc(t("reportedBy", lang))}: <b style="color:${th.coverInk}">${esc(data.generated_by.full_name)}</b></div>
+  const kpis: [string, string, string, string][] = [
+    [String(data.totals.tasks), "TOTAL TASKS", "إجمالي المهام", P.cyan],
+    [
+      (data.totals.tasks ? Math.round((data.totals.done / data.totals.tasks) * 100) : 0) + "%",
+      "COMPLETION", "الإنجاز", P.green,
+    ],
+    [data.totals.on_time_pct + "%", "ON-TIME", "في الموعد", P.gold],
+    [String(data.totals.hours), "HOURS LOGGED", "الساعات", P.purple],
+  ];
+
+  const secondaryStats: [string, string, string][] = [
+    [String(data.totals.active_members), "Members", "أعضاء"],
+    [String(data.totals.projects), "Projects", "مشاريع"],
+    [String(data.totals.in_progress), "In progress", "قيد التنفيذ"],
+    [String(data.totals.overdue), "Overdue", "متأخرة"],
+    [String(data.totals.points), "Total points", "النقاط"],
+  ];
+
+  return `
+  <section class="pdf-page cover" style="background:${P.page};color:${P.ink};position:relative;overflow:hidden;padding:56px 48px 44px 48px;box-sizing:border-box">
+    <!-- Brand strip -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:36px">
+      <img src="${logo}" style="height:48px;object-fit:contain"/>
+      <div style="text-align:right;font-size:10px;color:${P.muted};letter-spacing:1px;line-height:1.6">
+        <div>${esc(fmtDate(new Date(), "en"))}</div>
+        <div>${esc(rangeText)}</div>
       </div>
     </div>
+
+    <!-- Gold accent bar -->
+    <div style="width:56px;height:4px;background:${P.gold};border-radius:2px;margin-bottom:22px"></div>
+
+    <!-- Title card -->
+    <div style="${CARD_STYLE};padding:32px;margin-bottom:22px">
+      <div style="font-size:11px;color:${P.muted};letter-spacing:3px;font-weight:700;margin-bottom:10px">MECHATRO · TEAM REPORT · تقرير الفريق</div>
+      <div style="font-size:52px;font-weight:900;line-height:1.02;letter-spacing:-1.5px;color:${P.ink}">Team Performance</div>
+      <div dir="rtl" style="font-size:22px;color:${P.muted};margin-top:10px;font-family:'Montserrat Arabic','Cairo',sans-serif">تقرير أداء الفريق</div>
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+        <span style="background:${P.gold};color:#111;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px">PERIOD · ${esc(rangeText).toUpperCase()}</span>
+        <span style="border:1.5px solid ${P.line};color:${P.ink2};background:#fff;padding:5px 14px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px">${data.totals.active_members} MEMBERS</span>
+      </div>
+    </div>
+
+    <!-- KPI grid -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px">
+      ${kpis.map(([v, en, ar, c]) => kpiTile(v, en, ar, c)).join("")}
+    </div>
+
+    <!-- Secondary stats strip -->
+    <div style="${CARD_STYLE};padding:18px 22px;margin-bottom:22px">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:center">
+        ${secondaryStats.map(([v, en, ar]) => `
+          <div style="text-align:center">
+            <div style="font-size:22px;font-weight:900;color:${P.ink};line-height:1">${esc(v)}</div>
+            <div style="font-size:9.5px;color:${P.muted};margin-top:6px;letter-spacing:1px;font-weight:700;text-transform:uppercase">${esc(en)}</div>
+            <div dir="rtl" style="font-size:10.5px;color:${P.ink2};margin-top:2px;font-family:'Montserrat Arabic','Cairo',sans-serif">${esc(ar)}</div>
+          </div>`).join("")}
+      </div>
+    </div>
+
+    <!-- Meta footer -->
+    <div style="${CARD_STYLE};padding:16px 22px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${P.muted}">
+      <div style="display:flex;align-items:center;gap:8px">
+        <img src="${logo}" style="height:16px;object-fit:contain;opacity:.9"/>
+        <span>mechatro @ mechatro.hub4tech.net</span>
+      </div>
+      <div>By ${esc(data.generated_by.full_name)}</div>
+    </div>
   </section>`;
+}
 
-  const leaderboardRows = data.members.slice(0, 20).map((m, i) => `
-    <tr>
-      <td style="padding:10px 12px;font-weight:800;color:${i < 3 ? th.gold : th.muted};width:40px">${i + 1}</td>
-      <td style="padding:10px 12px"><b>${esc(m.full_name)}</b><div style="font-size:10.5px;color:${th.muted}">${esc(m.job_title ?? m.role)}</div></td>
-      <td style="padding:10px 12px;text-align:center;font-weight:800;color:${th.gold}">⭐ ${m.total_points}</td>
-      <td style="padding:10px 12px;text-align:center">${m.tasks_done}/${m.tasks_total}</td>
-      <td style="padding:10px 12px;text-align:center;color:${m.tasks_overdue ? th.red : th.ink}">${m.tasks_overdue}</td>
-      <td style="padding:10px 12px;text-align:center">${m.on_time_pct}%</td>
-      <td style="padding:10px 12px;text-align:center">${m.hours_logged}h</td>
-      <td style="padding:10px 12px;text-align:center">🔥 ${m.current_streak}</td>
-    </tr>`).join("");
+// ---------- Per-member card ----------
+function memberCard(m: TeamMemberSlice, rankIndex: number): string {
+  const initials = m.full_name.split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase();
+  const avatar = m.avatar_url
+    ? `<img src="${esc(m.avatar_url)}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid #fff;box-shadow:0 4px 12px rgba(15,23,42,.15)"/>`
+    : `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${P.cyan},${P.cyanDark});display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff">${esc(initials)}</div>`;
 
-  const projectRows = data.projectRows.slice(0, 20).map((p) => {
+  const completionPct = m.tasks_total ? Math.round((m.tasks_done / m.tasks_total) * 100) : 0;
+  const rankBadge = rankIndex < 3
+    ? `<span style="background:${P.gold};color:#111;padding:4px 10px;border-radius:999px;font-size:10px;font-weight:900;letter-spacing:1px">#${rankIndex + 1}</span>`
+    : `<span style="background:${P.soft};color:${P.muted};padding:4px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:1px">#${rankIndex + 1}</span>`;
+
+  const header = `
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+      ${avatar}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          ${rankBadge}
+          <span style="font-size:10px;color:${P.muted};letter-spacing:1.5px;font-weight:800;text-transform:uppercase">${esc(m.role)}</span>
+        </div>
+        <div style="font-size:20px;font-weight:900;color:${P.ink};line-height:1.15;letter-spacing:-.3px">${esc(m.full_name)}</div>
+        ${m.job_title ? `<div style="font-size:12px;color:${P.muted};margin-top:2px">${esc(m.job_title)}</div>` : ""}
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:26px;font-weight:900;color:${P.gold};line-height:1">${m.total_points}</div>
+        <div style="font-size:9.5px;color:${P.muted};letter-spacing:1px;font-weight:800;margin-top:2px">POINTS · النقاط</div>
+      </div>
+    </div>`;
+
+  const kpiGrid = `
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+      ${miniKpi(String(m.tasks_total), "Tasks", "المهام", P.cyan)}
+      ${miniKpi(completionPct + "%", "Done", "منجزة", P.green)}
+      ${miniKpi(String(m.tasks_in_progress), "In progress", "قيد التنفيذ", P.orange)}
+      ${miniKpi(String(m.tasks_overdue), "Overdue", "متأخرة", m.tasks_overdue ? P.red : P.muted)}
+      ${miniKpi(String(m.hours_logged) + "h", "Hours", "ساعات", P.purple)}
+    </div>`;
+
+  // Progress bar for done ratio
+  const progress = `
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid ${P.line}">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:${P.muted};font-weight:700;margin-bottom:6px">
+        <span>Completion · الإنجاز</span>
+        <span>${m.tasks_done}/${m.tasks_total} · ${completionPct}%</span>
+      </div>
+      <div style="background:${P.soft};height:8px;border-radius:4px;overflow:hidden">
+        <div style="width:${completionPct}%;height:100%;background:linear-gradient(90deg,${P.cyan},${P.green})"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10.5px;color:${P.muted};margin-top:10px">
+        <span>🔥 Streak: <b style="color:${P.ink}">${m.current_streak}</b></span>
+        <span>On-time · ${m.on_time_pct}%</span>
+      </div>
+    </div>`;
+
+  return card(header + kpiGrid + progress);
+}
+
+// ---------- Projects card ----------
+function projectsCard(data: TeamReportData): string {
+  const entries = data.projectRows.slice(0, 8);
+  if (!entries.length) return "";
+  const rows = entries.map((p) => {
     const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
-    return `<tr>
-      <td style="padding:10px 12px"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${p.color};margin-inline-end:8px"></span><b>${esc(lang === "ar" ? p.name_ar : p.name_en)}</b></td>
-      <td style="padding:10px 12px;text-align:center">${p.total}</td>
-      <td style="padding:10px 12px;text-align:center">${p.done}</td>
-      <td style="padding:10px 12px">
-        <div style="background:${th.line};height:8px;border-radius:4px"><div style="width:${pct}%;height:100%;background:${p.color};border-radius:4px"></div></div>
-        <div style="font-size:10.5px;color:${th.muted};margin-top:3px">${pct}%</div>
-      </td>
-    </tr>`;
+    return `<div style="padding:11px 0;border-bottom:1px solid ${P.line}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">
+          <span style="width:12px;height:12px;border-radius:4px;background:${p.color};flex:0 0 auto"></span>
+          <div style="min-width:0;flex:1">
+            <div style="font-weight:800;color:${P.ink};font-size:13px">${esc(p.name_en)}</div>
+            <div dir="rtl" style="font-size:11px;color:${P.muted};font-family:'Montserrat Arabic','Cairo',sans-serif">${esc(p.name_ar)}</div>
+          </div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:${P.muted}">
+          <div><b style="color:${P.ink};font-size:14px">${p.done}</b> / ${p.total}</div>
+          <div style="margin-top:2px">${pct}%</div>
+        </div>
+      </div>
+      <div style="background:${P.soft};height:6px;border-radius:3px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,${p.color},${p.color}cc)"></div>
+      </div>
+    </div>`;
   }).join("");
-
-  const page2 = `
-  <section class="pdf-page" dir="${lang === "ar" ? "rtl" : "ltr"}" style="background:${th.paper};color:${th.ink};padding:40px 44px;position:relative">
-    ${pageHeader(th, lang, data)}
-    <div style="display:flex;flex-direction:column;gap:24px">
-      <div>
-        ${sectionHeader(th, lang === "ar" ? "لوحة الصدارة" : "Leaderboard", th.gold)}
-        <table style="width:100%;border-collapse:collapse;background:${th.card};border:1px solid ${th.line};border-radius:12px;overflow:hidden;font-size:12px">
-          <thead><tr style="background:${th.soft};color:${th.muted};font-size:10.5px;text-transform:uppercase;letter-spacing:.5px">
-            <th style="padding:10px 12px;text-align:${lang === "ar" ? "right" : "left"}">#</th>
-            <th style="padding:10px 12px;text-align:${lang === "ar" ? "right" : "left"}">${esc(lang === "ar" ? "العضو" : "Member")}</th>
-            <th style="padding:10px 12px">${esc(lang === "ar" ? "النقاط" : "Points")}</th>
-            <th style="padding:10px 12px">${esc(lang === "ar" ? "منجزة/الكل" : "Done/Total")}</th>
-            <th style="padding:10px 12px">${esc(lang === "ar" ? "متأخرة" : "Overdue")}</th>
-            <th style="padding:10px 12px">${esc(lang === "ar" ? "في الموعد" : "On Time")}</th>
-            <th style="padding:10px 12px">${esc(lang === "ar" ? "ساعات" : "Hours")}</th>
-            <th style="padding:10px 12px">${esc(lang === "ar" ? "متتالية" : "Streak")}</th>
-          </tr></thead>
-          <tbody>${leaderboardRows}</tbody>
-        </table>
-      </div>
-    </div>
-    ${pageFooter(th, lang, 2)}
-  </section>`;
-
-  const page3 = `
-  <section class="pdf-page" dir="${lang === "ar" ? "rtl" : "ltr"}" style="background:${th.paper};color:${th.ink};padding:40px 44px;position:relative">
-    ${pageHeader(th, lang, data)}
-    <div style="display:flex;flex-direction:column;gap:24px">
-      <div>
-        ${sectionHeader(th, lang === "ar" ? "المشاريع" : "Projects", th.blue)}
-        <table style="width:100%;border-collapse:collapse;background:${th.card};border:1px solid ${th.line};border-radius:12px;overflow:hidden;font-size:12.5px">
-          <thead><tr style="background:${th.soft};color:${th.muted};font-size:10.5px;text-transform:uppercase;letter-spacing:.5px">
-            <th style="padding:10px 12px;text-align:${lang === "ar" ? "right" : "left"}">${esc(lang === "ar" ? "المشروع" : "Project")}</th>
-            <th style="padding:10px 12px">${esc(lang === "ar" ? "المجموع" : "Total")}</th>
-            <th style="padding:10px 12px">${esc(lang === "ar" ? "منجزة" : "Done")}</th>
-            <th style="padding:10px 12px">${esc(lang === "ar" ? "الإكمال" : "Completion")}</th>
-          </tr></thead>
-          <tbody>${projectRows}</tbody>
-        </table>
-      </div>
-    </div>
-    ${pageFooter(th, lang, 3)}
-  </section>`;
-
-  return cover + page2 + page3;
+  return card(cardHeader(P.orange, "▤", "Top projects", "أهم المشاريع") + `<div>${rows}</div>`);
 }
 
-function teamBigStat(label: string, value: string, bg: string, border: string, sub: string, ink: string): string {
-  return `<div style="background:${bg};border:1px solid ${border};border-radius:14px;padding:14px 16px">
-    <div style="font-size:32px;font-weight:900;line-height:1;color:${ink}">${esc(value)}</div>
-    <div style="font-size:11px;color:${sub};margin-top:4px;text-transform:uppercase;letter-spacing:1px">${esc(label)}</div>
-  </div>`;
-}
-
-function sectionHeader(th: ReturnType<typeof getTheme>, title: string, accent: string): string {
-  return `<div style="display:flex;align-items:center;gap:10px;margin:0 0 14px 0">
-    <div style="width:8px;height:22px;background:${accent};border-radius:2px"></div>
-    <div style="font-size:20px;font-weight:800;color:${th.ink}">${esc(title)}</div>
-  </div>`;
-}
-
-function pageHeader(th: ReturnType<typeof getTheme>, lang: Lang, data: TeamReportData): string {
-  return `<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${th.line};padding-bottom:12px;margin-bottom:20px">
-    <div style="display:flex;align-items:center;gap:10px">
-      <img src="${logo}" style="width:24px;height:24px;object-fit:contain"/>
-      <div style="font-size:12px;font-weight:800;color:${th.ink}">${esc(t("appName", lang))} · ${esc(lang === "ar" ? "تقرير الفريق" : "Team Report")}</div>
-    </div>
-    <div style="font-size:11px;color:${th.muted}">${esc(fmtDate(data.range.from, lang))} — ${esc(fmtDate(data.range.to, lang))}</div>
-  </div>`;
-}
-
-function pageFooter(th: ReturnType<typeof getTheme>, lang: Lang, pageNum: number): string {
-  return `<div style="position:absolute;bottom:18px;left:44px;right:44px;display:flex;justify-content:space-between;font-size:10.5px;color:${th.muted};border-top:1px solid ${th.line};padding-top:8px">
-    <div>Mechatro © ${new Date().getFullYear()}</div>
-    <div>${esc(t("page", lang))} ${pageNum}</div>
-  </div>`;
+/** Build the full team report HTML (single style, bilingual). */
+export function buildTeamReportHtml(data: TeamReportData, _lang: Lang = "en"): string {
+  void _lang;
+  const cover = coverPage(data);
+  const parts: string[] = [];
+  // Section header card announcing member roster
+  parts.push(card(cardHeader(P.cyan, "◐", "Members overview", "نظرة عامة على الأعضاء") +
+    `<div style="font-size:12px;color:${P.muted};line-height:1.6">
+      One dashboard card per active member with tasks, completion, hours, and streak.
+      <br/><span dir="rtl" style="font-family:'Montserrat Arabic','Cairo',sans-serif">بطاقة أداء لكل عضو نشط تشمل المهام والإنجاز والساعات والاستمرارية.</span>
+    </div>`));
+  for (let i = 0; i < data.members.length; i++) {
+    parts.push(memberCard(data.members[i], i));
+  }
+  const projects = projectsCard(data);
+  if (projects) parts.push(projects);
+  const blocks = parts.map(block).join("");
+  return cover + blocks;
 }

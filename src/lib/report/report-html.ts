@@ -1,7 +1,6 @@
 import type { ReportData } from "./data";
 import { dict, type Lang } from "@/i18n/dict";
 import logo from "@/assets/mechatro-logo.png";
-import type { ThemeId } from "./themes";
 
 /**
  * Single-style "Dashboard Card" report generator.
@@ -508,8 +507,7 @@ function block(html: string): string {
 }
 
 /** Build the full bilingual (side-by-side AR/EN) member report. */
-export function buildBilingualHtml(data: ReportData, _theme?: ThemeId): string {
-  void _theme;
+export function buildBilingualHtml(data: ReportData): string {
   const s = computeStats(data);
   const cover = coverPage(data, s, "en");
   const blocks = [
@@ -526,8 +524,7 @@ export function buildBilingualHtml(data: ReportData, _theme?: ThemeId): string {
 
 /** Build a single-language member report (AR or EN only). Uses the same
  *  dashboard-card style; each card body is single-column in the chosen language. */
-export function buildReportHtml(data: ReportData, lang: Lang, _theme?: ThemeId): string {
-  void _theme;
+export function buildReportHtml(data: ReportData, lang: Lang): string {
   const s = computeStats(data);
   const cover = coverPage(data, s, lang);
 

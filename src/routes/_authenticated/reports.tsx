@@ -1,13 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { FileSpreadsheet, FileText, Download, Loader2, ArrowRight, ArrowLeft, Users2, User, Eye, Palette, Check, History } from "lucide-react";
+import { FileSpreadsheet, FileText, Download, Loader2, ArrowRight, ArrowLeft, Users2, User, Eye, Check, History } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Avatar } from "@/components/Avatar";
 import { exportBrandedWorkbook } from "@/lib/export/xlsx-workbook";
-import { THEMES, type ThemeId } from "@/lib/report/themes";
 import { loadMemberReportData, type ReportRange } from "@/lib/report/data";
 import { buildMemberReportPdf, buildTeamReportPdf, persistMemberReportPdf, type PreparedMemberReport, type ReportLangChoice } from "@/lib/report/generator";
 import { buildTeamReportHtml, loadTeamReportData } from "@/lib/report/team-report";
@@ -19,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/reports")({
 });
 
 type Scope = "team" | "member";
-type WizardStep = 1 | 2 | 3 | 4 | 5;
+type WizardStep = 1 | 2 | 3 | 4;
 
 function ReportsPage() {
   const { t, isAdmin, lang, user } = useApp();
@@ -154,7 +153,6 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
   const monthAgo = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
   const [from, setFrom] = useState(monthAgo);
   const [to, setTo] = useState(today);
-  const [theme, setTheme] = useState<ThemeId>("aurora");
   const [busy, setBusy] = useState(false);
   const [prepared, setPrepared] = useState<{ blob: Blob; filename: string; pageCount: number; kind: "team" | "member"; memberReport?: PreparedMemberReport } | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -180,18 +178,19 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
           label: r.kind,
         };
         const data = await loadTeamReportData(range, user?.full_name ?? "Admin");
-        const html = langChoice === "bilingual"
-          ? buildTeamReportHtml(data, "ar", theme) + `<div class="html2pdf__page-break"></div>` + buildTeamReportHtml(data, "en", theme)
-          : buildTeamReportHtml(data, langChoice as Lang, theme);
+        const html = buildTeamReportHtml(data, langChoice === "bilingual" ? "en" : (langChoice as Lang));
         const filename = `Mechatro_Team_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
-        const result = await buildTeamReportPdf(html, filename);
+        const rangeText = range.from
+          ? `${range.from.toISOString().slice(0, 10)} — ${(range.to ?? new Date()).toISOString().slice(0, 10)}`
+          : "All time";
+        const result = await buildTeamReportPdf(html, filename, rangeText);
         setPrepared({ ...result, kind: "team" });
       } else if (memberId) {
         const data = await loadMemberReportData(memberId, buildRange());
-        const p = await buildMemberReportPdf(data, langChoice, theme);
+        const p = await buildMemberReportPdf(data, langChoice);
         setPrepared({ blob: p.blob, filename: p.filename, pageCount: p.pageCount, kind: "member", memberReport: p });
       }
-      setStep(5);
+      setStep(4);
     } catch (e) {
       console.error(e);
       toast.error((e as Error).message || t("reportError"));
@@ -238,10 +237,10 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "var(--foreground)" }}>{t("newPdfReport")}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>{t("step")} {step} {t("ofSteps")} 5</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>{t("step")} {step} {t("ofSteps")} 4</div>
           </div>
           <div style={{ display: "flex", gap: 4 }}>
-            {[1, 2, 3, 4, 5].map((n) => (
+            {[1, 2, 3, 4].map((n) => (
               <div key={n} style={{ flex: 1, height: 4, borderRadius: 2, background: n <= step ? "linear-gradient(90deg,#42C2EE,#7C5CD1)" : "var(--border)" }} />
             ))}
           </div>
@@ -251,29 +250,28 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
           {step === 1 && <StepScope scope={scope} setScope={setScope} memberId={memberId} setMemberId={setMemberId} users={users} />}
           {step === 2 && <StepLanguage value={langChoice} onChange={setLangChoice} />}
           {step === 3 && <StepPeriod rangeKey={rangeKey} setRangeKey={setRangeKey} from={from} to={to} setFrom={setFrom} setTo={setTo} today={today} />}
-          {step === 4 && <StepTheme value={theme} onChange={setTheme} />}
-          {step === 5 && prepared && <StepPreview prepared={prepared} />}
+          {step === 4 && prepared && <StepPreview prepared={prepared} />}
         </div>
 
         <div style={{ padding: 16, borderTop: "1px solid var(--border)", background: "var(--surface-2)", display: "flex", gap: 8, justifyContent: "space-between" }}>
           <button onClick={onClose} className="brand-btn" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}>{t("cancel")}</button>
           <div style={{ display: "flex", gap: 8 }}>
-            {step > 1 && step < 5 && (
+            {step > 1 && step < 4 && (
               <button onClick={() => setStep((s) => (s - 1) as WizardStep)} className="brand-btn" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
                 <ArrowLeft size={16} /> {t("back")}
               </button>
             )}
-            {step < 4 && (
+            {step < 3 && (
               <button disabled={!canProceed} onClick={() => setStep((s) => (s + 1) as WizardStep)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", opacity: canProceed ? 1 : 0.5 }}>
                 {t("next")} <ArrowRight size={16} />
               </button>
             )}
-            {step === 4 && (
+            {step === 3 && (
               <button disabled={busy} onClick={build} className="brand-btn" style={{ background: "linear-gradient(135deg,#7C5CD1,#42C2EE)", color: "#fff", opacity: busy ? 0.7 : 1 }}>
                 {busy ? <><Loader2 size={16} className="spin" /> {t("buildingPreview")}</> : <><Eye size={16} /> {t("buildPreview")}</>}
               </button>
             )}
-            {step === 5 && (
+            {step === 4 && (
               <button disabled={confirming} onClick={download} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", opacity: confirming ? 0.7 : 1 }}>
                 {confirming ? <><Loader2 size={16} className="spin" /> ...</> : <><Download size={16} /> {t("confirmDownload")}</>}
               </button>
@@ -404,57 +402,6 @@ function StepPeriod({ rangeKey, setRangeKey, from, to, setFrom, setTo, today }: 
   );
 }
 
-function StepTheme({ value, onChange }: { value: ThemeId; onChange: (v: ThemeId) => void }) {
-  const { t, lang } = useApp();
-  const cards: Array<{ id: ThemeId; label: string; desc: string; preview: React.CSSProperties }> = [
-    { id: "aurora", label: t("themeAurora"), desc: t("themeAuroraDesc"), preview: { background: "linear-gradient(135deg,var(--sidebar) 0%,#0B2540 45%,#0E4A6B 100%)", color: "var(--foreground)" } },
-    { id: "executive", label: t("themeExecutive"), desc: t("themeExecutiveDesc"), preview: { background: "linear-gradient(135deg,#0A2540 0%,#132D50 50%,#0A2540 100%)", color: "#fff" } },
-    { id: "minimal", label: t("themeMinimal"), desc: t("themeMinimalDesc"), preview: { background: "#FCFCFC", color: "#111" } },
-  ];
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-        <Palette size={18} /> <div style={{ fontSize: 15, fontWeight: 700 }}>{t("chooseStyle")}</div>
-      </div>
-      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("chooseStyleHint")}</div>
-      <div className="wizard-theme-grid">
-        {cards.map((c) => (
-          <button key={c.id} onClick={() => onChange(c.id)} className="brand-btn" style={{
-            flexDirection: "column", padding: 0, overflow: "hidden", gap: 0,
-            background: "var(--surface-2)", border: `2px solid ${value === c.id ? "#42C2EE" : "var(--border)"}`,
-            color: "var(--foreground)", minHeight: 180,
-          }}>
-            <div style={{ ...c.preview, height: 110, width: "100%", position: "relative", display: "flex", flexDirection: "column", padding: 14, justifyContent: "space-between" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8, letterSpacing: 2, opacity: 0.7 }}>
-                <span>MECHATRO</span>
-                <span>REPORT</span>
-              </div>
-              <div>
-                <div style={{ fontSize: c.id === "minimal" ? 22 : 14, fontWeight: 900, lineHeight: 1 }}>
-                  {c.id === "minimal" ? t("reportLabel") : t("sampleTitle")}
-                </div>
-                <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-                  {[0,1,2].map((i) => (
-                    <div key={i} style={{ width: 20, height: 4, borderRadius: 2, background: c.id === "minimal" ? "#D4A017" : (i === 0 ? "#42C2EE" : i === 1 ? "#3ECF8E" : "#F5A623") }} />
-                  ))}
-                </div>
-              </div>
-              {value === c.id && (
-                <div style={{ position: "absolute", top: 8, insetInlineEnd: 8, width: 24, height: 24, borderRadius: 999, background: "#42C2EE", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Check size={14} />
-                </div>
-              )}
-            </div>
-            <div style={{ padding: 12, textAlign: lang === "ar" ? "right" : "left", width: "100%" }}>
-              <div style={{ fontSize: 13, fontWeight: 800 }}>{c.label}</div>
-              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3 }}>{c.desc}</div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function StepPreview({ prepared }: { prepared: { blob: Blob; filename: string; pageCount: number; kind: "team" | "member" } }) {
   const { t } = useApp();

@@ -3,12 +3,17 @@ import { buildReportHtml, buildBilingualHtml } from "./report-html";
 import type { Lang } from "@/i18n/dict";
 import { supabase } from "@/integrations/supabase/client";
 import montArabic from "@/assets/MontserratArabic-Regular.ttf.asset.json";
-import type { ThemeId } from "./themes";
 
 import { buildKpiSnapshot } from "./snapshot";
 
 
 export type ReportLangChoice = "ar" | "en" | "bilingual";
+export type ReportKind = "member" | "team" | "comparison";
+const REPORT_LABELS: Record<ReportKind, { en: string; ar: string }> = {
+  member: { en: "Member Report", ar: "تقرير العضو" },
+  team: { en: "Team Report", ar: "تقرير الفريق" },
+  comparison: { en: "Comparison Report", ar: "تقرير مقارنة" },
+};
 
 
 async function waitForImages(root: Document | HTMLElement) {
@@ -142,21 +147,22 @@ async function renderFragmentToCanvas(
 
 /** HTML for the shared page-chrome header (logo + branding) painted at the
  *  top of every content page. Rendered once and reused. */
-function headerHtml(memberName: string, rangeText: string, logoDataUrl: string): string {
-  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${HEADER_H}px;padding:14px ${SIDE_PAD}px 10px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-bottom:1px solid #ECECEC">
-    <div style="display:flex;align-items:center;gap:10px">
-      <img src="${logoDataUrl}" style="width:30px;height:30px;object-fit:contain"/>
-      <div>
-        <div style="font-size:11px;font-weight:900;letter-spacing:4px;color:#0B0B0B">MECHATRO</div>
-        <div style="font-size:9.5px;color:#8A8A8A;margin-top:2px;letter-spacing:1px">Member Report · تقرير العضو</div>
+function headerHtml(title: string, rangeText: string, logoDataUrl: string, kind: ReportKind): string {
+  const label = REPORT_LABELS[kind];
+  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${HEADER_H}px;padding:14px ${SIDE_PAD}px 10px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-bottom:1px solid #ECECEC;background:#ffffff">
+    <div style="display:flex;align-items:center;gap:12px">
+      <img src="${logoDataUrl}" style="height:30px;object-fit:contain"/>
+      <div style="border-left:2px solid #E4E7EC;padding-left:12px">
+        <div style="font-size:10.5px;font-weight:900;letter-spacing:2px;color:#0B0B0B;text-transform:uppercase">${escHtml(label.en)}</div>
+        <div dir="rtl" style="font-size:10px;color:#8A8A8A;margin-top:2px;font-family:'Montserrat Arabic','Cairo',sans-serif">${escHtml(label.ar)}</div>
       </div>
     </div>
     <div style="text-align:right;font-size:9.5px;color:#8A8A8A;line-height:1.4">
-      <div style="color:#0B0B0B;font-weight:800;letter-spacing:.5px">${escHtml(memberName)}</div>
+      <div style="color:#0B0B0B;font-weight:800;letter-spacing:.5px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(title)}</div>
       <div>${escHtml(rangeText)}</div>
     </div>
   </div>
-  <div style="width:${A4_W}px;height:3px;background:linear-gradient(90deg,#D4A017 0,#D4A017 56px,transparent 56px)"></div>`;
+  <div style="width:${A4_W}px;height:3px;background:linear-gradient(90deg,#D4A017 0,#D4A017 56px,#42C2EE 56px,#42C2EE 112px,transparent 112px)"></div>`;
 }
 
 /** HTML for the shared page-chrome footer. Rendered once; the page number is
@@ -208,6 +214,7 @@ async function renderHtmlToPdfBlob(
   filename: string,
   memberName: string,
   rangeText: string,
+  kind: ReportKind = "member",
 ): Promise<{ blob: Blob; pageCount: number }> {
   const [{ default: html2canvas }, jspdfMod] = await Promise.all([
     import("html2canvas"),
@@ -230,7 +237,7 @@ async function renderHtmlToPdfBlob(
 
   // Pre-render shared chrome canvases (logo, hairline, brand strip).
   const headerCanvas = logoDataUrl
-    ? await renderFragmentToCanvas(headerHtml(memberName, rangeText, logoDataUrl), html2canvas, A4_W)
+    ? await renderFragmentToCanvas(headerHtml(memberName, rangeText, logoDataUrl, kind), html2canvas, A4_W)
     : null;
   const footerCanvas = logoDataUrl
     ? await renderFragmentToCanvas(footerHtml(logoDataUrl), html2canvas, A4_W)
@@ -317,23 +324,21 @@ export type PreparedMemberReport = {
   pageCount: number;
   data: ReportData;
   choice: ReportLangChoice;
-  theme?: ThemeId;
 };
 
 /** Build the branded PDF blob without downloading or persisting — for preview. */
 export async function buildMemberReportPdf(
   data: ReportData,
   choice: ReportLangChoice,
-  theme?: ThemeId,
 ): Promise<PreparedMemberReport> {
-  const html = choice === "bilingual" ? buildBilingualHtml(data, theme) : buildReportHtml(data, choice as Lang, theme);
+  const html = choice === "bilingual" ? buildBilingualHtml(data) : buildReportHtml(data, choice as Lang);
   const safeName = data.member.full_name.replace(/[^\w\-\u0600-\u06FF]+/g, "_");
   const filename = `Mechatro_Report_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`;
   const rangeText = data.range.from
     ? `${data.range.from.toISOString().slice(0, 10)} — ${(data.range.to ?? new Date()).toISOString().slice(0, 10)}`
     : "All time";
-  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, data.member.full_name, rangeText);
-  return { blob, filename, pageCount, data, choice, theme };
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, data.member.full_name, rangeText, "member");
+  return { blob, filename, pageCount, data, choice };
 }
 
 
@@ -390,9 +395,8 @@ export async function persistMemberReportPdf(
 export async function generateMemberReportPdf(
   data: ReportData,
   choice: ReportLangChoice,
-  theme?: ThemeId,
 ): Promise<{ id: string | null; path: string | null }> {
-  const prepared = await buildMemberReportPdf(data, choice, theme);
+  const prepared = await buildMemberReportPdf(data, choice);
   return persistMemberReportPdf(prepared);
 }
 
@@ -400,8 +404,9 @@ export async function generateMemberReportPdf(
 export async function buildTeamReportPdf(
   html: string,
   filename: string,
+  rangeText?: string,
 ): Promise<{ blob: Blob; filename: string; pageCount: number }> {
-  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, "Mechatro Team", "");
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, "Mechatro Team", rangeText ?? "", "team");
   return { blob, filename, pageCount };
 }
 
@@ -420,7 +425,7 @@ export async function persistComparisonPdf(opts: {
   language: ReportLangChoice;
   snapshot: unknown;
 }): Promise<{ id: string | null; path: string | null }> {
-  const { blob, pageCount } = await renderHtmlToPdfBlob(opts.html, opts.filename, `${opts.memberALabel} ⇄ ${opts.memberBLabel}`, "comparison");
+  const { blob, pageCount } = await renderHtmlToPdfBlob(opts.html, opts.filename, `${opts.memberALabel} ⇄ ${opts.memberBLabel}`, "Head-to-head", "comparison");
   triggerDownload(blob, opts.filename);
 
   try {
