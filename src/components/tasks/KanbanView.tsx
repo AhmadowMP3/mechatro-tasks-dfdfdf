@@ -229,9 +229,6 @@ export function KanbanView({
               users={users}
               assigneesByTask={assigneesByTask}
               onOpen={onOpen}
-              selectable={selectable}
-              isSelected={isSelected}
-              onToggle={onToggle}
               dropAllowed={dropAllowed}
               draggingId={activeId}
               currentUserId={user?.id}
