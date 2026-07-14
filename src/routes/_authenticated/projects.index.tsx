@@ -10,6 +10,7 @@ import { formatDate, toLocalDigits } from "@/lib/format";
 import { toast } from "sonner";
 import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
+import { DatePickerField } from "@/components/DatePickerField";
 
 import {
   FilterDrawer, FilterSection, ChipMultiSelect, FilterSelect,
@@ -458,7 +459,7 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
           ]}
         />
       </Field>
-      <Field label={t("dueDate")}><input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} style={inp} /></Field>
+      <Field label={t("dueDate")}><DatePickerField value={form.due_date} onChange={(v) => setForm({ ...form, due_date: v })} lang={lang} /></Field>
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
         <button onClick={submit} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", flex: 1 }}>{t("create")}</button>
         <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
