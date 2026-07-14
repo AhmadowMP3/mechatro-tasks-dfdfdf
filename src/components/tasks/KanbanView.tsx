@@ -265,7 +265,6 @@ export function KanbanView({
 
 function KanbanColumn({
   col, tasks, projects, users, assigneesByTask, onOpen,
-  selectable, isSelected, onToggle,
   dropAllowed, draggingId, currentUserId, isAdmin, lang, t,
 }: {
   col: ColStatus;
@@ -274,9 +273,6 @@ function KanbanColumn({
   users: Profile[];
   assigneesByTask?: Record<string, string[]>;
   onOpen: (id: string) => void;
-  selectable?: boolean;
-  isSelected?: (id: string) => boolean;
-  onToggle?: (id: string) => void;
   dropAllowed: boolean;
   draggingId: string | null;
   currentUserId: string | undefined;
@@ -340,7 +336,6 @@ function KanbanColumn({
             .map((uid) => users.find((u) => u.id === uid))
             .filter(Boolean) as Profile[];
           const dragThis = isAdmin || tk.assignee_id === currentUserId || taskAssigneeIds.includes(currentUserId ?? "");
-          const cardSelected = selectable && isSelected?.(tk.id);
           return (
             <SortableCard
               key={tk.id}
@@ -352,11 +347,8 @@ function KanbanColumn({
               project={project}
               assignee={assignee}
               taskAssignees={taskAssignees}
-              draggable={dragThis && !selectable}
-              cardSelected={!!cardSelected}
-              selectable={!!selectable}
+              draggable={dragThis}
               onOpen={() => onOpen(tk.id)}
-              onToggle={onToggle ? () => onToggle(tk.id) : undefined}
               lang={lang}
             />
           );
@@ -368,7 +360,7 @@ function KanbanColumn({
 
 function SortableCard({
   id, title, due, priority, overdue, project, assignee, taskAssignees,
-  draggable, cardSelected, selectable, onOpen, onToggle, lang,
+  draggable, onOpen, lang,
 }: {
   id: string;
   title: string;
@@ -379,10 +371,7 @@ function SortableCard({
   assignee: Profile | undefined;
   taskAssignees: Profile[];
   draggable: boolean;
-  cardSelected: boolean;
-  selectable: boolean;
   onOpen: () => void;
-  onToggle?: () => void;
   lang: "ar" | "en";
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -398,22 +387,14 @@ function SortableCard({
       ref={setNodeRef}
       {...(draggable ? listeners : {})}
       {...(draggable ? attributes : {})}
-      onClick={(e) => {
-        if (selectable && (e.metaKey || e.ctrlKey || e.shiftKey)) {
-          onToggle?.();
-          return;
-        }
-        onOpen();
-      }}
+      onClick={() => onOpen()}
       style={{
         ...style,
         position: "relative",
         padding: 10,
         borderRadius: 10,
         background: "var(--surface-2)",
-        border: `1px solid ${cardSelected ? "var(--grad-blue, #189FD1)" : overdue ? "rgba(240,103,106,.5)" : "var(--border)"}`,
-        outline: cardSelected ? "2px solid var(--grad-blue, #189FD1)" : "none",
-        outlineOffset: 1,
+        border: `1px solid ${overdue ? "rgba(240,103,106,.5)" : "var(--border)"}`,
         cursor: draggable ? (isDragging ? "grabbing" : "grab") : "pointer",
         opacity: isDragging ? 0.4 : 1,
         borderInlineStart: project ? `3px solid transparent` : undefined,
@@ -426,20 +407,7 @@ function SortableCard({
         userSelect: "none",
       }}
     >
-      {selectable && onToggle && (
-        <div
-          onClick={(e) => { e.stopPropagation(); onToggle(); }}
-          onPointerDown={(e) => e.stopPropagation()}
-          style={{ position: "absolute", top: 6, insetInlineStart: 6, zIndex: 2 }}
-        >
-          <BulkCheckbox
-            checked={cardSelected}
-            onChange={() => onToggle()}
-            label={lang === "ar" ? "تحديد" : "Select"}
-          />
-        </div>
-      )}
-      <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35, marginBottom: 8, color: "var(--foreground)", paddingInlineStart: selectable ? 26 : 0 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35, marginBottom: 8, color: "var(--foreground)" }}>
         {title}
       </div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -454,6 +422,7 @@ function SortableCard({
     </div>
   );
 }
+
 
 function PriorityDot({ p }: { p: string }) {
   const c = p === "urgent" ? "#F0676A" : p === "high" ? "#FF9255" : p === "normal" ? "#42C2EE" : "var(--muted)";
