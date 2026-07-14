@@ -27,9 +27,33 @@ function NotFoundComponent() {
   );
 }
 
+const CHUNK_ERROR_RE =
+  /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|Loading chunk .* failed|error loading dynamically imported module/i;
+
+function isChunkLoadError(e: unknown): boolean {
+  const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e ?? "");
+  return CHUNK_ERROR_RE.test(msg);
+}
+
+function tryChunkReload(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if (sessionStorage.getItem("chunk-reload") === "1") return false;
+    sessionStorage.setItem("chunk-reload", "1");
+  } catch { /* ignore */ }
+  const url = new URL(window.location.href);
+  url.searchParams.set("_v", String(Date.now()));
+  window.location.replace(url.toString());
+  return true;
+}
+
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
-  useEffect(() => { reportLovableError(error, { boundary: "root" }); console.error(error); }, [error]);
+  useEffect(() => {
+    if (isChunkLoadError(error) && tryChunkReload()) return;
+    reportLovableError(error, { boundary: "root" });
+    console.error(error);
+  }, [error]);
   return (
     <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "var(--background)", color: "var(--foreground)" }}>
       <div style={{ textAlign: "center", maxWidth: 480 }}>
@@ -40,6 +64,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     </div>
   );
 }
+
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
