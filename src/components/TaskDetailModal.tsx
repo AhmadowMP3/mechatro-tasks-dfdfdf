@@ -6,7 +6,7 @@ import { useApp, type Profile } from "@/lib/app-context";
 import { StatusPill, PriorityPill, OverduePill } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
 import { AssigneeStack } from "@/components/AssigneeStack";
-import { formatDate, formatMinutes, isOverdue, relativeTime, toLocalDigits } from "@/lib/format";
+import { formatDate, isOverdue, relativeTime, toLocalDigits } from "@/lib/format";
 import { driveFileType, isDriveUrl, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { notify } from "@/lib/activity";
 import { toast } from "sonner";
