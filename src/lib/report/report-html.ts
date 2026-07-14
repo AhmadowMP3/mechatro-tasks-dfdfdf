@@ -573,7 +573,44 @@ export function buildReportHtml(data: ReportData, lang: Lang, theme?: ThemeId): 
 }
 
 export function buildBilingualHtml(data: ReportData, theme?: ThemeId): string {
-  // Two full docs stacked (AR first then EN). Each has its own cover + pages.
+  // Creative theme: single unified doc — cover in AR, each content page shows
+  // Arabic block above English block so header/footer/logo stay consistent.
+  if (theme === "creative") {
+    setTheme("creative");
+    refreshPalette();
+    const s = computeStats(data);
+    const pairs: Array<{ ar: string; en: string }[]> = [
+      [
+        { ar: profileSection(data, "ar"), en: profileSection(data, "en") },
+        { ar: kpiGrid(s, "ar"), en: kpiGrid(s, "en") },
+      ],
+      [{ ar: chartsSection(data, s, "ar"), en: chartsSection(data, s, "en") }],
+      [
+        { ar: projectsSection(data, s, "ar"), en: projectsSection(data, s, "en") },
+      ].filter((p) => p.ar || p.en),
+      [{ ar: tasksSection(data, "ar"), en: tasksSection(data, "en") }],
+      [
+        { ar: sessionsSection(data, s, "ar"), en: sessionsSection(data, s, "en") },
+      ].filter((p) => p.ar || p.en),
+      [
+        { ar: activitySection(data, "ar"), en: activitySection(data, "en") },
+      ].filter((p) => p.ar || p.en),
+    ].filter((page) => page.length);
+
+    const rendered: string[] = [coverPage(data, "ar", s)];
+    const total = 1 + pairs.length;
+    pairs.forEach((pairList, i) => {
+      const blocks = pairList.flatMap(({ ar, en }) => [
+        `<div dir="rtl" lang="ar">${ar}</div>`,
+        `<div style="height:1px;background:var(--none,#ECECEC);margin:8px 0;opacity:.6"></div>`,
+        `<div dir="ltr" lang="en">${en}</div>`,
+      ]);
+      rendered.push(contentPage(data, "ar", s, blocks, i + 2, total));
+    });
+    return rendered.join("");
+  }
+  // Legacy behavior: two full docs stacked (AR then EN).
   return buildReportHtml(data, "ar", theme) + `<div class="html2pdf__page-break"></div>` + buildReportHtml(data, "en", theme);
 }
+
 
