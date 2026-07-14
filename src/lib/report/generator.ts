@@ -324,23 +324,21 @@ export type PreparedMemberReport = {
   pageCount: number;
   data: ReportData;
   choice: ReportLangChoice;
-  theme?: ThemeId;
 };
 
 /** Build the branded PDF blob without downloading or persisting — for preview. */
 export async function buildMemberReportPdf(
   data: ReportData,
   choice: ReportLangChoice,
-  theme?: ThemeId,
 ): Promise<PreparedMemberReport> {
-  const html = choice === "bilingual" ? buildBilingualHtml(data, theme) : buildReportHtml(data, choice as Lang, theme);
+  const html = choice === "bilingual" ? buildBilingualHtml(data) : buildReportHtml(data, choice as Lang);
   const safeName = data.member.full_name.replace(/[^\w\-\u0600-\u06FF]+/g, "_");
   const filename = `Mechatro_Report_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`;
   const rangeText = data.range.from
     ? `${data.range.from.toISOString().slice(0, 10)} — ${(data.range.to ?? new Date()).toISOString().slice(0, 10)}`
     : "All time";
-  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, data.member.full_name, rangeText);
-  return { blob, filename, pageCount, data, choice, theme };
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, data.member.full_name, rangeText, "member");
+  return { blob, filename, pageCount, data, choice };
 }
 
 
@@ -397,9 +395,8 @@ export async function persistMemberReportPdf(
 export async function generateMemberReportPdf(
   data: ReportData,
   choice: ReportLangChoice,
-  theme?: ThemeId,
 ): Promise<{ id: string | null; path: string | null }> {
-  const prepared = await buildMemberReportPdf(data, choice, theme);
+  const prepared = await buildMemberReportPdf(data, choice);
   return persistMemberReportPdf(prepared);
 }
 
