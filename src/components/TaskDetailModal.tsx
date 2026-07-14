@@ -397,6 +397,15 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
           </Field>
         </div>
 
+        {/* Per-assignee points award panel (admin, in_review) */}
+        {canEditAll && merged.status === "in_review" && assigneeIds.length > 0 && (
+          <AwardPointsPanel
+            taskId={taskId}
+            taskPoints={merged.points ?? 0}
+            assigneeIds={assigneeIds}
+            onApproved={() => { onChanged(); load(); }}
+          />
+        )}
 
         {/* Description */}
         <div style={{ marginBottom: 16 }}>
