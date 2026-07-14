@@ -1,47 +1,53 @@
-# Fix "Failed to fetch dynamically imported module" on /references
+# Kanban touch-DnD + mobile overlap fix
 
-## What's happening
+## Two bugs
 
-After a new deploy, the browser is holding an old HTML shell that references JS chunk filenames from the previous build (e.g. `references-BB7qtu7v.js`). Those files no longer exist on the CDN, so when TanStack Router tries to lazy-load the References route chunk, `import()` throws `TypeError: Failed to fetch dynamically imported module`. The root `errorComponent` catches it and shows "Something went wrong".
-
-This is not a bug in the References page itself — every code-split route is vulnerable after any redeploy until the user hard-refreshes.
+1. **Drag & drop doesn't work on touch** — `KanbanView` uses HTML5 native drag events (`onDragStart`, `onDragOver`, `onDrop`). These don't fire on mobile browsers, so on phones/tablets tasks can't be moved between columns at all.
+2. **Mobile overlap** — the Kanban board grid uses `gridAutoColumns: minmax(min(82vw, 280px), 1fr)` with no per-column `min-width`, so columns get squeezed into the narrow viewport and their cards clip / overlap the tab bar area.
 
 ## Fix
 
-Two small, safe additions:
+### 1. Replace native DnD with `@dnd-kit/core` (works on mouse AND touch)
 
-### 1. Auto-recover in `src/routes/__root.tsx` `ErrorComponent`
+Install `@dnd-kit/core` (small, no sortable-list needed — we only need column drop targets).
 
-Detect chunk-load / dynamic-import errors and force a one-time hard reload with a cache-buster query param, using `sessionStorage` to prevent an infinite reload loop if the error is real.
+In `src/components/tasks/KanbanView.tsx`:
+- Wrap the board in `<DndContext>` configured with `PointerSensor` (activation distance 6px so taps still open cards) + `TouchSensor` (delay 180ms, tolerance 6px — long-press to drag on mobile so scrolling still works).
+- Each column becomes a `useDroppable` target keyed by its status; highlight when `isOver` and drop is allowed.
+- Each card becomes a `useDraggable` — apply `listeners`/`attributes` only when `dragThis && !selectable`. Keep the existing `onClick` for opening the task; dnd-kit's activation distance/delay prevents accidental drags.
+- On `onDragEnd`, if `over` is a column and the move is allowed, call the existing `moveTask` logic (unchanged Supabase update, toast, `onChanged`).
+- Preserve the current permission rules (`canMove`), `in_review` styling, and selectable-mode click behavior.
+- Add a `DragOverlay` that renders a lightweight preview of the dragged card so the finger/cursor doesn't obscure it.
 
-```ts
-const isChunkLoadError = (e: unknown) => {
-  const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
-  return /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|Loading chunk .* failed|error loading dynamically imported module/i.test(msg);
-};
-```
+### 2. Fix mobile column sizing / overlap
 
-If matched and `sessionStorage.getItem("chunk-reload") !== "1"`:
-- Set the flag.
-- `location.replace(location.pathname + location.search + (has ? "&" : "?") + "_v=" + Date.now())`.
+Same file, the grid wrapper:
+- Set `gridAutoColumns: "minmax(280px, 320px)"` on mobile (fixed per-column width so columns don't squish) and `minmax(0, 1fr)` on desktop where the whole board fits.
+- Add `paddingInline: 4px` and `paddingBottom: 12px` so the last-column card doesn't touch the bottom tab bar.
+- Add `scroll-padding-inline: 12px` for cleaner snap.
+- Keep `scroll-snap-type: x mandatory` and per-column `scroll-snap-align: start` (already in `styles.css`).
+- Add `touch-action: pan-x` on the container so vertical page scroll isn't blocked when a card is long-pressed for drag.
 
-Clear the flag on successful mount of `RootComponent` (i.e. via a `useEffect` that runs once).
+### 3. Small polish
 
-### 2. Global catch for lazy imports triggered outside a route boundary
+- While dragging on mobile, disable body vertical scroll only inside the board via `overscroll-behavior: contain`.
+- Add a subtle "drop here" outline (already exists — reuse `isOver && dropAllowed`).
 
-Add a `window` listener in the same `useEffect` (client-only) for `unhandledrejection` that runs `isChunkLoadError` on `event.reason` and does the same reload. This covers cases where the error surfaces via `React.lazy` inside `<ClientOnly>` etc. before the router's error boundary sees it.
+## Files touched
 
-Both live in `src/routes/__root.tsx` only. No other files change.
+- `src/components/tasks/KanbanView.tsx` — rewrite drag layer using dnd-kit; column grid tweaks.
+- `package.json` — add `@dnd-kit/core` (via `bun add`).
 
-## Why this is the right fix
+No changes to `tasks.tsx`, permissions, DB, or other views.
 
-- Standard Vite / TanStack SPA recovery pattern for stale chunks after deploy.
-- Guarded by `sessionStorage` so a genuine broken build won't reload-loop.
-- No changes to routing, code splitting, or the References route itself.
-- Ships alongside the existing `reportLovableError` call so we still capture the incident.
+## Verification
+
+- Typecheck.
+- Playwright: mobile viewport, load `/tasks?view=kanban`, verify columns don't overlap and horizontal scroll works.
+- Manual desktop check that mouse drag between columns still updates status.
 
 ## Out of scope
 
-- Service worker precaching or long-term cache-busting strategy.
-- Any change to the References page or its data.
-- Backend / SSR changes.
+- Reordering cards inside a column (only status-column moves, matching current behavior).
+- Persisted column order.
+- Multi-select drag.
