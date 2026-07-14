@@ -273,10 +273,17 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       >
         {sections.map((section, sIdx) => {
           const SectionIcon = section.icon;
-          const hasActive = section.items.some(({ to }) =>
-            to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/"),
-          );
+          const hasDeeperSibling = (to: string) =>
+            section.items.some((it) => it.to !== to && it.to.startsWith(to + "/"));
+          const isItemActive = (to: string) =>
+            to === "/"
+              ? pathname === "/"
+              : hasDeeperSibling(to)
+                ? pathname === to
+                : pathname === to || pathname.startsWith(to + "/");
+          const hasActive = section.items.some(({ to }) => isItemActive(to));
           const isCollapsed = !!collapsed[section.titleKey] && !hasActive;
+
           const sectionLabel = t(section.titleKey);
           const panelId = `sidebar-section-${section.titleKey}`;
           return (
