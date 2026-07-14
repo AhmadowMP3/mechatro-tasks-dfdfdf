@@ -3,12 +3,17 @@ import { buildReportHtml, buildBilingualHtml } from "./report-html";
 import type { Lang } from "@/i18n/dict";
 import { supabase } from "@/integrations/supabase/client";
 import montArabic from "@/assets/MontserratArabic-Regular.ttf.asset.json";
-import type { ThemeId } from "./themes";
 
 import { buildKpiSnapshot } from "./snapshot";
 
 
 export type ReportLangChoice = "ar" | "en" | "bilingual";
+export type ReportKind = "member" | "team" | "comparison";
+const REPORT_LABELS: Record<ReportKind, { en: string; ar: string }> = {
+  member: { en: "Member Report", ar: "تقرير العضو" },
+  team: { en: "Team Report", ar: "تقرير الفريق" },
+  comparison: { en: "Comparison Report", ar: "تقرير مقارنة" },
+};
 
 
 async function waitForImages(root: Document | HTMLElement) {
