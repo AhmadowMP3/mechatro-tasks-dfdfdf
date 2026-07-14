@@ -420,7 +420,7 @@ export async function persistComparisonPdf(opts: {
   language: ReportLangChoice;
   snapshot: unknown;
 }): Promise<{ id: string | null; path: string | null }> {
-  const { blob, pageCount } = await renderHtmlToPdfBlob(opts.html, opts.filename);
+  const { blob, pageCount } = await renderHtmlToPdfBlob(opts.html, opts.filename, `${opts.memberALabel} ⇄ ${opts.memberBLabel}`, "comparison");
   triggerDownload(blob, opts.filename);
 
   try {
