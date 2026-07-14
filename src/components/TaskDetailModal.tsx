@@ -91,11 +91,28 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
   const readOnlyForMember = !canEditAll && canEditOwn;
 
   const openSession = sessions.find((s) => s.user_id === user?.id && !s.ended_at);
-  const totalMins = sessions.reduce((sum, s) => {
-    if (s.duration_minutes != null) return sum + s.duration_minutes;
-    if (!s.ended_at) return sum + Math.floor((now - new Date(s.started_at).getTime()) / 60000);
-    return sum;
+  const totalSecs = sessions.reduce((sum, s) => {
+    if (s.ended_at) {
+      const secs = Math.max(0, Math.floor((new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 1000));
+      return sum + secs;
+    }
+    return sum + Math.max(0, Math.floor((now - new Date(s.started_at).getTime()) / 1000));
   }, 0);
+  const totalMins = Math.floor(totalSecs / 60);
+  const formatHMS = (totalSeconds: number) => {
+    const s = Math.max(0, Math.floor(totalSeconds));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return toLocalDigits(`${pad(h)}:${pad(m)}:${pad(sec)}`, lang);
+  };
+  const formatDateTime = (iso: string) => {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString(lang === "ar" ? "ar" : "en", { year: "numeric", month: "2-digit", day: "2-digit" });
+    const time = d.toLocaleTimeString(lang === "ar" ? "ar" : "en", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    return `${date} ${time}`;
+  };
 
   // Validate only the fields being changed, plus keep title non-empty.
   // This lets members update status on legacy tasks (missing description/due_date/etc.)
