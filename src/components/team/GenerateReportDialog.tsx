@@ -18,7 +18,7 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
   const { t, lang } = useApp();
   const [langChoice, setLangChoice] = useState<ReportLangChoice>("bilingual");
   const [rangeKey, setRangeKey] = useState<RangeKey>("30d");
-  const [theme, setTheme] = useState<ThemeId>("aurora");
+  const [theme, setTheme] = useState<ThemeId>("creative");
   const today = new Date().toISOString().slice(0, 10);
   const monthAgo = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
   const [from, setFrom] = useState(monthAgo);
@@ -134,6 +134,7 @@ export function GenerateReportDialog({ member, onClose }: { member: Profile; onC
         <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("chooseStyle")}</div>
         <div className="wizard-theme-grid">
           {([
+            { id: "creative" as const, label: t("themeCreative"), bg: "linear-gradient(135deg,#FCFCFC 0%,#F0F4F8 100%)", fg: "#0B0B0B" },
             { id: "aurora" as const, label: t("themeAurora"), bg: "linear-gradient(135deg,var(--sidebar),#0E4A6B)", fg: "var(--foreground)" },
             { id: "executive" as const, label: t("themeExecutive"), bg: "linear-gradient(135deg,#0A2540,#132D50)", fg: "#fff" },
             { id: "minimal" as const, label: t("themeMinimal"), bg: "#FCFCFC", fg: "#111" },

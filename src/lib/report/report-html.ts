@@ -210,6 +210,61 @@ function coverPage(data: ReportData, lang: Lang, s: Stats): string {
     </section>`;
   }
 
+  // Creative editorial cover: massive name, AR+EN stacked, single accent bar.
+  if (th.id === "creative") {
+    return `
+    <section class="pdf-page cover" dir="${lang === 'ar' ? 'rtl' : 'ltr'}" lang="${lang}" style="background:${th.coverBg};color:${th.ink};position:relative;overflow:hidden">
+      <div style="padding:64px 64px 40px 64px;height:100%;display:flex;flex-direction:column;gap:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:12px">
+            <img src="${logo}" style="width:36px;height:36px;object-fit:contain"/>
+            <div style="font-size:10.5px;font-weight:800;letter-spacing:5px;color:${th.muted}">MECHATRO · REPORT</div>
+          </div>
+          <div style="font-size:10.5px;color:${th.muted};letter-spacing:2px">${esc(fmtDate(new Date().toISOString(), "en"))}</div>
+        </div>
+
+        <div style="width:56px;height:3px;background:${th.blue};margin-top:36px"></div>
+
+        <div style="font-size:14px;color:${th.muted};letter-spacing:6px;text-transform:uppercase">Member Report · تقرير العضو</div>
+
+        <div style="font-size:72px;font-weight:900;line-height:.98;letter-spacing:-2.5px;color:${th.ink};margin-top:4px;font-family:'Montserrat','Montserrat Arabic',sans-serif">${esc(m.full_name)}</div>
+
+        ${m.job_title ? `<div style="font-size:17px;color:${th.muted};margin-top:-4px;letter-spacing:.5px">${esc(m.job_title)}</div>` : ""}
+
+        <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap">
+          <span style="border:1px solid ${th.line};padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;color:${th.ink};letter-spacing:1px;text-transform:uppercase">${esc(t(m.role as never, lang))}</span>
+          ${m.is_master_admin ? `<span style="background:${th.gold};color:#111;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase">${esc(t("masterAdmin", lang))}</span>` : ""}
+          <span style="border:1px solid ${m.active ? th.green : th.line};color:${m.active ? th.green : th.muted};padding:6px 14px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase">${esc(m.active ? t("active", lang) : "Inactive")}</span>
+        </div>
+
+        <div style="flex:1"></div>
+
+        <div style="display:flex;align-items:center;gap:28px">
+          ${avatar}
+          <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid ${th.line};padding-top:20px">
+            ${[
+              ["TOTAL", "الإجمالي", String(s.total)],
+              ["DONE", "منجزة", s.completionPct + "%"],
+              ["ON-TIME", "في الموعد", s.onTimePct + "%"],
+              ["HOURS", "ساعات", String(Math.round(s.totalMinutes / 60))],
+            ].map(([en, ar, val], i) => `
+              <div style="border-inline-start:${i === 0 ? "none" : `1px solid ${th.line}`};padding-inline-start:${i === 0 ? 0 : 18}px">
+                <div style="font-size:38px;font-weight:900;color:${th.ink};line-height:1;letter-spacing:-1px">${val}</div>
+                <div style="font-size:9.5px;color:${th.muted};margin-top:8px;letter-spacing:2px;font-weight:700">${en}</div>
+                <div style="font-size:11px;color:${th.ink2};margin-top:2px">${ar}</div>
+              </div>`).join("")}
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:${th.muted};letter-spacing:.5px;border-top:1px solid ${th.line};padding-top:14px;margin-top:12px">
+          <div style="display:flex;align-items:center;gap:6px"><img src="${logo}" style="width:14px;height:14px;object-fit:contain;opacity:.8"/> mechatro @ mechatro.hub4tech.net</div>
+          <div>${esc(rangeLabel(data, lang))}</div>
+          <div>${esc(data.generated_by.full_name)}</div>
+        </div>
+      </div>
+    </section>`;
+  }
+
   return `
   <section class="pdf-page cover" dir="${lang === 'ar' ? 'rtl' : 'ltr'}" lang="${lang}" style="background:${th.coverBg};color:${onCoverText};position:relative;overflow:hidden">
     <div style="position:absolute;inset:0;background:${th.coverGlow}"></div>
@@ -485,9 +540,9 @@ function contentPage(data: ReportData, lang: Lang, s: Stats, blocks: string[], p
     <div style="display:flex;flex-direction:column;gap:20px;position:relative">
       ${blocks.join("")}
     </div>
-    <div style="position:absolute;bottom:18px;left:44px;right:44px;display:flex;justify-content:space-between;font-size:10.5px;color:${C.muted};border-top:1px solid ${C.line};padding-top:8px">
-      <div>Mechatro © ${new Date().getFullYear()}</div>
-      <div>${esc(t("page", lang))} ${pageNum} ${esc(t("of", lang))} ${totalPages}</div>
+    <div style="position:absolute;bottom:18px;left:44px;right:44px;display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:${C.muted};border-top:1px solid ${C.line};padding-top:8px">
+      <div style="display:flex;align-items:center;gap:6px"><img src="${logo}" style="width:14px;height:14px;object-fit:contain;opacity:.8"/> mechatro @ mechatro.hub4tech.net</div>
+      <div style="letter-spacing:1px">${esc(t("page", lang))} ${pageNum} / ${totalPages}</div>
     </div>
   </section>`;
   void s;
@@ -518,7 +573,44 @@ export function buildReportHtml(data: ReportData, lang: Lang, theme?: ThemeId): 
 }
 
 export function buildBilingualHtml(data: ReportData, theme?: ThemeId): string {
-  // Two full docs stacked (AR first then EN). Each has its own cover + pages.
+  // Creative theme: single unified doc — cover in AR, each content page shows
+  // Arabic block above English block so header/footer/logo stay consistent.
+  if (theme === "creative") {
+    setTheme("creative");
+    refreshPalette();
+    const s = computeStats(data);
+    const pairs: Array<{ ar: string; en: string }[]> = [
+      [
+        { ar: profileSection(data, "ar"), en: profileSection(data, "en") },
+        { ar: kpiGrid(s, "ar"), en: kpiGrid(s, "en") },
+      ],
+      [{ ar: chartsSection(data, s, "ar"), en: chartsSection(data, s, "en") }],
+      [
+        { ar: projectsSection(data, s, "ar"), en: projectsSection(data, s, "en") },
+      ].filter((p) => p.ar || p.en),
+      [{ ar: tasksSection(data, "ar"), en: tasksSection(data, "en") }],
+      [
+        { ar: sessionsSection(data, s, "ar"), en: sessionsSection(data, s, "en") },
+      ].filter((p) => p.ar || p.en),
+      [
+        { ar: activitySection(data, "ar"), en: activitySection(data, "en") },
+      ].filter((p) => p.ar || p.en),
+    ].filter((page) => page.length);
+
+    const rendered: string[] = [coverPage(data, "ar", s)];
+    const total = 1 + pairs.length;
+    pairs.forEach((pairList, i) => {
+      const blocks = pairList.flatMap(({ ar, en }) => [
+        `<div dir="rtl" lang="ar">${ar}</div>`,
+        `<div style="height:1px;background:var(--none,#ECECEC);margin:8px 0;opacity:.6"></div>`,
+        `<div dir="ltr" lang="en">${en}</div>`,
+      ]);
+      rendered.push(contentPage(data, "ar", s, blocks, i + 2, total));
+    });
+    return rendered.join("");
+  }
+  // Legacy behavior: two full docs stacked (AR then EN).
   return buildReportHtml(data, "ar", theme) + `<div class="html2pdf__page-break"></div>` + buildReportHtml(data, "en", theme);
 }
+
 
