@@ -214,6 +214,7 @@ async function renderHtmlToPdfBlob(
   filename: string,
   memberName: string,
   rangeText: string,
+  kind: ReportKind = "member",
 ): Promise<{ blob: Blob; pageCount: number }> {
   const [{ default: html2canvas }, jspdfMod] = await Promise.all([
     import("html2canvas"),
@@ -236,7 +237,7 @@ async function renderHtmlToPdfBlob(
 
   // Pre-render shared chrome canvases (logo, hairline, brand strip).
   const headerCanvas = logoDataUrl
-    ? await renderFragmentToCanvas(headerHtml(memberName, rangeText, logoDataUrl), html2canvas, A4_W)
+    ? await renderFragmentToCanvas(headerHtml(memberName, rangeText, logoDataUrl, kind), html2canvas, A4_W)
     : null;
   const footerCanvas = logoDataUrl
     ? await renderFragmentToCanvas(footerHtml(logoDataUrl), html2canvas, A4_W)
