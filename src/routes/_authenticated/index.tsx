@@ -86,6 +86,9 @@ function Dashboard() {
     },
   });
 
+  useTasksRealtime(() => { refetch(); }, "dashboard");
+
+
   const allTasks = data?.tasks ?? [];
   const projects = data?.projects ?? [];
   const allActivity = data?.activity ?? [];
