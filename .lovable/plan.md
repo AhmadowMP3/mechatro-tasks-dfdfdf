@@ -1,79 +1,67 @@
-## One-Style "Dashboard Card" Report — Clean, No Overlap, Side-by-Side AR/EN
+# Unified PDF Polish — All Reports
 
-### The Direction (locked, no more theme picker)
-Editorial dashboard aesthetic: light-grey page background (`#F5F6F8`), pure white rounded cards with soft shadows, cyan `#42C2EE` + gold `#D4A017` accents, big display numbers, section titles with a colored icon tile. Feels like a Notion / Linear export.
+Bring the Team report and Comparison report up to the same Dashboard Card standard as the Member report, wire in the new colorful Mechatro logo everywhere, and use one shared header/footer/cover system.
 
-### Fixes for the issues in your screenshots
-1. **Overlapping "MECHATRO · REPORT" and empty square** → replace with a real page header: 24px Mechatro wordmark on the left, small logo mark on the right (embedded as a base64 SVG so it always renders, no missing-image square).
-2. **Truncated Arabic titles** like `الرسوم الب...` → give card titles `overflow: visible`, `line-height: 1.4`, and enough vertical padding.
-3. **Duplicated repeating rows in activity log** → cap at **last 25 entries**; single unified list (no more re-drawing the same 25 rows on continuation pages).
-4. **Activity log bleeding into footer / "Activate Windows" bleed** → the OS watermark is on the user's screen, not the PDF, but the actual footer overlap is real. Fix: activity log rendered as chunked table blocks in the block packer with a proper reserved footer band.
-5. **Chart labels overlapping bars** → bar chart gets fixed 240pt height, min 32px gap between label and bar, category labels rotated only when > 6 items.
-6. **Bilingual duplication** → new **side-by-side layout**: each section renders as a two-column card, Arabic (RTL) on the right, English on the left, separated by a hairline. One physical page per section instead of two full docs.
+## What changes
 
-### PDF Structure (executive length — 3 pages)
-```
-┌────────────────────────────────────────────┐
-│ Page 1 — Cover                             │
-│  ▪ Header: mechatro wordmark + logo mark   │
-│  ▪ Big member name (72pt) + AR name below │
-│  ▪ Role / status chips                     │
-│  ▪ Period range                            │
-│  ▪ 4 KPI cards: TOTAL / DONE / ON-TIME / HRS │
-│  ▪ Footer: page 1/3 · mechatro@…           │
-├────────────────────────────────────────────┤
-│ Page 2 — Performance                       │
-│  ▪ Activity-over-time card (line)          │
-│  ▪ Status breakdown card (donut)           │
-│  ▪ Projects card (top 5, per-project bars) │
-├────────────────────────────────────────────┤
-│ Page 3 — Detail                            │
-│  ▪ Tasks card (compact table, ≤14 rows)   │
-│  ▪ Sessions card (compact table, ≤10 rows)│
-│  ▪ Activity log card (last 25 entries)    │
-└────────────────────────────────────────────┘
-```
-When content overflows a page, the block packer flows into a page 4 without breaking a card mid-row. Header + footer painted natively by jsPDF on every page.
+### 1. Shared design layer (new `src/lib/report/pdf-chrome.ts`)
+One place that owns:
+- **Logo** — the new colorful Mechatro logo (blue M / orange ATRO / green tagline / lightbulb), uploaded as a Lovable asset, embedded as base64 into every PDF so it renders offline.
+- **Header** — every page (except cover): colorful logo left (28px tall), report type + generated date right, thin gold underline.
+- **Footer** — every page: "Mechatro · Innovative Energy Solutions" left, page X of Y right, cyan hairline.
+- **Cover template** — big colorful logo centered, report title, subtitle, date, decorative cyan/gold accent bars.
+- **Card primitive** — white rounded card, soft shadow, section title (EN left / AR right), body slot.
+- **Palette** — one exported const: bg `#F5F6F8`, card `#FFFFFF`, ink `#0F172A`, cyan `#42C2EE`, gold `#D4A017`, mint `#10B981`, coral `#EF4444`.
 
-### Bilingual on the same page — how it renders
-Every card body is a 2-column grid inside the card:
-```
-┌─────────── card ───────────┐
-│ 🎯 STATUS BREAKDOWN        │
-│ ─────────────────────────  │
-│ [EN column]  │  [AR column]│
-│ On-time 100% │ في الموعد 100% │
-│ Done      1  │ منجزة     ١  │
-└────────────────────────────┘
-```
-Numbers/data render once (center); labels are bilingual under each. Long text sections (tasks list) get a language column each side of a divider.
+### 2. Delete legacy pieces
+- `src/lib/report/themes.ts` — no more themes, one style only.
+- Any `theme` param threaded through `generator.ts`, `report-html.ts`, `team-report.ts`, `comparison-html.ts`, and the two route call sites.
 
-### What changes in code
+### 3. Member report (`report-html.ts`)
+Already dashboard-card style — retrofit to use the shared chrome/palette so it stays in sync. Swap its inline SVG header for `pdfChrome.header()`.
 
-**Delete:**
-- `src/lib/report/themes.ts` — no more themes.
-- Theme picker in `src/components/team/GenerateReportDialog.tsx` (the 4-card grid + `theme` state).
-- The old dual-doc `buildBilingualHtml` else-branch in `report-html.ts`.
+### 4. Team report (`team-report.ts`)
+Rewrite to the new style:
+- **Cover:** colorful logo, "Team Report — Mechatro", date range, and 4 KPI tiles (Total tasks · Done % · On-time % · Total hours) computed across all members.
+- **Body:** one bilingual dashboard card per member with mini KPIs (tasks, done %, hours, points) + a compact activity strip (last 10 items per member to keep team PDF tight).
+- Same header/footer on every page.
 
-**Rewrite:**
-- `src/lib/report/report-html.ts` → single `buildDashboardBlocks(data)` returning `{ cover: string; blocks: { html: string; keepWithNext?: boolean }[] }`. All cards use the fixed dashboard style. Each content card is a bilingual 2-column card.
-- `src/lib/report/generator.ts` → keep the block-packer + native header/footer approach from the last pass. Header: 56pt band with base64 logo + "MECHATRO · Member Report / تقرير العضو". Footer: 44pt band with `mechatro @ mechatro.hub4tech.net` + `page X / Y` + hairline. Activity log capped to 25 rows in the block builder.
+### 5. Comparison report (`comparison-html.ts`)
+Rewrite to side-by-side A vs B:
+- **Cover:** colorful logo, "Comparison Report", A vs B names, date range.
+- **Body:** two-column layout, Member A left / Member B right. Matching rows: KPI tiles, task-status donut, hours bar, top tags, activity summary. Rows aligned so differences read at a glance.
+- Bilingual labels ("Hours / ساعات") inline; long descriptive text stays English to keep columns narrow.
 
-**Untouched:**
-- `src/lib/report/data.ts`, `snapshot.ts`, `team-report.ts`, `comparison-html.ts` — data collection unchanged.
-- The `Bilingual (AR+EN)` / `Arabic only` / `English only` language picker is kept.
+### 6. Generator (`generator.ts`)
+- Remove theme branching.
+- Use `pdfChrome.header()` / `pdfChrome.footer()` as the single header/footer renderer for all 3 report types.
+- Keep the existing html→canvas→jsPDF block-packer; just feed it blocks from the new builders.
 
-### Order of operations (all in build mode)
-1. Rewrite `report-html.ts` as single-style bilingual side-by-side.
-2. Update `generator.ts` header/footer to native jsPDF paint with embedded logo.
-3. Simplify `GenerateReportDialog.tsx` — remove theme grid + state, delete i18n keys `themeCreative`/`themeAurora`/`themeExecutive`/`themeMinimal` and their `*Desc` counterparts.
-4. Delete `themes.ts`.
-5. Typecheck.
-6. Generate a sample PDF via Playwright against localhost, rasterize each page, view every image, and iterate until no overlap / no cut text / no missing logo.
+### 7. Dialogs
+- `GenerateReportDialog.tsx` — already theme-less, leave as is.
+- Any comparison / team dialogs: remove leftover theme props.
 
-### Out of scope
-- Editing the app's Team page UI (dialog copy stays the same minus the theme grid).
-- Changing what data is collected (`data.ts`).
-- New fonts (keep the Arabic web font already loaded).
+## Logo handling
 
-Awaiting approval to switch to build mode.
+Upload the user-provided logo (`user-uploads://magnific_IaMyjyRtvE-3.png`) via `lovable-assets`, then in `pdf-chrome.ts` fetch it once at generation time and inline as a data URL so PDFs stay self-contained.
+
+## QA (mandatory before finishing)
+
+For each of the 3 report types:
+1. Generate the PDF via Playwright.
+2. `pdftoppm -jpeg -r 150` every page.
+3. Inspect each page for: logo present + not stretched, no overlapping text, no truncated Arabic, footer never crosses content, page numbers correct, chart labels legible.
+4. Iterate on the HTML until all pages pass. Report what was checked and fixed.
+
+## Out of scope
+
+- In-app UI for Team / Reports pages.
+- Any data model or query changes.
+- New fonts (keep current Cairo + Inter stack).
+
+## Files touched
+
+- New: `src/lib/report/pdf-chrome.ts`, `src/assets/mechatro-logo.png.asset.json`
+- Rewritten: `src/lib/report/team-report.ts`, `src/lib/report/comparison-html.ts`, `src/lib/report/report-html.ts` (chrome retrofit), `src/lib/report/generator.ts`
+- Deleted: `src/lib/report/themes.ts`
+- Minor: 2 route files to drop theme props
