@@ -404,8 +404,9 @@ export async function generateMemberReportPdf(
 export async function buildTeamReportPdf(
   html: string,
   filename: string,
+  rangeText?: string,
 ): Promise<{ blob: Blob; filename: string; pageCount: number }> {
-  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, "Mechatro Team", "");
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, "Mechatro Team", rangeText ?? "", "team");
   return { blob, filename, pageCount };
 }
 
@@ -424,7 +425,7 @@ export async function persistComparisonPdf(opts: {
   language: ReportLangChoice;
   snapshot: unknown;
 }): Promise<{ id: string | null; path: string | null }> {
-  const { blob, pageCount } = await renderHtmlToPdfBlob(opts.html, opts.filename, `${opts.memberALabel} ⇄ ${opts.memberBLabel}`, "comparison");
+  const { blob, pageCount } = await renderHtmlToPdfBlob(opts.html, opts.filename, `${opts.memberALabel} ⇄ ${opts.memberBLabel}`, "Head-to-head", "comparison");
   triggerDownload(blob, opts.filename);
 
   try {
