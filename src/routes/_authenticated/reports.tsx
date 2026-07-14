@@ -402,57 +402,6 @@ function StepPeriod({ rangeKey, setRangeKey, from, to, setFrom, setTo, today }: 
   );
 }
 
-function StepTheme({ value, onChange }: { value: ThemeId; onChange: (v: ThemeId) => void }) {
-  const { t, lang } = useApp();
-  const cards: Array<{ id: ThemeId; label: string; desc: string; preview: React.CSSProperties }> = [
-    { id: "aurora", label: t("themeAurora"), desc: t("themeAuroraDesc"), preview: { background: "linear-gradient(135deg,var(--sidebar) 0%,#0B2540 45%,#0E4A6B 100%)", color: "var(--foreground)" } },
-    { id: "executive", label: t("themeExecutive"), desc: t("themeExecutiveDesc"), preview: { background: "linear-gradient(135deg,#0A2540 0%,#132D50 50%,#0A2540 100%)", color: "#fff" } },
-    { id: "minimal", label: t("themeMinimal"), desc: t("themeMinimalDesc"), preview: { background: "#FCFCFC", color: "#111" } },
-  ];
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-        <Palette size={18} /> <div style={{ fontSize: 15, fontWeight: 700 }}>{t("chooseStyle")}</div>
-      </div>
-      <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>{t("chooseStyleHint")}</div>
-      <div className="wizard-theme-grid">
-        {cards.map((c) => (
-          <button key={c.id} onClick={() => onChange(c.id)} className="brand-btn" style={{
-            flexDirection: "column", padding: 0, overflow: "hidden", gap: 0,
-            background: "var(--surface-2)", border: `2px solid ${value === c.id ? "#42C2EE" : "var(--border)"}`,
-            color: "var(--foreground)", minHeight: 180,
-          }}>
-            <div style={{ ...c.preview, height: 110, width: "100%", position: "relative", display: "flex", flexDirection: "column", padding: 14, justifyContent: "space-between" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8, letterSpacing: 2, opacity: 0.7 }}>
-                <span>MECHATRO</span>
-                <span>REPORT</span>
-              </div>
-              <div>
-                <div style={{ fontSize: c.id === "minimal" ? 22 : 14, fontWeight: 900, lineHeight: 1 }}>
-                  {c.id === "minimal" ? t("reportLabel") : t("sampleTitle")}
-                </div>
-                <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-                  {[0,1,2].map((i) => (
-                    <div key={i} style={{ width: 20, height: 4, borderRadius: 2, background: c.id === "minimal" ? "#D4A017" : (i === 0 ? "#42C2EE" : i === 1 ? "#3ECF8E" : "#F5A623") }} />
-                  ))}
-                </div>
-              </div>
-              {value === c.id && (
-                <div style={{ position: "absolute", top: 8, insetInlineEnd: 8, width: 24, height: 24, borderRadius: 999, background: "#42C2EE", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Check size={14} />
-                </div>
-              )}
-            </div>
-            <div style={{ padding: 12, textAlign: lang === "ar" ? "right" : "left", width: "100%" }}>
-              <div style={{ fontSize: 13, fontWeight: 800 }}>{c.label}</div>
-              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3 }}>{c.desc}</div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function StepPreview({ prepared }: { prepared: { blob: Blob; filename: string; pageCount: number; kind: "team" | "member" } }) {
   const { t } = useApp();
