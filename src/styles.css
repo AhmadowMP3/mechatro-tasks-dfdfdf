@@ -714,11 +714,11 @@ a:focus-visible,
 @media (max-width: 767px) {
   /* Typography rhythm */
   body { line-height: 1.5; }
-  h1, h2, h3 { text-wrap: balance; overflow-wrap: anywhere; }
+  h1, h2, h3 { text-wrap: balance; overflow-wrap: break-word; }
   h3 { font-size: 16px !important; }
 
-  /* Long, unbroken strings (URLs, emails, IDs) never blow layout */
-  p, span, div, td, li, a { overflow-wrap: anywhere; }
+  /* Long, unbroken strings (URLs, emails, IDs) never blow layout — but keep words intact */
+  p, span, div, td, li, a { overflow-wrap: break-word; }
 
   /* Tap-target guarantee for icon buttons */
   button[aria-label], a[aria-label] {

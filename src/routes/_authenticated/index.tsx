@@ -406,7 +406,7 @@ function MomentumCard({ buckets, lang, title }: { buckets: { d: Date; count: num
                   transition: "height .6s ease",
                 }} />
               </div>
-              <div style={{ fontSize: 10, color: isToday ? "var(--brand-blue)" : "var(--muted)", fontWeight: isToday ? 700 : 500 }}>{weekday(b.d)}</div>
+              <div style={{ fontSize: 10, color: isToday ? "var(--brand-blue)" : "var(--muted)", fontWeight: isToday ? 700 : 500, whiteSpace: "nowrap", overflowWrap: "normal", wordBreak: "keep-all", lineHeight: 1 }}>{weekday(b.d)}</div>
             </div>
           );
         })}
