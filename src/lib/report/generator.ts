@@ -147,21 +147,22 @@ async function renderFragmentToCanvas(
 
 /** HTML for the shared page-chrome header (logo + branding) painted at the
  *  top of every content page. Rendered once and reused. */
-function headerHtml(memberName: string, rangeText: string, logoDataUrl: string): string {
-  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${HEADER_H}px;padding:14px ${SIDE_PAD}px 10px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-bottom:1px solid #ECECEC">
-    <div style="display:flex;align-items:center;gap:10px">
-      <img src="${logoDataUrl}" style="width:30px;height:30px;object-fit:contain"/>
-      <div>
-        <div style="font-size:11px;font-weight:900;letter-spacing:4px;color:#0B0B0B">MECHATRO</div>
-        <div style="font-size:9.5px;color:#8A8A8A;margin-top:2px;letter-spacing:1px">Member Report · تقرير العضو</div>
+function headerHtml(title: string, rangeText: string, logoDataUrl: string, kind: ReportKind): string {
+  const label = REPORT_LABELS[kind];
+  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${HEADER_H}px;padding:14px ${SIDE_PAD}px 10px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-bottom:1px solid #ECECEC;background:#ffffff">
+    <div style="display:flex;align-items:center;gap:12px">
+      <img src="${logoDataUrl}" style="height:30px;object-fit:contain"/>
+      <div style="border-left:2px solid #E4E7EC;padding-left:12px">
+        <div style="font-size:10.5px;font-weight:900;letter-spacing:2px;color:#0B0B0B;text-transform:uppercase">${escHtml(label.en)}</div>
+        <div dir="rtl" style="font-size:10px;color:#8A8A8A;margin-top:2px;font-family:'Montserrat Arabic','Cairo',sans-serif">${escHtml(label.ar)}</div>
       </div>
     </div>
     <div style="text-align:right;font-size:9.5px;color:#8A8A8A;line-height:1.4">
-      <div style="color:#0B0B0B;font-weight:800;letter-spacing:.5px">${escHtml(memberName)}</div>
+      <div style="color:#0B0B0B;font-weight:800;letter-spacing:.5px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(title)}</div>
       <div>${escHtml(rangeText)}</div>
     </div>
   </div>
-  <div style="width:${A4_W}px;height:3px;background:linear-gradient(90deg,#D4A017 0,#D4A017 56px,transparent 56px)"></div>`;
+  <div style="width:${A4_W}px;height:3px;background:linear-gradient(90deg,#D4A017 0,#D4A017 56px,#42C2EE 56px,#42C2EE 112px,transparent 112px)"></div>`;
 }
 
 /** HTML for the shared page-chrome footer. Rendered once; the page number is
