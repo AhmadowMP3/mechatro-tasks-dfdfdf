@@ -1,53 +1,61 @@
+## Per-Assignee Points on Review Approval
 
-# Fix Creative PDF: no overlap, logo on every page
+### Goal
+When a multi-assignee task moves to **In Review**, the admin approving it should be able to award each assignee an individual amount of points (custom number OR percentage split of the task's total). When the admin then approves (moves to Done), each assignee receives their allocated points independently — instead of only the "primary" assignee getting the task's points.
 
-The current pipeline rasterises each `.pdf-page` section into one tall canvas and blindly slices it into A4 tiles. Charts, cards, and rows get cut in half; the header/logo only paint on the first tile and the footer only on the last tile — that's the overlap and "missing logo" the user is seeing. Fix it by rendering blocks individually, packing them into A4 pages with real awareness of block heights, and painting the header/footer natively via jsPDF on every physical page.
+### UX Flow
 
-## Changes
+1. Member (any assignee) moves task → **In Review**. No change here.
+2. Admin opens the task detail. New section shown only when `status = in_review` and viewer is admin: **"Award points per assignee"**.
+   - One row per assignee (avatar + name).
+   - Each row has two inputs:
+     - **Amount** (integer, 0–1000)
+     - **%** (0–100), auto-linked with Amount using the task's `points` as the base.
+   - Toolbar buttons: **Split equally**, **Reset**, **Total: X / task.points** live counter (informational, not enforced — admin can over/under-allocate).
+   - Editing % updates Amount; editing Amount updates %.
+3. Admin clicks **"Approve & award"** → task status becomes `done`, and each assignee gets their `awarded_points` credited to their profile total, streak, season scores, badges, notifications — same logic as the current single-assignee award trigger, but per row.
+4. Always shown even if there's one assignee (per user request).
 
-### 1. `src/lib/report/report-html.ts` — blocks instead of full sections
+### Data model (new table)
 
-- Remove the in-HTML `contentPage` header/footer chrome (it will move to jsPDF).
-- Export a new function `buildReportBlocks(data, lang, theme)` that returns:
-  ```ts
-  { cover: string; blocks: { html: string; kind: "kpi" | "chart" | "table" | "profile" | "activity" }[] }
-  ```
-  Each block is a self-contained HTML fragment (one card, one chart, one table). Tables that can be tall (tasks, sessions, activity) are split into chunks of ~14 rows per block so a single block always fits inside an A4 content area.
-- Add `buildBilingualBlocks(data, theme)` for the creative theme: interleaves AR and EN blocks in reading order (AR block → EN block → next section), each block already dir-scoped.
-- Keep `buildReportHtml` / `buildBilingualHtml` as thin wrappers over the block builders for any legacy callers, but the generator will use the block API.
-- Fix `barsSVG` to cap `bw` at 56px so a single-entry chart doesn't span the whole card (the giant blue bar in image-92).
-- Fix `chartsSection` grid: enforce fixed heights on donut/bars cards (240px) so nothing overflows its card.
+`public.task_point_awards`
+- `id uuid PK`
+- `task_id uuid → tasks(id) ON DELETE CASCADE`
+- `user_id uuid → profiles(id) ON DELETE CASCADE`
+- `points integer NOT NULL CHECK (points >= 0 AND points <= 1000)` — admin-entered amount
+- `awarded_amount integer` — final amount after streak multiplier (set when approved)
+- `awarded_at timestamptz` — null until approved
+- `awarded_by uuid → profiles(id)`
+- `created_at`, `updated_at`
+- `UNIQUE (task_id, user_id)`
 
-### 2. `src/lib/report/generator.ts` — page packer + native chrome
+RLS:
+- Admins: full access.
+- Assignee: `SELECT` own row (so they can see what admin proposed / what they got).
+- GRANTs to `authenticated` + `service_role`.
 
-- Replace `renderSectionToCanvas` + `sliceCanvasToPages` with:
-  - `renderBlockToCanvas(html)` → renders one block at exact width (706px = A4 minus 44px side margins) and returns its canvas + measured height in PDF points.
-  - `packBlocksIntoPages(blocks, contentH)` → greedy packer that lays blocks top-to-bottom, opening a new PDF page when the next block would overflow `contentH`. Small `blocks` (KPIs, section headers) can share a page; a chart card that's taller than the remaining space moves to the next page whole — no more mid-card slicing.
-- After the packer, for each physical PDF page paint the chrome directly with jsPDF:
-  - **Header (top 56pt)**: logo image (26pt square) + "MECHATRO · MEMBER REPORT / تقرير العضو" text + thin gold hairline. `pdf.addImage(LOGO_DATA_URL, "PNG", ...)` for the logo, `pdf.text` for the labels, `pdf.setDrawColor` + `pdf.line` for the rule.
-  - **Footer (bottom 44pt)**: small logo (14pt) + `mechatro @ mechatro.hub4tech.net` on the left, `page X / Y` on the right, hairline top border.
-  - Cover page renders as one big canvas (no chrome) — it already has its own branded header/footer inside.
-- Reserve `headerH = 72pt`, `footerH = 44pt`; content area = `pageH - headerH - footerH`. Blocks are drawn inside that band, so header/footer never overlap content.
+### Award logic
 
-### 3. Fonts for the native jsPDF text
+Rewrite `public.award_task_points` trigger so that when a task transitions to `done`:
+- If rows exist in `task_point_awards` for the task → award each row's `points` (× streak multiplier per user) to that user, mark `awarded_at`/`awarded_amount` on each row, and create per-user notifications/badges/season scores.
+- Else (backward-compat single assignee) → keep the current path using `tasks.assignee_id` + `tasks.points`.
+- Idempotency: skip rows where `awarded_at IS NOT NULL`; still set `tasks.points_awarded_at` so the task itself isn't re-processed.
 
-- Register `Montserrat Arabic` (already inlined as a base64 asset JSON) with `pdf.addFileToVFS` + `pdf.addFont` at generator init so `pdf.text` can render the Arabic header/footer labels correctly. Fall back to Helvetica for Latin text.
+### Frontend changes
 
-### 4. Legacy bilingual path
+- **`src/components/TaskDetailModal.tsx`**: new `<AwardPointsPanel />` shown when `task.status === 'in_review'` and `isAdmin`. Loads assignees + any existing draft awards from `task_point_awards`, upserts on change, shows the Total counter. **"Approve & award"** button = upsert final rows → then update task status to `done`.
+- **`src/components/TaskDetailModal.tsx`** (member view): after approval, show a small read-only "You earned X points" chip for the current user, sourced from `task_point_awards`.
+- **`src/i18n/dict.ts`**: new keys (`awardPointsTitle`, `awardPointsHint`, `splitEqually`, `resetAwards`, `totalAllocated`, `approveAndAward`, `youEarnedPoints`, etc.) in AR + EN.
+- **`src/lib/tasks/*` (or nearest data hook)**: add `useTaskPointAwards(taskId)` + `upsertTaskPointAward` + `approveTaskWithAwards` helpers.
 
-- Remove the `buildReportHtml(ar) + page-break + buildReportHtml(en)` legacy branch — every choice (ar / en / bilingual) now goes through the block API. This kills the leftover "Mechatro © 2026" footer visible in the uploaded PDF.
+### Out of scope
+- Editing awards after approval (locked once `awarded_at` is set).
+- Deducting points on un-approving (status change back from done).
+- Changes to the report PDF (awards will naturally appear in members' point totals).
 
-## Out of scope
+### Order of operations
+1. **Migration**: create `task_point_awards` (table + grants + RLS) and rewrite `award_task_points` trigger to consume it.
+2. **Frontend**: hooks, `AwardPointsPanel`, wire into `TaskDetailModal`, i18n keys.
+3. Typecheck.
 
-- No changes to `data.ts`, storage upload, history table, preview modal, or dialog UI.
-- No new fonts or dependencies (Montserrat Arabic + logo asset already inlined).
-- Existing themes (aurora / executive / minimal) still work — they just get the new native chrome too.
-
-## Verification
-
-After build, generate a bilingual Creative report for a test member, open the preview iframe, and confirm:
-- Logo appears in the top-left of every non-cover page (not just page 2).
-- Footer reads `mechatro @ mechatro.hub4tech.net · page X / Y` on every non-cover page.
-- No chart card, table row, or section title is cut in half at a page break.
-- Single-project bar chart no longer spans the full card width.
-- Arabic still renders with correct shaping (Montserrat Arabic font).
+Awaiting approval to switch to build mode.
