@@ -112,24 +112,37 @@ export async function printReactDocument(
   iframe.style.pointerEvents = "none";
   document.body.appendChild(iframe);
 
-  // Some browsers need srcdoc; some need document.write. srcdoc is cleaner
-  // and works in Chrome/Safari/Firefox.
-  iframe.srcdoc = buildIframeHtml(options.lang, options.title);
+  const html = buildIframeHtml(options.lang, options.title);
 
-  await new Promise<void>((resolve) => {
-    if (iframe.contentDocument?.readyState === "complete") { resolve(); return; }
-    iframe.addEventListener("load", () => resolve(), { once: true });
-  });
-
-  const doc = iframe.contentDocument;
-  const win = iframe.contentWindow;
-  if (!doc || !win) {
-    document.body.removeChild(iframe);
-    throw new Error("Failed to prepare print frame");
+  // Prefer document.open/write — srcdoc's load event can fire for the
+  // initial about:blank before the actual HTML parses, leaving us with an
+  // empty document and no #print-root.
+  let doc = iframe.contentDocument;
+  let win = iframe.contentWindow;
+  try {
+    if (doc) {
+      doc.open();
+      doc.write(html);
+      doc.close();
+    } else {
+      iframe.srcdoc = html;
+    }
+  } catch {
+    iframe.srcdoc = html;
   }
 
-  const mount = doc.getElementById("print-root");
-  if (!mount) {
+  // Poll for the mount node — handles both write and srcdoc paths.
+  const deadline = Date.now() + 3000;
+  let mount: HTMLElement | null = null;
+  while (Date.now() < deadline) {
+    doc = iframe.contentDocument;
+    win = iframe.contentWindow;
+    mount = doc?.getElementById("print-root") ?? null;
+    if (mount && doc && win) break;
+    await new Promise((r) => setTimeout(r, 40));
+  }
+
+  if (!doc || !win || !mount) {
     document.body.removeChild(iframe);
     throw new Error("Print root missing");
   }
