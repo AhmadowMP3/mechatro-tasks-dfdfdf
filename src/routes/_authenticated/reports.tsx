@@ -153,7 +153,6 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
   const monthAgo = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
   const [from, setFrom] = useState(monthAgo);
   const [to, setTo] = useState(today);
-  const [theme, setTheme] = useState<ThemeId>("aurora");
   const [busy, setBusy] = useState(false);
   const [prepared, setPrepared] = useState<{ blob: Blob; filename: string; pageCount: number; kind: "team" | "member"; memberReport?: PreparedMemberReport } | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -179,18 +178,19 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
           label: r.kind,
         };
         const data = await loadTeamReportData(range, user?.full_name ?? "Admin");
-        const html = langChoice === "bilingual"
-          ? buildTeamReportHtml(data, "ar", theme) + `<div class="html2pdf__page-break"></div>` + buildTeamReportHtml(data, "en", theme)
-          : buildTeamReportHtml(data, langChoice as Lang, theme);
+        const html = buildTeamReportHtml(data, langChoice === "bilingual" ? "en" : (langChoice as Lang));
         const filename = `Mechatro_Team_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
-        const result = await buildTeamReportPdf(html, filename);
+        const rangeText = range.from
+          ? `${range.from.toISOString().slice(0, 10)} — ${(range.to ?? new Date()).toISOString().slice(0, 10)}`
+          : "All time";
+        const result = await buildTeamReportPdf(html, filename, rangeText);
         setPrepared({ ...result, kind: "team" });
       } else if (memberId) {
         const data = await loadMemberReportData(memberId, buildRange());
-        const p = await buildMemberReportPdf(data, langChoice, theme);
+        const p = await buildMemberReportPdf(data, langChoice);
         setPrepared({ blob: p.blob, filename: p.filename, pageCount: p.pageCount, kind: "member", memberReport: p });
       }
-      setStep(5);
+      setStep(4);
     } catch (e) {
       console.error(e);
       toast.error((e as Error).message || t("reportError"));
