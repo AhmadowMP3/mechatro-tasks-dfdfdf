@@ -35,7 +35,6 @@ export const dict = {
   youEarnedPoints: { ar: "لقد حصلت على", en: "You earned" },
   awardedLabel: { ar: "تم منحها", en: "Awarded" },
   percent: { ar: "٪", en: "%" },
-  amount: { ar: "المبلغ", en: "Amount" },
   // Priority
   low: { ar: "منخفضة", en: "Low" },
   normal: { ar: "عادية", en: "Normal" },
