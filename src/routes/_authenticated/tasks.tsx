@@ -25,6 +25,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 import { BulkAssigneeModal } from "@/components/tasks/BulkAssigneeModal";
 import { Trash2, CircleDot, Users } from "lucide-react";
+import { useTasksRealtime } from "@/hooks/useTasksRealtime";
 
 export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
 
