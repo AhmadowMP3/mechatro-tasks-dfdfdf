@@ -401,7 +401,7 @@ export async function buildTeamReportPdf(
   html: string,
   filename: string,
 ): Promise<{ blob: Blob; filename: string; pageCount: number }> {
-  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename);
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, "Mechatro Team", "");
   return { blob, filename, pageCount };
 }
 
