@@ -1,15 +1,31 @@
-## Problem
+## المطلوب
 
-Adding "ahmad sabagh" as a task assignee fails with:
-`insert or update on table "task_assignees" violates foreign key constraint "task_assignees_user_id_fkey"`
+في نافذة تفاصيل المهمة (`TaskDetailModal`)، أضِف قسمًا للسوبر أدمن/الأدمن يعرض من بدأ العمل ومتى، مع عدّاد وقت مباشر بصيغة `HH:MM:SS`، ويتحدث فوريًا (realtime) بدون إعادة تحميل.
 
-**Root cause:** `task_assignees.user_id` has a foreign key to `auth.users(id)`, but the profile "ahmad sabagh" exists in `public.profiles` without a matching `auth.users` row (a member profile created without an auth account). The main `tasks.assignee_id` column already correctly references `profiles(id)`, so single-assignee works but multi-assignee fails for any profile lacking an auth user.
+## التغييرات
 
-## Fix
+### 1) `src/components/TaskDetailModal.tsx`
+- إضافة دالة `formatHMS(seconds)` تُخرج `HH:MM:SS` (مع الأرقام العربية عبر `toLocalDigits` عند اللغة العربية).
+- الاشتراك بالـ realtime على `work_sessions` لهذه المهمة داخل `useEffect`:
+  ```
+  supabase.channel(`ws-${taskId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'work_sessions', filter: `task_id=eq.${taskId}` }, () => load())
+    .subscribe();
+  ```
+  مع تنظيف عبر `removeChannel` عند unmount.
+- إضافة قسم جديد يظهر فقط لمن يملك `can("manage_tasks")` (السوبر أدمن/الأدمن):
+  - **الجلسات النشطة الآن**: كل صف يعرض Avatar + اسم العضو + "بدأ في: HH:MM (تاريخ)" + عدّاد حي `HH:MM:SS` يعتمد على `now - started_at` (يتحدّث كل ثانية عبر `now` الموجود أصلًا).
+  - **سجل الجلسات**: قائمة مختصرة بالجلسات المنتهية: اسم العضو + بدأ في + انتهى في + المدة بصيغة `HH:MM:SS`.
+- تغيير عدّاد "إجمالي الوقت" الحالي من `formatMinutes` إلى `HH:MM:SS` محسوب بالثواني (جمع مدد الجلسات المنتهية + الفارق الحي للجلسات المفتوحة) ليكون بالثواني والدقائق والساعات ومباشرًا.
+- إبقاء زر "بدء العمل / إيقاف مؤقت" كما هو (منطق `toggleTimer` بدون تغيير).
 
-Migration to realign the FK with the rest of the schema:
+### تفاصيل فنية
+- الـ RLS الحالية على `work_sessions` تسمح للأدمن بقراءة كل الجلسات، لذا لا تعديل قاعدة بيانات.
+- `work_sessions` مُضاف مسبقًا لـ `supabase_realtime`، لذا لا يلزم migration.
+- `useState<now>` الموجود يعمل بتحديث كل ثانية — يكفي للعدّاد الحي.
+- المدة الحية = `Math.floor((now - new Date(started_at).getTime()) / 1000)`.
+- المدة المخزّنة `duration_minutes` تُحوَّل إلى ثوانٍ للعرض `HH:MM:SS`.
 
-1. Drop `task_assignees_user_id_fkey`.
-2. Re-create it as `FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE`.
-
-No app/UI changes needed — the assignee picker already lists profiles, and this makes the constraint consistent with `tasks.assignee_id`.
+### خارج نطاق التغيير
+- لا تغيير في صفحات أخرى (Dashboard / Tasks list).
+- لا تغيير في صلاحيات أو RLS.
