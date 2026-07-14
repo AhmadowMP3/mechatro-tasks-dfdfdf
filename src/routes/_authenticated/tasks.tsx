@@ -506,8 +506,8 @@ function TasksPage() {
           <KanbanView
             tasks={filtered} projects={projects} users={displayUsers}
             assigneesByTask={assigneesByTask} onOpen={setSelected} onChanged={refetch}
-            selectable={isAdmin} isSelected={isSelected} onToggle={toggle}
           />
+
         ) : (
           <TableView
             tasks={filtered} projects={projects} users={displayUsers}
