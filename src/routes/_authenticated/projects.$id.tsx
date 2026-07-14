@@ -66,6 +66,9 @@ function ProjectDetail() {
     },
   });
 
+  useTasksRealtime(() => { refetch(); }, `project-${id}`);
+
+
   const tasksForSelection = data?.tasks ?? [];
   const { isSelected, toggle, ids: selectedIds, clear: clearSelection } = useBulkSelection({
     pageId: `project:${id}`,
