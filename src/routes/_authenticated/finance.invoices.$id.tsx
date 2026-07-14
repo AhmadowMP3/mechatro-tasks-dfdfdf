@@ -12,10 +12,9 @@ import { formatDate } from "@/lib/format";
 import { Plus, Trash2, Save, Send, Download, DollarSign, ArrowLeft, X, Ban, Receipt } from "lucide-react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { stampFilename } from "@/lib/pdf/brand";
-import { paymentMethodTextFor, type CompanySettings } from "@/components/finance/BrandedDocuments";
+import { InvoiceDocument, PaymentReceiptDocument, paymentMethodTextFor, type CompanySettings } from "@/components/finance/BrandedDocuments";
 import { PaymentMethodSelect } from "@/components/finance/PaymentMethodSelect";
-import { buildInvoicePdf } from "@/lib/pdf/invoice-pdf";
-import { buildReceiptPdf } from "@/lib/pdf/receipt-pdf";
+import { printReactDocument } from "@/lib/pdf/print-document";
 
 export const Route = createFileRoute("/_authenticated/finance/invoices/$id")({
   component: InvoiceEditorPage,
@@ -252,19 +251,24 @@ function InvoiceEditorPage() {
     if (isNew || !existing) { toast.error(t("saveDraft")); return; }
     const cust = customers?.find((c) => c.id === existing.invoice.customer_id) ?? null;
     try {
-      const pdf = await buildInvoicePdf({
-        invoice: existing.invoice,
-        items: existing.items,
-        customer: cust,
-        settings: settings as CompanySettings | null,
-        lang,
-        chrome: { lang, generatedBy: user?.full_name ?? null },
-      });
-      pdf.save(stampFilename("invoice", existing.invoice.number ?? "draft"));
+      await printReactDocument(
+        <InvoiceDocument
+          invoice={existing.invoice}
+          items={existing.items}
+          customer={cust}
+          settings={(settings as CompanySettings | null) ?? null}
+          lang={lang}
+        />,
+        {
+          title: stampFilename("invoice", existing.invoice.number ?? "draft").replace(/\.pdf$/, ""),
+          lang,
+        },
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     }
   };
+  void user;
 
   const [receiptPayment, setReceiptPayment] = useState<InvoicePayment | null>(null);
 
@@ -493,21 +497,25 @@ function PaymentReceiptModal({
   settings: CompanySettings | null;
   onClose: () => void;
 }) {
-  const { t, lang, user } = useApp();
+  const { t, lang } = useApp();
   const [downloading, setDownloading] = useState(false);
   const download = async () => {
     setDownloading(true);
     try {
-      const pdf = await buildReceiptPdf({
-        payment,
-        invoice,
-        customer,
-        settings,
-        lang,
-        methodLabel: paymentMethodTextFor(payment.method, lang),
-        chrome: { lang, generatedBy: user?.full_name ?? null },
-      });
-      pdf.save(stampFilename("receipt", (payment.id ?? "").slice(0, 8)));
+      await printReactDocument(
+        <PaymentReceiptDocument
+          payment={payment}
+          invoice={invoice}
+          customer={customer}
+          settings={settings}
+          lang={lang}
+          methodLabel={paymentMethodTextFor(payment.method, lang)}
+        />,
+        {
+          title: stampFilename("receipt", (payment.id ?? "").slice(0, 8)).replace(/\.pdf$/, ""),
+          lang,
+        },
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
