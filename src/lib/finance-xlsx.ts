@@ -189,7 +189,7 @@ export async function exportFinanceWorkbook(
 
     // Logo top-outer-edge
     if (logoId !== null) {
-      const anchorCol = lang === "ar" ? 0 : totalCols - 1;
+      const anchorCol = totalCols - 1;
       sheet.addImage(logoId, {
         tl: { col: anchorCol + 0.15, row: 0.15 },
         ext: { width: 120, height: 34 },
