@@ -1,13 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { FileSpreadsheet, FileText, Download, Loader2, ArrowRight, ArrowLeft, Users2, User, Eye, Palette, Check, History } from "lucide-react";
+import { FileSpreadsheet, FileText, Download, Loader2, ArrowRight, ArrowLeft, Users2, User, Eye, Check, History } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Avatar } from "@/components/Avatar";
 import { exportBrandedWorkbook } from "@/lib/export/xlsx-workbook";
-import { THEMES, type ThemeId } from "@/lib/report/themes";
 import { loadMemberReportData, type ReportRange } from "@/lib/report/data";
 import { buildMemberReportPdf, buildTeamReportPdf, persistMemberReportPdf, type PreparedMemberReport, type ReportLangChoice } from "@/lib/report/generator";
 import { buildTeamReportHtml, loadTeamReportData } from "@/lib/report/team-report";
