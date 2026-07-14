@@ -219,7 +219,7 @@ export async function exportToBrandedXlsx<Row>(opts: XlsxExportOptions<Row>) {
   if (logo) {
     const imageId = wb.addImage({ buffer: logo, extension: "png" });
     // 120px wide, anchored inside row 1
-    const anchorCol = lang === "ar" ? 0 : totalCols - 1;
+    const anchorCol = totalCols - 1;
     sheet.addImage(imageId, {
       tl: { col: anchorCol + 0.15, row: 0.15 },
       ext: { width: 120, height: 34 },
