@@ -1,60 +1,92 @@
-# Fix Finance mobile UI
+# Mobile UI Polish Plan
 
-The uploaded screenshots show four concrete breakages on the Finance section at mobile widths (~360–420px):
+Keep the current visual language (colors, tokens, gradients). Refine at the details level: tap targets, spacing rhythm, alignment, motion, and RTL correctness. No business-logic changes.
 
-1. **Tab bar clips the last tab** and gives no scroll affordance — "المصاريف" appears cut to "المصار" at the right edge.
-2. **Header row is cramped** — greeting, currency toggle, and the "1 USD = … SYP" hint jam into the same row and wrap awkwardly.
-3. **KPI cards overflow** — the big 28px `kpi-value` (e.g. `500,000,000.00 ل.س`) touches the card edge and wraps mid-number.
-4. **12-month chart is too tight** — twelve equal columns in the mobile width squeeze the bars to hair-thin, month labels overlap.
+## 1. Global Shell (`src/components/layout/AppShell.tsx`, `PageHeader.tsx`, `src/styles.css`)
 
-Everything below is presentation-only. No changes to data flow, queries, currency logic, or i18n keys.
+- Enforce safe-area insets on top (`env(safe-area-inset-top)`) so page headers clear the notch.
+- Standardize mobile page padding: 16px inline, 12px top, 96px bottom (clears tab bar + safe-area).
+- Global mobile typography scale in `styles.css` under `@media (max-width: 640px)`:
+  - `h1` 22px, `h2` 18px, `h3` 16px, body 15px, `line-height: 1.5`.
+  - Ensure all headings use `text-wrap: balance` and long strings get `overflow-wrap: anywhere`.
+- Minimum tap target rule: buttons, links in nav, icon buttons ≥ 44×44 px on mobile via a `.tap-44` utility applied where needed.
+- `:focus-visible` ring standardized (2px primary, 2px offset) — accessibility on touch too.
 
-## Changes
+## 2. Mobile Tab Bar (`MobileTabBar.tsx`, `styles.css`)
 
-### 1. `src/routes/_authenticated/finance.tsx` — tab bar
+- Keep the glow-icon active style already in place; refine:
+  - Add smooth spring-like transform on active change (`transition: transform .22s cubic-bezier(.4,1.3,.5,1)`).
+  - Slight scale (1.06) + upward translate on active icon, glow fades in.
+  - Label weight jumps 700 → 800 on active for better contrast.
+  - Add subtle `:active` press state (scale .96).
+  - Ensure `min-height: 60px` per cell and `padding-bottom: env(safe-area-inset-bottom)` (already there — verify).
+- More sheet: ensure it uses same safe-area padding.
 
-- Add horizontal end padding (14 → 20) plus `scroll-padding-inline: 20px` so the first/last tab breathe.
-- Add `-webkit-mask-image` fade on both edges of the scroller to make it obvious the row is scrollable.
-- Add `scrollbar-width: none` / `::-webkit-scrollbar { display: none }` for a cleaner mobile look.
+## 3. Page Headers (`PageHeader.tsx`, per-page headers)
 
-### 2. `src/styles/finance.css` — mobile-specific rules under `@media (max-width: 640px)`
+- Convert all page header rows to the responsive grid pattern:
+  `grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex`.
+- `min-w-0` on text container, `truncate` on titles, `shrink-0` on action buttons.
+- Action buttons stack into a horizontal scroll strip on very narrow widths when > 2 actions.
 
-- `.finance-tabs a` — drop min-height to 40, font 13.5px, padding `8px 14px`, keep icons.
-- `.finance-root { padding: 14px !important; }` on the outer container (currently 20).
-- `.finance-root h1 { font-size: 22px !important; }` (down from 28).
-- `.finance-root .kpi-value` — `font-size: 22px !important; overflow-wrap: anywhere; word-break: break-word; line-height: 1.15;` so long money strings wrap on the comma/space instead of pushing the card.
-- `.finance-root .quick-action` — reduce padding to `14px 16px`, min-height 60, font 15.
-- `.finance-root .brand-card` — reduce inner padding on cards from 20/22 → 16 via a mobile override (`.finance-root section.brand-card, .finance-root .brand-card { padding: 16px !important; }` scoped to the media query only).
+## 4. Cards, Lists & Tables
 
-### 3. `src/routes/_authenticated/finance.index.tsx` — header + KPI + chart
+- `.brand-card` mobile: `padding: 14px`, `border-radius: 14px`.
+- Task cards: title `line-clamp: 2`, meta row wraps cleanly, assignee stack caps at 3 + overflow badge.
+- Kanban: hidden on mobile in favor of horizontal snap-scroll columns (already exists — verify column width `min(85vw, 320px)` and `scroll-snap-type: x mandatory`).
+- Tables: on <640px force the "table becomes stacked cards" pattern for read-only lists (via CSS `display: block` + row cards). For editable tables (finance), keep horizontal scroll with sticky first column.
 
-**Header row (lines 140–170)** — restructure so it stacks cleanly:
+## 5. Forms, Inputs & Modals
 
-```
-[ Greeting + date          ]
-[ Currency label + toggle  ]  ← same row on mobile
-[ 1 USD = … SYP hint       ]  ← own line on mobile
-```
+- Inputs ≥ 46px min-height, 16px font (prevents iOS auto-zoom), 12px radius.
+- Selects use native picker on mobile (already the case for finance).
+- Modals (`NewTaskModal`, `TaskDetailModal`, `FilterDrawer`, share modals):
+  - Full-screen sheet on mobile: `inset: 0`, `border-radius: 20px 20px 0 0`, slide-up animation.
+  - Sticky header (title + close) + sticky footer (actions), scrollable body between.
+  - Backdrop tap closes; `Esc` closes; body scroll-locked when open.
 
-Concretely: wrap the right-side controls in a container that uses `flex-wrap: wrap`, move the FX hint into its own `<div>` with `width: 100%` / `flex-basis: 100%` so it drops to a new line rather than dangling next to the toggle.
+## 6. Motion & Micro-interactions
 
-**KPI grid (line 198)** — change `minmax(240px, 1fr)` → `minmax(200px, 1fr)` so two cards fit side-by-side around 420px width instead of stacking to one column too early.
+- Standard easing token in `styles.css`: `--ease-out: cubic-bezier(.2,.7,.2,1)`.
+- Page transitions: fade + 4px slide on route change (opt-in via a wrapper — light, no framer-motion required).
+- Button press: `transform: scale(.97)` on `:active`.
+- List item hover/press: subtle background shift.
+- Skeleton loaders get a shimmer keyframe.
+- Respect `prefers-reduced-motion` — disable transforms/shimmer.
 
-**KPI card body (line 286)** — remove `minHeight: 128` (mobile doesn't need the fixed height once the value wraps), and add `min-w-0` semantics via inline `minWidth: 0` on the outer card and on the value div, so text wrapping actually kicks in inside grids.
+## 7. RTL / Arabic
 
-**Monthly chart (line 210)** — on mobile the 12-column grid becomes scrollable:
-- Wrap the bar grid in a `<div style={{ overflowX: "auto" }}>`.
-- Give the inner grid `minWidth: 480` so bars stay legible; on desktop it fills naturally because 480px is less than any real desktop width there.
+- Audit hardcoded `left`/`right`, `marginLeft`/`marginRight` in mobile-critical components and swap for logical properties (`inline-start`/`inline-end`, `margin-inline-*`).
+- Verify icons that carry direction (chevrons, back arrows) flip in RTL via `[dir="rtl"] .rtl-flip { transform: scaleX(-1) }`.
+- Numbers already forced to English — verify formatters used everywhere on mobile pages.
+- Confirm the mobile tab bar labels don't overflow in Arabic (test at 320px width).
+
+## 8. Per-page mobile passes
+
+Quick targeted sweep on each core page:
+
+- **Dashboard (`_authenticated/index.tsx`)**: KPI grid uses `minmax(160px, 1fr)` on mobile; charts get horizontal scroll wrapper; podium card shrinks avatars.
+- **Tasks (`_authenticated/tasks.tsx`)**: ViewSwitcher hides labels <400px (already `hide-sm`), filter drawer opens as bottom sheet; task cards get consistent 12px gap.
+- **Projects**: project cards single column, hero image height caps at 140px.
+- **Team**: member cards stack, avatar 56px, stats wrap.
+- **League**: podium scales down to fit 320px, table becomes stacked rows.
+- **Finance**: keep existing polish; only verify all sub-pages (invoices, expenses, income, payroll, subscriptions, reports, settings) use the same tab-bar treatment and card padding — no logic changes.
+- **Notes**: editor toolbar becomes horizontal-scroll on mobile, AI menu opens as sheet.
+
+## 9. Verification
+
+- Playwright screenshots at 320px, 375px, 414px in both LTR and RTL for: Dashboard, Tasks, Projects, Team, League, Finance overview, one modal open.
+- Visually confirm no overflow, no clipped text, tab bar aligned, safe-area respected.
+- Typecheck must pass.
+
+## Technical notes
+
+- Almost all changes land in `src/styles.css` (adding utilities + `@media (max-width: 640px)` blocks), `MobileTabBar.tsx`, `PageHeader.tsx`, and small edits in each page/modal to apply the responsive grid pattern.
+- No new dependencies. No changes to data, queries, server functions, or auth.
+- No token/color changes — reuse existing CSS variables.
 
 ## Out of scope
 
-- Other finance sub-routes (invoices/customers/expenses/etc.) — the reported issues are on `/finance` overview and the shared tab bar; those two already cover both screenshots. If specific sub-pages need mobile polish later, that's a separate pass.
-- No changes to Arabic/English digit rules (already Latin-only), no changes to numbers formatting, currency conversion, or any business logic.
-- No new dependencies; pure CSS + small JSX restructure.
-
-## Verification
-
-After changes I will:
-1. Set the preview to mobile viewport and load `/finance` in Arabic — check tabs scroll edge-to-edge with fade, KPI amounts wrap inside cards, header stacks in the order above.
-2. Switch language to English — sanity check that the same layout holds LTR.
-3. Confirm desktop (`>= 1024px`) is visually unchanged by re-checking the current preview after the edit.
+- Desktop layout changes.
+- New features or content.
+- Business logic, data model, backend.
