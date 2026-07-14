@@ -237,10 +237,10 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "var(--foreground)" }}>{t("newPdfReport")}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>{t("step")} {step} {t("ofSteps")} 5</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>{t("step")} {step} {t("ofSteps")} 4</div>
           </div>
           <div style={{ display: "flex", gap: 4 }}>
-            {[1, 2, 3, 4, 5].map((n) => (
+            {[1, 2, 3, 4].map((n) => (
               <div key={n} style={{ flex: 1, height: 4, borderRadius: 2, background: n <= step ? "linear-gradient(90deg,#42C2EE,#7C5CD1)" : "var(--border)" }} />
             ))}
           </div>
@@ -250,29 +250,28 @@ function PdfWizard({ onClose }: { onClose: () => void }) {
           {step === 1 && <StepScope scope={scope} setScope={setScope} memberId={memberId} setMemberId={setMemberId} users={users} />}
           {step === 2 && <StepLanguage value={langChoice} onChange={setLangChoice} />}
           {step === 3 && <StepPeriod rangeKey={rangeKey} setRangeKey={setRangeKey} from={from} to={to} setFrom={setFrom} setTo={setTo} today={today} />}
-          {step === 4 && <StepTheme value={theme} onChange={setTheme} />}
-          {step === 5 && prepared && <StepPreview prepared={prepared} />}
+          {step === 4 && prepared && <StepPreview prepared={prepared} />}
         </div>
 
         <div style={{ padding: 16, borderTop: "1px solid var(--border)", background: "var(--surface-2)", display: "flex", gap: 8, justifyContent: "space-between" }}>
           <button onClick={onClose} className="brand-btn" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}>{t("cancel")}</button>
           <div style={{ display: "flex", gap: 8 }}>
-            {step > 1 && step < 5 && (
+            {step > 1 && step < 4 && (
               <button onClick={() => setStep((s) => (s - 1) as WizardStep)} className="brand-btn" style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
                 <ArrowLeft size={16} /> {t("back")}
               </button>
             )}
-            {step < 4 && (
+            {step < 3 && (
               <button disabled={!canProceed} onClick={() => setStep((s) => (s + 1) as WizardStep)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", opacity: canProceed ? 1 : 0.5 }}>
                 {t("next")} <ArrowRight size={16} />
               </button>
             )}
-            {step === 4 && (
+            {step === 3 && (
               <button disabled={busy} onClick={build} className="brand-btn" style={{ background: "linear-gradient(135deg,#7C5CD1,#42C2EE)", color: "#fff", opacity: busy ? 0.7 : 1 }}>
                 {busy ? <><Loader2 size={16} className="spin" /> {t("buildingPreview")}</> : <><Eye size={16} /> {t("buildPreview")}</>}
               </button>
             )}
-            {step === 5 && (
+            {step === 4 && (
               <button disabled={confirming} onClick={download} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", opacity: confirming ? 0.7 : 1 }}>
                 {confirming ? <><Loader2 size={16} className="spin" /> ...</> : <><Download size={16} /> {t("confirmDownload")}</>}
               </button>
