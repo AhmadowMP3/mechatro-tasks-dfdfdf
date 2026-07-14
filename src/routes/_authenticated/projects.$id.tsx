@@ -14,6 +14,7 @@ import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 import { BulkAssigneeModal } from "@/components/tasks/BulkAssigneeModal";
+import { useTasksRealtime } from "@/hooks/useTasksRealtime";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({ component: ProjectDetail });
 
