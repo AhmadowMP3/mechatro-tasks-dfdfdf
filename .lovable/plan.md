@@ -1,53 +1,52 @@
-# Kanban touch-DnD + mobile overlap fix
+## Rewrite Kanban drag-and-drop from scratch
 
-## Two bugs
+Replace the current `@dnd-kit/core` setup with `@dnd-kit/core` + `@dnd-kit/sortable`, which is the standard reliable combo for Kanban boards (works on mouse, touch, keyboard). Add per-column reordering.
 
-1. **Drag & drop doesn't work on touch** — `KanbanView` uses HTML5 native drag events (`onDragStart`, `onDragOver`, `onDrop`). These don't fire on mobile browsers, so on phones/tablets tasks can't be moved between columns at all.
-2. **Mobile overlap** — the Kanban board grid uses `gridAutoColumns: minmax(min(82vw, 280px), 1fr)` with no per-column `min-width`, so columns get squeezed into the narrow viewport and their cards clip / overlap the tab bar area.
+### 1. DB — add `sort_order` to tasks
 
-## Fix
+Migration adds `sort_order double precision` to `public.tasks` (nullable, default null). Backfill with `row_number()` per `(status)` so existing tasks get a stable order. No RLS changes needed (existing task policies cover it).
 
-### 1. Replace native DnD with `@dnd-kit/core` (works on mouse AND touch)
+Using `double precision` lets us insert between two rows without renumbering: `newOrder = (prev + next) / 2`.
 
-Install `@dnd-kit/core` (small, no sortable-list needed — we only need column drop targets).
+### 2. Rewrite `src/components/tasks/KanbanView.tsx`
 
-In `src/components/tasks/KanbanView.tsx`:
-- Wrap the board in `<DndContext>` configured with `PointerSensor` (activation distance 6px so taps still open cards) + `TouchSensor` (delay 180ms, tolerance 6px — long-press to drag on mobile so scrolling still works).
-- Each column becomes a `useDroppable` target keyed by its status; highlight when `isOver` and drop is allowed.
-- Each card becomes a `useDraggable` — apply `listeners`/`attributes` only when `dragThis && !selectable`. Keep the existing `onClick` for opening the task; dnd-kit's activation distance/delay prevents accidental drags.
-- On `onDragEnd`, if `over` is a column and the move is allowed, call the existing `moveTask` logic (unchanged Supabase update, toast, `onChanged`).
-- Preserve the current permission rules (`canMove`), `in_review` styling, and selectable-mode click behavior.
-- Add a `DragOverlay` that renders a lightweight preview of the dragged card so the finger/cursor doesn't obscure it.
+- Wrap board in `<DndContext>` with `PointerSensor` (distance 6px) + `TouchSensor` (delay 200ms, tolerance 8px) + `KeyboardSensor`.
+- Each column = `useDroppable` (id = status) AND wraps its cards in `<SortableContext items={ids} strategy={verticalListSortingStrategy}>`.
+- Each card = `useSortable({ id })` — gives listeners, transform, transition. Click still opens the task (activation distance prevents accidental drag).
+- `onDragEnd(event)`:
+  - Determine target column (from `over.data.current.sortable.containerId` or `over.id` when dropped on empty column).
+  - Compute new `sort_order` from neighbors in that column.
+  - If status changed, update `status` (+ `completed_at` logic as today) + `sort_order`.
+  - If same column, update `sort_order` only.
+  - Enforce existing `canMove` permissions; revert with toast on denial.
+  - Optimistic local reorder, then Supabase update, then `onChanged()`; revert on error.
+- `DragOverlay` renders a lightweight card preview.
+- Keep selectable/bulk mode: when `selectable=true`, disable drag listeners (checkbox mode wins).
 
-### 2. Fix mobile column sizing / overlap
+### 3. Mobile layout (kept from previous fix)
 
-Same file, the grid wrapper:
-- Set `gridAutoColumns: "minmax(280px, 320px)"` on mobile (fixed per-column width so columns don't squish) and `minmax(0, 1fr)` on desktop where the whole board fits.
-- Add `paddingInline: 4px` and `paddingBottom: 12px` so the last-column card doesn't touch the bottom tab bar.
-- Add `scroll-padding-inline: 12px` for cleaner snap.
-- Keep `scroll-snap-type: x mandatory` and per-column `scroll-snap-align: start` (already in `styles.css`).
-- Add `touch-action: pan-x` on the container so vertical page scroll isn't blocked when a card is long-pressed for drag.
+Grid stays `minmax(280px, 1fr)` with `scroll-snap-type: x mandatory`, `touch-action: pan-x pan-y`, `overscroll-behavior: contain`, `scrollPaddingInline: 12`. Cards use `touch-action: none` only when draggable.
 
-### 3. Small polish
+### 4. Consumers
 
-- While dragging on mobile, disable body vertical scroll only inside the board via `overscroll-behavior: contain`.
-- Add a subtle "drop here" outline (already exists — reuse `isOver && dropAllowed`).
+`src/routes/_authenticated/tasks.tsx` already passes `onChanged`. Sort the tasks passed to `KanbanView` by `sort_order NULLS LAST, created_at` — either in the existing query or client-side after fetch. Include `sort_order` in the select and in the `TaskRow` type in `src/components/TaskCard.tsx`.
 
-## Files touched
+### Files touched
 
-- `src/components/tasks/KanbanView.tsx` — rewrite drag layer using dnd-kit; column grid tweaks.
-- `package.json` — add `@dnd-kit/core` (via `bun add`).
+- Migration: add `tasks.sort_order` + backfill.
+- `src/components/TaskCard.tsx` — add `sort_order?: number | null` to `TaskRow`.
+- `src/components/tasks/KanbanView.tsx` — full rewrite of the DnD layer.
+- `src/routes/_authenticated/tasks.tsx` — include `sort_order` in select + sort.
+- `package.json` — `bun add @dnd-kit/sortable @dnd-kit/utilities` (core already installed).
 
-No changes to `tasks.tsx`, permissions, DB, or other views.
+### Out of scope
 
-## Verification
+- Cross-view ordering (Table/Cards views keep current sort).
+- Multi-drag.
+- Server-side conflict resolution beyond last-write-wins.
+
+### Verification
 
 - Typecheck.
-- Playwright: mobile viewport, load `/tasks?view=kanban`, verify columns don't overlap and horizontal scroll works.
-- Manual desktop check that mouse drag between columns still updates status.
-
-## Out of scope
-
-- Reordering cards inside a column (only status-column moves, matching current behavior).
-- Persisted column order.
-- Multi-select drag.
+- Playwright mobile viewport: long-press a card, drag between columns, drop; verify status updated and order persists after reload.
+- Desktop mouse: drag within a column reorders; drag across columns changes status.

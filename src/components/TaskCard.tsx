@@ -12,6 +12,7 @@ export type TaskRow = {
   start_date?: string | null;
   created_at?: string | null;
   points?: number | null; points_awarded_at?: string | null;
+  sort_order?: number | null;
 };
 
 
