@@ -1,44 +1,30 @@
-## Bug
+## Goal
 
-In the sidebar, when you open any child under Finance (`/finance/invoices`, `/finance/customers`, `/finance/expenses`, …) the "لوحة مالية" item (`/finance`) also stays highlighted, so two items look selected at once.
+Master admins and admins can sign in from as many devices as they want without the "you were signed out — this account signed in on another device" kick. Regular users keep their `max_devices` limit.
 
-## Cause
+## How devices are limited today
 
-`src/components/layout/Sidebar.tsx` computes active as:
+- Each sign-in calls the `claim-device-slot` edge function.
+- It reads `profiles.max_devices` (default 1). If more devices than that are active, the oldest is `revoked_at`-stamped and the realtime listener signs it out.
+- The function already supports `max_devices = 0` as "unlimited" — the block that revokes old sessions is skipped in that case.
 
-```ts
-pathname === to || pathname.startsWith(to + "/")
-```
+## Change (one file)
 
-For `to = "/finance"` and `pathname = "/finance/invoices"`, `startsWith("/finance/")` is `true` — so the parent dashboard row lights up on every child page. Same logic used in two places (line 277 for section-level detection, line 353 for the per-item render).
+`supabase/functions/claim-device-slot/index.ts`:
 
-## Fix
+1. When loading the profile, also select `is_master_admin` and `role`.
+2. Compute `unlimited = prof?.is_master_admin === true || prof?.role === "admin"`.
+3. Treat that as `maxDevices = 0` (unlimited) regardless of the stored `max_devices` value, so the revoke-oldest block is skipped for admins and master admins.
+4. Return `max_devices: 0` in the response when unlimited so the client shows the right state.
 
-Make prefix-matching skip items whose `to` is itself a prefix of another sibling `to` in the same section — those parent-dashboard rows must match by exact pathname only. This handles `/finance` today and any future "section landing" route without hardcoding.
-
-Steps in `src/components/layout/Sidebar.tsx`:
-
-1. Build a small helper (inside the section render loop where `items` is already in scope):
-   ```ts
-   const hasDeeperSibling = (to: string) =>
-     items.some((it) => it.to !== to && it.to.startsWith(to + "/"));
-   ```
-2. Replace both active checks with:
-   ```ts
-   const active =
-     to === "/" ? pathname === "/"
-     : hasDeeperSibling(to) ? pathname === to
-     : pathname === to || pathname.startsWith(to + "/");
-   ```
-   Apply at line 277 (section-open detection — pass that section's `items`) and line 353 (per-item render).
-
-Section-open detection still needs to expand Finance when any child is active, so keep the section-level "any item active" check using the same per-item rule.
+No schema change, no migration, no client changes. Existing device rows remain, and any admin currently in a "revoked" state will get their row re-upserted with `revoked_at: null` on their next claim call and stay active.
 
 ## Out of scope
 
-- No styling / label / route changes.
-- No changes outside `src/components/layout/Sidebar.tsx`.
+- No UI changes in Access Control — `max_devices` is still editable for regular users.
+- No changes to the finance-admin flag (it's not an app-wide admin, so it stays limited unless promoted).
+- No changes to the realtime kick logic on the client.
 
 ## Result
 
-At `/finance/invoices`: only "الفواتير" is highlighted. At `/finance`: only "لوحة مالية" is highlighted. Same behavior generalizes to any other section with a landing route + siblings.
+Signing in on a second, third, Nth device as a master admin or admin no longer kicks earlier devices. Regular users behave exactly as before.
