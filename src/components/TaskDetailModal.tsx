@@ -458,7 +458,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
                   const liveSecs = Math.max(0, Math.floor((now - new Date(s.started_at).getTime()) / 1000));
                   return (
                     <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: 10 }}>
-                      {u && <Avatar user={u} size={32} />}
+                      {u && <Avatar name={u.full_name} id={u.id} size={32} />}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 14 }}>{u?.full_name ?? "—"}</div>
                         <div style={{ fontSize: 11, color: "var(--muted)" }}>{t("startedAt")}: {formatDateTime(s.started_at)}</div>
@@ -481,7 +481,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
                     const secs = Math.max(0, Math.floor((new Date(s.ended_at!).getTime() - new Date(s.started_at).getTime()) / 1000));
                     return (
                       <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: 10 }}>
-                        {u && <Avatar user={u} size={26} />}
+                        {u && <Avatar name={u.full_name} id={u.id} size={26} />}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{u?.full_name ?? "—"}</div>
                           <div style={{ fontSize: 11, color: "var(--muted)" }}>
