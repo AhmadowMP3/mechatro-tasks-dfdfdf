@@ -130,7 +130,7 @@ function PeriodCard({ period, expanded, onToggle, onDelete }: { period: PayrollP
   const buildExport = () => {
     const ar = lang === "ar";
     const list = entries ?? [];
-    const label = monthLabel(period.year, period.month, lang);
+    const label = `${monthLabel(period.month, lang)} ${period.year}`;
     return {
       slug: `payroll_${period.year}-${String(period.month).padStart(2, "0")}`,
       title: `${t("payroll")} — ${label}`,
