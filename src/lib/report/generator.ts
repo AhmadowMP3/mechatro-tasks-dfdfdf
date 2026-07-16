@@ -100,7 +100,7 @@ async function renderFragmentToCanvas(
   iframe.style.cssText = [
     "position:fixed", "left:-10000px", "top:0",
     `width:${widthPx}px`, "height:200px",
-    "border:0", "opacity:1", "pointer-events:none", "background:#ffffff",
+    "border:0", "opacity:1", "pointer-events:none", "background:#081320",
   ].join(";");
   document.body.appendChild(iframe);
   try {
@@ -125,7 +125,7 @@ async function renderFragmentToCanvas(
       scale: 2,
       useCORS: true,
       allowTaint: true,
-      backgroundColor: "#ffffff",
+      backgroundColor: "#081320",
       logging: false,
       windowWidth: widthPx,
       windowHeight: naturalH,
