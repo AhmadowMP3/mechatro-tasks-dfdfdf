@@ -164,9 +164,16 @@ function BackupsSection() {
   };
 
   const download = async (b: Backup) => {
-    const { data, error } = await supabase.storage.from("backups").createSignedUrl(b.name, 300);
+    const { data, error } = await supabase.storage.from("backups").download(b.name);
     if (error || !data) { toast.error(error?.message ?? "err"); return; }
-    window.open(data.signedUrl, "_blank");
+    const url = URL.createObjectURL(data);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = b.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const deleteBackup = async (b: Backup) => {
