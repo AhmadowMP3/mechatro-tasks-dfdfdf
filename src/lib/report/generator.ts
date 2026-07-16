@@ -269,6 +269,11 @@ async function renderHtmlToPdfBlob(
     pdf.addPage();
     pdfPageCount++;
 
+    // Dark page background — filled first so any negative-space between blocks
+    // shows the navy backdrop instead of the default white.
+    pdf.setFillColor(8, 19, 32);
+    pdf.rect(0, 0, pageW, pageH, "F");
+
     // Header strip
     if (headerCanvas) {
       const hPt = (headerCanvas.height / 2) * pxToPt;
@@ -295,9 +300,9 @@ async function renderHtmlToPdfBlob(
       pdf.addImage(footerCanvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, pageH - fPt, pageW, fPt, undefined, "FAST");
     }
 
-    // Page number overlay (Latin digits render fine in default jsPDF font).
+    // Page number overlay — light muted grey on the dark footer.
     pdf.setFontSize(9);
-    pdf.setTextColor(138, 138, 138);
+    pdf.setTextColor(148, 163, 184);
     const pageLabel = `page ${pdfPageCount} / ${totalPhysicalPages}`;
     pdf.text(pageLabel, pageW - SIDE_PAD * pxToPt, pageH - 14, { align: "right" });
     void idx;
