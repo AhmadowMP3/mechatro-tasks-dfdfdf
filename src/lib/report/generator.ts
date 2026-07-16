@@ -33,12 +33,12 @@ async function waitForImages(root: Document | HTMLElement) {
 
 const PDF_STYLE = `
   @font-face{font-family:'Montserrat Arabic';src:url('${montArabic.url}') format('truetype');font-weight:100 900;font-style:normal;font-display:block}
-  html,body{margin:0;padding:0;background:#ffffff;color:#0F1B2D;font-family:'Montserrat','Segoe UI',Tahoma,Arial,'Montserrat Arabic','Cairo',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+  html,body{margin:0;padding:0;background:#081320;color:#E6EEF7;font-family:'Montserrat','Segoe UI',Tahoma,Arial,'Montserrat Arabic','Cairo',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
   *{box-sizing:border-box}
   :lang(ar),[dir="rtl"]{font-family:'Montserrat Arabic','Cairo',Tahoma,Arial,sans-serif;unicode-bidi:isolate}
-  .pdf-page{width:794px;min-height:1123px;box-sizing:border-box;overflow:hidden;display:block;background:#ffffff;position:relative}
-  .pdf-block{width:706px;box-sizing:border-box;background:#ffffff}
-  .pdf-chrome{width:794px;box-sizing:border-box;background:#ffffff}
+  .pdf-page{width:794px;min-height:1123px;box-sizing:border-box;overflow:hidden;display:block;background:#081320;position:relative}
+  .pdf-block{width:706px;box-sizing:border-box;background:transparent}
+  .pdf-chrome{width:794px;box-sizing:border-box;background:#081320}
   table{border-collapse:collapse;font-family:inherit}
   svg{display:block;max-width:100%}
   img{max-width:100%;display:block}
