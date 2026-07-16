@@ -47,7 +47,7 @@ export async function exportNoteToPdf(p: Params): Promise<void> {
             <div style={{ fontSize: 11, fontWeight: 700, color: muted, letterSpacing: 3, textTransform: "uppercase" }}>
               {isAr ? "ملاحظة" : "NOTE"}
             </div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, margin: "2px 0 0", color: navy, letterSpacing: 0.3 }}>
+            <h1 style={{ fontSize: 26, fontWeight: 800, margin: "2px 0 0", color: ink, letterSpacing: 0.3 }}>
               {note.title || (isAr ? "بدون عنوان" : "Untitled")}
             </h1>
           </div>
