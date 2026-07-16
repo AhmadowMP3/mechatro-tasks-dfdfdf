@@ -7,10 +7,14 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Building2, Mail, Phone, Search } from "lucide-react";
 import type { Customer, Currency } from "@/lib/finance";
 import { useConfirm } from "@/components/confirm-dialog";
+import { ExportMenu } from "@/components/finance/ExportMenu";
+import { exportFinanceListPdf, exportFinanceListXlsx } from "@/lib/finance-list-export";
+import { useFinancialSettings } from "@/lib/finance-hooks";
 
 export const Route = createFileRoute("/_authenticated/finance/customers")({
   component: CustomersPage,
 });
+
 
 function CustomersPage() {
   const { t, lang } = useApp();
