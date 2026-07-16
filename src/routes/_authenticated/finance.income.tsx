@@ -25,9 +25,11 @@ function IncomePage() {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<IncomeEntry | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const { data: settings } = useFinancialSettings();
 
   const { data: entries } = useQuery({
     queryKey: ["income_entries"],
+
     queryFn: async () => {
       const { data, error } = await supabase.from("income_entries").select("*").order("income_date", { ascending: false });
       if (error) throw error;
