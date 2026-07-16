@@ -13,7 +13,7 @@ import { promptFilename } from "@/components/FilenamePrompt";
 
 type CompareSearch = { a: string; b: string };
 
-export const Route = createFileRoute("/_authenticated/reports-history/compare")({
+export const Route = createFileRoute("/_authenticated/reports-history_/compare")({
   validateSearch: (search: Record<string, unknown>): CompareSearch => ({
     a: typeof search.a === "string" ? search.a : "",
     b: typeof search.b === "string" ? search.b : "",
@@ -61,16 +61,16 @@ function CompareReportsPage() {
   const A = rows.A, B = rows.B;
 
   const metrics: MetricDef[] = useMemo(() => [
-    { key: "tasks", label: t("totalTasks"), higherIsBetter: true, get: (s) => s.totals.tasks },
-    { key: "done", label: t("completed"), higherIsBetter: true, get: (s) => s.totals.done },
-    { key: "completion_pct", label: t("completionPct"), suffix: "%", higherIsBetter: true, get: (s) => s.totals.completion_pct },
-    { key: "on_time_pct", label: t("onTimePct"), suffix: "%", higherIsBetter: true, get: (s) => s.totals.on_time_pct },
-    { key: "overdue", label: t("overdueLbl"), higherIsBetter: false, get: (s) => s.totals.overdue },
-    { key: "avg_completion_hours", label: t("avgCompletion"), higherIsBetter: false, get: (s) => s.totals.avg_completion_hours },
-    { key: "points", label: t("pointsLbl"), higherIsBetter: true, get: (s) => s.totals.points },
-    { key: "rank_position", label: t("rankLbl"), higherIsBetter: false, get: (s) => s.totals.rank_position },
-    { key: "sessions", label: t("sessionsLbl"), higherIsBetter: true, get: (s) => s.totals.sessions },
-    { key: "hours", label: t("hoursLogged"), higherIsBetter: true, get: (s) => Math.round(s.totals.total_minutes / 60) },
+    { key: "tasks", label: t("totalTasks"), higherIsBetter: true, get: (s) => s?.totals?.tasks ?? 0 },
+    { key: "done", label: t("completed"), higherIsBetter: true, get: (s) => s?.totals?.done ?? 0 },
+    { key: "completion_pct", label: t("completionPct"), suffix: "%", higherIsBetter: true, get: (s) => s?.totals?.completion_pct ?? 0 },
+    { key: "on_time_pct", label: t("onTimePct"), suffix: "%", higherIsBetter: true, get: (s) => s?.totals?.on_time_pct ?? 0 },
+    { key: "overdue", label: t("overdueLbl"), higherIsBetter: false, get: (s) => s?.totals?.overdue ?? 0 },
+    { key: "avg_completion_hours", label: t("avgCompletion"), higherIsBetter: false, get: (s) => s?.totals?.avg_completion_hours ?? 0 },
+    { key: "points", label: t("pointsLbl"), higherIsBetter: true, get: (s) => s?.totals?.points ?? 0 },
+    { key: "rank_position", label: t("rankLbl"), higherIsBetter: false, get: (s) => s?.totals?.rank_position ?? 0 },
+    { key: "sessions", label: t("sessionsLbl"), higherIsBetter: true, get: (s) => s?.totals?.sessions ?? 0 },
+    { key: "hours", label: t("hoursLogged"), higherIsBetter: true, get: (s) => Math.round((s?.totals?.total_minutes ?? 0) / 60) },
   ], [t]);
 
   const exportPdf = async () => {
@@ -115,8 +115,10 @@ function CompareReportsPage() {
   if (!A || !B) return <div style={{ padding: 40 }}>Missing reports</div>;
 
 
-  const sA = A.kpi_snapshot, sB = B.kpi_snapshot;
-  const projA = sA.projects_touched, projB = sB.projects_touched;
+  const sA = A.kpi_snapshot ?? ({} as KpiSnapshot);
+  const sB = B.kpi_snapshot ?? ({} as KpiSnapshot);
+  const projA = sA.projects_touched ?? [];
+  const projB = sB.projects_touched ?? [];
   const bIds = new Set(projB.map(p => p.id));
   const aIds = new Set(projA.map(p => p.id));
   const onlyA = projA.filter(p => !bIds.has(p.id));
@@ -191,7 +193,7 @@ function CompareReportsPage() {
         <div style={{ marginBottom: 20 }}>
           <SectionTitle>{t("statusDistribution")}</SectionTitle>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18 }}>
-            <StatusBars a={sA.status_dist} b={sB.status_dist} t={t} />
+            <StatusBars a={sA.status_dist ?? {}} b={sB.status_dist ?? {}} t={t} />
           </div>
         </div>
 
