@@ -155,7 +155,7 @@ export async function stampChrome(pdf: jsPDF, opts: ChromeOptions): Promise<void
     // Header/footer draw on top of the rasterised content, so we don't repaint
     // the page background here (that would erase the content). Callers that
     // need a dark page fill should call it before adding images.
-    await drawHeader(pdf, hasArabicFont);
+    await drawHeader(pdf, hasArabicFont, opts.lang);
     drawFooter(pdf, i, total, opts, hasArabicFont);
   }
 }
