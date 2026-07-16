@@ -436,10 +436,20 @@ function RestoreDialog({ source, onClose, onDone }: { source: RestoreSource; onC
     const body = source.kind === "cloud"
       ? { restore: true, file: source.name }
       : { restore_inline: true, payload: source.payload };
-    const { error } = await supabase.functions.invoke("backup-snapshot", { body });
+    const { data, error } = await supabase.functions.invoke("backup-snapshot", { body });
     setRunning(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success(t("saved"));
+    const resp = data as { ok?: boolean; error?: string; counts?: Record<string, number>; files?: { restored: number; skipped: number; mirrored: boolean } } | null;
+    if (error || resp?.error) { toast.error(resp?.error ?? error?.message ?? "err"); return; }
+    const counts = resp?.counts ?? {};
+    const tables = Object.keys(counts).filter((k) => (counts[k] ?? 0) > 0).length;
+    const rows = Object.values(counts).reduce((a, b) => a + (b || 0), 0);
+    let msg = t("restoreDone").replace("{rows}", String(rows)).replace("{tables}", String(tables));
+    if (resp?.files?.mirrored) {
+      msg += " " + t("restoreFilesRestored").replace("{n}", String(resp.files.restored));
+    } else if (source.kind === "cloud") {
+      msg += " " + t("restoreFilesNone");
+    }
+    toast.success(msg);
     onDone();
   };
   return (
