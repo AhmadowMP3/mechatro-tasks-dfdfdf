@@ -59,7 +59,7 @@ function DocTitle({ title, subtitle, tone = "blue" }: { title: string; subtitle?
           <div style={{ fontSize: 11, fontWeight: 700, color: muted, letterSpacing: 3, textTransform: "uppercase" }}>
             {subtitle ?? ""}
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: navy, letterSpacing: 0.4 }}>{title}</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: ink, letterSpacing: 0.4 }}>{title}</div>
         </div>
         <div style={{ width: 60, height: 6, background: accent, borderRadius: 3, marginBottom: 8 }} />
       </div>
