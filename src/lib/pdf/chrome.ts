@@ -115,11 +115,11 @@ function drawFooter(
     : `${genLabel}: ${formatGeneratedAt(opts.lang)}`;
 
   const center = `${BRAND.name} · ${BRAND.nameAr}`;
-  setFont(pdf, center, hasArabicFont);
+  setFont(pdf, center, hasArabicFont, opts.lang);
   const centerW = pdf.getTextWidth(center);
   pdf.text(center, (pageW - centerW) / 2, y + 3);
 
-  setFont(pdf, pageStr, hasArabicFont);
+  setFont(pdf, pageStr, hasArabicFont, opts.lang);
   if (isAr) {
     const w = pdf.getTextWidth(pageStr);
     pdf.text(pageStr, pageW - 12 - w, y + 3);
@@ -127,7 +127,7 @@ function drawFooter(
     pdf.text(pageStr, 12, y + 3);
   }
 
-  setFont(pdf, genStr, hasArabicFont);
+  setFont(pdf, genStr, hasArabicFont, opts.lang);
   if (isAr) {
     pdf.text(genStr, 12, y + 3);
   } else {
