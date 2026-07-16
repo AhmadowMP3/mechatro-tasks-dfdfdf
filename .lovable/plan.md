@@ -1,29 +1,59 @@
 ## Problem
 
-On the Member Report (and Team Report) cover page, the logo slot next to "MECHATRO / MEMBER REPORT · تقرير العضو" renders as an empty outlined square instead of the actual Mechatro logo — as shown in the uploaded screenshot.
+Two gaps in the current backup system:
 
-Root cause: the cover HTML uses `<img src="${logo}">` where `logo` is a Vite import of `@/assets/mechatro-logo.png`. `generator.ts` runs `inlineLogo()` to swap that URL for a base64 data URL before html2canvas rasterises the cover, but the swap only fires if `getLogoDataUrl()` succeeds — and when it fails (CDN fetch/CORS/timing), the raw Vite URL is left in place and html2canvas paints a blank/broken image inside the iframe, producing the empty square the user sees.
+1. **The 10-day cron doesn't back up anything.** It only inserts a `pending` row in `backup_requests` and notifies master admins. If no admin clicks "Approve" in Settings, nothing is ever backed up.
+2. **Backups are DB-only.** The `backup-snapshot` edge function saves JSON of tables, but skips all storage buckets (`invoices`, `member-reports`, `expense-receipts`, `note-attachments`).
+
+Manual "Backup Now" from Settings works — this pass keeps that behavior and fills the gaps.
 
 ## Fix
 
-1. **Guarantee the logo data URL is available before rendering the cover.**
-   - In `src/lib/report/generator.ts`, if `getLogoDataUrl()` returns `null`, fall back to fetching directly from the bundler URL (`import logoUrl from "@/assets/mechatro-logo.png"`) and converting to a data URL, so the cover always has a real embedded image.
-   - Pass the resolved `logoDataUrl` explicitly into the cover HTML instead of relying on regex replacement of a bundler URL that html2canvas may not resolve.
+### 1. Full backup includes files (`supabase/functions/backup-snapshot/index.ts`)
 
-2. **Update cover templates to accept an explicit logo data URL.**
-   - `src/lib/report/report-html.ts`: change `coverPage()` and `buildReportHtml*()` to take a `logoDataUrl` argument and use it in both the header logo slot (currently 38×38) and the footer mini-logo (16×16). Keep the outer `<img>` styling identical.
-   - `src/lib/report/team-report.ts`: same change for its `coverPage()` and `buildTeamReportHtml()`.
+- After building the DB JSON snapshot, walk every non-`backups` bucket (`invoices`, `member-reports`, `expense-receipts`, `note-attachments`) and download each file.
+- Package everything as one archive per backup:
+  - `mechatro-YYYYMMDD-HHmm/data.json` (existing table snapshot)
+  - `mechatro-YYYYMMDD-HHmm/files/<bucket>/<path>` (all storage files)
+  - Store as a single `.zip` in the `backups` bucket using a lightweight Deno zip lib.
+- Retention: keep last **12** archives, delete older.
+- Restore stays **data only** (current behavior) — the archive's `data.json` is what gets read; files inside the archive are preserved for cold recovery.
 
-3. **Make the cover logo more prominent.**
-   - Bump the cover header logo from 38×38 to 56×56 (member) and keep 48px (team) so it reads clearly at print size, matching the "logo + wordmark" lockup in the user's screenshot.
+### 2. Auto-approve pending backup requests after 24h
 
-4. **Keep the jsPDF chrome path untouched.**
-   - `src/lib/pdf/chrome.ts` already loads the logo via `loadBrandLogo()` and draws it in `drawHeader`; no change needed there. This fix is scoped to the html2canvas cover pipeline only.
+- The cron currently creates a pending request every 10 days. Add a second scheduled sweep (hourly) that finds any `backup_requests` row with `status = 'pending'` and `requested_at < now() - interval '24 hours'`, marks it `auto_approved`, then calls the backup endpoint.
+- Master admin can still approve manually before 24h from Settings (unchanged UI path).
+- Existing `expired` sweep at 15 days becomes redundant — replaced by the 24h auto-approve.
 
-## Files touched
+Implementation shape: convert `backup-snapshot` edge function into a public route or add a new `src/routes/api/public/hooks/backup-auto-approve.ts` that pg_cron calls hourly. It runs the same snapshot logic the manual "Approve" button runs.
 
-- `src/lib/report/generator.ts` — hardened `getLogoDataUrl()` with a bundler-URL fallback; thread `logoDataUrl` into cover HTML builders.
-- `src/lib/report/report-html.ts` — accept `logoDataUrl` in `coverPage` and exported builders; drop reliance on the Vite import for the cover `<img>`.
-- `src/lib/report/team-report.ts` — same change for the team cover.
+### 3. Advance warning to members
 
-No schema, business logic, or route changes.
+- **In-app banner**: when a `backup_requests` row is `pending` or backup is about to run in <1h, show a top-of-app info banner (both Arabic and English via i18n dict) telling members "A full backup is about to run — please save your work."
+- **Notification**: when the 10-day cron creates the pending request, also insert a `notifications` row for every active member (not just master admins) with type `backup_incoming`, title "نسخة احتياطية قريباً / Backup coming up", body "Please save your work — full snapshot in 24h."
+- New i18n keys: `backupIncomingBanner`, `backupSaveYourWork`, `backupIncomingTitle`.
+
+### 4. Settings page polish (`src/routes/_authenticated/settings.tsx`)
+
+- Show next scheduled backup date (computed from last backup + 10 days).
+- Show retention count (12) beside the list.
+- Show "auto-approves in Xh" countdown on each pending row so master admins know when it will run itself.
+- No layout redesign — same visual style as the rest of the app.
+
+### 5. Cron changes (via `supabase--insert`)
+
+- Keep `mechatro-backup-10d` (creates pending request + member notifications).
+- Add `mechatro-backup-auto-approve-hourly` (`0 * * * *`) that calls the new hook to auto-approve any pending request older than 24h.
+
+### Out of scope
+
+- Restoring files (kept data-only per your answer).
+- Changing the backups bucket to public (stays private, signed URLs only).
+- Redesigning the Settings UI beyond the countdown/next-run additions.
+
+### Technical notes (for internal use)
+
+- Zip in Deno: use `jsr:@zip-js/zip-js` or `https://deno.land/x/zipjs` — streams supported, no native deps.
+- Archive filename: `mechatro-YYYYMMDD-HHmm.zip` (single object per backup, easier retention math).
+- Auto-approve hook reuses the exact `runSnapshot()` code path — no divergence between manual approve and auto approve.
+- Advance-warning notification insert happens inside the existing 10-day cron SQL — one extra `INSERT ... SELECT` targeting all active profiles.
