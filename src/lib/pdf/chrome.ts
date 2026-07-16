@@ -33,11 +33,18 @@ function shapeDigits(s: string, _lang: "ar" | "en"): string {
   return s;
 }
 
-/** Choose the safest font for a given string (uses embedded Arabic when the
- *  string contains Arabic codepoints, otherwise the default Helvetica). */
-function setFont(pdf: jsPDF, text: string, hasArabicFont: boolean, weight: "normal" | "bold" = "normal") {
+/** Choose the safest font for a given string. In Arabic-mode PDFs we always
+ *  use the embedded Montserrat Arabic (it also covers Latin glyphs), so
+ *  headers/footers render in a single consistent typeface. */
+function setFont(
+  pdf: jsPDF,
+  text: string,
+  hasArabicFont: boolean,
+  lang: "ar" | "en",
+  weight: "normal" | "bold" = "normal",
+) {
   const containsArabic = /[\u0600-\u06FF]/.test(text);
-  if (containsArabic && hasArabicFont) {
+  if (hasArabicFont && (lang === "ar" || containsArabic)) {
     pdf.setFont(FONT_ID, "normal");
   } else {
     pdf.setFont("helvetica", weight);
@@ -53,7 +60,7 @@ function hexToRgb(hex: string): [number, number, number] {
   ];
 }
 
-async function drawHeader(pdf: jsPDF, hasArabicFont: boolean) {
+async function drawHeader(pdf: jsPDF, hasArabicFont: boolean, lang: "ar" | "en") {
   const logo = await loadBrandLogo();
   const pageW = pdf.internal.pageSize.getWidth();
   // Blue hairline under header band.
@@ -69,7 +76,7 @@ async function drawHeader(pdf: jsPDF, hasArabicFont: boolean) {
     pdf.addImage(logo.dataUrl, "PNG", 12, 5, targetW, targetH, undefined, "FAST");
   } else {
     pdf.setTextColor(...hexToRgb(BRAND.ink));
-    setFont(pdf, "Mechatro", hasArabicFont, "bold");
+    setFont(pdf, "Mechatro", hasArabicFont, lang, "bold");
     pdf.setFontSize(16);
     pdf.text("Mechatro", 12, 14);
   }
@@ -108,11 +115,11 @@ function drawFooter(
     : `${genLabel}: ${formatGeneratedAt(opts.lang)}`;
 
   const center = `${BRAND.name} · ${BRAND.nameAr}`;
-  setFont(pdf, center, hasArabicFont);
+  setFont(pdf, center, hasArabicFont, opts.lang);
   const centerW = pdf.getTextWidth(center);
   pdf.text(center, (pageW - centerW) / 2, y + 3);
 
-  setFont(pdf, pageStr, hasArabicFont);
+  setFont(pdf, pageStr, hasArabicFont, opts.lang);
   if (isAr) {
     const w = pdf.getTextWidth(pageStr);
     pdf.text(pageStr, pageW - 12 - w, y + 3);
@@ -120,7 +127,7 @@ function drawFooter(
     pdf.text(pageStr, 12, y + 3);
   }
 
-  setFont(pdf, genStr, hasArabicFont);
+  setFont(pdf, genStr, hasArabicFont, opts.lang);
   if (isAr) {
     pdf.text(genStr, 12, y + 3);
   } else {
@@ -148,7 +155,7 @@ export async function stampChrome(pdf: jsPDF, opts: ChromeOptions): Promise<void
     // Header/footer draw on top of the rasterised content, so we don't repaint
     // the page background here (that would erase the content). Callers that
     // need a dark page fill should call it before adding images.
-    await drawHeader(pdf, hasArabicFont);
+    await drawHeader(pdf, hasArabicFont, opts.lang);
     drawFooter(pdf, i, total, opts, hasArabicFont);
   }
 }
