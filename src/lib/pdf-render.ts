@@ -56,7 +56,7 @@ export async function renderAndDownloadPdf(
   host.style.top = "0";
   host.style.left = "-99999px";
   host.style.width = `${A4_WIDTH_PX}px`;
-  host.style.background = "#ffffff";
+  host.style.background = "#081320";
   host.style.zIndex = "-1";
   host.style.pointerEvents = "none";
   // Nudge every descendant toward the embedded Arabic-safe font stack.
