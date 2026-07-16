@@ -255,7 +255,7 @@ export const dict = {
     ar: "تشمل جميع الملفات (فواتير، تقارير، إيصالات، مرفقات)",
     en: "Includes all files (invoices, reports, receipts, attachments)",
   },
-  hours: { ar: "ساعة", en: "hours" },
+  
   download: { ar: "تنزيل", en: "Download" },
   restore: { ar: "استعادة", en: "Restore" },
   restoreWarn: {
