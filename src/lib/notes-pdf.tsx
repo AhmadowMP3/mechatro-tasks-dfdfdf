@@ -83,20 +83,21 @@ export async function exportNoteToPdf(p: Params): Promise<void> {
       />
 
       <style>{`
-        .note-pdf-content h1, .note-pdf-content h2, .note-pdf-content h3 { page-break-after: avoid; break-after: avoid; color: ${navy}; }
+        .note-pdf-content h1, .note-pdf-content h2, .note-pdf-content h3 { page-break-after: avoid; break-after: avoid; color: ${ink}; }
         .note-pdf-content h1 { font-size: 22px; font-weight: 800; margin: 14px 0 8px; }
         .note-pdf-content h2 { font-size: 18px; font-weight: 800; margin: 12px 0 6px; }
         .note-pdf-content h3 { font-size: 16px; font-weight: 700; margin: 10px 0 4px; }
-        .note-pdf-content p { margin: 6px 0; }
-        .note-pdf-content ul, .note-pdf-content ol { padding-inline-start: 24px; margin: 6px 0; }
+        .note-pdf-content p { margin: 6px 0; color: ${ink2}; }
+        .note-pdf-content ul, .note-pdf-content ol { padding-inline-start: 24px; margin: 6px 0; color: ${ink2}; }
         .note-pdf-content ul[data-type="taskList"] { list-style: none; padding-inline-start: 0; }
         .note-pdf-content ul[data-type="taskList"] li { display: flex; gap: 8px; align-items: flex-start; }
         .note-pdf-content ul[data-type="taskList"] li input[type="checkbox"] { margin-top: 5px; }
         .note-pdf-content blockquote { border-inline-start: 3px solid ${blue}; padding-inline-start: 12px; color: ${muted}; margin: 8px 0; }
         .note-pdf-content a { color: ${blue}; text-decoration: underline; }
-        .note-pdf-content img { display: block; max-width: 70%; max-height: 380px; height: auto; object-fit: contain; border-radius: 6px; margin: 12px auto; page-break-inside: avoid; break-inside: avoid; }
-        .note-pdf-content code { background: #F1F5F9; padding: 2px 6px; border-radius: 4px; font-size: 12.5px; }
-        .note-pdf-content pre { background: ${navy}; color: #F8FAFC; padding: 12px; border-radius: 8px; page-break-inside: avoid; break-inside: avoid; }
+        .note-pdf-content img { display: block; max-width: 70%; max-height: 380px; height: auto; object-fit: contain; border-radius: 6px; margin: 12px auto; padding: 6px; background: ${surface}; border: 1px solid ${line}; page-break-inside: avoid; break-inside: avoid; }
+        .note-pdf-content code { background: ${surface}; color: ${ink}; padding: 2px 6px; border-radius: 4px; font-size: 12.5px; border: 1px solid ${line}; }
+        .note-pdf-content pre { background: ${surface}; color: ${ink}; padding: 12px; border-radius: 8px; border: 1px solid ${line}; page-break-inside: avoid; break-inside: avoid; }
+        .note-pdf-content hr { border: 0; border-top: 1px solid ${line}; margin: 12px 0; }
       `}</style>
     </div>
   );
