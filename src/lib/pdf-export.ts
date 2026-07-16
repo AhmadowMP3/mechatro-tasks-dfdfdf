@@ -48,7 +48,7 @@ export async function htmlToPdf(
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#081320",
     logging: false,
   });
 
