@@ -301,10 +301,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ---- Restore (data only) ----
+    // ---- Restore (data + mirrored files) ----
     if ((body.restore && body.file) || body.restore_inline) {
       if (isSystem) return json(403, { error: "user only" });
       let snapshot: Record<string, unknown[]>;
+      let stamp: string | null = null;
+
       if (body.restore_inline) {
         const p = body.payload;
         if (!p || typeof p !== "object" || Array.isArray(p)) {
@@ -312,8 +314,7 @@ Deno.serve(async (req) => {
         }
         const keys = Object.keys(p as Record<string, unknown>);
         const known = new Set(TABLES);
-        const unknownKeys = keys.filter((k) => !known.has(k));
-        if (unknownKeys.length > 0 || keys.length === 0) {
+        if (keys.length === 0 || keys.some((k) => !known.has(k))) {
           return json(400, { error: "invalid_backup_file" });
         }
         for (const k of keys) {
@@ -326,19 +327,54 @@ Deno.serve(async (req) => {
         const { data: dl, error: dlErr } = await sb.storage.from("backups").download(body.file!);
         if (dlErr || !dl) throw new Error(dlErr?.message ?? "download failed");
         snapshot = JSON.parse(await dl.text()) as Record<string, unknown[]>;
+        const m = /^backup-(.+)\.json$/.exec(body.file!);
+        if (m) stamp = m[1];
       }
-      for (const t of [...TABLES].reverse()) {
-        await sb.from(t).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+      // Atomic DB restore via SECURITY DEFINER SQL function.
+      const { data: counts, error: rpcErr } = await sb.rpc("restore_full_snapshot", { payload: snapshot });
+      if (rpcErr) {
+        console.error("restore_full_snapshot:", rpcErr);
+        return json(500, { error: rpcErr.message });
       }
-      for (const t of TABLES) {
-        const rows = snapshot[t] ?? [];
-        if (rows.length) {
-          const { error } = await sb.from(t).insert(rows as never);
-          if (error) console.error(`restore ${t}:`, error.message);
+
+      // Copy mirrored bucket files back into their source buckets, if the
+      // snapshot folder exists.
+      let filesRestored = 0, filesSkipped = 0;
+      if (stamp) {
+        const mirrorRoot = `snapshot-${stamp}`;
+        for (const bucket of FILE_BUCKETS) {
+          let paths: string[] = [];
+          try {
+            paths = await listBucketRecursive("backups", `${mirrorRoot}/${bucket}`);
+          } catch (_) { continue; }
+          const stripPrefix = `${mirrorRoot}/${bucket}/`;
+          for (const full of paths) {
+            const dest = full.startsWith(stripPrefix) ? full.slice(stripPrefix.length) : null;
+            if (!dest) { filesSkipped += 1; continue; }
+            try {
+              const { data: dl, error: dlErr } = await sb.storage.from("backups").download(full);
+              if (dlErr || !dl) { filesSkipped += 1; continue; }
+              const buf = new Uint8Array(await dl.arrayBuffer());
+              const { error: upErr } = await sb.storage.from(bucket).upload(dest, buf, {
+                contentType: dl.type || "application/octet-stream",
+                upsert: true,
+              });
+              if (upErr) { filesSkipped += 1; continue; }
+              filesRestored += 1;
+            } catch (_) { filesSkipped += 1; }
+          }
         }
       }
-      return json(200, { ok: true, restored: body.file ?? "inline" });
+
+      return json(200, {
+        ok: true,
+        restored: body.file ?? "inline",
+        counts,
+        files: { restored: filesRestored, skipped: filesSkipped, mirrored: stamp !== null },
+      });
     }
+
 
     // ---- Delete a backup file (and its matching file snapshot folder) ----
     if (body.delete && body.file) {
