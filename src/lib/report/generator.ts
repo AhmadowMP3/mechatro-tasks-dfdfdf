@@ -99,15 +99,18 @@ async function getLogoDataUrl(): Promise<string | null> {
 }
 
 
-/** Inline the Mechatro logo so html2canvas paints it deterministically. */
+/** Inline the Mechatro logo so html2canvas paints it deterministically.
+ *  Matches both the CDN URL and the Vite-bundled URL (which may include a
+ *  content hash like `mechatro-logo-abc123.png` in production builds). */
 async function inlineLogo(html: string): Promise<string> {
   const dataUrl = await getLogoDataUrl();
   if (!dataUrl) return html;
   return html.replace(
-    /src="([^"]*mechatro-logo\.png[^"]*)"/g,
+    /src="([^"]*mechatro-logo[^"]*\.png[^"]*)"/g,
     `src="${dataUrl}"`
   );
 }
+
 
 /** Render an arbitrary HTML fragment inside an isolated iframe and return
  *  its rasterised canvas. The fragment is sized to the given width; height
