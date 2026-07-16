@@ -78,6 +78,8 @@ function FinanceReports() {
   const ar = lang === "ar";
   const [range, setRange] = useState<Range>({ from: firstOfYear(), to: todayIso() });
   const [displayCurrency, setDisplayCurrency] = useState<Currency>("SYP");
+  const { data: settings } = useFinancialSettings();
+
 
   const { data: latestFx } = useQuery({
     queryKey: ["fx_rates", "latest"],
