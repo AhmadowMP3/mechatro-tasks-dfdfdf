@@ -13,7 +13,7 @@ import { promptFilename } from "@/components/FilenamePrompt";
 
 type CompareSearch = { a: string; b: string };
 
-export const Route = createFileRoute("/_authenticated/reports-history/compare")({
+export const Route = createFileRoute("/_authenticated/reports-history_/compare")({
   validateSearch: (search: Record<string, unknown>): CompareSearch => ({
     a: typeof search.a === "string" ? search.a : "",
     b: typeof search.b === "string" ? search.b : "",
