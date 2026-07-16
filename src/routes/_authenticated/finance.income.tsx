@@ -9,10 +9,14 @@ import { formatMoney, paymentMethodKey, type IncomeEntry, type Currency, type Pa
 import { PaymentMethodSelect } from "@/components/finance/PaymentMethodSelect";
 import { formatDate } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-dialog";
+import { ExportMenu } from "@/components/finance/ExportMenu";
+import { exportFinanceListPdf, exportFinanceListXlsx } from "@/lib/finance-list-export";
+import { useFinancialSettings } from "@/lib/finance-hooks";
 
 export const Route = createFileRoute("/_authenticated/finance/income")({
   component: IncomePage,
 });
+
 
 function IncomePage() {
   const { t, lang } = useApp();
@@ -21,9 +25,11 @@ function IncomePage() {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<IncomeEntry | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const { data: settings } = useFinancialSettings();
 
   const { data: entries } = useQuery({
     queryKey: ["income_entries"],
+
     queryFn: async () => {
       const { data, error } = await supabase.from("income_entries").select("*").order("income_date", { ascending: false });
       if (error) throw error;
@@ -51,6 +57,58 @@ function IncomePage() {
     qc.invalidateQueries({ queryKey: ["income_entries"] });
   };
 
+  const buildExport = () => {
+    const ar = lang === "ar";
+    const currency = (filtered[0]?.currency ?? "SYP") as string;
+    return {
+      slug: "income",
+      title: t("income"),
+      subtitle: ar ? "قائمة الدخل" : "Income entries",
+      rangeLabel: `${filtered.length} ${ar ? "قيد" : "entries"}`,
+      kpis: [
+        { label: ar ? "الإجمالي" : "Total", value: formatMoney(total, (filtered[0]?.currency ?? "SYP") as Currency, lang), tone: "green" as const },
+        { label: ar ? "عدد القيود" : "Entries", value: String(filtered.length), tone: "blue" as const },
+      ],
+      columns: [
+        { header: t("expenseDate"), key: "date" },
+        { header: t("category"), key: "category" },
+        { header: t("source"), key: "source" },
+        { header: t("description"), key: "description" },
+        { header: t("paymentMethod"), key: "method" },
+        { header: t("amount"), key: "amount", align: "end" as const, bold: true, tone: () => "green" as const },
+      ],
+      rows: filtered.map((e) => ({
+        date: formatDate(e.income_date, lang),
+        category: e.category ?? "—",
+        source: e.source ?? "—",
+        description: (ar ? e.description_ar || e.description_en : e.description_en || e.description_ar) ?? "—",
+        method: t(paymentMethodKey(e.method)),
+        amount: formatMoney(e.amount, e.currency, lang),
+      })),
+      totalsPdf: [{ label: ar ? "الإجمالي" : "Total", value: formatMoney(total, (filtered[0]?.currency ?? "SYP") as Currency, lang), tone: "green" as const }],
+      xlsxColumns: [
+        { header: t("expenseDate"), key: "date", kind: "date" as const, width: 14 },
+        { header: t("category"), key: "category", width: 20 },
+        { header: t("source"), key: "source", width: 20 },
+        { header: t("description"), key: "description", width: 32 },
+        { header: t("paymentMethod"), key: "method", width: 18 },
+        { header: t("amount"), key: "amount_num", kind: "money" as const, width: 18 },
+      ],
+      xlsxRows: filtered.map((e) => ({
+        date: new Date(e.income_date),
+        category: e.category ?? "",
+        source: e.source ?? "",
+        description: (ar ? e.description_ar || e.description_en : e.description_en || e.description_ar) ?? "",
+        method: t(paymentMethodKey(e.method)),
+        amount_num: Number(e.amount),
+      })),
+      totalsXlsx: { description: ar ? "الإجمالي" : "Total", amount_num: total },
+      settings: settings ?? null,
+      lang,
+      currency,
+    };
+  };
+
   return (
     <div style={{ display: "grid", gap: 16 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -59,9 +117,15 @@ function IncomePage() {
           <Search size={14} style={{ position: "absolute", insetInlineStart: 12, top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={lang === "ar" ? "بحث في الدخل" : "Search income"} style={{ width: "100%", padding: "10px 14px 10px 36px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--foreground)", fontSize: 13 }} />
         </div>
+        <ExportMenu
+          onExportPdf={() => exportFinanceListPdf(buildExport())}
+          onExportXlsx={() => exportFinanceListXlsx(buildExport())}
+          disabled={filtered.length === 0}
+        />
         <button onClick={() => { setEditing(null); setShowModal(true); }} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
           <Plus size={16} /> {t("newIncome")}
         </button>
+
       </div>
 
       <div style={{ fontSize: 13, color: "var(--muted)", padding: "0 4px" }}>

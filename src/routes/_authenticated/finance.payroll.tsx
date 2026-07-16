@@ -20,6 +20,10 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { renderAndDownloadPdf } from "@/lib/pdf-render";
 import { stampFilename } from "@/lib/pdf/brand";
 import { PayrollSlipDocument, type CompanySettings } from "@/components/finance/BrandedDocuments";
+import { ExportMenu } from "@/components/finance/ExportMenu";
+import { exportFinanceListPdf, exportFinanceListXlsx } from "@/lib/finance-list-export";
+import { useFinancialSettings } from "@/lib/finance-hooks";
+
 
 export const Route = createFileRoute("/_authenticated/finance/payroll")({
   component: PayrollPage,
@@ -105,6 +109,77 @@ function PeriodCard({ period, expanded, onToggle, onDelete }: { period: PayrollP
   const currency: Currency = (entries?.[0]?.currency ?? "SYP") as Currency;
   const locked = period.status !== "draft";
   const statusColor = period.status === "draft" ? "#9CA3AF" : period.status === "finalized" ? "#60A5FA" : "#50C878";
+
+  const { data: settings } = useFinancialSettings();
+  const { data: profsForExport } = useQuery({
+    queryKey: ["profiles", "for-payroll-export", period.id],
+    queryFn: async () => {
+      const ids = (entries ?? []).map((e) => e.user_id);
+      if (ids.length === 0) return [] as Array<{ id: string; full_name: string }>;
+      const { data } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      return (data ?? []) as Array<{ id: string; full_name: string }>;
+    },
+    enabled: expanded && (entries?.length ?? 0) > 0,
+  });
+  const profMapEx = useMemo(() => {
+    const m = new Map<string, string>();
+    (profsForExport ?? []).forEach((p) => m.set(p.id, p.full_name));
+    return m;
+  }, [profsForExport]);
+
+  const buildExport = () => {
+    const ar = lang === "ar";
+    const list = entries ?? [];
+    const label = `${monthLabel(period.month, lang)} ${period.year}`;
+    return {
+      slug: `payroll_${period.year}-${String(period.month).padStart(2, "0")}`,
+      title: `${t("payroll")} — ${label}`,
+      subtitle: ar ? "كشف الرواتب" : "Payroll register",
+      rangeLabel: `${list.length} ${ar ? "قيد" : "entries"}`,
+      kpis: [
+        { label: t("entriesCount"), value: String(list.length), tone: "blue" as const },
+        { label: t("totalNet"), value: formatMoney(totalNet, currency, lang), tone: "green" as const },
+      ],
+      columns: [
+        { header: t("member"), key: "member", bold: true },
+        { header: ar ? "الراتب الأساسي" : "Base", key: "base", align: "end" as const },
+        { header: ar ? "بدلات" : "Allowances", key: "allow", align: "end" as const },
+        { header: ar ? "مكافآت" : "Bonuses", key: "bonus", align: "end" as const },
+        { header: ar ? "خصومات" : "Deductions", key: "ded", align: "end" as const, tone: () => "red" as const },
+        { header: t("totalNet"), key: "net", align: "end" as const, bold: true, tone: () => "green" as const },
+      ],
+      rows: list.map((e) => ({
+        member: profMapEx.get(e.user_id) ?? e.user_id.slice(0, 8),
+        base: formatMoney(e.base_salary, e.currency as Currency, lang),
+        allow: formatMoney(Number(e.transport_allowance) + Number(e.other_allowance), e.currency as Currency, lang),
+        bonus: formatMoney(Number(e.points_bonus) + Number(e.streak_bonus) + Number(e.manual_bonus), e.currency as Currency, lang),
+        ded: formatMoney(e.deductions, e.currency as Currency, lang),
+        net: formatMoney(e.net_amount, e.currency as Currency, lang),
+      })),
+      totalsPdf: [{ label: t("totalNet"), value: formatMoney(totalNet, currency, lang), tone: "green" as const }],
+      xlsxColumns: [
+        { header: t("member"), key: "member", width: 24 },
+        { header: ar ? "الراتب الأساسي" : "Base", key: "base_num", kind: "money" as const, width: 16 },
+        { header: ar ? "بدلات" : "Allowances", key: "allow_num", kind: "money" as const, width: 16 },
+        { header: ar ? "مكافآت" : "Bonuses", key: "bonus_num", kind: "money" as const, width: 16 },
+        { header: ar ? "خصومات" : "Deductions", key: "ded_num", kind: "money" as const, width: 16 },
+        { header: t("totalNet"), key: "net_num", kind: "money" as const, width: 18 },
+      ],
+      xlsxRows: list.map((e) => ({
+        member: profMapEx.get(e.user_id) ?? "",
+        base_num: Number(e.base_salary),
+        allow_num: Number(e.transport_allowance) + Number(e.other_allowance),
+        bonus_num: Number(e.points_bonus) + Number(e.streak_bonus) + Number(e.manual_bonus),
+        ded_num: Number(e.deductions),
+        net_num: Number(e.net_amount),
+      })),
+      totalsXlsx: { member: ar ? "الإجمالي" : "Total", net_num: totalNet },
+      settings: settings ?? null,
+      lang,
+      currency: currency as string,
+    };
+  };
+
 
   const generate = async () => {
     // Fetch profiles + settings
@@ -235,7 +310,14 @@ function PeriodCard({ period, expanded, onToggle, onDelete }: { period: PayrollP
                 </button>
               </>
             )}
+            {(entries?.length ?? 0) > 0 && (
+              <ExportMenu
+                onExportPdf={() => exportFinanceListPdf(buildExport())}
+                onExportXlsx={() => exportFinanceListXlsx(buildExport())}
+              />
+            )}
           </div>
+
 
           {(entries ?? []).length === 0 ? (
             <div style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>

@@ -9,10 +9,14 @@ import { formatMoney, paymentMethodKey, type Expense, type ExpenseCategory, type
 import { PaymentMethodSelect } from "@/components/finance/PaymentMethodSelect";
 import { formatDate } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-dialog";
+import { ExportMenu } from "@/components/finance/ExportMenu";
+import { exportFinanceListPdf, exportFinanceListXlsx } from "@/lib/finance-list-export";
+import { useFinancialSettings } from "@/lib/finance-hooks";
 
 export const Route = createFileRoute("/_authenticated/finance/expenses")({
   component: ExpensesPage,
 });
+
 
 function ExpensesPage() {
   const { t, lang } = useApp();
@@ -74,6 +78,66 @@ function ExpensesPage() {
     window.open(data.signedUrl, "_blank");
   };
 
+  const { data: settings } = useFinancialSettings();
+
+  const buildExport = () => {
+    const ar = lang === "ar";
+    const currency = (filtered[0]?.currency ?? "SYP") as string;
+    return {
+      slug: "expenses",
+      title: t("expenses"),
+      subtitle: ar ? "قائمة المصاريف" : "Expenses list",
+      rangeLabel: `${filtered.length} ${ar ? "قيد" : "entries"}`,
+      kpis: [
+        { label: ar ? "الإجمالي" : "Total", value: formatMoney(total, (filtered[0]?.currency ?? "SYP") as Currency, lang), tone: "red" as const },
+        { label: ar ? "عدد القيود" : "Entries", value: String(filtered.length), tone: "blue" as const },
+      ],
+      columns: [
+        { header: t("expenseDate"), key: "date" },
+        { header: t("category"), key: "category" },
+        { header: t("vendor"), key: "vendor" },
+        { header: t("description"), key: "description" },
+        { header: t("paymentMethod"), key: "method" },
+        { header: t("amount"), key: "amount", align: "end" as const, bold: true, tone: () => "red" as const },
+      ],
+      rows: filtered.map((e) => {
+        const cat = e.category_id ? catMap.get(e.category_id) : undefined;
+        return {
+          date: formatDate(e.expense_date, lang),
+          category: cat ? (ar ? cat.name_ar : cat.name_en) : "—",
+          vendor: e.vendor ?? "—",
+          description: (ar ? e.description_ar || e.description_en : e.description_en || e.description_ar) ?? "—",
+          method: t(paymentMethodKey(e.method)),
+          amount: formatMoney(e.amount, e.currency, lang),
+        };
+      }),
+      totalsPdf: [{ label: ar ? "الإجمالي" : "Total", value: formatMoney(total, (filtered[0]?.currency ?? "SYP") as Currency, lang), tone: "red" as const }],
+      xlsxColumns: [
+        { header: t("expenseDate"), key: "date", kind: "date" as const, width: 14 },
+        { header: t("category"), key: "category", width: 20 },
+        { header: t("vendor"), key: "vendor", width: 20 },
+        { header: t("description"), key: "description", width: 32 },
+        { header: t("paymentMethod"), key: "method", width: 18 },
+        { header: t("amount"), key: "amount_num", kind: "money" as const, width: 18 },
+      ],
+      xlsxRows: filtered.map((e) => {
+        const cat = e.category_id ? catMap.get(e.category_id) : undefined;
+        return {
+          date: new Date(e.expense_date),
+          category: cat ? (ar ? cat.name_ar : cat.name_en) : "",
+          vendor: e.vendor ?? "",
+          description: (ar ? e.description_ar || e.description_en : e.description_en || e.description_ar) ?? "",
+          method: t(paymentMethodKey(e.method)),
+          amount_num: Number(e.amount),
+        };
+      }),
+      totalsXlsx: { description: ar ? "الإجمالي" : "Total", amount_num: total },
+      settings: settings ?? null,
+      lang,
+      currency,
+    };
+  };
+
   return (
     <div style={{ display: "grid", gap: 16 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -87,6 +151,11 @@ function ExpensesPage() {
             style={{ width: "100%", padding: "10px 14px 10px 36px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--foreground)", fontSize: 13 }}
           />
         </div>
+        <ExportMenu
+          onExportPdf={() => exportFinanceListPdf(buildExport())}
+          onExportXlsx={() => exportFinanceListXlsx(buildExport())}
+          disabled={filtered.length === 0}
+        />
         <button
           onClick={() => { setEditing(null); setShowModal(true); }}
           className="brand-btn"
@@ -94,6 +163,7 @@ function ExpensesPage() {
         >
           <Plus size={16} /> {t("newExpense")}
         </button>
+
       </div>
 
       <div style={{ display: "flex", gap: 4, overflowX: "auto", padding: "4px 0" }}>

@@ -6,10 +6,14 @@ import { useApp } from "@/lib/app-context";
 import { formatMoney, invoiceStatusColor, invoiceStatusKey, type Invoice, type InvoiceStatus, type Customer } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
 import { Plus, Search, FileText } from "lucide-react";
+import { ExportMenu } from "@/components/finance/ExportMenu";
+import { exportFinanceListPdf, exportFinanceListXlsx } from "@/lib/finance-list-export";
+import { useFinancialSettings } from "@/lib/finance-hooks";
 
 export const Route = createFileRoute("/_authenticated/finance/invoices/")({
   component: InvoicesListPage,
 });
+
 
 function InvoicesListPage() {
   const { t, lang } = useApp();
@@ -54,6 +58,82 @@ function InvoicesListPage() {
 
   const statuses: (InvoiceStatus | "all")[] = ["all", "draft", "issued", "partially_paid", "paid", "overdue", "void"];
 
+  const { data: settings } = useFinancialSettings();
+  const totals = useMemo(() => {
+    let total = 0, paid = 0, balance = 0;
+    for (const inv of filtered) {
+      total += Number(inv.total);
+      paid += Number(inv.amount_paid);
+      balance += Number(inv.total) - Number(inv.amount_paid);
+    }
+    return { total, paid, balance };
+  }, [filtered]);
+  const buildExport = () => {
+    const ar = lang === "ar";
+    const currency = (filtered[0]?.currency ?? "SYP") as string;
+    return {
+      slug: "invoices",
+      title: t("invoices"),
+      subtitle: ar ? "قائمة الفواتير" : "Invoices list",
+      rangeLabel: `${filtered.length} ${ar ? "فاتورة" : "invoices"}`,
+      kpis: [
+        { label: ar ? "الإجمالي" : "Total", value: formatMoney(totals.total, currency as never, lang), tone: "blue" as const },
+        { label: ar ? "المدفوع" : "Paid", value: formatMoney(totals.paid, currency as never, lang), tone: "green" as const },
+        { label: ar ? "الرصيد" : "Balance", value: formatMoney(totals.balance, currency as never, lang), tone: totals.balance > 0 ? "red" as const : "green" as const },
+      ],
+      columns: [
+        { header: t("invoiceNumber"), key: "number", bold: true },
+        { header: t("customer"), key: "customer" },
+        { header: t("invoiceDate"), key: "issue" },
+        { header: t("dueDate"), key: "due" },
+        { header: t("grandTotal"), key: "total", align: "end" as const, bold: true },
+        { header: t("amountDue"), key: "balance", align: "end" as const, tone: (r: { balanceNum: number }) => (r.balanceNum > 0 ? "red" as const : "muted" as const) },
+        { header: t("status"), key: "status" },
+      ],
+      rows: filtered.map((inv) => ({
+        number: inv.number ?? "—",
+        customer: custMap.get(inv.customer_id) ?? "—",
+        issue: formatDate(inv.issue_date, lang),
+        due: inv.due_date ? formatDate(inv.due_date, lang) : "—",
+        total: formatMoney(inv.total, inv.currency, lang),
+        balance: formatMoney(Number(inv.total) - Number(inv.amount_paid), inv.currency, lang),
+        balanceNum: Number(inv.total) - Number(inv.amount_paid),
+        status: t(invoiceStatusKey(inv.status)),
+      })),
+      totalsPdf: [
+        { label: ar ? "المجموع" : "Total", value: formatMoney(totals.total, currency as never, lang), tone: "gold" as const },
+        { label: ar ? "المدفوع" : "Paid", value: formatMoney(totals.paid, currency as never, lang), tone: "green" as const },
+        { label: ar ? "الرصيد" : "Balance", value: formatMoney(totals.balance, currency as never, lang), tone: totals.balance > 0 ? "red" as const : "green" as const },
+      ],
+      xlsxColumns: [
+        { header: t("invoiceNumber"), key: "number", width: 16 },
+        { header: t("customer"), key: "customer", width: 26 },
+        { header: t("invoiceDate"), key: "issue", kind: "date" as const, width: 14 },
+        { header: t("dueDate"), key: "due", kind: "date" as const, width: 14 },
+        { header: t("grandTotal"), key: "total_num", kind: "money" as const, width: 18 },
+        { header: t("amountDue"), key: "balance_num", kind: "money" as const, width: 18 },
+        { header: t("status"), key: "status", width: 16 },
+      ],
+      xlsxRows: filtered.map((inv) => ({
+        number: inv.number ?? "",
+        customer: custMap.get(inv.customer_id) ?? "",
+        issue: new Date(inv.issue_date),
+        due: inv.due_date ? new Date(inv.due_date) : "",
+        total_num: Number(inv.total),
+        balance_num: Number(inv.total) - Number(inv.amount_paid),
+        status: t(invoiceStatusKey(inv.status)),
+      })),
+      totalsXlsx: {
+        customer: ar ? "الإجمالي" : "Total",
+        total_num: totals.total,
+        balance_num: totals.balance,
+      },
+      settings: settings ?? null,
+      lang,
+      currency,
+    };
+  };
+
   return (
     <div style={{ display: "grid", gap: 16 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -67,9 +147,15 @@ function InvoicesListPage() {
             style={{ width: "100%", padding: "10px 14px 10px 36px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--foreground)", fontSize: 13 }}
           />
         </div>
+        <ExportMenu
+          onExportPdf={() => exportFinanceListPdf(buildExport())}
+          onExportXlsx={() => exportFinanceListXlsx(buildExport())}
+          disabled={filtered.length === 0}
+        />
         <Link to="/finance/invoices/new" className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", textDecoration: "none" }}>
           <Plus size={16} /> {t("newInvoice")}
         </Link>
+
       </div>
 
       <div style={{ display: "flex", gap: 4, overflowX: "auto", padding: "4px 0" }}>

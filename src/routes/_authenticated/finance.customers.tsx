@@ -7,10 +7,14 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Building2, Mail, Phone, Search } from "lucide-react";
 import type { Customer, Currency } from "@/lib/finance";
 import { useConfirm } from "@/components/confirm-dialog";
+import { ExportMenu } from "@/components/finance/ExportMenu";
+import { exportFinanceListPdf, exportFinanceListXlsx } from "@/lib/finance-list-export";
+import { useFinancialSettings } from "@/lib/finance-hooks";
 
 export const Route = createFileRoute("/_authenticated/finance/customers")({
   component: CustomersPage,
 });
+
 
 function CustomersPage() {
   const { t, lang } = useApp();
@@ -47,6 +51,51 @@ function CustomersPage() {
     qc.invalidateQueries({ queryKey: ["customers"] });
   };
 
+  const { data: settings } = useFinancialSettings();
+  const buildExport = () => {
+    const ar = lang === "ar";
+    return {
+      slug: "customers",
+      title: t("customers"),
+      subtitle: ar ? "قائمة العملاء" : "Customers list",
+      rangeLabel: `${filtered.length} ${ar ? "عميل" : "customers"}`,
+      kpis: [
+        { label: ar ? "إجمالي العملاء" : "Total", value: String(filtered.length), tone: "blue" as const },
+      ],
+      columns: [
+        { header: ar ? "الاسم" : "Name", key: "name", bold: true },
+        { header: ar ? "الشركة" : "Company", key: "company" },
+        { header: t("email"), key: "email" },
+        { header: t("phone"), key: "phone" },
+        { header: ar ? "رقم ضريبي" : "Tax #", key: "tax" },
+      ],
+      rows: filtered.map((c) => ({
+        name: (ar ? c.name_ar || c.name_en : c.name_en || c.name_ar) ?? "—",
+        company: c.company ?? "—",
+        email: c.email ?? "—",
+        phone: c.phone ?? "—",
+        tax: c.tax_number ?? "—",
+      })),
+      xlsxColumns: [
+        { header: ar ? "الاسم" : "Name", key: "name", width: 28 },
+        { header: ar ? "الشركة" : "Company", key: "company", width: 26 },
+        { header: t("email"), key: "email", width: 26 },
+        { header: t("phone"), key: "phone", width: 18 },
+        { header: ar ? "رقم ضريبي" : "Tax #", key: "tax", width: 18 },
+      ],
+      xlsxRows: filtered.map((c) => ({
+        name: (ar ? c.name_ar || c.name_en : c.name_en || c.name_ar) ?? "",
+        company: c.company ?? "",
+        email: c.email ?? "",
+        phone: c.phone ?? "",
+        tax: c.tax_number ?? "",
+      })),
+      settings: settings ?? null,
+      lang,
+      currency: "SYP",
+    };
+  };
+
   return (
     <div style={{ display: "grid", gap: 16 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -60,6 +109,11 @@ function CustomersPage() {
             style={{ width: "100%", padding: "10px 14px 10px 36px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--foreground)", fontSize: 13 }}
           />
         </div>
+        <ExportMenu
+          onExportPdf={() => exportFinanceListPdf(buildExport())}
+          onExportXlsx={() => exportFinanceListXlsx(buildExport())}
+          disabled={filtered.length === 0}
+        />
         <button
           onClick={() => { setEditing(null); setShowModal(true); }}
           className="brand-btn"
@@ -67,6 +121,7 @@ function CustomersPage() {
         >
           <Plus size={16} /> {t("newCustomer")}
         </button>
+
       </div>
 
       {filtered.length === 0 ? (

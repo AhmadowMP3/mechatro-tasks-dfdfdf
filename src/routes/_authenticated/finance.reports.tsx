@@ -14,9 +14,13 @@ import {
   type FxRate,
 } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
-import { Printer, Download, FileBarChart2, FileSpreadsheet } from "lucide-react";
+import { Printer, Download, FileBarChart2, FileSpreadsheet, FileText } from "lucide-react";
 import { exportFinanceWorkbook, type FinanceSheetSpec } from "@/lib/finance-xlsx";
 import { toast } from "sonner";
+import { printReactDocument } from "@/lib/pdf/print-document";
+import { ListReportDocument } from "@/components/finance/ListReportDocument";
+import { useFinancialSettings } from "@/lib/finance-hooks";
+
 
 export const Route = createFileRoute("/_authenticated/finance/reports")({
   component: FinanceReports,
@@ -74,6 +78,8 @@ function FinanceReports() {
   const ar = lang === "ar";
   const [range, setRange] = useState<Range>({ from: firstOfYear(), to: todayIso() });
   const [displayCurrency, setDisplayCurrency] = useState<Currency>("SYP");
+  const { data: settings } = useFinancialSettings();
+
 
   const { data: latestFx } = useQuery({
     queryKey: ["fx_rates", "latest"],
@@ -347,6 +353,53 @@ function FinanceReports() {
     }
   };
 
+  const exportAllPdf = async () => {
+    try {
+      const rangeLabel = `${range.from} → ${range.to}`;
+      const fmtVal = (n: number) => formatMoney(n, displayCurrency, lang);
+      // P&L sheet
+      await printReactDocument(
+        <>
+          <ListReportDocument
+            title={t("financeReports")}
+            subtitle={t("profitAndLoss")}
+            rangeLabel={rangeLabel}
+            kpis={[
+              { label: t("grossRevenue"), value: fmtVal(pnl.revenue), tone: "green" },
+              { label: t("operatingExpenses"), value: fmtVal(pnl.expTotal), tone: "red" },
+              { label: t("netProfit"), value: fmtVal(pnl.net), tone: pnl.net >= 0 ? "green" : "red" },
+              { label: t("netMargin"), value: pnl.revenue > 0 ? `${((pnl.net / pnl.revenue) * 100).toFixed(1)}%` : "—", tone: "blue" },
+            ]}
+            columns={[
+              { header: t("reportClient"), key: "customer", bold: true },
+              { header: t("invoice"), key: "number" },
+              { header: t("dueDate"), key: "due" },
+              { header: t("days"), key: "days", align: "end" },
+              { header: t("reportBalance"), key: "balance", align: "end", bold: true, tone: (r: { daysN: number }) => (r.daysN > 90 ? "red" : r.daysN > 30 ? "gold" : undefined) },
+            ]}
+            rows={aging.rows.slice(0, 60).map((r) => ({
+              customer: r.customer,
+              number: r.number,
+              due: r.due ? formatDate(r.due, lang) : "—",
+              days: String(r.days),
+              daysN: r.days,
+              balance: fmtVal(r.balance),
+            }))}
+            totals={[
+              { label: ar ? "إجمالي المستحقات" : "Total outstanding", value: fmtVal(aging.total), tone: "gold" },
+            ]}
+            settings={settings ?? null}
+            lang={lang}
+          />
+        </>,
+        { title: `finance-report_${range.from}_${range.to}`, lang },
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+
 
   const th: React.CSSProperties = {
     textAlign: ar ? "right" : "left",
@@ -405,9 +458,10 @@ function FinanceReports() {
           <button className="brand-btn-sm" onClick={exportAllXlsx} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--grad-blue)", color: "#fff", border: "none" }}>
             <FileSpreadsheet size={14} /> {t("exportXlsx")}
           </button>
-          <button className="brand-btn-sm" onClick={() => window.print()} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <Printer size={14} /> {t("exportPdf")}
+          <button className="brand-btn-sm" onClick={exportAllPdf} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <FileText size={14} /> {t("exportPdf")}
           </button>
+
         </div>
       </div>
 
