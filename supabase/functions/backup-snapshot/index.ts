@@ -305,11 +305,31 @@ Deno.serve(async (req) => {
     }
 
     // ---- Restore (data only) ----
-    if (body.restore && body.file) {
+    if ((body.restore && body.file) || body.restore_inline) {
       if (isSystem) return json(403, { error: "user only" });
-      const { data: dl, error: dlErr } = await sb.storage.from("backups").download(body.file);
-      if (dlErr || !dl) throw new Error(dlErr?.message ?? "download failed");
-      const snapshot = JSON.parse(await dl.text()) as Record<string, unknown[]>;
+      let snapshot: Record<string, unknown[]>;
+      if (body.restore_inline) {
+        const p = body.payload;
+        if (!p || typeof p !== "object" || Array.isArray(p)) {
+          return json(400, { error: "invalid_backup_file" });
+        }
+        const keys = Object.keys(p as Record<string, unknown>);
+        const known = new Set(TABLES);
+        const unknownKeys = keys.filter((k) => !known.has(k));
+        if (unknownKeys.length > 0 || keys.length === 0) {
+          return json(400, { error: "invalid_backup_file" });
+        }
+        for (const k of keys) {
+          if (!Array.isArray((p as Record<string, unknown>)[k])) {
+            return json(400, { error: "invalid_backup_file" });
+          }
+        }
+        snapshot = p as Record<string, unknown[]>;
+      } else {
+        const { data: dl, error: dlErr } = await sb.storage.from("backups").download(body.file!);
+        if (dlErr || !dl) throw new Error(dlErr?.message ?? "download failed");
+        snapshot = JSON.parse(await dl.text()) as Record<string, unknown[]>;
+      }
       for (const t of [...TABLES].reverse()) {
         await sb.from(t).delete().neq("id", "00000000-0000-0000-0000-000000000000");
       }
@@ -320,7 +340,7 @@ Deno.serve(async (req) => {
           if (error) console.error(`restore ${t}:`, error.message);
         }
       }
-      return json(200, { ok: true, restored: body.file });
+      return json(200, { ok: true, restored: body.file ?? "inline" });
     }
 
     // ---- Delete a backup file (and its matching file snapshot folder) ----
