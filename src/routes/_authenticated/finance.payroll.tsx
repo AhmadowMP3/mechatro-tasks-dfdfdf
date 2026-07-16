@@ -151,7 +151,7 @@ function PeriodCard({ period, expanded, onToggle, onDelete }: { period: PayrollP
       rows: list.map((e) => ({
         member: profMapEx.get(e.user_id) ?? e.user_id.slice(0, 8),
         base: formatMoney(e.base_salary, e.currency as Currency, lang),
-        allow: formatMoney(Number(e.housing_allowance ?? 0) + Number(e.transport_allowance) + Number(e.other_allowance), e.currency as Currency, lang),
+        allow: formatMoney(Number(e.transport_allowance) + Number(e.other_allowance), e.currency as Currency, lang),
         bonus: formatMoney(Number(e.points_bonus) + Number(e.streak_bonus) + Number(e.manual_bonus), e.currency as Currency, lang),
         ded: formatMoney(e.deductions, e.currency as Currency, lang),
         net: formatMoney(e.net_amount, e.currency as Currency, lang),
@@ -168,7 +168,7 @@ function PeriodCard({ period, expanded, onToggle, onDelete }: { period: PayrollP
       xlsxRows: list.map((e) => ({
         member: profMapEx.get(e.user_id) ?? "",
         base_num: Number(e.base_salary),
-        allow_num: Number(e.housing_allowance ?? 0) + Number(e.transport_allowance) + Number(e.other_allowance),
+        allow_num: Number(e.transport_allowance) + Number(e.other_allowance),
         bonus_num: Number(e.points_bonus) + Number(e.streak_bonus) + Number(e.manual_bonus),
         ded_num: Number(e.deductions),
         net_num: Number(e.net_amount),
