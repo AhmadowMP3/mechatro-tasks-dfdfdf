@@ -14,11 +14,14 @@ type Params = {
   lang: "ar" | "en";
 };
 
-const navy = "#0A2540";
-const blue = "#189FD1";
-const gold = "#C8A24B";
-const ink = "#0F2031";
-const muted = "#5A6B7D";
+const navy = "#081320";
+const surface = "#0F2031";
+const line = "#1E3A57";
+const blue = "#42C2EE";
+const gold = "#D4A017";
+const ink = "#E6EEF7";
+const ink2 = "#CBD5E1";
+const muted = "#94A3B8";
 
 export async function exportNoteToPdf(p: Params): Promise<void> {
   const { note, authorName, folderName, tags, lang } = p;
