@@ -238,6 +238,24 @@ export const dict = {
   backupDeleted: { ar: "تم حذف النسخة", en: "Backup deleted" },
   cannotDeleteLatest: { ar: "لا يمكن حذف أحدث نسخة احتياطية", en: "Cannot delete the latest backup" },
   latestBackupProtected: { ar: "الأحدث — محمية من الحذف", en: "Latest — protected from deletion" },
+  backupIncomingTitle: { ar: "نسخة احتياطية قريباً", en: "Backup coming up" },
+  backupIncomingBanner: {
+    ar: "نسخة احتياطية كاملة ستُشغَّل قريباً — يرجى حفظ عملك.",
+    en: "A full backup is about to run — please save your work.",
+  },
+  backupSaveYourWork: {
+    ar: "سيتم أخذ نسخة كاملة من البيانات والملفات. احفظ ما تعمل عليه الآن.",
+    en: "A full snapshot of data and files will run. Save anything in progress now.",
+  },
+  autoApprovesIn: { ar: "موافقة تلقائية خلال", en: "Auto-approves in" },
+  autoApprovesSoon: { ar: "موافقة تلقائية قريباً", en: "Auto-approves shortly" },
+  nextScheduledBackup: { ar: "النسخة المجدولة القادمة", en: "Next scheduled backup" },
+  retentionPolicy: { ar: "يتم الاحتفاظ بآخر 12 نسخة", en: "Keeps the last 12 backups" },
+  includesAllFiles: {
+    ar: "تشمل جميع الملفات (فواتير، تقارير، إيصالات، مرفقات)",
+    en: "Includes all files (invoices, reports, receipts, attachments)",
+  },
+  hours: { ar: "ساعة", en: "hours" },
   download: { ar: "تنزيل", en: "Download" },
   restore: { ar: "استعادة", en: "Restore" },
   restoreWarn: {
