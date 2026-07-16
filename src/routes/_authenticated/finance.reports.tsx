@@ -14,9 +14,13 @@ import {
   type FxRate,
 } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
-import { Printer, Download, FileBarChart2, FileSpreadsheet } from "lucide-react";
+import { Printer, Download, FileBarChart2, FileSpreadsheet, FileText } from "lucide-react";
 import { exportFinanceWorkbook, type FinanceSheetSpec } from "@/lib/finance-xlsx";
 import { toast } from "sonner";
+import { printReactDocument } from "@/lib/pdf/print-document";
+import { ListReportDocument } from "@/components/finance/ListReportDocument";
+import { useFinancialSettings } from "@/lib/finance-hooks";
+
 
 export const Route = createFileRoute("/_authenticated/finance/reports")({
   component: FinanceReports,
