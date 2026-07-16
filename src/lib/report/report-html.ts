@@ -235,8 +235,8 @@ function coverPage(data: ReportData, s: Stats, lang: Lang): string {
           ${m.job_title ? `<div style="font-size:15px;color:${P.muted};margin-top:10px;letter-spacing:.3px">${esc(m.job_title)}</div>` : ""}
           <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
             <span style="background:${P.gold};color:#111;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase">${esc(t(m.role as never, "en"))}</span>
-            ${m.is_master_admin ? `<span style="background:${P.ink};color:#fff;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase">${esc(t("masterAdmin", "en"))}</span>` : ""}
-            <span style="border:1.5px solid ${m.active ? P.green : P.line};color:${m.active ? P.green : P.muted};background:#fff;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase">${esc(m.active ? t("active", "en") : "Inactive")}</span>
+            ${m.is_master_admin ? `<span style="background:${P.cyanDark};color:#fff;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase">${esc(t("masterAdmin", "en"))}</span>` : ""}
+            <span style="border:1.5px solid ${m.active ? P.green : P.line};color:${m.active ? P.green : P.muted};background:rgba(255,255,255,.04);padding:4px 12px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase">${esc(m.active ? t("active", "en") : "Inactive")}</span>
           </div>
         </div>
       </div>
