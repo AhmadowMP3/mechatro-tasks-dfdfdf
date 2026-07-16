@@ -60,7 +60,7 @@ function hexToRgb(hex: string): [number, number, number] {
   ];
 }
 
-async function drawHeader(pdf: jsPDF, hasArabicFont: boolean) {
+async function drawHeader(pdf: jsPDF, hasArabicFont: boolean, lang: "ar" | "en") {
   const logo = await loadBrandLogo();
   const pageW = pdf.internal.pageSize.getWidth();
   // Blue hairline under header band.
@@ -76,7 +76,7 @@ async function drawHeader(pdf: jsPDF, hasArabicFont: boolean) {
     pdf.addImage(logo.dataUrl, "PNG", 12, 5, targetW, targetH, undefined, "FAST");
   } else {
     pdf.setTextColor(...hexToRgb(BRAND.ink));
-    setFont(pdf, "Mechatro", hasArabicFont, "bold");
+    setFont(pdf, "Mechatro", hasArabicFont, lang, "bold");
     pdf.setFontSize(16);
     pdf.text("Mechatro", 12, 14);
   }
