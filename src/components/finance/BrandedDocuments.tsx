@@ -37,7 +37,7 @@ const CONTENT_BOTTOM_PADDING = 44; // px — clears native footer band
 function pageWrap(lang: Lang): React.CSSProperties {
   return {
     width: A4_WIDTH_PX,
-    background: "#ffffff",
+    background: page,
     color: ink,
     fontFamily: lang === "ar"
       ? "'Montserrat Arabic', 'Almarai', 'Segoe UI', sans-serif"
