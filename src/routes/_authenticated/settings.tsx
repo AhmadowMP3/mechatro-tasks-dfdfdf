@@ -416,19 +416,27 @@ function BackupsSection() {
         </table>
       </div>
       ))}
-      {restoreTarget && <RestoreDialog backup={restoreTarget} onClose={() => setRestoreTarget(null)} onDone={() => { setRestoreTarget(null); refetch(); }} />}
+      {restoreTarget && <RestoreDialog source={{ kind: "cloud", name: restoreTarget.name }} onClose={() => setRestoreTarget(null)} onDone={() => { setRestoreTarget(null); refetch(); }} />}
+      {externalRestore && <RestoreDialog source={{ kind: "external", name: externalRestore.name, payload: externalRestore.payload }} onClose={() => setExternalRestore(null)} onDone={() => { setExternalRestore(null); refetch(); }} />}
     </section>
   );
 }
 
-function RestoreDialog({ backup, onClose, onDone }: { backup: Backup; onClose: () => void; onDone: () => void }) {
+type RestoreSource =
+  | { kind: "cloud"; name: string }
+  | { kind: "external"; name: string; payload: Record<string, unknown[]> };
+
+function RestoreDialog({ source, onClose, onDone }: { source: RestoreSource; onClose: () => void; onDone: () => void }) {
   const { t } = useApp();
   const [text, setText] = useState("");
   const [running, setRunning] = useState(false);
   const confirm = async () => {
     if (text !== "RESTORE") return;
     setRunning(true);
-    const { error } = await supabase.functions.invoke("backup-snapshot", { body: { restore: true, file: backup.name } });
+    const body = source.kind === "cloud"
+      ? { restore: true, file: source.name }
+      : { restore_inline: true, payload: source.payload };
+    const { error } = await supabase.functions.invoke("backup-snapshot", { body });
     setRunning(false);
     if (error) { toast.error(error.message); return; }
     toast.success(t("saved"));
@@ -440,10 +448,10 @@ function RestoreDialog({ backup, onClose, onDone }: { backup: Backup; onClose: (
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, color: "#FF9255" }}>
           <AlertTriangle size={24} />
-          <h2 style={{ margin: 0 }}>{t("restore")}</h2>
+          <h2 style={{ margin: 0 }}>{source.kind === "external" ? t("restoreFromFile") : t("restore")}</h2>
         </div>
         <p style={{ color: "var(--foreground)", fontSize: 14 }}>{t("restoreWarn")}</p>
-        <p style={{ color: "var(--muted)", fontSize: 12 }}>{backup.name}</p>
+        <p style={{ color: "var(--muted)", fontSize: 12, wordBreak: "break-all" }}>{source.name}</p>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="RESTORE"
           style={{ width: "100%", minHeight: 48, padding: "10px 12px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--foreground)", fontSize: 14, marginTop: 8 }} />
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
