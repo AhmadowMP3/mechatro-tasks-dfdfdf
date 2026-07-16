@@ -45,8 +45,8 @@ function buildIframeHtml(lang: "ar" | "en", title: string): string {
   html, body {
     margin: 0;
     padding: 0;
-    background: #ffffff;
-    color: #0F2031;
+    background: #081320;
+    color: #E6EEF7;
     font-family: ${lang === "ar"
       ? "'Montserrat Arabic', 'Almarai', 'Segoe UI', sans-serif"
       : "'Montserrat', 'Montserrat Arabic', system-ui, sans-serif"};
