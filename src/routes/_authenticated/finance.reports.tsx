@@ -458,9 +458,10 @@ function FinanceReports() {
           <button className="brand-btn-sm" onClick={exportAllXlsx} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--grad-blue)", color: "#fff", border: "none" }}>
             <FileSpreadsheet size={14} /> {t("exportXlsx")}
           </button>
-          <button className="brand-btn-sm" onClick={() => window.print()} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <Printer size={14} /> {t("exportPdf")}
+          <button className="brand-btn-sm" onClick={exportAllPdf} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <FileText size={14} /> {t("exportPdf")}
           </button>
+
         </div>
       </div>
 
