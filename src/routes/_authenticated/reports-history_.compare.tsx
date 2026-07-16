@@ -193,7 +193,7 @@ function CompareReportsPage() {
         <div style={{ marginBottom: 20 }}>
           <SectionTitle>{t("statusDistribution")}</SectionTitle>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18 }}>
-            <StatusBars a={sA.status_dist} b={sB.status_dist} t={t} />
+            <StatusBars a={sA.status_dist ?? {}} b={sB.status_dist ?? {}} t={t} />
           </div>
         </div>
 
