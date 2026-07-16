@@ -209,13 +209,14 @@ function coverPage(data: ReportData, s: Stats, lang: Lang): string {
   <section class="pdf-page cover" style="background:${P.page};color:${P.ink};position:relative;overflow:hidden;padding:56px 48px 44px 48px;box-sizing:border-box">
     <!-- Header strip -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:44px">
-      <div style="display:flex;align-items:center;gap:12px">
-        <img src="${logo}" style="width:38px;height:38px;object-fit:contain"/>
+      <div style="display:flex;align-items:center;gap:16px">
+        <img src="${logo}" alt="Mechatro" style="width:64px;height:64px;object-fit:contain;flex:none"/>
         <div>
-          <div style="font-size:12px;font-weight:900;letter-spacing:5px;color:${P.ink}">MECHATRO</div>
-          <div style="font-size:10px;color:${P.muted};letter-spacing:2px;margin-top:2px">MEMBER REPORT · تقرير العضو</div>
+          <div style="font-size:14px;font-weight:900;letter-spacing:5px;color:${P.ink}">MECHATRO</div>
+          <div style="font-size:10px;color:${P.muted};letter-spacing:2px;margin-top:3px">MEMBER REPORT · تقرير العضو</div>
         </div>
       </div>
+
       <div style="text-align:right;font-size:10px;color:${P.muted};letter-spacing:1px;line-height:1.6">
         <div>${esc(fmtDate(new Date().toISOString(), "en"))}</div>
         <div>${esc(rangeLabel(data, "en"))}</div>

@@ -3,6 +3,8 @@ import { buildReportHtml, buildBilingualHtml } from "./report-html";
 import type { Lang } from "@/i18n/dict";
 import { supabase } from "@/integrations/supabase/client";
 import montArabic from "@/assets/MontserratArabic-Regular.ttf.asset.json";
+import logoBundledUrl from "@/assets/mechatro-logo.png";
+
 
 import { buildKpiSnapshot } from "./snapshot";
 
@@ -58,34 +60,57 @@ const CONTENT_H = CONTENT_BOTTOM - CONTENT_TOP;
 
 // Cache the logo as a data URL so html2canvas never has to hit the CDN.
 let LOGO_DATA_URL: string | null = null;
-async function getLogoDataUrl(): Promise<string | null> {
-  if (LOGO_DATA_URL) return LOGO_DATA_URL;
+async function fetchAsDataUrl(url: string): Promise<string | null> {
   try {
-    const mod = await import("@/assets/mechatro-logo.png.asset.json");
-    const url = (mod.default as { url: string }).url;
     const resp = await fetch(url);
+    if (!resp.ok) return null;
     const blob = await resp.blob();
-    LOGO_DATA_URL = await new Promise<string>((resolve, reject) => {
+    return await new Promise<string>((resolve, reject) => {
       const fr = new FileReader();
       fr.onload = () => resolve(String(fr.result));
       fr.onerror = () => reject(fr.error);
       fr.readAsDataURL(blob);
     });
-    return LOGO_DATA_URL;
   } catch {
     return null;
   }
 }
+async function getLogoDataUrl(): Promise<string | null> {
+  if (LOGO_DATA_URL) return LOGO_DATA_URL;
+  // 1) Try the CDN asset pointer.
+  try {
+    const mod = await import("@/assets/mechatro-logo.png.asset.json");
+    const url = (mod.default as { url: string }).url;
+    const dataUrl = await fetchAsDataUrl(url);
+    if (dataUrl) {
+      LOGO_DATA_URL = dataUrl;
+      return LOGO_DATA_URL;
+    }
+  } catch {
+    // fall through
+  }
+  // 2) Fallback to the Vite-bundled PNG (same-origin, always resolvable).
+  const bundled = await fetchAsDataUrl(logoBundledUrl);
+  if (bundled) {
+    LOGO_DATA_URL = bundled;
+    return LOGO_DATA_URL;
+  }
+  return null;
+}
 
-/** Inline the Mechatro logo so html2canvas paints it deterministically. */
+
+/** Inline the Mechatro logo so html2canvas paints it deterministically.
+ *  Matches both the CDN URL and the Vite-bundled URL (which may include a
+ *  content hash like `mechatro-logo-abc123.png` in production builds). */
 async function inlineLogo(html: string): Promise<string> {
   const dataUrl = await getLogoDataUrl();
   if (!dataUrl) return html;
   return html.replace(
-    /src="([^"]*mechatro-logo\.png[^"]*)"/g,
+    /src="([^"]*mechatro-logo[^"]*\.png[^"]*)"/g,
     `src="${dataUrl}"`
   );
 }
+
 
 /** Render an arbitrary HTML fragment inside an isolated iframe and return
  *  its rasterised canvas. The fragment is sized to the given width; height
