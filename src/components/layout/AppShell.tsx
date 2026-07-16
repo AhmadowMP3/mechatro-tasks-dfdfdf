@@ -12,6 +12,7 @@ import { isShareMode, getShareLink } from "@/lib/share-mode";
 import { CommandPalette, openCommandPalette } from "@/lib/command-palette";
 import { GlobalShortcuts } from "@/lib/shortcuts";
 import { BulkActionHost } from "@/lib/bulk-selection";
+import { BackupIncomingBanner } from "./BackupIncomingBanner";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
