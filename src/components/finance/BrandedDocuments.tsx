@@ -84,14 +84,14 @@ function CompanyBlock({ settings, lang }: { settings: CompanySettings | null; la
 
 function StatusPill({ text, tone }: { text: string; tone: "green" | "red" | "blue" | "gray" }) {
   const map = {
-    green: { bg: "#DFF3D5", fg: "#2F5E1E" },
-    red: { bg: "#FBE0DE", fg: "#7E2822" },
-    blue: { bg: "#DDF0FA", fg: navy },
-    gray: { bg: "#EEF1F4", fg: "#334155" },
+    green: { bg: "rgba(115,201,78,.14)", fg: green, br: `${green}66` },
+    red:   { bg: "rgba(239,68,68,.14)",   fg: red,   br: `${red}66` },
+    blue:  { bg: "rgba(66,194,238,.14)",  fg: blue,  br: `${blue}66` },
+    gray:  { bg: "rgba(148,163,184,.14)", fg: muted, br: `${muted}66` },
   };
   const c = map[tone];
   return (
-    <span style={{ display: "inline-block", padding: "5px 14px", background: c.bg, color: c.fg, borderRadius: 999, fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase" }}>
+    <span style={{ display: "inline-block", padding: "5px 14px", background: c.bg, color: c.fg, border: `1px solid ${c.br}`, borderRadius: 999, fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase" }}>
       {text}
     </span>
   );
