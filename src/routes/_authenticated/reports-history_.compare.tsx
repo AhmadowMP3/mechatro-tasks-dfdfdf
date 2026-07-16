@@ -115,8 +115,10 @@ function CompareReportsPage() {
   if (!A || !B) return <div style={{ padding: 40 }}>Missing reports</div>;
 
 
-  const sA = A.kpi_snapshot, sB = B.kpi_snapshot;
-  const projA = sA.projects_touched, projB = sB.projects_touched;
+  const sA = A.kpi_snapshot ?? ({} as KpiSnapshot);
+  const sB = B.kpi_snapshot ?? ({} as KpiSnapshot);
+  const projA = sA.projects_touched ?? [];
+  const projB = sB.projects_touched ?? [];
   const bIds = new Set(projB.map(p => p.id));
   const aIds = new Set(projA.map(p => p.id));
   const onlyA = projA.filter(p => !bIds.has(p.id));
