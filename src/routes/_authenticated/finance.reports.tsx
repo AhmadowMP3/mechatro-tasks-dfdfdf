@@ -353,6 +353,53 @@ function FinanceReports() {
     }
   };
 
+  const exportAllPdf = async () => {
+    try {
+      const rangeLabel = `${range.from} → ${range.to}`;
+      const fmtVal = (n: number) => formatMoney(n, displayCurrency, lang);
+      // P&L sheet
+      await printReactDocument(
+        <>
+          <ListReportDocument
+            title={t("financeReports")}
+            subtitle={t("profitAndLoss")}
+            rangeLabel={rangeLabel}
+            kpis={[
+              { label: t("grossRevenue"), value: fmtVal(pnl.revenue), tone: "green" },
+              { label: t("operatingExpenses"), value: fmtVal(pnl.expTotal), tone: "red" },
+              { label: t("netProfit"), value: fmtVal(pnl.net), tone: pnl.net >= 0 ? "green" : "red" },
+              { label: t("netMargin"), value: pnl.revenue > 0 ? `${((pnl.net / pnl.revenue) * 100).toFixed(1)}%` : "—", tone: "blue" },
+            ]}
+            columns={[
+              { header: t("reportClient"), key: "customer", bold: true },
+              { header: t("invoice"), key: "number" },
+              { header: t("dueDate"), key: "due" },
+              { header: t("days"), key: "days", align: "end" },
+              { header: t("reportBalance"), key: "balance", align: "end", bold: true, tone: (r: { daysN: number }) => (r.daysN > 90 ? "red" : r.daysN > 30 ? "gold" : undefined) },
+            ]}
+            rows={aging.rows.slice(0, 60).map((r) => ({
+              customer: r.customer,
+              number: r.number,
+              due: r.due ? formatDate(r.due, lang) : "—",
+              days: String(r.days),
+              daysN: r.days,
+              balance: fmtVal(r.balance),
+            }))}
+            totals={[
+              { label: ar ? "إجمالي المستحقات" : "Total outstanding", value: fmtVal(aging.total), tone: "gold" },
+            ]}
+            settings={settings ?? null}
+            lang={lang}
+          />
+        </>,
+        { title: `finance-report_${range.from}_${range.to}`, lang },
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+
 
   const th: React.CSSProperties = {
     textAlign: ar ? "right" : "left",
