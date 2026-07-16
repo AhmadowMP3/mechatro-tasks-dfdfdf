@@ -325,9 +325,73 @@ function IncomeSubs() {
 
   const today = new Date().toISOString().slice(0, 10);
 
+  const { data: settings } = useFinancialSettings();
+  const buildExport = () => {
+    const ar = lang === "ar";
+    const list = rows ?? [];
+    const currency = (list[0]?.currency ?? "SYP") as string;
+    return {
+      slug: "subscriptions-income",
+      title: t("subscriptionsIncome"),
+      subtitle: ar ? "الاشتراكات — دخل" : "Income subscriptions",
+      rangeLabel: `${list.length} ${ar ? "اشتراك" : "subscriptions"}`,
+      kpis: [
+        { label: ar ? "العدد" : "Count", value: String(list.length), tone: "blue" as const },
+        { label: ar ? "المجموع الشهري" : "Monthly total", value: formatMoney(list.filter((s) => s.cycle === "monthly").reduce((a, s) => a + Number(s.amount), 0), currency as never, lang), tone: "green" as const },
+      ],
+      columns: [
+        { header: t("customer"), key: "customer", bold: true },
+        { header: t("planName"), key: "plan" },
+        { header: t("cycle"), key: "cycle" },
+        { header: t("amount"), key: "amount", align: "end" as const, tone: () => "green" as const },
+        { header: ar ? "الفاتورة القادمة" : "Next invoice", key: "next" },
+        { header: t("status"), key: "status" },
+      ],
+      rows: list.map((s) => {
+        const c = custMap.get(s.customer_id);
+        return {
+          customer: c ? (ar ? c.name_ar || c.name_en : c.name_en || c.name_ar) : "—",
+          plan: s.plan_name,
+          cycle: t(subscriptionCycleKey(s.cycle)),
+          amount: formatMoney(s.amount, s.currency, lang),
+          next: formatDate(s.next_invoice_date, lang),
+          status: s.status,
+        };
+      }),
+      xlsxColumns: [
+        { header: t("customer"), key: "customer", width: 24 },
+        { header: t("planName"), key: "plan", width: 22 },
+        { header: t("cycle"), key: "cycle", width: 14 },
+        { header: t("amount"), key: "amount_num", kind: "money" as const, width: 16 },
+        { header: ar ? "الفاتورة القادمة" : "Next invoice", key: "next", kind: "date" as const, width: 16 },
+        { header: t("status"), key: "status", width: 14 },
+      ],
+      xlsxRows: list.map((s) => {
+        const c = custMap.get(s.customer_id);
+        return {
+          customer: c ? (ar ? c.name_ar || c.name_en : c.name_en || c.name_ar) : "",
+          plan: s.plan_name,
+          cycle: t(subscriptionCycleKey(s.cycle)),
+          amount_num: Number(s.amount),
+          next: new Date(s.next_invoice_date),
+          status: s.status,
+        };
+      }),
+      settings: settings ?? null,
+      lang,
+      currency,
+    };
+  };
+
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+        <ExportMenu
+          onExportPdf={() => exportFinanceListPdf(buildExport())}
+          onExportXlsx={() => exportFinanceListXlsx(buildExport())}
+          disabled={(rows ?? []).length === 0}
+        />
+
         <button onClick={() => { setEditing(null); setShowModal(true); }} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
           <Plus size={16} /> {t("newSubscription")}
         </button>
