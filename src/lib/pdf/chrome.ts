@@ -33,11 +33,18 @@ function shapeDigits(s: string, _lang: "ar" | "en"): string {
   return s;
 }
 
-/** Choose the safest font for a given string (uses embedded Arabic when the
- *  string contains Arabic codepoints, otherwise the default Helvetica). */
-function setFont(pdf: jsPDF, text: string, hasArabicFont: boolean, weight: "normal" | "bold" = "normal") {
+/** Choose the safest font for a given string. In Arabic-mode PDFs we always
+ *  use the embedded Montserrat Arabic (it also covers Latin glyphs), so
+ *  headers/footers render in a single consistent typeface. */
+function setFont(
+  pdf: jsPDF,
+  text: string,
+  hasArabicFont: boolean,
+  lang: "ar" | "en",
+  weight: "normal" | "bold" = "normal",
+) {
   const containsArabic = /[\u0600-\u06FF]/.test(text);
-  if (containsArabic && hasArabicFont) {
+  if (hasArabicFont && (lang === "ar" || containsArabic)) {
     pdf.setFont(FONT_ID, "normal");
   } else {
     pdf.setFont("helvetica", weight);
