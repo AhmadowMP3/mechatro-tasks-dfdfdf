@@ -289,6 +289,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             minWidth: 0,
           }}
         >
+          <BackupIncomingBanner />
           {children}
         </main>
       </div>
