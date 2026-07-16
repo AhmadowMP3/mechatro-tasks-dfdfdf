@@ -212,20 +212,64 @@ function BackupsSection() {
 
   const hasMyPending = (myPending ?? []).length > 0;
 
+  const KNOWN_BACKUP_TABLES = new Set([
+    "app_config", "profiles", "projects", "references", "league_seasons",
+    "invites", "share_links", "tasks", "task_files", "task_comments",
+    "work_sessions", "season_scores", "user_badges", "member_reports",
+    "activity_log", "notifications",
+  ]);
+
+  const onPickFile = () => fileInputRef.current?.click();
+
+  const onFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        toast.error(t("invalidBackupFile"));
+        return;
+      }
+      const keys = Object.keys(parsed);
+      if (keys.length === 0 || keys.some((k) => !KNOWN_BACKUP_TABLES.has(k))) {
+        toast.error(t("invalidBackupFile"));
+        return;
+      }
+      for (const k of keys) {
+        if (!Array.isArray((parsed as Record<string, unknown>)[k])) {
+          toast.error(t("invalidBackupFile"));
+          return;
+        }
+      }
+      setExternalRestore({ name: file.name, payload: parsed as Record<string, unknown[]> });
+    } catch {
+      toast.error(t("invalidBackupFile"));
+    }
+  };
+
   return (
     <section className="brand-card" style={{ padding: 20 }}>
+      <input ref={fileInputRef} type="file" accept="application/json,.json" style={{ display: "none" }} onChange={onFileChosen} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
         <h2 style={{ margin: 0, flex: 1, fontSize: 18 }}>{t("backups")}</h2>
         {isMasterAdmin ? (
-          <button onClick={runBackup} disabled={running} className="brand-btn" style={{ background: "var(--grad-green)", color: "#fff", opacity: running ? 0.6 : 1 }}>
-            <Play size={16} /> {t("backupNow")}
-          </button>
+          <>
+            <button onClick={runBackup} disabled={running} className="brand-btn" style={{ background: "var(--grad-green)", color: "#fff", opacity: running ? 0.6 : 1 }}>
+              <Play size={16} /> {t("backupNow")}
+            </button>
+            <button onClick={onPickFile} className="brand-btn" style={{ background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)" }}>
+              <Upload size={16} /> {t("restoreFromFile")}
+            </button>
+          </>
         ) : (
           <button onClick={requestBackup} disabled={running || hasMyPending} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", opacity: (running || hasMyPending) ? 0.6 : 1 }}>
             <Play size={16} /> {t("requestBackup")}
           </button>
         )}
       </div>
+
 
       {isMasterAdmin && (
         <div style={{
