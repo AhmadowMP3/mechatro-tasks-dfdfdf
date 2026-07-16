@@ -11,17 +11,20 @@ type Lang = "ar" | "en";
 
 // Brand tokens are duplicated here in RGB form so the rasterized document
 // matches the native chrome. Any change in src/lib/pdf/brand.ts should be
-// mirrored here.
-const navy = "#0A2540";
-const blue = "#189FD1";
-const gold = "#C8A24B";
-const ink = "#0F2031";
-const muted = "#5A6B7D";
-const border = "#D7DEE5";
-const zebra = "#F5F9FD";
-const green = "#3F782A";
-const red = "#C0392B";
-const grad = `linear-gradient(135deg, ${navy} 0%, ${blue} 100%)`;
+// mirrored here. DARK theme — matches src/styles.css.
+const page = "#081320";
+const navy = "#0F2031";       // card surface (was solid navy header row → now the elevated card)
+const surface2 = "#13283D";   // header/totals band
+const blue = "#42C2EE";
+const gold = "#D4A017";
+const ink = "#E6EEF7";
+const ink2 = "#CBD5E1";
+const muted = "#94A3B8";
+const border = "#1E3A57";
+const zebra = "#0B1A2A";
+const green = "#73C94E";
+const red = "#EF4444";
+const grad = `linear-gradient(135deg, ${page} 0%, ${surface2} 100%)`;
 
 // A4 width at 96dpi. The A4 content zone (after native chrome margins) is
 // 24mm top + 16mm bottom = 40mm reserved; leave equivalent breathing room at
