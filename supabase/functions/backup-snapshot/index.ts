@@ -38,24 +38,21 @@ function errMsg(e: unknown): string {
 }
 
 
-// FK-safe insert order (parents first). Delete goes in reverse.
+// Full list of tables captured by the snapshot. Restore is handled by the
+// SQL function public.restore_full_snapshot(payload) which has its own
+// authoritative table list — keep it in sync when you add new tables here.
+// `backup_requests` is intentionally excluded (control log).
 const TABLES = [
-  "app_config",
-  "profiles",
-  "projects",
-  "references",
-  "league_seasons",
-  "invites",
-  "share_links",
-  "tasks",
-  "task_files",
-  "task_comments",
-  "work_sessions",
-  "season_scores",
-  "user_badges",
-  "member_reports",
-  "activity_log",
-  "notifications",
+  "app_config", "financial_settings", "profiles", "projects", "references",
+  "league_seasons", "invites", "share_links", "customers", "expense_categories",
+  "fx_rates", "invoices", "invoice_items", "invoice_payments", "expenses",
+  "income_entries", "subscriptions_income", "subscriptions_expense",
+  "payroll_periods", "payroll_entries", "member_salary_settings",
+  "finance_reminders_log", "note_folders", "note_tags", "notes", "note_tag_links",
+  "note_shares", "note_comments", "note_attachments", "tasks", "task_assignees",
+  "task_files", "task_comments", "task_point_awards", "work_sessions",
+  "season_scores", "user_badges", "member_reports", "activity_log",
+  "notifications", "user_sessions",
 ];
 
 // Storage buckets to mirror alongside the DB snapshot.
