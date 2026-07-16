@@ -103,7 +103,7 @@ function BackupsSection() {
     enabled: !!isMasterAdmin,
     queryFn: async () => {
       const { data } = await supabase.storage.from("backups").list("", { limit: 100, sortBy: { column: "created_at", order: "desc" } });
-      return (data ?? []).filter((f) => f.name.endsWith(".json")) as unknown as Backup[];
+      return (data ?? []).filter((f) => f.name.endsWith(".json") || f.name.endsWith(".zip")) as unknown as Backup[];
     },
   });
 
@@ -218,6 +218,22 @@ function BackupsSection() {
         )}
       </div>
 
+      {isMasterAdmin && (
+        <div style={{
+          marginBottom: 12, padding: "10px 12px", borderRadius: 10,
+          border: "1px solid var(--border)", background: "var(--surface-2)",
+          display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", fontSize: 12, color: "var(--muted)",
+        }}>
+          <span>🗓 {t("nextScheduledBackup")}: {(() => {
+            const latest = data?.[0]?.created_at ? new Date(data[0].created_at) : null;
+            const next = latest ? new Date(latest.getTime() + 10 * 24 * 60 * 60 * 1000) : null;
+            return next ? formatDate(next.toISOString(), lang) : "—";
+          })()}</span>
+          <span>· 📦 {t("retentionPolicy")}</span>
+          <span>· 📎 {t("includesAllFiles")}</span>
+        </div>
+      )}
+
       {!isMasterAdmin && (
         <div style={{ padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-2)", fontSize: 13, color: "var(--muted)" }}>
           {hasMyPending ? t("backupRequestPending") : t("backupsMasterOnlyNote")}
@@ -252,6 +268,15 @@ function BackupsSection() {
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>
                       {t("backupRequestedAt")}: {formatDate(r.requested_at, lang)}
                     </div>
+                    {(() => {
+                      const runsAt = new Date(r.requested_at).getTime() + 24 * 60 * 60 * 1000;
+                      const hoursLeft = Math.max(0, Math.round((runsAt - Date.now()) / (60 * 60 * 1000)));
+                      return (
+                        <div style={{ fontSize: 11, color: "#E7B03A", marginTop: 4 }}>
+                          ⏳ {hoursLeft > 0 ? `${t("autoApprovesIn")} ~${hoursLeft} ${t("hours")}` : t("autoApprovesSoon")}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <button
                     onClick={() => approveRequest(r)}
