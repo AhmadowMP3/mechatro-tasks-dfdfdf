@@ -20,6 +20,10 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { renderAndDownloadPdf } from "@/lib/pdf-render";
 import { stampFilename } from "@/lib/pdf/brand";
 import { PayrollSlipDocument, type CompanySettings } from "@/components/finance/BrandedDocuments";
+import { ExportMenu } from "@/components/finance/ExportMenu";
+import { exportFinanceListPdf, exportFinanceListXlsx } from "@/lib/finance-list-export";
+import { useFinancialSettings } from "@/lib/finance-hooks";
+
 
 export const Route = createFileRoute("/_authenticated/finance/payroll")({
   component: PayrollPage,
