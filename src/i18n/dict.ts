@@ -258,6 +258,11 @@ export const dict = {
   
   download: { ar: "تنزيل", en: "Download" },
   restore: { ar: "استعادة", en: "Restore" },
+  restoreFromFile: { ar: "استعادة من ملف", en: "Restore from file" },
+  invalidBackupFile: {
+    ar: "هذا الملف ليس نسخة احتياطية صالحة لموكاترو",
+    en: "This file is not a valid Mechatro backup",
+  },
   restoreWarn: {
     ar: 'الاستعادة ستستبدل جميع البيانات الحالية. اكتب "RESTORE" للتأكيد.',
     en: 'Restore will overwrite ALL current data. Type "RESTORE" to confirm.',

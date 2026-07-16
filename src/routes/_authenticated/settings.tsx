@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2 } from "lucide-react";
+import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { formatDate, toLocalDigits } from "@/lib/format";
@@ -97,6 +97,8 @@ function BackupsSection() {
   const [running, setRunning] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<Backup | null>(null);
+  const [externalRestore, setExternalRestore] = useState<{ name: string; payload: Record<string, unknown[]> } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data, refetch } = useQuery({
     queryKey: ["backups"],
@@ -164,9 +166,16 @@ function BackupsSection() {
   };
 
   const download = async (b: Backup) => {
-    const { data, error } = await supabase.storage.from("backups").createSignedUrl(b.name, 300);
+    const { data, error } = await supabase.storage.from("backups").download(b.name);
     if (error || !data) { toast.error(error?.message ?? "err"); return; }
-    window.open(data.signedUrl, "_blank");
+    const url = URL.createObjectURL(data);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = b.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const deleteBackup = async (b: Backup) => {
@@ -203,20 +212,64 @@ function BackupsSection() {
 
   const hasMyPending = (myPending ?? []).length > 0;
 
+  const KNOWN_BACKUP_TABLES = new Set([
+    "app_config", "profiles", "projects", "references", "league_seasons",
+    "invites", "share_links", "tasks", "task_files", "task_comments",
+    "work_sessions", "season_scores", "user_badges", "member_reports",
+    "activity_log", "notifications",
+  ]);
+
+  const onPickFile = () => fileInputRef.current?.click();
+
+  const onFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        toast.error(t("invalidBackupFile"));
+        return;
+      }
+      const keys = Object.keys(parsed);
+      if (keys.length === 0 || keys.some((k) => !KNOWN_BACKUP_TABLES.has(k))) {
+        toast.error(t("invalidBackupFile"));
+        return;
+      }
+      for (const k of keys) {
+        if (!Array.isArray((parsed as Record<string, unknown>)[k])) {
+          toast.error(t("invalidBackupFile"));
+          return;
+        }
+      }
+      setExternalRestore({ name: file.name, payload: parsed as Record<string, unknown[]> });
+    } catch {
+      toast.error(t("invalidBackupFile"));
+    }
+  };
+
   return (
     <section className="brand-card" style={{ padding: 20 }}>
+      <input ref={fileInputRef} type="file" accept="application/json,.json" style={{ display: "none" }} onChange={onFileChosen} />
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
         <h2 style={{ margin: 0, flex: 1, fontSize: 18 }}>{t("backups")}</h2>
         {isMasterAdmin ? (
-          <button onClick={runBackup} disabled={running} className="brand-btn" style={{ background: "var(--grad-green)", color: "#fff", opacity: running ? 0.6 : 1 }}>
-            <Play size={16} /> {t("backupNow")}
-          </button>
+          <>
+            <button onClick={runBackup} disabled={running} className="brand-btn" style={{ background: "var(--grad-green)", color: "#fff", opacity: running ? 0.6 : 1 }}>
+              <Play size={16} /> {t("backupNow")}
+            </button>
+            <button onClick={onPickFile} className="brand-btn" style={{ background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)" }}>
+              <Upload size={16} /> {t("restoreFromFile")}
+            </button>
+          </>
         ) : (
           <button onClick={requestBackup} disabled={running || hasMyPending} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", opacity: (running || hasMyPending) ? 0.6 : 1 }}>
             <Play size={16} /> {t("requestBackup")}
           </button>
         )}
       </div>
+
 
       {isMasterAdmin && (
         <div style={{
@@ -363,19 +416,27 @@ function BackupsSection() {
         </table>
       </div>
       ))}
-      {restoreTarget && <RestoreDialog backup={restoreTarget} onClose={() => setRestoreTarget(null)} onDone={() => { setRestoreTarget(null); refetch(); }} />}
+      {restoreTarget && <RestoreDialog source={{ kind: "cloud", name: restoreTarget.name }} onClose={() => setRestoreTarget(null)} onDone={() => { setRestoreTarget(null); refetch(); }} />}
+      {externalRestore && <RestoreDialog source={{ kind: "external", name: externalRestore.name, payload: externalRestore.payload }} onClose={() => setExternalRestore(null)} onDone={() => { setExternalRestore(null); refetch(); }} />}
     </section>
   );
 }
 
-function RestoreDialog({ backup, onClose, onDone }: { backup: Backup; onClose: () => void; onDone: () => void }) {
+type RestoreSource =
+  | { kind: "cloud"; name: string }
+  | { kind: "external"; name: string; payload: Record<string, unknown[]> };
+
+function RestoreDialog({ source, onClose, onDone }: { source: RestoreSource; onClose: () => void; onDone: () => void }) {
   const { t } = useApp();
   const [text, setText] = useState("");
   const [running, setRunning] = useState(false);
   const confirm = async () => {
     if (text !== "RESTORE") return;
     setRunning(true);
-    const { error } = await supabase.functions.invoke("backup-snapshot", { body: { restore: true, file: backup.name } });
+    const body = source.kind === "cloud"
+      ? { restore: true, file: source.name }
+      : { restore_inline: true, payload: source.payload };
+    const { error } = await supabase.functions.invoke("backup-snapshot", { body });
     setRunning(false);
     if (error) { toast.error(error.message); return; }
     toast.success(t("saved"));
@@ -387,10 +448,10 @@ function RestoreDialog({ backup, onClose, onDone }: { backup: Backup; onClose: (
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, color: "#FF9255" }}>
           <AlertTriangle size={24} />
-          <h2 style={{ margin: 0 }}>{t("restore")}</h2>
+          <h2 style={{ margin: 0 }}>{source.kind === "external" ? t("restoreFromFile") : t("restore")}</h2>
         </div>
         <p style={{ color: "var(--foreground)", fontSize: 14 }}>{t("restoreWarn")}</p>
-        <p style={{ color: "var(--muted)", fontSize: 12 }}>{backup.name}</p>
+        <p style={{ color: "var(--muted)", fontSize: 12, wordBreak: "break-all" }}>{source.name}</p>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="RESTORE"
           style={{ width: "100%", minHeight: 48, padding: "10px 12px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--foreground)", fontSize: 14, marginTop: 8 }} />
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
