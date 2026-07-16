@@ -149,29 +149,29 @@ async function renderFragmentToCanvas(
  *  top of every content page. Rendered once and reused. */
 function headerHtml(title: string, rangeText: string, logoDataUrl: string, kind: ReportKind): string {
   const label = REPORT_LABELS[kind];
-  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${HEADER_H}px;padding:14px ${SIDE_PAD}px 10px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-bottom:1px solid #ECECEC;background:#ffffff">
+  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${HEADER_H}px;padding:14px ${SIDE_PAD}px 10px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-bottom:1px solid #1E3A57;background:#081320">
     <div style="display:flex;align-items:center;gap:12px">
-      <img src="${logoDataUrl}" style="height:30px;object-fit:contain"/>
-      <div style="border-left:2px solid #E4E7EC;padding-left:12px">
-        <div style="font-size:10.5px;font-weight:900;letter-spacing:2px;color:#0B0B0B;text-transform:uppercase">${escHtml(label.en)}</div>
-        <div dir="rtl" style="font-size:10px;color:#8A8A8A;margin-top:2px;font-family:'Montserrat Arabic','Cairo',sans-serif">${escHtml(label.ar)}</div>
+      <img src="${logoDataUrl}" style="height:32px;object-fit:contain"/>
+      <div style="border-left:2px solid #1E3A57;padding-left:12px">
+        <div style="font-size:10.5px;font-weight:900;letter-spacing:2px;color:#E6EEF7;text-transform:uppercase">${escHtml(label.en)}</div>
+        <div dir="rtl" style="font-size:10px;color:#94A3B8;margin-top:2px;font-family:'Montserrat Arabic','Cairo',sans-serif">${escHtml(label.ar)}</div>
       </div>
     </div>
-    <div style="text-align:right;font-size:9.5px;color:#8A8A8A;line-height:1.4">
-      <div style="color:#0B0B0B;font-weight:800;letter-spacing:.5px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(title)}</div>
+    <div style="text-align:right;font-size:9.5px;color:#94A3B8;line-height:1.4">
+      <div style="color:#E6EEF7;font-weight:800;letter-spacing:.5px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(title)}</div>
       <div>${escHtml(rangeText)}</div>
     </div>
   </div>
-  <div style="width:${A4_W}px;height:3px;background:linear-gradient(90deg,#D4A017 0,#D4A017 56px,#42C2EE 56px,#42C2EE 112px,transparent 112px)"></div>`;
+  <div style="width:${A4_W}px;height:3px;background:linear-gradient(90deg,#189FD1 0,#189FD1 56px,#D4A017 56px,#D4A017 112px,#E8732E 112px,#E8732E 168px,#4E9A33 168px,#4E9A33 224px,transparent 224px)"></div>`;
 }
 
 /** HTML for the shared page-chrome footer. Rendered once; the page number is
  *  drawn on top as jsPDF text so we don't need one canvas per page. */
 function footerHtml(logoDataUrl: string): string {
-  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${FOOTER_H}px;padding:10px ${SIDE_PAD}px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-top:1px solid #ECECEC;font-size:10px;color:#8A8A8A;letter-spacing:.5px">
+  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${FOOTER_H}px;padding:10px ${SIDE_PAD}px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-top:1px solid #1E3A57;font-size:10px;color:#94A3B8;letter-spacing:.5px;background:#081320">
     <div style="display:flex;align-items:center;gap:8px">
-      <img src="${logoDataUrl}" style="width:14px;height:14px;object-fit:contain;opacity:.85"/>
-      <span>mechatro @ mechatro.hub4tech.net</span>
+      <img src="${logoDataUrl}" style="width:14px;height:14px;object-fit:contain;opacity:.9"/>
+      <span>mechatro · Innovative Energy Solutions</span>
     </div>
     <div style="width:120px"></div>
   </div>`;
