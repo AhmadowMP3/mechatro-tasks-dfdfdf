@@ -310,7 +310,14 @@ function PeriodCard({ period, expanded, onToggle, onDelete }: { period: PayrollP
                 </button>
               </>
             )}
+            {(entries?.length ?? 0) > 0 && (
+              <ExportMenu
+                onExportPdf={() => exportFinanceListPdf(buildExport())}
+                onExportXlsx={() => exportFinanceListXlsx(buildExport())}
+              />
+            )}
           </div>
+
 
           {(entries ?? []).length === 0 ? (
             <div style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
