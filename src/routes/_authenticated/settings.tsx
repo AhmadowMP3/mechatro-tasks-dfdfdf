@@ -218,6 +218,22 @@ function BackupsSection() {
         )}
       </div>
 
+      {isMasterAdmin && (
+        <div style={{
+          marginBottom: 12, padding: "10px 12px", borderRadius: 10,
+          border: "1px solid var(--border)", background: "var(--surface-2)",
+          display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", fontSize: 12, color: "var(--muted)",
+        }}>
+          <span>🗓 {t("nextScheduledBackup")}: {(() => {
+            const latest = data?.[0]?.created_at ? new Date(data[0].created_at) : null;
+            const next = latest ? new Date(latest.getTime() + 10 * 24 * 60 * 60 * 1000) : null;
+            return next ? formatDate(next.toISOString(), lang) : "—";
+          })()}</span>
+          <span>· 📦 {t("retentionPolicy")}</span>
+          <span>· 📎 {t("includesAllFiles")}</span>
+        </div>
+      )}
+
       {!isMasterAdmin && (
         <div style={{ padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-2)", fontSize: 13, color: "var(--muted)" }}>
           {hasMyPending ? t("backupRequestPending") : t("backupsMasterOnlyNote")}
