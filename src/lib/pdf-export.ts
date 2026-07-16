@@ -85,7 +85,9 @@ export async function htmlToPdf(
     pageCanvas.height = pageContentPx;
     const ctx = pageCanvas.getContext("2d");
     if (!ctx) return;
-    ctx.fillStyle = "#ffffff";
+    // Fill with the same dark navy the app renders on — prevents any
+    // 1-2px gaps between slices from flashing white.
+    ctx.fillStyle = "#081320";
     ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
     ctx.drawImage(
       canvas,
@@ -93,6 +95,10 @@ export async function htmlToPdf(
       0, 0, canvas.width, sliceHeight,
     );
     const data = pageCanvas.toDataURL("image/jpeg", 0.95);
+    // Paint a matching dark rectangle across the full page then place the
+    // slice inside the content zone. jsPDF's default page is white otherwise.
+    pdf.setFillColor(8, 19, 32);
+    pdf.rect(0, 0, pdfWidth, pdfHeight, "F");
     addImageSafe(data, 0, contentTop, pdfWidth, contentH);
   };
 
@@ -105,13 +111,15 @@ export async function htmlToPdf(
     pages.push({ yOffset: 0, sliceHeightPx: canvas.height });
   } else {
     const srcCtx = canvas.getContext("2d");
+    // On a dark page, scan for near-navy rows (safe to break in the gap
+    // between two dark cards) rather than near-white rows.
     const findSafeBreak = (from: number, maxBack: number): number => {
       if (!srcCtx) return from;
       const backLimit = Math.max(0, from - maxBack);
       try {
         const strip = srcCtx.getImageData(0, backLimit, canvas.width, from - backLimit).data;
         for (let y = from - backLimit - 1; y >= 0; y--) {
-          let light = 0;
+          let dark = 0;
           const rowStart = y * canvas.width * 4;
           const step = 4 * 4;
           let sampled = 0;
@@ -119,14 +127,16 @@ export async function htmlToPdf(
             const r = strip[rowStart + x];
             const g = strip[rowStart + x + 1];
             const b = strip[rowStart + x + 2];
-            if (r > 240 && g > 240 && b > 240) light++;
+            // Match the brand-navy band (roughly rgb(8,19,32) ± 12).
+            if (r < 24 && g < 34 && b < 48) dark++;
             sampled++;
           }
-          if (sampled > 0 && light / sampled >= 0.98) return backLimit + y + 1;
+          if (sampled > 0 && dark / sampled >= 0.98) return backLimit + y + 1;
         }
       } catch { /* tainted canvas */ }
       return from;
     };
+
 
     const hintsCanvasPx = (options.breakHintsPx ?? []).map((h) => h * 2).sort((a, b) => a - b);
 
