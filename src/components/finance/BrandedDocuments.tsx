@@ -179,7 +179,7 @@ export function InvoiceDocument({
       <div className="pdf-flow">
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
-            <tr style={{ background: navy, color: "#fff" }}>
+            <tr style={{ background: surface2, color: ink }}>
               <th style={{ padding: "10px 12px", textAlign: lang === "ar" ? "right" : "left", fontWeight: 700, fontSize: 11, letterSpacing: 0.4, borderBottom: `2px solid ${gold}` }}>
                 {lang === "ar" ? "الوصف" : "Description"}
               </th>
@@ -191,7 +191,7 @@ export function InvoiceDocument({
           </thead>
           <tbody>
             {items.map((it, i) => (
-              <tr key={it.id} style={{ background: i % 2 === 1 ? zebra : "#fff", borderBottom: `1px solid ${border}` }}>
+              <tr key={it.id} style={{ background: i % 2 === 1 ? zebra : navy, borderBottom: `1px solid ${border}` }}>
                 <td style={{ padding: "10px 12px" }}>
                   {(lang === "ar" ? it.description_ar || it.description_en : it.description_en || it.description_ar) ?? "—"}
                 </td>
@@ -219,7 +219,7 @@ export function InvoiceDocument({
             <TotalRow label={`${lang === "ar" ? "ضريبة" : "Tax"} (${Number(invoice.tax_rate)}%)`} value={formatMoney(invoice.tax_amount, invoice.currency, lang)} />
           )}
           <div style={{ height: 8 }} />
-          <div style={{ background: navy, color: "#fff", padding: "14px 18px", borderRadius: 10, borderTop: `3px solid ${gold}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ background: surface2, color: ink, padding: "14px 18px", borderRadius: 10, borderTop: `3px solid ${gold}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 11, opacity: 0.9, letterSpacing: 1.4, textTransform: "uppercase" }}>{lang === "ar" ? "الإجمالي" : "TOTAL"}</span>
             <span style={{ fontSize: 20, fontWeight: 900 }}>{formatMoney(invoice.total, invoice.currency, lang)}</span>
           </div>
@@ -322,7 +322,7 @@ export function PaymentReceiptDocument({
       </div>
 
       <div style={{
-        background: `linear-gradient(135deg, ${navy} 0%, ${blue} 100%)`,
+        background: `linear-gradient(135deg, ${surface2} 0%,  100%)`, border: `1px solid ${border}`,
         color: "#fff",
         borderRadius: 14,
         padding: "30px 28px",
@@ -450,7 +450,7 @@ export function PayrollSlipDocument({
       <div className="pdf-flow">
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
-            <tr style={{ background: navy, color: "#fff" }}>
+            <tr style={{ background: surface2, color: ink }}>
               <th style={{ padding: "12px 14px", textAlign: lang === "ar" ? "right" : "left", fontSize: 11, letterSpacing: 0.4, borderBottom: `2px solid ${gold}` }}>
                 {lang === "ar" ? "البند" : "Item"}
               </th>
@@ -478,7 +478,7 @@ export function PayrollSlipDocument({
       </div>
 
       <div style={{ marginTop: 22 }}>
-        <div style={{ background: navy, color: "#fff", padding: "18px 24px", borderRadius: 12, borderTop: `4px solid ${gold}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ background: surface2, color: ink, padding: "18px 24px", borderRadius: 12, borderTop: `4px solid ${gold}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, opacity: 0.9, textTransform: "uppercase", letterSpacing: 2 }}>
             {lang === "ar" ? "صافي الراتب" : "Net Pay"}
           </span>
