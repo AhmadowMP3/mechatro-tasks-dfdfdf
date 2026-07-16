@@ -8,23 +8,23 @@ import logo from "@/assets/mechatro-logo.png";
  * AR/EN (bilingual) or a single-column card (single language).
  */
 
-// ---------- Locked palette ----------
+// ---------- Locked DARK palette (kept in sync with src/lib/report/pdf-chrome.ts) ----------
 const P = {
-  page: "#F5F6F8",
-  card: "#FFFFFF",
-  ink: "#0B1220",
-  ink2: "#334155",
-  muted: "#64748B",
-  line: "#E4E7EC",
-  soft: "#F1F5F9",
+  page: "#081320",
+  card: "#0F2031",
+  ink: "#E6EEF7",
+  ink2: "#CBD5E1",
+  muted: "#94A3B8",
+  line: "#1E3A57",
+  soft: "#13283D",
   cyan: "#42C2EE",
-  cyanDark: "#0EA5E9",
+  cyanDark: "#189FD1",
   gold: "#D4A017",
-  green: "#16A34A",
-  orange: "#F59E0B",
-  red: "#DC2626",
-  purple: "#8B5CF6",
-  shadow: "0 1px 2px rgba(15,23,42,.04), 0 4px 12px rgba(15,23,42,.06)",
+  green: "#73C94E",
+  orange: "#FF9255",
+  red: "#EF4444",
+  purple: "#A78BFA",
+  shadow: "0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03)",
 };
 const STATUS_COLOR: Record<string, string> = { todo: P.muted, in_progress: P.cyan, paused: P.orange, in_review: P.purple, done: P.green };
 const PRIO_COLOR: Record<string, string> = { low: P.muted, normal: P.cyan, high: P.orange, urgent: P.red };
