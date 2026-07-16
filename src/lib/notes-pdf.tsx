@@ -36,7 +36,7 @@ export async function exportNoteToPdf(p: Params): Promise<void> {
       fontFamily: isAr
         ? "'Montserrat Arabic', 'Almarai', 'Segoe UI', sans-serif"
         : "'Montserrat', 'Montserrat Arabic', system-ui, sans-serif",
-      width: 794, background: "#ffffff", color: ink,
+      width: 794, background: navy, color: ink,
       padding: "60px 44px 44px", // top clears native header, bottom clears native footer
       boxSizing: "border-box",
     }}>
