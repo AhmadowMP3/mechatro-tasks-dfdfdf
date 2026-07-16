@@ -56,21 +56,19 @@ function hexToRgb(hex: string): [number, number, number] {
 async function drawHeader(pdf: jsPDF, hasArabicFont: boolean) {
   const logo = await loadBrandLogo();
   const pageW = pdf.internal.pageSize.getWidth();
-  // Gold hairline under header band.
-  const [gr, gg, gb] = hexToRgb(BRAND.gold);
-  pdf.setDrawColor(gr, gg, gb);
-  pdf.setLineWidth(0.4);
+  // Blue hairline under header band.
+  const [br, bg, bb] = hexToRgb(BRAND.blue);
+  pdf.setDrawColor(br, bg, bb);
+  pdf.setLineWidth(0.5);
   pdf.line(12, PAGE.marginTop - 4, pageW - 12, PAGE.marginTop - 4);
 
   if (logo?.dataUrl) {
-    const targetH = 12; // mm
+    const targetH = 14; // mm
     const ratio = logo.widthPx / Math.max(1, logo.heightPx);
-    const targetW = Math.min(60, targetH * ratio);
-    // Left-aligned on both LTR and RTL — the mark is a bilingual wordmark.
-    pdf.addImage(logo.dataUrl, "PNG", 12, 6, targetW, targetH, undefined, "FAST");
+    const targetW = Math.min(64, targetH * ratio);
+    pdf.addImage(logo.dataUrl, "PNG", 12, 5, targetW, targetH, undefined, "FAST");
   } else {
-    // Fallback: text wordmark
-    pdf.setTextColor(...hexToRgb(BRAND.navy));
+    pdf.setTextColor(...hexToRgb(BRAND.ink));
     setFont(pdf, "Mechatro", hasArabicFont, "bold");
     pdf.setFontSize(16);
     pdf.text("Mechatro", 12, 14);
@@ -89,18 +87,16 @@ function drawFooter(
   const y = pageH - PAGE.marginBottom + 5;
   const isAr = opts.lang === "ar";
 
-  // Gold hairline above footer.
-  const [gr, gg, gb] = hexToRgb(BRAND.gold);
-  pdf.setDrawColor(gr, gg, gb);
-  pdf.setLineWidth(0.4);
+  // Cyan hairline above footer.
+  const [br, bg, bb] = hexToRgb(BRAND.blue);
+  pdf.setDrawColor(br, bg, bb);
+  pdf.setLineWidth(0.5);
   pdf.line(12, pageH - PAGE.marginBottom + 1, pageW - 12, pageH - PAGE.marginBottom + 1);
 
   const [mr, mg, mb] = hexToRgb(BRAND.muted);
   pdf.setTextColor(mr, mg, mb);
   pdf.setFontSize(8.5);
 
-  // Left: Page X / Y (LTR) or Generated (RTL, mirror)
-  // Right: Generated (LTR) or Page X / Y (RTL)
   const pageStr = isAr
     ? shapeDigits(`الصفحة ${pageNum} / ${totalPages}`, "ar")
     : `Page ${pageNum} / ${totalPages}`;
@@ -111,23 +107,19 @@ function drawFooter(
     ? `${genLabel}: ${formatGeneratedAt(opts.lang)} · ${byLabel} ${who}`
     : `${genLabel}: ${formatGeneratedAt(opts.lang)}`;
 
-  // Center brand wordmark
-  const center = isAr ? `${BRAND.name} · ${BRAND.nameAr}` : `${BRAND.name} · ${BRAND.nameAr}`;
+  const center = `${BRAND.name} · ${BRAND.nameAr}`;
   setFont(pdf, center, hasArabicFont);
   const centerW = pdf.getTextWidth(center);
   pdf.text(center, (pageW - centerW) / 2, y + 3);
 
-  // Page counter — outer side
   setFont(pdf, pageStr, hasArabicFont);
   if (isAr) {
-    // Arabic reads right-to-left; put page counter on the right.
     const w = pdf.getTextWidth(pageStr);
     pdf.text(pageStr, pageW - 12 - w, y + 3);
   } else {
     pdf.text(pageStr, 12, y + 3);
   }
 
-  // Generated meta — inner side (opposite of page counter)
   setFont(pdf, genStr, hasArabicFont);
   if (isAr) {
     pdf.text(genStr, 12, y + 3);
@@ -137,13 +129,30 @@ function drawFooter(
   }
 }
 
+/** Fill the current page with the brand-dark background so any negative space
+ *  around the rasterised content blends into a single navy canvas. */
+function fillPageBackground(pdf: jsPDF) {
+  const [r, g, b] = hexToRgb(BRAND.navy);
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  pdf.setFillColor(r, g, b);
+  pdf.rect(0, 0, pageW, pageH, "F");
+}
+
 /** After all pages are added, stamp the header + footer on every one. */
 export async function stampChrome(pdf: jsPDF, opts: ChromeOptions): Promise<void> {
   const hasArabicFont = await ensureFonts(pdf);
   const total = pdf.getNumberOfPages();
   for (let i = 1; i <= total; i++) {
     pdf.setPage(i);
+    // Header/footer draw on top of the rasterised content, so we don't repaint
+    // the page background here (that would erase the content). Callers that
+    // need a dark page fill should call it before adding images.
     await drawHeader(pdf, hasArabicFont);
     drawFooter(pdf, i, total, opts, hasArabicFont);
   }
 }
+
+/** Exported so pdf-export.ts can paint the dark backdrop per page before
+ *  stamping the rasterised content, keeping the whole document on-brand. */
+export { fillPageBackground };
