@@ -268,6 +268,15 @@ function BackupsSection() {
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>
                       {t("backupRequestedAt")}: {formatDate(r.requested_at, lang)}
                     </div>
+                    {(() => {
+                      const runsAt = new Date(r.requested_at).getTime() + 24 * 60 * 60 * 1000;
+                      const hoursLeft = Math.max(0, Math.round((runsAt - Date.now()) / (60 * 60 * 1000)));
+                      return (
+                        <div style={{ fontSize: 11, color: "#E7B03A", marginTop: 4 }}>
+                          ⏳ {hoursLeft > 0 ? `${t("autoApprovesIn")} ~${hoursLeft} ${t("hours")}` : t("autoApprovesSoon")}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <button
                     onClick={() => approveRequest(r)}
