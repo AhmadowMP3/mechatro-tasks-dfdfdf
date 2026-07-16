@@ -1,67 +1,93 @@
-# Unified PDF Polish — All Reports
+## Goal
 
-Bring the Team report and Comparison report up to the same Dashboard Card standard as the Member report, wire in the new colorful Mechatro logo everywhere, and use one shared header/footer/cover system.
+One PDF template across the whole app — dark like the website (deep navy background), the colorful Mechatro logo in the header, brand blue/orange/green as accents. Same chrome (header, footer, cover) everywhere; only the content per report changes. No overlapping, no cut text, no broken images.
 
-## What changes
+## Locked design tokens
 
-### 1. Shared design layer (new `src/lib/report/pdf-chrome.ts`)
-One place that owns:
-- **Logo** — the new colorful Mechatro logo (blue M / orange ATRO / green tagline / lightbulb), uploaded as a Lovable asset, embedded as base64 into every PDF so it renders offline.
-- **Header** — every page (except cover): colorful logo left (28px tall), report type + generated date right, thin gold underline.
-- **Footer** — every page: "Mechatro · Innovative Energy Solutions" left, page X of Y right, cyan hairline.
-- **Cover template** — big colorful logo centered, report title, subtitle, date, decorative cyan/gold accent bars.
-- **Card primitive** — white rounded card, soft shadow, section title (EN left / AR right), body slot.
-- **Palette** — one exported const: bg `#F5F6F8`, card `#FFFFFF`, ink `#0F172A`, cyan `#42C2EE`, gold `#D4A017`, mint `#10B981`, coral `#EF4444`.
+Pulled directly from `src/styles.css` so PDFs match the site.
 
-### 2. Delete legacy pieces
-- `src/lib/report/themes.ts` — no more themes, one style only.
-- Any `theme` param threaded through `generator.ts`, `report-html.ts`, `team-report.ts`, `comparison-html.ts`, and the two route call sites.
+- Page background: `#081320` (site `--background`)
+- Card surface: `#0F2031` (`--card`) with hairline `#1E3A57`
+- Elevated surface: `#13283D` (`--surface-3`)
+- Text primary: `#E6EEF7`, secondary: `#9FB3C8`, muted: `#6B7F94`
+- Accents (from the logo + brand):
+  - Blue `#189FD1` / light `#42C2EE`
+  - Orange `#E8732E` / light `#FF9255`
+  - Green `#4E9A33` / light `#73C94E`
+- Gold thin rule kept `#D4A017` only as a 2px section divider
 
-### 3. Member report (`report-html.ts`)
-Already dashboard-card style — retrofit to use the shared chrome/palette so it stays in sync. Swap its inline SVG header for `pdfChrome.header()`.
+Typography stays Montserrat + Montserrat Arabic (already wired). No new fonts.
 
-### 4. Team report (`team-report.ts`)
-Rewrite to the new style:
-- **Cover:** colorful logo, "Team Report — Mechatro", date range, and 4 KPI tiles (Total tasks · Done % · On-time % · Total hours) computed across all members.
-- **Body:** one bilingual dashboard card per member with mini KPIs (tasks, done %, hours, points) + a compact activity strip (last 10 items per member to keep team PDF tight).
-- Same header/footer on every page.
+## Shared chrome (one file, one style)
 
-### 5. Comparison report (`comparison-html.ts`)
-Rewrite to side-by-side A vs B:
-- **Cover:** colorful logo, "Comparison Report", A vs B names, date range.
-- **Body:** two-column layout, Member A left / Member B right. Matching rows: KPI tiles, task-status donut, hours bar, top tags, activity summary. Rows aligned so differences read at a glance.
-- Bilingual labels ("Hours / ساعات") inline; long descriptive text stays English to keep columns narrow.
+Rewrite `src/lib/report/pdf-chrome.ts` into a fully-dark palette + primitives, and route every PDF through it.
 
-### 6. Generator (`generator.ts`)
-- Remove theme branching.
-- Use `pdfChrome.header()` / `pdfChrome.footer()` as the single header/footer renderer for all 3 report types.
-- Keep the existing html→canvas→jsPDF block-packer; just feed it blocks from the new builders.
+- `page()` — dark navy A4 page wrapper with 24mm top / 16mm bottom safe zones.
+- `header()` — colorful logo (left) + report title (center, EN/AR small stack) + date (right) + 1px blue hairline. Drawn natively on every page except cover via `stampChrome`.
+- `footer()` — "Mechatro · Innovative Energy Solutions" left, "Page X / Y" right, cyan hairline above.
+- `cover()` — big centered logo, title, subtitle, date, blue+orange+green triple accent bar. One template, different text per report.
+- `card()` — dark surface `#0F2031`, 1px `#1E3A57` border, 16px radius, subtle inner glow (`inset 0 1px 0 rgba(255,255,255,.03)`), no drop shadow (renders badly on dark).
+- `kpiTile()`, `miniKpi()` — dark card variant, accent top-border, big number in `#E6EEF7`.
+- `bilingualBody()` — EN left / hairline `#1E3A57` / AR right, both on dark.
 
-### 7. Dialogs
-- `GenerateReportDialog.tsx` — already theme-less, leave as is.
-- Any comparison / team dialogs: remove leftover theme props.
+All existing helpers (`cardHeader`, `block`, `esc`, formatters) keep the same signatures so call sites don't need to change shape — only colors.
 
-## Logo handling
+## Native chrome (jsPDF layer)
 
-Upload the user-provided logo (`user-uploads://magnific_IaMyjyRtvE-3.png`) via `lovable-assets`, then in `pdf-chrome.ts` fetch it once at generation time and inline as a data URL so PDFs stay self-contained.
+`src/lib/pdf/chrome.ts` currently paints a light header/footer over each page after rasterization. Update it to:
 
-## QA (mandatory before finishing)
+- Fill each page with `#081320` before stamping (so the rasterized card canvas blends into the dark page).
+- Draw the colorful logo (from `src/assets/mechatro-logo.png.asset.json`) at ~14mm height in the header.
+- Draw title + date in `#E6EEF7`, hairlines in `#189FD1`.
+- Skip header on page 1 if the flow supplies its own cover.
 
-For each of the 3 report types:
-1. Generate the PDF via Playwright.
-2. `pdftoppm -jpeg -r 150` every page.
-3. Inspect each page for: logo present + not stretched, no overlapping text, no truncated Arabic, footer never crosses content, page numbers correct, chart labels legible.
-4. Iterate on the HTML until all pages pass. Report what was checked and fixed.
+`src/lib/pdf-export.ts` — change the default page fill from white to `#081320` and drop the "safe break by scanning for near-white rows" heuristic (which won't work on dark), replacing it with the existing `breakHintsPx` block-boundary path only. Prevents mid-paragraph and mid-image cuts.
 
-## Out of scope
+`src/lib/pdf-render.ts` — offscreen host background switches from `#ffffff` to `#081320`.
 
-- In-app UI for Team / Reports pages.
-- Any data model or query changes.
-- New fonts (keep current Cairo + Inter stack).
+## Per-generator updates
+
+Each generator keeps its content logic; only the wrapper + palette change.
+
+1. **Reports** (`report-html.ts`, `team-report.ts`, `comparison-html.ts`)
+   - Drop any leftover light-mode colors (all `#FFFFFF`, `#F5F6F8`, `#0B1220` refs) and reference the dark tokens from `pdf-chrome.ts`.
+   - Team cover: dark KPI tiles + per-member dark cards (already the layout, just re-skinned).
+   - Comparison: side-by-side A vs B, dark cards, A tinted blue-left-border, B tinted orange-left-border for instant read.
+
+2. **Notes** (`src/lib/notes-pdf.tsx`)
+   - Repaint the note document on dark: title in `#E6EEF7`, muted meta in `#9FB3C8`, blue underline accent, gold 40px rule kept.
+   - Note body CSS (`.note-pdf-content`): headings `#E6EEF7`, paragraphs `#CBD5E1`, blockquote left-border blue, `code` chip `#13283D` with light text, `pre` block stays dark (it already is).
+   - Images stay on the dark card via a `#0F2031` frame with 8px radius so screenshots don't look like they're floating.
+
+3. **Finance** (`src/components/finance/BrandedDocuments.tsx`, `src/lib/pdf/print-document.ts`, `finance.invoices.$id.tsx`, `finance.payroll.tsx`)
+   - Re-skin invoice + payslip templates to the same dark cards.
+   - Tables: header row `#13283D`, zebra rows `#0F2031` / `#0B1A2A`, borders `#1E3A57`, totals row accent-orange rule.
+   - Amounts and totals in `#E6EEF7`; currency and labels in `#9FB3C8`. Signature/stamp block on a dark card.
+   - Keep the same field layout (client, items, VAT, totals) — only the skin changes.
+
+## Cleanup
+
+- Remove any remaining light-mode constants (`P.page = "#F5F6F8"`, white card refs) — one palette, one file.
+- Drop unused theme leftovers if any survived (`themes.ts` is already gone).
+- i18n keys unchanged.
+
+## QA (mandatory, in the same turn)
+
+For each of the 5 generator entry points (member, team, comparison, note, invoice, payslip):
+
+1. Trigger the generator through Playwright against the running preview using seeded data.
+2. Save the PDF, run `pdftoppm -jpeg -r 150` and open every page image with `code--view`.
+3. Verify: no cut text at page edges, no image chopped across a page, header logo present on all body pages, footer page numbers correct, dark background continuous (no white bands), Arabic RTL columns not clipped.
+4. Fix any issue and re-render before finishing.
 
 ## Files touched
 
-- New: `src/lib/report/pdf-chrome.ts`, `src/assets/mechatro-logo.png.asset.json`
-- Rewritten: `src/lib/report/team-report.ts`, `src/lib/report/comparison-html.ts`, `src/lib/report/report-html.ts` (chrome retrofit), `src/lib/report/generator.ts`
-- Deleted: `src/lib/report/themes.ts`
-- Minor: 2 route files to drop theme props
+- Rewrite: `src/lib/report/pdf-chrome.ts`, `src/lib/pdf/chrome.ts`, `src/lib/pdf-export.ts`, `src/lib/pdf-render.ts`, `src/lib/notes-pdf.tsx`, `src/components/finance/BrandedDocuments.tsx`, `src/lib/pdf/print-document.ts`.
+- Palette-only edits: `src/lib/report/report-html.ts`, `src/lib/report/team-report.ts`, `src/lib/report/comparison-html.ts`.
+- No changes to data, routes, auth, or backend.
+
+## Out of scope
+
+- In-app UI (site already dark).
+- New fonts / new report content.
+- Print-friendly light fallback (user explicitly wants full dark).

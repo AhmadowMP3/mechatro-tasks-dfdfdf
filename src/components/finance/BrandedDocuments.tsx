@@ -11,17 +11,20 @@ type Lang = "ar" | "en";
 
 // Brand tokens are duplicated here in RGB form so the rasterized document
 // matches the native chrome. Any change in src/lib/pdf/brand.ts should be
-// mirrored here.
-const navy = "#0A2540";
-const blue = "#189FD1";
-const gold = "#C8A24B";
-const ink = "#0F2031";
-const muted = "#5A6B7D";
-const border = "#D7DEE5";
-const zebra = "#F5F9FD";
-const green = "#3F782A";
-const red = "#C0392B";
-const grad = `linear-gradient(135deg, ${navy} 0%, ${blue} 100%)`;
+// mirrored here. DARK theme — matches src/styles.css.
+const page = "#081320";
+const navy = "#0F2031";       // card surface (was solid navy header row → now the elevated card)
+const surface2 = "#13283D";   // header/totals band
+const blue = "#42C2EE";
+const gold = "#D4A017";
+const ink = "#E6EEF7";
+const ink2 = "#CBD5E1";
+const muted = "#94A3B8";
+const border = "#1E3A57";
+const zebra = "#0B1A2A";
+const green = "#73C94E";
+const red = "#EF4444";
+const grad = `linear-gradient(135deg, ${page} 0%, ${surface2} 100%)`;
 
 // A4 width at 96dpi. The A4 content zone (after native chrome margins) is
 // 24mm top + 16mm bottom = 40mm reserved; leave equivalent breathing room at
@@ -34,7 +37,7 @@ const CONTENT_BOTTOM_PADDING = 44; // px — clears native footer band
 function pageWrap(lang: Lang): React.CSSProperties {
   return {
     width: A4_WIDTH_PX,
-    background: "#ffffff",
+    background: page,
     color: ink,
     fontFamily: lang === "ar"
       ? "'Montserrat Arabic', 'Almarai', 'Segoe UI', sans-serif"
@@ -56,7 +59,7 @@ function DocTitle({ title, subtitle, tone = "blue" }: { title: string; subtitle?
           <div style={{ fontSize: 11, fontWeight: 700, color: muted, letterSpacing: 3, textTransform: "uppercase" }}>
             {subtitle ?? ""}
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: navy, letterSpacing: 0.4 }}>{title}</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: ink, letterSpacing: 0.4 }}>{title}</div>
         </div>
         <div style={{ width: 60, height: 6, background: accent, borderRadius: 3, marginBottom: 8 }} />
       </div>
@@ -81,14 +84,14 @@ function CompanyBlock({ settings, lang }: { settings: CompanySettings | null; la
 
 function StatusPill({ text, tone }: { text: string; tone: "green" | "red" | "blue" | "gray" }) {
   const map = {
-    green: { bg: "#DFF3D5", fg: "#2F5E1E" },
-    red: { bg: "#FBE0DE", fg: "#7E2822" },
-    blue: { bg: "#DDF0FA", fg: navy },
-    gray: { bg: "#EEF1F4", fg: "#334155" },
+    green: { bg: "rgba(115,201,78,.14)", fg: green, br: `${green}66` },
+    red:   { bg: "rgba(239,68,68,.14)",   fg: red,   br: `${red}66` },
+    blue:  { bg: "rgba(66,194,238,.14)",  fg: blue,  br: `${blue}66` },
+    gray:  { bg: "rgba(148,163,184,.14)", fg: muted, br: `${muted}66` },
   };
   const c = map[tone];
   return (
-    <span style={{ display: "inline-block", padding: "5px 14px", background: c.bg, color: c.fg, borderRadius: 999, fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase" }}>
+    <span style={{ display: "inline-block", padding: "5px 14px", background: c.bg, color: c.fg, border: `1px solid ${c.br}`, borderRadius: 999, fontSize: 10.5, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase" }}>
       {text}
     </span>
   );
@@ -176,7 +179,7 @@ export function InvoiceDocument({
       <div className="pdf-flow">
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
-            <tr style={{ background: navy, color: "#fff" }}>
+            <tr style={{ background: surface2, color: ink }}>
               <th style={{ padding: "10px 12px", textAlign: lang === "ar" ? "right" : "left", fontWeight: 700, fontSize: 11, letterSpacing: 0.4, borderBottom: `2px solid ${gold}` }}>
                 {lang === "ar" ? "الوصف" : "Description"}
               </th>
@@ -188,7 +191,7 @@ export function InvoiceDocument({
           </thead>
           <tbody>
             {items.map((it, i) => (
-              <tr key={it.id} style={{ background: i % 2 === 1 ? zebra : "#fff", borderBottom: `1px solid ${border}` }}>
+              <tr key={it.id} style={{ background: i % 2 === 1 ? zebra : navy, borderBottom: `1px solid ${border}` }}>
                 <td style={{ padding: "10px 12px" }}>
                   {(lang === "ar" ? it.description_ar || it.description_en : it.description_en || it.description_ar) ?? "—"}
                 </td>
@@ -216,7 +219,7 @@ export function InvoiceDocument({
             <TotalRow label={`${lang === "ar" ? "ضريبة" : "Tax"} (${Number(invoice.tax_rate)}%)`} value={formatMoney(invoice.tax_amount, invoice.currency, lang)} />
           )}
           <div style={{ height: 8 }} />
-          <div style={{ background: navy, color: "#fff", padding: "14px 18px", borderRadius: 10, borderTop: `3px solid ${gold}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ background: surface2, color: ink, padding: "14px 18px", borderRadius: 10, borderTop: `3px solid ${gold}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 11, opacity: 0.9, letterSpacing: 1.4, textTransform: "uppercase" }}>{lang === "ar" ? "الإجمالي" : "TOTAL"}</span>
             <span style={{ fontSize: 20, fontWeight: 900 }}>{formatMoney(invoice.total, invoice.currency, lang)}</span>
           </div>
@@ -319,7 +322,7 @@ export function PaymentReceiptDocument({
       </div>
 
       <div style={{
-        background: `linear-gradient(135deg, ${navy} 0%, ${blue} 100%)`,
+        background: `linear-gradient(135deg, ${surface2} 0%,  100%)`, border: `1px solid ${border}`,
         color: "#fff",
         borderRadius: 14,
         padding: "30px 28px",
@@ -447,7 +450,7 @@ export function PayrollSlipDocument({
       <div className="pdf-flow">
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
-            <tr style={{ background: navy, color: "#fff" }}>
+            <tr style={{ background: surface2, color: ink }}>
               <th style={{ padding: "12px 14px", textAlign: lang === "ar" ? "right" : "left", fontSize: 11, letterSpacing: 0.4, borderBottom: `2px solid ${gold}` }}>
                 {lang === "ar" ? "البند" : "Item"}
               </th>
@@ -475,7 +478,7 @@ export function PayrollSlipDocument({
       </div>
 
       <div style={{ marginTop: 22 }}>
-        <div style={{ background: navy, color: "#fff", padding: "18px 24px", borderRadius: 12, borderTop: `4px solid ${gold}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ background: surface2, color: ink, padding: "18px 24px", borderRadius: 12, borderTop: `4px solid ${gold}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, opacity: 0.9, textTransform: "uppercase", letterSpacing: 2 }}>
             {lang === "ar" ? "صافي الراتب" : "Net Pay"}
           </span>

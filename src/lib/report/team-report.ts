@@ -184,7 +184,7 @@ function coverPage(data: TeamReportData): string {
       <div dir="rtl" style="font-size:22px;color:${P.muted};margin-top:10px;font-family:'Montserrat Arabic','Cairo',sans-serif">تقرير أداء الفريق</div>
       <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
         <span style="background:${P.gold};color:#111;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px">PERIOD · ${esc(rangeText).toUpperCase()}</span>
-        <span style="border:1.5px solid ${P.line};color:${P.ink2};background:#fff;padding:5px 14px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px">${data.totals.active_members} MEMBERS</span>
+        <span style="border:1.5px solid ${P.line};color:${P.ink2};background:rgba(255,255,255,.04);padding:5px 14px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px">${data.totals.active_members} MEMBERS</span>
       </div>
     </div>
 

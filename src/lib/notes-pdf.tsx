@@ -14,11 +14,14 @@ type Params = {
   lang: "ar" | "en";
 };
 
-const navy = "#0A2540";
-const blue = "#189FD1";
-const gold = "#C8A24B";
-const ink = "#0F2031";
-const muted = "#5A6B7D";
+const navy = "#081320";
+const surface = "#0F2031";
+const line = "#1E3A57";
+const blue = "#42C2EE";
+const gold = "#D4A017";
+const ink = "#E6EEF7";
+const ink2 = "#CBD5E1";
+const muted = "#94A3B8";
 
 export async function exportNoteToPdf(p: Params): Promise<void> {
   const { note, authorName, folderName, tags, lang } = p;
@@ -33,7 +36,7 @@ export async function exportNoteToPdf(p: Params): Promise<void> {
       fontFamily: isAr
         ? "'Montserrat Arabic', 'Almarai', 'Segoe UI', sans-serif"
         : "'Montserrat', 'Montserrat Arabic', system-ui, sans-serif",
-      width: 794, background: "#ffffff", color: ink,
+      width: 794, background: navy, color: ink,
       padding: "60px 44px 44px", // top clears native header, bottom clears native footer
       boxSizing: "border-box",
     }}>
@@ -44,7 +47,7 @@ export async function exportNoteToPdf(p: Params): Promise<void> {
             <div style={{ fontSize: 11, fontWeight: 700, color: muted, letterSpacing: 3, textTransform: "uppercase" }}>
               {isAr ? "ملاحظة" : "NOTE"}
             </div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, margin: "2px 0 0", color: navy, letterSpacing: 0.3 }}>
+            <h1 style={{ fontSize: 26, fontWeight: 800, margin: "2px 0 0", color: ink, letterSpacing: 0.3 }}>
               {note.title || (isAr ? "بدون عنوان" : "Untitled")}
             </h1>
           </div>
@@ -80,20 +83,21 @@ export async function exportNoteToPdf(p: Params): Promise<void> {
       />
 
       <style>{`
-        .note-pdf-content h1, .note-pdf-content h2, .note-pdf-content h3 { page-break-after: avoid; break-after: avoid; color: ${navy}; }
+        .note-pdf-content h1, .note-pdf-content h2, .note-pdf-content h3 { page-break-after: avoid; break-after: avoid; color: ${ink}; }
         .note-pdf-content h1 { font-size: 22px; font-weight: 800; margin: 14px 0 8px; }
         .note-pdf-content h2 { font-size: 18px; font-weight: 800; margin: 12px 0 6px; }
         .note-pdf-content h3 { font-size: 16px; font-weight: 700; margin: 10px 0 4px; }
-        .note-pdf-content p { margin: 6px 0; }
-        .note-pdf-content ul, .note-pdf-content ol { padding-inline-start: 24px; margin: 6px 0; }
+        .note-pdf-content p { margin: 6px 0; color: ${ink2}; }
+        .note-pdf-content ul, .note-pdf-content ol { padding-inline-start: 24px; margin: 6px 0; color: ${ink2}; }
         .note-pdf-content ul[data-type="taskList"] { list-style: none; padding-inline-start: 0; }
         .note-pdf-content ul[data-type="taskList"] li { display: flex; gap: 8px; align-items: flex-start; }
         .note-pdf-content ul[data-type="taskList"] li input[type="checkbox"] { margin-top: 5px; }
         .note-pdf-content blockquote { border-inline-start: 3px solid ${blue}; padding-inline-start: 12px; color: ${muted}; margin: 8px 0; }
         .note-pdf-content a { color: ${blue}; text-decoration: underline; }
-        .note-pdf-content img { display: block; max-width: 70%; max-height: 380px; height: auto; object-fit: contain; border-radius: 6px; margin: 12px auto; page-break-inside: avoid; break-inside: avoid; }
-        .note-pdf-content code { background: #F1F5F9; padding: 2px 6px; border-radius: 4px; font-size: 12.5px; }
-        .note-pdf-content pre { background: ${navy}; color: #F8FAFC; padding: 12px; border-radius: 8px; page-break-inside: avoid; break-inside: avoid; }
+        .note-pdf-content img { display: block; max-width: 70%; max-height: 380px; height: auto; object-fit: contain; border-radius: 6px; margin: 12px auto; padding: 6px; background: ${surface}; border: 1px solid ${line}; page-break-inside: avoid; break-inside: avoid; }
+        .note-pdf-content code { background: ${surface}; color: ${ink}; padding: 2px 6px; border-radius: 4px; font-size: 12.5px; border: 1px solid ${line}; }
+        .note-pdf-content pre { background: ${surface}; color: ${ink}; padding: 12px; border-radius: 8px; border: 1px solid ${line}; page-break-inside: avoid; break-inside: avoid; }
+        .note-pdf-content hr { border: 0; border-top: 1px solid ${line}; margin: 12px 0; }
       `}</style>
     </div>
   );

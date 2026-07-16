@@ -33,12 +33,12 @@ async function waitForImages(root: Document | HTMLElement) {
 
 const PDF_STYLE = `
   @font-face{font-family:'Montserrat Arabic';src:url('${montArabic.url}') format('truetype');font-weight:100 900;font-style:normal;font-display:block}
-  html,body{margin:0;padding:0;background:#ffffff;color:#0F1B2D;font-family:'Montserrat','Segoe UI',Tahoma,Arial,'Montserrat Arabic','Cairo',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+  html,body{margin:0;padding:0;background:#081320;color:#E6EEF7;font-family:'Montserrat','Segoe UI',Tahoma,Arial,'Montserrat Arabic','Cairo',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
   *{box-sizing:border-box}
   :lang(ar),[dir="rtl"]{font-family:'Montserrat Arabic','Cairo',Tahoma,Arial,sans-serif;unicode-bidi:isolate}
-  .pdf-page{width:794px;min-height:1123px;box-sizing:border-box;overflow:hidden;display:block;background:#ffffff;position:relative}
-  .pdf-block{width:706px;box-sizing:border-box;background:#ffffff}
-  .pdf-chrome{width:794px;box-sizing:border-box;background:#ffffff}
+  .pdf-page{width:794px;min-height:1123px;box-sizing:border-box;overflow:hidden;display:block;background:#081320;position:relative}
+  .pdf-block{width:706px;box-sizing:border-box;background:transparent}
+  .pdf-chrome{width:794px;box-sizing:border-box;background:#081320}
   table{border-collapse:collapse;font-family:inherit}
   svg{display:block;max-width:100%}
   img{max-width:100%;display:block}
@@ -100,7 +100,7 @@ async function renderFragmentToCanvas(
   iframe.style.cssText = [
     "position:fixed", "left:-10000px", "top:0",
     `width:${widthPx}px`, "height:200px",
-    "border:0", "opacity:1", "pointer-events:none", "background:#ffffff",
+    "border:0", "opacity:1", "pointer-events:none", "background:#081320",
   ].join(";");
   document.body.appendChild(iframe);
   try {
@@ -125,7 +125,7 @@ async function renderFragmentToCanvas(
       scale: 2,
       useCORS: true,
       allowTaint: true,
-      backgroundColor: "#ffffff",
+      backgroundColor: "#081320",
       logging: false,
       windowWidth: widthPx,
       windowHeight: naturalH,
@@ -149,29 +149,29 @@ async function renderFragmentToCanvas(
  *  top of every content page. Rendered once and reused. */
 function headerHtml(title: string, rangeText: string, logoDataUrl: string, kind: ReportKind): string {
   const label = REPORT_LABELS[kind];
-  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${HEADER_H}px;padding:14px ${SIDE_PAD}px 10px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-bottom:1px solid #ECECEC;background:#ffffff">
+  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${HEADER_H}px;padding:14px ${SIDE_PAD}px 10px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-bottom:1px solid #1E3A57;background:#081320">
     <div style="display:flex;align-items:center;gap:12px">
-      <img src="${logoDataUrl}" style="height:30px;object-fit:contain"/>
-      <div style="border-left:2px solid #E4E7EC;padding-left:12px">
-        <div style="font-size:10.5px;font-weight:900;letter-spacing:2px;color:#0B0B0B;text-transform:uppercase">${escHtml(label.en)}</div>
-        <div dir="rtl" style="font-size:10px;color:#8A8A8A;margin-top:2px;font-family:'Montserrat Arabic','Cairo',sans-serif">${escHtml(label.ar)}</div>
+      <img src="${logoDataUrl}" style="height:32px;object-fit:contain"/>
+      <div style="border-left:2px solid #1E3A57;padding-left:12px">
+        <div style="font-size:10.5px;font-weight:900;letter-spacing:2px;color:#E6EEF7;text-transform:uppercase">${escHtml(label.en)}</div>
+        <div dir="rtl" style="font-size:10px;color:#94A3B8;margin-top:2px;font-family:'Montserrat Arabic','Cairo',sans-serif">${escHtml(label.ar)}</div>
       </div>
     </div>
-    <div style="text-align:right;font-size:9.5px;color:#8A8A8A;line-height:1.4">
-      <div style="color:#0B0B0B;font-weight:800;letter-spacing:.5px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(title)}</div>
+    <div style="text-align:right;font-size:9.5px;color:#94A3B8;line-height:1.4">
+      <div style="color:#E6EEF7;font-weight:800;letter-spacing:.5px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(title)}</div>
       <div>${escHtml(rangeText)}</div>
     </div>
   </div>
-  <div style="width:${A4_W}px;height:3px;background:linear-gradient(90deg,#D4A017 0,#D4A017 56px,#42C2EE 56px,#42C2EE 112px,transparent 112px)"></div>`;
+  <div style="width:${A4_W}px;height:3px;background:linear-gradient(90deg,#189FD1 0,#189FD1 56px,#D4A017 56px,#D4A017 112px,#E8732E 112px,#E8732E 168px,#4E9A33 168px,#4E9A33 224px,transparent 224px)"></div>`;
 }
 
 /** HTML for the shared page-chrome footer. Rendered once; the page number is
  *  drawn on top as jsPDF text so we don't need one canvas per page. */
 function footerHtml(logoDataUrl: string): string {
-  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${FOOTER_H}px;padding:10px ${SIDE_PAD}px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-top:1px solid #ECECEC;font-size:10px;color:#8A8A8A;letter-spacing:.5px">
+  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${FOOTER_H}px;padding:10px ${SIDE_PAD}px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-top:1px solid #1E3A57;font-size:10px;color:#94A3B8;letter-spacing:.5px;background:#081320">
     <div style="display:flex;align-items:center;gap:8px">
-      <img src="${logoDataUrl}" style="width:14px;height:14px;object-fit:contain;opacity:.85"/>
-      <span>mechatro @ mechatro.hub4tech.net</span>
+      <img src="${logoDataUrl}" style="width:14px;height:14px;object-fit:contain;opacity:.9"/>
+      <span>mechatro · Innovative Energy Solutions</span>
     </div>
     <div style="width:120px"></div>
   </div>`;
@@ -269,6 +269,11 @@ async function renderHtmlToPdfBlob(
     pdf.addPage();
     pdfPageCount++;
 
+    // Dark page background — filled first so any negative-space between blocks
+    // shows the navy backdrop instead of the default white.
+    pdf.setFillColor(8, 19, 32);
+    pdf.rect(0, 0, pageW, pageH, "F");
+
     // Header strip
     if (headerCanvas) {
       const hPt = (headerCanvas.height / 2) * pxToPt;
@@ -295,9 +300,9 @@ async function renderHtmlToPdfBlob(
       pdf.addImage(footerCanvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, pageH - fPt, pageW, fPt, undefined, "FAST");
     }
 
-    // Page number overlay (Latin digits render fine in default jsPDF font).
+    // Page number overlay — light muted grey on the dark footer.
     pdf.setFontSize(9);
-    pdf.setTextColor(138, 138, 138);
+    pdf.setTextColor(148, 163, 184);
     const pageLabel = `page ${pdfPageCount} / ${totalPhysicalPages}`;
     pdf.text(pageLabel, pageW - SIDE_PAD * pxToPt, pageH - 14, { align: "right" });
     void idx;

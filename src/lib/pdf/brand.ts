@@ -2,14 +2,15 @@
 // Change values here and every generated PDF picks them up.
 
 export const BRAND = {
-  navy: "#0A2540",
-  blue: "#189FD1",
-  gold: "#C8A24B",
-  ink: "#0F2031",
-  muted: "#5A6B7D",
-  border: "#D7DEE5",
-  zebra: "#F5F9FD",
-  paper: "#FFFFFF",
+  // DARK theme tokens — matches src/styles.css.
+  navy: "#081320",   // page background
+  blue: "#42C2EE",   // primary accent (rules, callouts)
+  gold: "#D4A017",   // secondary accent (footer/header hairline)
+  ink: "#E6EEF7",    // primary text on dark
+  muted: "#94A3B8",  // secondary text on dark
+  border: "#1E3A57", // hairlines on dark
+  zebra: "#0B1A2A",  // alternating row surface
+  paper: "#0F2031",  // card surface
   name: "Mechatro",
   nameAr: "ميكاترو",
   tagline: "Innovative Energy Solutions",
