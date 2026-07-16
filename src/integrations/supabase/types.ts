@@ -2374,6 +2374,7 @@ export type Database = {
       }
       next_invoice_number: { Args: never; Returns: string }
       resolve_login_email: { Args: { p_name: string }; Returns: string }
+      restore_full_snapshot: { Args: { payload: Json }; Returns: Json }
       sync_master_admin: { Args: never; Returns: undefined }
     }
     Enums: {

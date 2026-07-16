@@ -267,6 +267,18 @@ export const dict = {
     ar: 'الاستعادة ستستبدل جميع البيانات الحالية. اكتب "RESTORE" للتأكيد.',
     en: 'Restore will overwrite ALL current data. Type "RESTORE" to confirm.',
   },
+  restoreDone: {
+    ar: "تمت الاستعادة بنجاح — {rows} صف عبر {tables} جدول",
+    en: "Restored successfully — {rows} rows across {tables} tables",
+  },
+  restoreFilesRestored: {
+    ar: "· تمت استعادة {n} ملف",
+    en: "· {n} files restored",
+  },
+  restoreFilesNone: {
+    ar: "· لم يتم استعادة ملفات (النسخة لا تحتوي مرفقات)",
+    en: "· no files restored (backup has no mirrored files)",
+  },
   size: { ar: "الحجم", en: "Size" },
   when: { ar: "التاريخ", en: "When" },
   // Meta
