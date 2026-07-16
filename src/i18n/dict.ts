@@ -982,6 +982,7 @@ export const dict = {
   aiOutline: { ar: "اقتراح مخطط", en: "Suggest outline" },
   aiWorking: { ar: "يعمل المساعد الذكي…", en: "AI is thinking…" },
   aiEmptyText: { ar: "الملاحظة فارغة", en: "Note is empty" },
+  aiCannotTranslate: { ar: "تعذّرت الترجمة. اختر نصاً أوضح ثم حاول مرة أخرى.", en: "Couldn't translate this. Select clearer text and try again." },
   tableInsertRow: { ar: "إضافة صف", en: "Insert row" },
   tableInsertCol: { ar: "إضافة عمود", en: "Insert column" },
   tableDeleteRow: { ar: "حذف صف", en: "Delete row" },

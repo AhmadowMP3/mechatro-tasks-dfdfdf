@@ -43,7 +43,8 @@ export function AiMenu({ editor }: { editor: Editor | null }) {
         editor.chain().focus().insertContentAt(editor.state.doc.content.size, `<hr>${html}`).run();
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(msg === "aiCannotTranslate" ? t("aiCannotTranslate") : msg);
     } finally {
       setBusy(false);
     }

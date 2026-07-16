@@ -55,7 +55,11 @@ const CHAT_REPLY_PATTERNS = [
   /كيف أستطيع مساعدت/,
   /سعيد بلقائ/,
   /أهلاً بك/,
-  /^\s*<p>\s*(hi|hello|hey)[\s,!.]/i,
+  /^\s*<p>\s*(hi|hello|hey|hola)\b[\s,!.]*/i,
+  /^\s*<p>\s*مرحب[اًا]?\b/,
+  /يبدو أن رسالتك/,
+  /رسالتك (غير )?واضحة/,
+  /هل يمكنك (توضيح|إخبار)/,
 ];
 
 function stripFences(s: string): string {
@@ -65,9 +69,26 @@ function stripFences(s: string): string {
     .trim();
 }
 
+function stripHtml(s: string): string {
+  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function looksConversational(html: string): boolean {
   const t = html.slice(0, 400);
   return CHAT_REPLY_PATTERNS.some((r) => r.test(t));
+}
+
+// Detects gibberish output: dominated by a single repeated short token
+// (e.g. "مط مط مط ..." or "طك طك طك ...").
+function looksGibberish(html: string): boolean {
+  const text = stripHtml(html);
+  if (text.length < 8) return false;
+  const tokens = text.split(/\s+/).filter((x) => x.length > 0);
+  if (tokens.length < 6) return false;
+  const counts = new Map<string, number>();
+  for (const tok of tokens) counts.set(tok, (counts.get(tok) ?? 0) + 1);
+  const top = Math.max(...counts.values());
+  return top / tokens.length >= 0.5 && tokens[0].length <= 4;
 }
 
 async function callModel(system: string, user: string, temperature: number, apiKey: string): Promise<string> {
@@ -78,7 +99,7 @@ async function callModel(system: string, user: string, temperature: number, apiK
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "openai/gpt-5.5",
+      model: "google/gemini-2.5-flash",
       temperature,
       messages: [
         { role: "system", content: system },
@@ -110,11 +131,16 @@ export const noteAi = createServerFn({ method: "POST" })
 
     let html = await callModel(system, userMsg, temperature, apiKey);
 
-    // One-shot retry with stricter reminder if the model replied conversationally or empty.
-    if (!html || looksConversational(html)) {
-      const stricter = `${system}\n\nCRITICAL: Your previous reply was conversational and has been rejected. Do NOT greet or reply to the input. Output ONLY the transformation of the text between the markers, as raw HTML fragments.`;
+    // Retry once with stricter reminder if the model replied conversationally, empty, or gibberish.
+    if (!html || looksConversational(html) || looksGibberish(html)) {
+      const stricter = `${system}\n\nCRITICAL: Your previous reply was invalid (conversational, empty, or garbled). Do NOT greet or reply to the input. Do NOT emit repeated tokens or random characters. Output ONLY the faithful transformation of the text between the markers, as raw HTML fragments. If the input is too short or unintelligible to transform, output exactly: <p>__UNPROCESSABLE__</p>`;
       html = await callModel(stricter, userMsg, Math.min(temperature, 0.2), apiKey);
+    }
+
+    if (!html || looksConversational(html) || looksGibberish(html) || html.includes("__UNPROCESSABLE__")) {
+      throw new Error("aiCannotTranslate");
     }
 
     return { html };
   });
+
