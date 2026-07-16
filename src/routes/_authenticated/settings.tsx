@@ -103,7 +103,7 @@ function BackupsSection() {
     enabled: !!isMasterAdmin,
     queryFn: async () => {
       const { data } = await supabase.storage.from("backups").list("", { limit: 100, sortBy: { column: "created_at", order: "desc" } });
-      return (data ?? []).filter((f) => f.name.endsWith(".json")) as unknown as Backup[];
+      return (data ?? []).filter((f) => f.name.endsWith(".json") || f.name.endsWith(".zip")) as unknown as Backup[];
     },
   });
 
