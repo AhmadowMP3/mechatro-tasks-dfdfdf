@@ -63,13 +63,29 @@ function ProjectsPage() {
   const patch = (p: Partial<Filters>) => setF((c) => ({ ...c, ...p }));
 
   const { data, refetch } = useQuery({
-    queryKey: ["projects", "list"],
+    queryKey: ["projects", "list", isAdmin ? "all" : user?.id ?? ""],
     queryFn: async () => {
-      const [projects, tasks] = await Promise.all([
+      const [projects, tasks, myAssignments] = await Promise.all([
         supabase.from("projects").select("*").order("created_at", { ascending: false }),
         supabase.from("tasks").select("id,project_id,status,assignee_id"),
+        isAdmin || !user?.id
+          ? Promise.resolve({ data: [] as { task_id: string }[] })
+          : supabase.from("task_assignees").select("task_id").eq("user_id", user.id),
       ]);
-      return { projects: (projects.data ?? []) as P[], tasks: (tasks.data ?? []) as Task[] };
+      const allTasks = (tasks.data ?? []) as Task[];
+      let visibleProjectIds: Set<string> | null = null;
+      if (!isAdmin && user?.id) {
+        const myTaskIds = new Set<string>();
+        for (const t of allTasks) if (t.assignee_id === user.id) myTaskIds.add(t.id);
+        for (const a of (myAssignments.data ?? []) as { task_id: string }[]) myTaskIds.add(a.task_id);
+        visibleProjectIds = new Set<string>();
+        for (const t of allTasks) if (myTaskIds.has(t.id) && t.project_id) visibleProjectIds.add(t.project_id);
+      }
+      const allProjects = (projects.data ?? []) as P[];
+      const filteredProjects = visibleProjectIds
+        ? allProjects.filter((p) => visibleProjectIds!.has(p.id))
+        : allProjects;
+      return { projects: filteredProjects, tasks: allTasks };
     },
   });
 
