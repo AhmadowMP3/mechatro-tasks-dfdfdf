@@ -10,8 +10,11 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { GenerateReportDialog } from "@/components/team/GenerateReportDialog";
 import { toLocalDigits, formatMinutes, formatDate } from "@/lib/format";
 import type { DictKey } from "@/i18n/dict";
+import { requireAdmin } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_authenticated/team/$id")({
+  ssr: false,
+  beforeLoad: requireAdmin,
   component: MemberProfilePage,
 });
 
