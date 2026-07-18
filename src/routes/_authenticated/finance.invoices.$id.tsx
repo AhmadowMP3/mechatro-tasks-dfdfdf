@@ -234,7 +234,7 @@ function InvoiceEditorPage() {
       qc.invalidateQueries({ queryKey: ["invoice", invoiceId] });
       if (isNew) navigate({ to: "/finance/invoices/$id", params: { id: invoiceId } });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e, { action: isNew ? "create" : "update", entity: "invoice", user, lang }));
     } finally {
       setSaving(false);
     }
@@ -244,7 +244,7 @@ function InvoiceEditorPage() {
     if (isNew || !existing) return;
     if (!(await confirm({ message: t("confirmVoidInvoice"), danger: true, confirmText: t("voidInvoice") }))) return;
     const { error } = await supabase.from("invoices").update({ status: "void" }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(errMsg(error, { action: "update", entity: "invoice", user, lang })); return; }
     toast.success(t("saved"));
     qc.invalidateQueries({ queryKey: ["invoices"] });
     qc.invalidateQueries({ queryKey: ["invoice", id] });
@@ -254,7 +254,7 @@ function InvoiceEditorPage() {
     if (isNew || !existing) return;
     if (!(await confirm({ message: t("confirmDeleteInvoice"), danger: true, confirmText: t("delete") }))) return;
     const { error } = await supabase.from("invoices").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(errMsg(error, { action: "delete", entity: "invoice", user, lang })); return; }
     toast.success(t("saved"));
     qc.invalidateQueries({ queryKey: ["invoices"] });
     navigate({ to: "/finance/invoices" });
