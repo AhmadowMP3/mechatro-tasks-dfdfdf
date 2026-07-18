@@ -10,10 +10,13 @@ import type { KpiSnapshot } from "@/lib/report/snapshot";
 import { buildComparisonHtml } from "@/lib/report/comparison-html";
 import { persistComparisonPdf } from "@/lib/report/generator";
 import { promptFilename } from "@/components/FilenamePrompt";
+import { requireAdmin } from "@/lib/route-guards";
 
 type CompareSearch = { a: string; b: string };
 
 export const Route = createFileRoute("/_authenticated/reports-history_/compare")({
+  ssr: false,
+  beforeLoad: requireAdmin,
   validateSearch: (search: Record<string, unknown>): CompareSearch => ({
     a: typeof search.a === "string" ? search.a : "",
     b: typeof search.b === "string" ? search.b : "",
