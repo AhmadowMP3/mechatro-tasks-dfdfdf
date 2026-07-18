@@ -8,6 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { relativeTime, formatDate } from "@/lib/format";
 import { normalizeAction } from "@/lib/activity";
 import type { DictKey } from "@/i18n/dict";
+import { requireAdmin } from "@/lib/route-guards";
 import {
   ScrollText, Filter,
   Plus, Pencil, Trash2, ArrowRightLeft, MessageSquare, Paperclip,
