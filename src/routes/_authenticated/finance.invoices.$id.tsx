@@ -15,6 +15,18 @@ import { stampFilename } from "@/lib/pdf/brand";
 import { InvoiceDocument, PaymentReceiptDocument, paymentMethodTextFor, type CompanySettings } from "@/components/finance/BrandedDocuments";
 import { PaymentMethodSelect } from "@/components/finance/PaymentMethodSelect";
 import { printReactDocument } from "@/lib/pdf/print-document";
+import { DatePickerField } from "@/components/DatePickerField";
+import { explainSupabaseError } from "@/lib/permission-errors";
+
+function errMsg(e: unknown, ctx: { action: "create" | "update" | "delete"; entity: string; user: ReturnType<typeof useApp>["user"]; lang: "ar" | "en" }): string {
+  if (e && typeof e === "object" && ("code" in e || "message" in e || "details" in e)) {
+    const msg = explainSupabaseError(e as { code?: string; message?: string; details?: string; hint?: string }, ctx);
+    if (msg) return msg;
+  }
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  try { return JSON.stringify(e); } catch { return ctx.lang === "ar" ? "خطأ غير معروف" : "Unknown error"; }
+}
 
 export const Route = createFileRoute("/_authenticated/finance/invoices/$id")({
   component: InvoiceEditorPage,
