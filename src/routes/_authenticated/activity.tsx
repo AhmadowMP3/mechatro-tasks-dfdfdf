@@ -48,6 +48,12 @@ const splitCSV = (s: string): string[] => s ? s.split(",").filter(Boolean) : [];
 const joinCSV = (arr: string[]): string => arr.filter(Boolean).join(",");
 
 export const Route = createFileRoute("/_authenticated/activity")({
+  ssr: false,
+  beforeLoad: async (ctx) => {
+    const { requireAdmin } = await import("@/lib/route-guards");
+    await requireAdmin();
+    return ctx.context;
+  },
   validateSearch: (s: Record<string, unknown>) => searchSchema.parse(s),
   component: ActivityPage,
 });
