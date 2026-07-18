@@ -12,8 +12,11 @@ import { buildMemberReportPdf, buildTeamReportPdf, persistMemberReportPdf, type 
 import { buildTeamReportHtml, loadTeamReportData } from "@/lib/report/team-report";
 import type { Lang } from "@/i18n/dict";
 import { promptFilename } from "@/components/FilenamePrompt";
+import { requireAdmin } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_authenticated/reports")({
+  ssr: false,
+  beforeLoad: requireAdmin,
   component: ReportsPage,
 });
 

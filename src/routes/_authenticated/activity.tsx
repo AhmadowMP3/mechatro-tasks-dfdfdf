@@ -8,6 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { relativeTime, formatDate } from "@/lib/format";
 import { normalizeAction } from "@/lib/activity";
 import type { DictKey } from "@/i18n/dict";
+import { requireAdmin } from "@/lib/route-guards";
 import {
   ScrollText, Filter,
   Plus, Pencil, Trash2, ArrowRightLeft, MessageSquare, Paperclip,
@@ -48,6 +49,8 @@ const splitCSV = (s: string): string[] => s ? s.split(",").filter(Boolean) : [];
 const joinCSV = (arr: string[]): string => arr.filter(Boolean).join(",");
 
 export const Route = createFileRoute("/_authenticated/activity")({
+  ssr: false,
+  beforeLoad: requireAdmin,
   validateSearch: (s: Record<string, unknown>) => searchSchema.parse(s),
   component: ActivityPage,
 });

@@ -1,21 +1,53 @@
-## Issues on New Invoice page
+## Access Matrix — final
 
-1. **Unclear error toast — shows "[object Object]"**
-   The save handler does `toast.error(e instanceof Error ? e.message : String(e))`. When Supabase returns a `PostgrestError` object (not an `Error` instance), `String(e)` becomes `"[object Object]"`. This hides the real reason (RLS, missing field, FK, etc.).
+| Area | Member | Admin | Master |
+|---|---|---|---|
+| Dashboard `/` | ✓ (own stats) | ✓ | ✓ |
+| Tasks `/tasks` | ✓ only tasks where they are assignee/co-assignee | ✓ | ✓ |
+| Projects `/projects`, `/projects/:id` | ✓ only projects containing a task assigned to them | ✓ | ✓ |
+| References | ✓ | ✓ | ✓ |
+| League | ✓ | ✓ | ✓ |
+| Notes | ✓ full (own + shared) | ✓ | ✓ |
+| Notifications | ✓ | ✓ | ✓ |
+| Settings | ✓ | ✓ | ✓ |
+| Team `/team`, `/team/:id` | ✗ hidden + route blocked | ✓ | ✓ |
+| Activity log, Reports, Report history | ✗ | ✓ | ✓ |
+| Access Control (People & Invites) | ✗ | ✓ | ✓ |
+| Share Links | ✗ | ✗ | ✓ (master only) |
+| Finance (all tabs) | ✗ | ✗ | ✓ (master only) |
 
-2. **Date inputs use the browser-native `<input type="date">`**
-   They render in the OS style (light popup, non-Arabic, doesn't match dark theme). The project already has a themed `DatePickerField` component used elsewhere.
+## Changes
 
-## Plan
+### 1. Sidebar (`src/components/layout/Sidebar.tsx`)
+- Move **Notes** out of `adminSection` into a new `workSection` (or `personalSection`) so members see it.
+- Remove **Team** and **League** from the shared `teamSection` split: keep **League** for everyone, gate **Team** to admins only. Simplest: split `teamSection` — League stays public, Team goes into `adminSection`.
+- Change `financeSection` gate from `financeOnly` (isFinanceAdmin) to `masterOnly` (isMasterAdmin).
 
-**File: `src/routes/_authenticated/finance.invoices.$id.tsx`**
+### 2. Role helper (`src/lib/app-context.tsx`)
+- Redefine `isFinanceAdmin` = `isMasterAdmin` only (drops the `is_finance_admin` grant path and the "admins get finance" path). This makes every existing `if (isFinanceAdmin)` guard automatically strict-master.
 
-- Replace generic error handling in the save/void/delete/record-payment handlers with `explainSupabaseError(err, { action, entity: "invoice", user, lang })` from `@/lib/permission-errors`, falling back to the error's `.message` for non-Postgrest failures. This surfaces messages like "Create invoice denied by security policy (RLS). Your current role: …" instead of `[object Object]`.
-- Import `useApp` (already used) to pass `user` + `lang` to the explainer.
+### 3. Route guards (client-side redirect for anyone typing the URL)
+Add a `beforeLoad` check that redirects to `/` when the user lacks access:
+- `team.index.tsx`, `team.$id.tsx` → admin only
+- `activity.tsx`, `reports.tsx`, `reports-history.tsx`, `reports-history_.compare.tsx` → admin only
+- `access-control.tsx` → admin only
+- `share-links.tsx` → master only
+- `finance.tsx` (parent layout) → master only — one guard covers all finance sub-routes
 
-- Swap the two native date inputs (Issue date, Due date) and the payment "Paid at" date input for the themed `<DatePickerField />` component so they match the site's dark UI (same styling used in tasks/reports). Keep the same ISO `YYYY-MM-DD` string state — no logic change.
+### 4. Projects list scoping (`src/routes/_authenticated/projects.index.tsx`)
+Currently members see every project. Filter enriched list for non-admins to only projects where `memberIds.includes(user.id)` OR they have a task in `task_assignees`. Fetch member's task project_ids (primary + co-assignee) like `tasks.tsx` already does, then filter projects.
 
-- Also apply the same error-explainer to `finance.invoices.index.tsx` if any raw error toast exists there (spot-check only; skip if none).
+### 5. Project detail (`projects.$id.tsx`)
+If member and no task assigned to them in that project → redirect to `/projects`. Prevents URL-guessing into unrelated projects.
+
+### 6. Verify — no DB changes
+Server-side RLS already restricts writes/reads appropriately (checked: tasks use assignee scoping, projects have policies). This pass is UI + client route gating only — matches the "UI change stays in frontend" rule. If a spot-check reveals a policy gap, I'll flag it separately rather than expanding scope.
+
+### 7. Sanity pass
+- Grep every `isFinanceAdmin` call site to confirm the tightened definition doesn't break a legitimate admin-only-not-master flow.
+- Typecheck.
 
 ## Out of scope
-No schema, no policy, no business-logic changes. Purely UI polish + clearer error surfacing on the invoice editor.
+- No password/user changes.
+- No DB migrations (RLS already enforces server-side).
+- No removal of `is_finance_admin` column — just stop honoring it in the UI (safe rollback path).

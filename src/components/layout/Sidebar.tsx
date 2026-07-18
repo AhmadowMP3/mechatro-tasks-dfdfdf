@@ -44,13 +44,13 @@ const NAV_SECTIONS: NavSection[] = [
       { to: "/projects",   icon: FolderKanban, key: "projects" },
       { to: "/tasks",      icon: CheckSquare,  key: "tasks" },
       { to: "/references", icon: Library,      key: "references" },
+      { to: "/notes",      icon: StickyNote,   key: null, label: { ar: "الملاحظات", en: "Notes" } },
     ],
   },
   {
     titleKey: "teamSection",
     icon: UsersRound,
     items: [
-      { to: "/team",   icon: Users,   key: "team" },
       { to: "/league", icon: Trophy,  key: "league" },
     ],
   },
@@ -67,7 +67,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     titleKey: "financeSection",
     icon: Wallet,
-    financeOnly: true,
+    masterOnly: true,
     items: [
       { to: "/finance",           icon: BarChart3,    key: null, label: { ar: "لوحة مالية", en: "Finance" } },
       { to: "/finance/invoices",  icon: FileText,     key: null, label: { ar: "الفواتير", en: "Invoices" } },
@@ -83,7 +83,7 @@ const NAV_SECTIONS: NavSection[] = [
     icon: ShieldCheck,
     adminOnly: true,
     items: [
-      { to: "/notes",          icon: StickyNote, key: null, label: { ar: "الملاحظات", en: "Notes" } },
+      { to: "/team",           icon: Users,    key: "team" },
       { to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } },
       { to: "/share-links",    icon: Share2,   key: null, label: { ar: "روابط المشاركة", en: "Share Links" } },
     ],

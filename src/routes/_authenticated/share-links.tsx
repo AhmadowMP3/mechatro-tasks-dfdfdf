@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Copy, Trash2, Ban, Pencil, Plus, Link2, Eye, RefreshCw, Lock, Calendar, Users2, X } from "lucide-react";
@@ -7,12 +7,11 @@ import { useApp } from "@/lib/app-context";
 import { shareApi, SHARE_PAGES, type ShareLinkRow } from "@/lib/share-links";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/confirm-dialog";
+import { requireMaster } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_authenticated/share-links")({
-  beforeLoad: ({ context }) => {
-    // Route context isn't strongly typed with profile; check happens in component too.
-    void context;
-  },
+  ssr: false,
+  beforeLoad: requireMaster,
   component: SharePage,
 });
 
