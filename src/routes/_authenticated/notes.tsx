@@ -30,9 +30,6 @@ export const Route = createFileRoute("/_authenticated/notes")({
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
-    const { data: prof } = await supabase.from("profiles").select("role,is_master_admin").eq("id", data.user.id).maybeSingle();
-    const ok = prof?.is_master_admin || prof?.role === "admin";
-    if (!ok) throw redirect({ to: "/" });
   },
   component: NotesPage,
 });
