@@ -192,7 +192,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const isMasterAdmin = !!user?.is_master_admin;
   const isAdmin = isMasterAdmin || user?.role === "admin";
-  const isFinanceAdmin = isAdmin || !!user?.is_finance_admin;
+  // Finance is Master-only. `is_finance_admin` column is retained in DB for
+  // rollback but no longer grants UI access.
+  const isFinanceAdmin = isMasterAdmin;
   const isMember = !!user && !isAdmin;
 
   // Legacy shim — mapped to the fixed 3-role model.
