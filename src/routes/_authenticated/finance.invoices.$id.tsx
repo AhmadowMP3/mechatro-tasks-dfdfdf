@@ -15,6 +15,19 @@ import { stampFilename } from "@/lib/pdf/brand";
 import { InvoiceDocument, PaymentReceiptDocument, paymentMethodTextFor, type CompanySettings } from "@/components/finance/BrandedDocuments";
 import { PaymentMethodSelect } from "@/components/finance/PaymentMethodSelect";
 import { printReactDocument } from "@/lib/pdf/print-document";
+import { DatePickerField } from "@/components/DatePickerField";
+import { explainSupabaseError } from "@/lib/permission-errors";
+
+function errMsg(e: unknown, ctx: { action: "create" | "update" | "delete"; entity: string; user: ReturnType<typeof useApp>["user"]; lang: "ar" | "en" }): string {
+  if (e && typeof e === "object" && ("code" in e || "message" in e || "details" in e)) {
+    const obj = e as { code?: string; message?: string; details?: string; hint?: string };
+    const msg = explainSupabaseError({ code: obj.code ?? "", message: obj.message ?? "", details: obj.details ?? "", hint: obj.hint ?? "" }, ctx);
+    if (msg) return msg;
+  }
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  try { return JSON.stringify(e); } catch { return ctx.lang === "ar" ? "خطأ غير معروف" : "Unknown error"; }
+}
 
 export const Route = createFileRoute("/_authenticated/finance/invoices/$id")({
   component: InvoiceEditorPage,
@@ -221,7 +234,7 @@ function InvoiceEditorPage() {
       qc.invalidateQueries({ queryKey: ["invoice", invoiceId] });
       if (isNew) navigate({ to: "/finance/invoices/$id", params: { id: invoiceId } });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e, { action: isNew ? "create" : "update", entity: "invoice", user, lang }));
     } finally {
       setSaving(false);
     }
@@ -231,7 +244,7 @@ function InvoiceEditorPage() {
     if (isNew || !existing) return;
     if (!(await confirm({ message: t("confirmVoidInvoice"), danger: true, confirmText: t("voidInvoice") }))) return;
     const { error } = await supabase.from("invoices").update({ status: "void" }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(errMsg(error, { action: "update", entity: "invoice", user, lang })); return; }
     toast.success(t("saved"));
     qc.invalidateQueries({ queryKey: ["invoices"] });
     qc.invalidateQueries({ queryKey: ["invoice", id] });
@@ -241,7 +254,7 @@ function InvoiceEditorPage() {
     if (isNew || !existing) return;
     if (!(await confirm({ message: t("confirmDeleteInvoice"), danger: true, confirmText: t("delete") }))) return;
     const { error } = await supabase.from("invoices").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(errMsg(error, { action: "delete", entity: "invoice", user, lang })); return; }
     toast.success(t("saved"));
     qc.invalidateQueries({ queryKey: ["invoices"] });
     navigate({ to: "/finance/invoices" });
@@ -265,7 +278,7 @@ function InvoiceEditorPage() {
         },
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e, { action: "update", entity: "invoice", user, lang }));
     }
   };
   
@@ -314,10 +327,14 @@ function InvoiceEditorPage() {
           </select>
         </Field>
         <Field label={t("invoiceDate")}>
-          <input type="date" disabled={!isEditable} value={issueDate} onChange={(e) => setIssueDate(e.target.value)} style={inp} />
+          {isEditable
+            ? <DatePickerField value={issueDate} onChange={setIssueDate} lang={lang} />
+            : <div style={{ ...inp, opacity: 0.7 }}>{issueDate ? formatDate(issueDate, lang) : "—"}</div>}
         </Field>
         <Field label={t("dueDate")}>
-          <input type="date" disabled={!isEditable} value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={inp} />
+          {isEditable
+            ? <DatePickerField value={dueDate} onChange={setDueDate} lang={lang} placeholder={lang === "ar" ? "بدون تاريخ" : "No due date"} />
+            : <div style={{ ...inp, opacity: 0.7 }}>{dueDate ? formatDate(dueDate, lang) : "—"}</div>}
         </Field>
         <Field label={t("currency")}>
           <select disabled={!isEditable} value={currency} onChange={(e) => setCurrency(e.target.value as Currency)} style={inp}>
@@ -474,11 +491,11 @@ function InvoiceEditorPage() {
 
 function PaymentDeleteButton({ id, onDone }: { id: string; onDone: () => void }) {
   const confirm = useConfirm();
-  const { t } = useApp();
+  const { t, user, lang } = useApp();
   const remove = async () => {
     if (!(await confirm({ message: t("delete") + "?", danger: true }))) return;
     const { error } = await supabase.from("invoice_payments").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(errMsg(error, { action: "delete", entity: "payment", user, lang })); return; }
     onDone();
   };
   return (
@@ -517,7 +534,7 @@ function PaymentReceiptModal({
         },
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(e instanceof Error ? e.message : (lang === "ar" ? "فشل التنزيل" : "Download failed"));
     } finally {
       setDownloading(false);
     }
@@ -547,7 +564,7 @@ function PaymentReceiptModal({
 }
 
 function PaymentModal({ invoice, onClose, onSaved }: { invoice: Invoice; onClose: () => void; onSaved: () => void }) {
-  const { t, user } = useApp();
+  const { t, user, lang } = useApp();
   const balance = Number(invoice.total) - Number(invoice.amount_paid);
   const [amount, setAmount] = useState<number>(balance);
   const [paidAt, setPaidAt] = useState<string>(new Date().toISOString().slice(0, 10));
@@ -570,7 +587,7 @@ function PaymentModal({ invoice, onClose, onSaved }: { invoice: Invoice; onClose
       recorded_by: user?.id,
     });
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(errMsg(error, { action: "create", entity: "payment", user, lang })); return; }
     toast.success(t("saved"));
     onSaved();
   };
@@ -584,7 +601,7 @@ function PaymentModal({ invoice, onClose, onSaved }: { invoice: Invoice; onClose
             <input type="number" step="0.01" min={0} value={amount} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)} style={inp} />
           </Field>
           <Field label={t("paidAt")}>
-            <input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} style={inp} />
+            <DatePickerField value={paidAt} onChange={setPaidAt} lang={lang} />
           </Field>
           <Field label={t("paymentMethod")}>
             <PaymentMethodSelect value={method} onChange={setMethod} />
