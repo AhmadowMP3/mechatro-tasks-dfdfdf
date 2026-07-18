@@ -8,8 +8,11 @@ import { toast } from "sonner";
 import { FileText, Download, Eye, Trash2, GitCompareArrows, X, CheckCircle2, ArrowLeftRight, Users2 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { requireAdmin } from "@/lib/route-guards";
 
 export const Route = createFileRoute("/_authenticated/reports-history")({
+  ssr: false,
+  beforeLoad: requireAdmin,
   component: ReportsHistoryPage,
   errorComponent: ({ error, reset }) => (
     <div style={{ padding: 24 }}>
