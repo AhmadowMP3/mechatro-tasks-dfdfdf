@@ -88,17 +88,91 @@ export function explainSupabaseError(
     );
   }
 
-  // Not-null / FK / check violations — keep them descriptive
-  if (code === "23502") return L(lang, `حقل مطلوب مفقود: ${message}`, `Required field missing: ${message}`);
-  if (code === "23503") return L(lang, `مرجع غير صالح: ${message}`, `Invalid reference: ${message}`);
-  if (code === "23505") return L(lang, `قيمة مكررة: ${message}`, `Duplicate value: ${message}`);
-  if (code === "23514") return L(lang, `القيمة لا تحقق شروط التحقق: ${message}`, `Value fails check constraint: ${message}`);
+  // Not-null / FK / check violations — humanize with friendly field names.
+  if (code === "23502") {
+    const col = extractColumn(message, details);
+    const field = col ? friendlyField(col, lang) : null;
+    return field
+      ? L(lang, `الحقل «${field}» مطلوب. الرجاء تعبئته قبل الحفظ.`, `The "${field}" field is required. Please fill it in before saving.`)
+      : L(lang, "هناك حقل مطلوب فارغ. الرجاء تعبئة جميع الحقول الأساسية.", "A required field is empty. Please fill in all required fields.");
+  }
+  if (code === "23503") {
+    const col = extractColumn(message, details);
+    const field = col ? friendlyField(col, lang) : null;
+    return field
+      ? L(lang, `القيمة المحددة في «${field}» غير موجودة أو تم حذفها.`, `The selected value in "${field}" no longer exists.`)
+      : L(lang, "أحد العناصر المرتبطة غير موجود. حدّث الصفحة وحاول مجدداً.", "A linked item no longer exists. Refresh the page and try again.");
+  }
+  if (code === "23505") {
+    const col = extractColumn(message, details);
+    const field = col ? friendlyField(col, lang) : null;
+    return field
+      ? L(lang, `القيمة الموجودة في «${field}» مستخدمة مسبقاً. اختر قيمة أخرى.`, `The value in "${field}" is already in use. Please pick another.`)
+      : L(lang, "هذه القيمة موجودة مسبقاً. اختر قيمة مختلفة.", "That value already exists. Please choose a different one.");
+  }
+  if (code === "23514") {
+    return L(lang, "القيمة المدخلة غير مقبولة. تحقق من الحدود المسموحة.", "The entered value isn't accepted. Please check the allowed range.");
+  }
+  if (code === "22P02") {
+    return L(lang, "صيغة القيمة غير صحيحة. تحقق من الحقول المدخلة.", "One of the values has an invalid format. Please check the fields.");
+  }
+  if (code === "PGRST116") {
+    return L(lang, "العنصر المطلوب غير موجود أو تم حذفه.", "The requested item wasn't found or has been removed.");
+  }
 
-  // Fallback — include code + hint so it's still useful to admins.
-  const parts = [message || L(lang, "خطأ غير معروف", "Unknown error")];
-  if (code) parts.push(`(code: ${code})`);
-  if (hint) parts.push(`hint: ${hint}`);
-  return parts.join(" ");
+  // Fallback — friendly, no raw SQL leakage.
+  const msg = message ?? "";
+  if (msg && !/violates|null value in column|constraint|relation|schema/i.test(msg)) {
+    return L(lang, `تعذّر إتمام العملية: ${msg}`, `Couldn't complete the action: ${msg}`);
+  }
+  void hint;
+  return L(
+    lang,
+    "حدث خطأ غير متوقع أثناء حفظ البيانات. الرجاء المحاولة مرة أخرى.",
+    "Something went wrong while saving. Please try again.",
+  );
+}
+
+function extractColumn(message?: string, details?: string): string | null {
+  const src = `${message ?? ""} ${details ?? ""}`;
+  const m =
+    src.match(/null value in column "([^"]+)"/i) ||
+    src.match(/column "([^"]+)"/i) ||
+    src.match(/Key \(([^)]+)\)=/i);
+  return m ? m[1].split(",")[0].trim() : null;
+}
+
+function friendlyField(col: string, lang: Lang): string {
+  const map: Record<string, [string, string]> = {
+    number: ["رقم الفاتورة", "invoice number"],
+    invoice_number: ["رقم الفاتورة", "invoice number"],
+    customer_id: ["العميل", "customer"],
+    project_id: ["المشروع", "project"],
+    user_id: ["المستخدم", "user"],
+    assignee_id: ["المسؤول", "assignee"],
+    created_by: ["المُنشئ", "creator"],
+    issue_date: ["تاريخ الإصدار", "issue date"],
+    due_date: ["تاريخ الاستحقاق", "due date"],
+    paid_at: ["تاريخ الدفع", "payment date"],
+    amount: ["المبلغ", "amount"],
+    total: ["الإجمالي", "total"],
+    currency: ["العملة", "currency"],
+    title: ["العنوان", "title"],
+    name: ["الاسم", "name"],
+    name_ar: ["الاسم بالعربية", "Arabic name"],
+    name_en: ["الاسم بالإنجليزية", "English name"],
+    email: ["البريد الإلكتروني", "email"],
+    phone: ["رقم الهاتف", "phone number"],
+    status: ["الحالة", "status"],
+    category_id: ["الفئة", "category"],
+    description: ["الوصف", "description"],
+    quantity: ["الكمية", "quantity"],
+    unit_price: ["سعر الوحدة", "unit price"],
+    date: ["التاريخ", "date"],
+  };
+  const hit = map[col.toLowerCase()];
+  if (hit) return lang === "ar" ? hit[0] : hit[1];
+  return col.replace(/_/g, " ");
 }
 
 function cap(s: string) {
