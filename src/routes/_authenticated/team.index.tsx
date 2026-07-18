@@ -20,8 +20,13 @@ import { promptFilename } from "@/components/FilenamePrompt";
 import type { DictKey } from "@/i18n/dict";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useConfirm } from "@/components/confirm-dialog";
+import { requireAdmin } from "@/lib/route-guards";
 
-export const Route = createFileRoute("/_authenticated/team/")({ component: TeamPage });
+export const Route = createFileRoute("/_authenticated/team/")({
+  ssr: false,
+  beforeLoad: requireAdmin,
+  component: TeamPage,
+});
 
 const ROLES = ["admin", "manager", "member", "viewer"] as const;
 
