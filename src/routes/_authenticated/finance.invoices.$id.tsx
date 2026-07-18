@@ -278,7 +278,7 @@ function InvoiceEditorPage() {
         },
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(errMsg(e, { action: "update", entity: "invoice", user, lang }));
     }
   };
   
@@ -491,11 +491,11 @@ function InvoiceEditorPage() {
 
 function PaymentDeleteButton({ id, onDone }: { id: string; onDone: () => void }) {
   const confirm = useConfirm();
-  const { t } = useApp();
+  const { t, user, lang } = useApp();
   const remove = async () => {
     if (!(await confirm({ message: t("delete") + "?", danger: true }))) return;
     const { error } = await supabase.from("invoice_payments").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(errMsg(error, { action: "delete", entity: "payment", user, lang })); return; }
     onDone();
   };
   return (
@@ -534,7 +534,7 @@ function PaymentReceiptModal({
         },
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(e instanceof Error ? e.message : (lang === "ar" ? "فشل التنزيل" : "Download failed"));
     } finally {
       setDownloading(false);
     }
@@ -564,7 +564,7 @@ function PaymentReceiptModal({
 }
 
 function PaymentModal({ invoice, onClose, onSaved }: { invoice: Invoice; onClose: () => void; onSaved: () => void }) {
-  const { t, user } = useApp();
+  const { t, user, lang } = useApp();
   const balance = Number(invoice.total) - Number(invoice.amount_paid);
   const [amount, setAmount] = useState<number>(balance);
   const [paidAt, setPaidAt] = useState<string>(new Date().toISOString().slice(0, 10));
@@ -587,7 +587,7 @@ function PaymentModal({ invoice, onClose, onSaved }: { invoice: Invoice; onClose
       recorded_by: user?.id,
     });
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(errMsg(error, { action: "create", entity: "payment", user, lang })); return; }
     toast.success(t("saved"));
     onSaved();
   };
@@ -601,7 +601,7 @@ function PaymentModal({ invoice, onClose, onSaved }: { invoice: Invoice; onClose
             <input type="number" step="0.01" min={0} value={amount} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)} style={inp} />
           </Field>
           <Field label={t("paidAt")}>
-            <input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} style={inp} />
+            <DatePickerField value={paidAt} onChange={setPaidAt} lang={lang} />
           </Field>
           <Field label={t("paymentMethod")}>
             <PaymentMethodSelect value={method} onChange={setMethod} />
