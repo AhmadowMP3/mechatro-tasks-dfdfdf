@@ -20,7 +20,8 @@ import { explainSupabaseError } from "@/lib/permission-errors";
 
 function errMsg(e: unknown, ctx: { action: "create" | "update" | "delete"; entity: string; user: ReturnType<typeof useApp>["user"]; lang: "ar" | "en" }): string {
   if (e && typeof e === "object" && ("code" in e || "message" in e || "details" in e)) {
-    const msg = explainSupabaseError(e as { code?: string; message?: string; details?: string; hint?: string }, ctx);
+    const obj = e as { code?: string; message?: string; details?: string; hint?: string };
+    const msg = explainSupabaseError({ code: obj.code ?? "", message: obj.message ?? "", details: obj.details ?? "", hint: obj.hint ?? "" }, ctx);
     if (msg) return msg;
   }
   if (e instanceof Error) return e.message;
