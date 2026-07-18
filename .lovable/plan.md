@@ -1,34 +1,28 @@
-## المشكلة
+## Goal
+Remove existing users (Zizo, Client, Ahmad, ahmad sabagh) and create 6 new accounts with English usernames and passwords. All last three are Members.
 
-ميزة "ترجمة إلى الإنجليزية" في الملاحظات تُخرج نصاً غريباً (أحرف مبعثرة أو رد محادثة "مرحباً أحمد..." بدلاً من الترجمة). السبب في ملف `src/lib/notes-ai.functions.ts`:
+## New accounts
 
-1. **يستخدم `openai/gpt-5.5` مع `temperature: 0.2`** — نماذج GPT-5 لا تدعم `temperature` مخصصاً، والقيمة تُتجاهل أو تُسبب سلوكاً غير متوقع.
-2. **بدون `reasoning_effort`** — قد يُدخل النموذج في وضع تفكير طويل يُخرج محتوى غير متسق.
-3. **حارس المحادثة `looksConversational` ضعيف** — لا يلتقط ردوداً مثل "مرحباً أحمد!".
-4. **حارس الأحرف العشوائية غير موجود** — إذا خرج النموذج بأحرف مكسورة فلا نكتشفها ولا نعيد المحاولة.
+| Full name (AR) | Role | Username | Password |
+|---|---|---|---|
+| محمد غياث شنن | Master Admin | `ghiath` | `Ghiath!Master2026` |
+| أحمد حج خلف | Admin (Technical) | `ahmad.hajkhalaf` | `Ahmad!Tech2026` |
+| محمد أنيس | Admin (Administration) | `anas` | `Anas!Admin2026` |
+| رويدة مكية | Member | `rawida` | `Rawida!Member2026` |
+| حسن عاشور | Member | `hasan` | `Hasan!Member2026` |
+| عبدالله قوقو | Member | `abdullah` | `Abdullah!Member2026` |
 
-## الخطة
+Login uses the **Name/Username** field on the sign-in page + password.
 
-### 1. تصحيح استدعاء النموذج (`src/lib/notes-ai.functions.ts`)
-- التحويل إلى `google/gemini-2.5-flash` — أخف، أسرع، وأثبت للترجمة (مؤكد أنه يعمل على البوابة).
-- إبقاء `temperature` صالحاً للنموذج الجديد.
-- تشديد التعليمات: إذا كان النص المُدخل عبارة عن أحرف عشوائية، يجب على النموذج إعادته كما هو داخل `<p>` بدون أي رد.
+## Steps
+1. Delete existing auth users (Zizo, Client, Ahmad, ahmad sabagh) and their `profiles` rows (cascades clear related data).
+2. For each new user:
+   - Create the `auth.users` account with a synthetic email (`<username>@mechatro.local`) and the password above, email pre-confirmed.
+   - Insert/update `public.profiles` with `full_name` (Arabic), `username` (English), `role` (`admin` / `member`), `is_master_admin` for Ghiath, `status='active'`, `active=true`.
+3. Update `app_config.master_admin_email` to Ghiath's synthetic email so master-admin sync stays correct.
+4. Verify with a read query that all 6 profiles exist with correct roles and `resolve_login_email` returns the right email for each username.
 
-### 2. تقوية حارس الرد المحادثاتي
-- إضافة أنماط جديدة: `مرحباً`, `مرحبا`, أي رد يبدأ بـ "Hi/Hello Ahmed" أو `مرحباً <اسم>`.
-- كشف "الأحرف المكسورة": إذا كان الخرج > 80% من نفس المقطع المتكرر (مثل `مط مط مط`) نعتبره فاشلاً.
-- عند الفشل: إعادة محاولة واحدة بتعليمات أكثر صرامة، ثم إذا فشلت الترجمة نُرجع رسالة خطأ واضحة `aiCannotTranslate` بدلاً من إدراج نص مكسور في المحرر.
-
-### 3. رسائل i18n
-- إضافة مفتاح `aiCannotTranslate` (EN/AR): "لم يتمكن المساعد من ترجمة هذا النص. حاول تحديد نص أوضح."
-
-### 4. لا تغييرات في الواجهة
-- `AiMenu.tsx` يبقى كما هو؛ سيلتقط تلقائياً رسالة الخطأ الجديدة عبر `toast.error`.
-
-## الملفات المتأثرة
-- `src/lib/notes-ai.functions.ts` (تعديل)
-- `src/i18n/dict.ts` (إضافة مفتاحين)
-
-## خارج النطاق
-- لا تغيير في نظام النسخ الاحتياطي.
-- لا تغيير في مكونات المحرر أو أزرار الذكاء الاصطناعي الأخرى (لكنها ستستفيد من نفس التحسينات لأنها تمر بنفس الدالة).
+## Notes
+- Emails are synthetic (`@mechatro.local`) since sign-in is by username; users won't need to receive email.
+- Passwords are shown once here — save them; they aren't recoverable from the DB.
+- Any prior tasks/notes/points owned by the removed users will be deleted via FK cascade.
