@@ -11,11 +11,11 @@ export const Route = createFileRoute("/_authenticated/finance")({
     if (!data.user) throw redirect({ to: "/auth" });
     const { data: prof } = await supabase
       .from("profiles")
-      .select("role, is_master_admin, is_finance_admin")
+      .select("role, is_master_admin")
       .eq("id", data.user.id)
       .maybeSingle();
-    const ok = prof?.is_master_admin || prof?.role === "admin" || prof?.is_finance_admin;
-    if (!ok) throw redirect({ to: "/" });
+    // Finance is Master-only.
+    if (!prof?.is_master_admin) throw redirect({ to: "/" });
   },
   component: FinanceLayout,
 });
