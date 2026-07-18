@@ -51,7 +51,6 @@ const NAV_SECTIONS: NavSection[] = [
     titleKey: "teamSection",
     icon: UsersRound,
     items: [
-      { to: "/team",   icon: Users,   key: "team" },
       { to: "/league", icon: Trophy,  key: "league" },
     ],
   },
@@ -84,6 +83,7 @@ const NAV_SECTIONS: NavSection[] = [
     icon: ShieldCheck,
     adminOnly: true,
     items: [
+      { to: "/team",           icon: Users,    key: "team" },
       { to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } },
       { to: "/share-links",    icon: Share2,   key: null, label: { ar: "روابط المشاركة", en: "Share Links" } },
     ],
