@@ -327,10 +327,14 @@ function InvoiceEditorPage() {
           </select>
         </Field>
         <Field label={t("invoiceDate")}>
-          <input type="date" disabled={!isEditable} value={issueDate} onChange={(e) => setIssueDate(e.target.value)} style={inp} />
+          {isEditable
+            ? <DatePickerField value={issueDate} onChange={setIssueDate} lang={lang} />
+            : <div style={{ ...inp, opacity: 0.7 }}>{issueDate ? formatDate(issueDate, lang) : "—"}</div>}
         </Field>
         <Field label={t("dueDate")}>
-          <input type="date" disabled={!isEditable} value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={inp} />
+          {isEditable
+            ? <DatePickerField value={dueDate} onChange={setDueDate} lang={lang} placeholder={lang === "ar" ? "بدون تاريخ" : "No due date"} />
+            : <div style={{ ...inp, opacity: 0.7 }}>{dueDate ? formatDate(dueDate, lang) : "—"}</div>}
         </Field>
         <Field label={t("currency")}>
           <select disabled={!isEditable} value={currency} onChange={(e) => setCurrency(e.target.value as Currency)} style={inp}>
