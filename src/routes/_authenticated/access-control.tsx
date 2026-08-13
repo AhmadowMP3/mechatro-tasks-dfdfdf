@@ -69,7 +69,7 @@ async function call(body: Record<string, unknown>) {
 
 
 function AccessControlPage() {
-  const { lang } = useApp();
+  const { lang, isMasterAdmin } = useApp();
   const l = lang === "ar";
   const [users, setUsers] = useState<UserRow[] | null>(null);
   const [showInvite, setShowInvite] = useState(false);
