@@ -30,3 +30,11 @@ Two new abilities: every signed-in user can change their own password, and admin
 - `src/components/layout/Sidebar.tsx` — key button + new `ChangePasswordModal`
 - `src/routes/_authenticated/access-control.tsx` — row action, reset dialog
 - `supabase/functions/admin-users/index.ts` — `set_password` action
+
+## Pre-existing build errors to fix in the same pass
+
+Three type errors from earlier work currently block the build and will be fixed alongside this change:
+
+- `activity.tsx` — search-param updater typing (optional vs required fields)
+- `finance.invoices.index.tsx` — link to a `/finance/invoices/new` route that does not exist
+- `index.tsx` — `/activity` link missing the required `search` prop
