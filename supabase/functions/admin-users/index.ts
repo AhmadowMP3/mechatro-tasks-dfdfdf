@@ -27,6 +27,26 @@ function errMsg(e: unknown): string {
   return String(e);
 }
 
+// ─── Input safety (defense in depth; the client sanitizes too) ───
+const CTRL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+const INVIS_RE = /[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function sText(value: unknown, maxLength = 500): string {
+  if (value === null || value === undefined) return "";
+  let s = String(value).replace(CTRL_RE, "").replace(INVIS_RE, "");
+  s = s.replace(/<[^>]*>/g, "");
+  s = s.replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"')
+       .replace(/&#39;/g, "'").replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&");
+  s = s.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  return s.length > maxLength ? s.slice(0, maxLength).trim() : s;
+}
+
+function sUuid(value: unknown): string {
+  const s = String(value ?? "").trim();
+  return UUID_RE.test(s) ? s : "";
+}
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
