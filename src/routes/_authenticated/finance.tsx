@@ -2,6 +2,9 @@ import { createFileRoute, redirect, Outlet, Link, useRouterState } from "@tansta
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { BarChart3, FileText, Building2, TrendingDown, TrendingUp, Settings as SettingsIcon, Wallet, Repeat, FileBarChart2 } from "lucide-react";
+import { FinanceVaultProvider, useFinanceVault } from "@/lib/finance/vault-context";
+import { FinanceLockGate } from "@/components/finance/FinanceLockGate";
+import { Lock } from "lucide-react";
 import "@/styles/finance.css";
 
 export const Route = createFileRoute("/_authenticated/finance")({
@@ -32,7 +35,37 @@ const TABS = [
   { to: "/finance/settings", label: { ar: "إعدادات", en: "Settings" }, icon: SettingsIcon },
 ];
 
-function FinanceLayout() {
+function LockButton() {
+  const { lang } = useApp();
+  const { status, lock } = useFinanceVault();
+  if (status !== "unlocked") return null;
+  return (
+    <button
+      type="button"
+      onClick={lock}
+      title={lang === "ar" ? "قفل الخزنة" : "Lock vault"}
+      style={{
+        marginInlineStart: "auto",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+        padding: "8px 14px",
+        borderRadius: 11,
+        color: "var(--foreground)",
+        background: "transparent",
+        border: "1px solid var(--border)",
+        cursor: "pointer",
+      }}
+    >
+      <Lock size={16} />
+      {lang === "ar" ? "قفل" : "Lock"}
+    </button>
+  );
+}
+
+function FinanceLayoutInner() {
   const { lang } = useApp();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const ar = lang === "ar";
@@ -82,10 +115,21 @@ function FinanceLayout() {
             </Link>
           );
         })}
+        <LockButton />
       </div>
       <div className="finance-root" style={{ padding: 20 }}>
-        <Outlet />
+        <FinanceLockGate>
+          <Outlet />
+        </FinanceLockGate>
       </div>
     </div>
+  );
+}
+
+function FinanceLayout() {
+  return (
+    <FinanceVaultProvider>
+      <FinanceLayoutInner />
+    </FinanceVaultProvider>
   );
 }
