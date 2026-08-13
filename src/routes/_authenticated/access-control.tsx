@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ShieldCheck, LinkIcon, Link2, MoreVertical, Trash2, Pause, Play, Check, Crown, User as UserIcon, X,
-  Copy, Clock, Mail, Sparkles, RefreshCw, Ban, Share2,
+  Copy, Clock, Mail, Sparkles, RefreshCw, Ban, Share2, KeyRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { useConfirm } from "@/components/confirm-dialog";
+import { SetPasswordDialog } from "@/components/SetPasswordDialog";
 
 
 export const Route = createFileRoute("/_authenticated/access-control")({
@@ -68,7 +69,7 @@ async function call(body: Record<string, unknown>) {
 
 
 function AccessControlPage() {
-  const { lang } = useApp();
+  const { lang, isMasterAdmin } = useApp();
   const l = lang === "ar";
   const [users, setUsers] = useState<UserRow[] | null>(null);
   const [showInvite, setShowInvite] = useState(false);
@@ -358,7 +359,14 @@ function AccessControlPage() {
             )}
 
             {!u.is_master_admin && (
-              <UserMenu user={u} lang={lang} busy={busyId === u.id} onAction={(a, extra) => act(a, u.id, extra)} />
+              <UserMenu
+                user={u}
+                lang={lang}
+                busy={busyId === u.id}
+                canResetPassword={isMasterAdmin || u.role !== "admin"}
+                onSetPassword={async (password) => { await call({ action: "set_password", user_id: u.id, password }); }}
+                onAction={(a, extra) => act(a, u.id, extra)}
+              />
             )}
           </div>
           );
@@ -396,11 +404,14 @@ function StatusPill({ status, lang }: { status: UserRow["status"]; lang: "ar" | 
 }
 
 
-function UserMenu({ user, lang, busy, onAction }: {
+function UserMenu({ user, lang, busy, canResetPassword, onSetPassword, onAction }: {
   user: UserRow; lang: "ar" | "en"; busy: boolean;
+  canResetPassword: boolean;
+  onSetPassword: (password: string) => Promise<void>;
   onAction: (a: "suspend" | "activate" | "delete", extra?: Record<string, unknown>) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
   const [showReason, setShowReason] = useState(false);
   const [reason, setReason] = useState("");
   const confirm = useConfirm();
@@ -429,6 +440,10 @@ function UserMenu({ user, lang, busy, onAction }: {
               <MenuItem icon={Play} label={l ? "تفعيل" : "Activate"}
                 onClick={() => { setOpen(false); onAction("activate"); }} />
             )}
+            {canResetPassword && (
+              <MenuItem icon={KeyRound} label={l ? "تعيين كلمة مرور" : "Reset password"}
+                onClick={() => { setOpen(false); setPwOpen(true); }} />
+            )}
             <MenuItem icon={Trash2} danger label={l ? "حذف نهائي" : "Delete permanently"}
               onClick={async () => {
                 if (await confirm({ message: l ? "حذف هذا المستخدم نهائيًا؟" : "Delete this user permanently?", danger: true, confirmText: l ? "حذف" : "Delete" })) {
@@ -437,6 +452,15 @@ function UserMenu({ user, lang, busy, onAction }: {
               }} />
           </div>
         </>
+      )}
+
+      {pwOpen && (
+        <SetPasswordDialog
+          userName={user.full_name}
+          lang={lang}
+          onSave={onSetPassword}
+          onClose={() => setPwOpen(false)}
+        />
       )}
 
       {showReason && (

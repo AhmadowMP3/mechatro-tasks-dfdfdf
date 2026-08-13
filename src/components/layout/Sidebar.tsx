@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2, Eye, Pencil, Crown, UserPlus, ChevronDown, Compass, Briefcase, UsersRound, BarChart3, UserCog, Wallet, Receipt, TrendingDown, TrendingUp, Building2, StickyNote } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2, Eye, Pencil, Crown, UserPlus, ChevronDown, KeyRound, Compass, Briefcase, UsersRound, BarChart3, UserCog, Wallet, Receipt, TrendingDown, TrendingUp, Building2, StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import logo from "@/assets/mechatro-logo.png";
 import type { DictKey } from "@/i18n/dict";
 import { isShareMode, getShareLink } from "@/lib/share-mode";
 import { InstallAppButton } from "@/components/InstallAppButton";
+import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 
 
 type NavItem = {
@@ -106,6 +107,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const shareMode = isShareMode();
   const shareLink = getShareLink();
   const [editOpen, setEditOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
   const email = user?.email ?? session?.user?.email ?? "";
 
   // Per-section collapse state, persisted to localStorage.
@@ -213,6 +215,19 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
                   <Pencil size={14} />
                 </button>
               )}
+              {!shareMode && (
+                <button
+                  onClick={() => setPwOpen(true)}
+                  aria-label={lang === "ar" ? "تغيير كلمة المرور" : "Change password"}
+                  title={lang === "ar" ? "تغيير كلمة المرور" : "Change password"}
+                  style={{
+                    background: "transparent", border: "none", color: "var(--muted)",
+                    cursor: "pointer", padding: 4, borderRadius: 6, display: "inline-flex",
+                  }}
+                >
+                  <KeyRound size={14} />
+                </button>
+              )}
             </div>
             {email && (
               <div dir="ltr" style={{ fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
@@ -234,6 +249,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             </div>
           </div>
         </div>
+      )}
+
+      {pwOpen && user && (
+        <ChangePasswordModal lang={lang} onClose={() => setPwOpen(false)} />
       )}
 
       {editOpen && user && (

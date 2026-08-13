@@ -301,7 +301,7 @@ function Dashboard() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <h2 style={{ fontSize: 17, margin: 0 }}>{t("recentActivity")}</h2>
           {isAdmin && (
-            <Link to="/activity" style={{ fontSize: 13, color: "var(--brand-blue)", textDecoration: "none" }}>
+            <Link to="/activity" search={{ q: "", user: "", action: "", entity: "", range: "7d", from: "", to: "" }} style={{ fontSize: 13, color: "var(--brand-blue)", textDecoration: "none" }}>
               {t("activityLog")} →
             </Link>
           )}

@@ -101,6 +101,29 @@ Deno.serve(async (req) => {
         return json(200, { ok: true });
       }
 
+      case "set_password": {
+        const user_id = String(body.user_id ?? "");
+        const password = String(body.password ?? "");
+        if (!user_id) return json(400, { error: "user_id required" });
+        if (password.length < 8 || password.length > 72) {
+          return json(400, { error: "password must be 8-72 characters" });
+        }
+        const { data: t } = await admin
+          .from("profiles").select("is_master_admin, role").eq("id", user_id).maybeSingle();
+        if (!t) return json(404, { error: "user not found" });
+        if (user_id === me.id) return json(400, { error: "use your own account settings to change your password" });
+        if (!me.is_master_admin && (t.is_master_admin || t.role === "admin")) {
+          return json(403, { error: "only the master admin can reset an admin's password" });
+        }
+        const { error } = await admin.auth.admin.updateUserById(user_id, { password });
+        if (error) throw error;
+        await admin.from("activity_log").insert({
+          actor_id: me.id, action: "password_reset",
+          entity_type: "auth", entity_id: user_id, meta: { by: "admin" },
+        });
+        return json(200, { ok: true });
+      }
+
       case "approve": {
         const user_id = String(body.user_id ?? "");
         const role = String(body.role ?? "member") === "admin" ? "admin" : "member";
