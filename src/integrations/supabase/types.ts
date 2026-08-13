@@ -118,13 +118,14 @@ export type Database = {
       }
       customers: {
         Row: {
-          active: boolean
+          active: boolean | null
           address: string | null
           company: string | null
           created_at: string
           created_by: string | null
-          default_currency: Database["public"]["Enums"]["currency_code"]
+          default_currency: Database["public"]["Enums"]["currency_code"] | null
           email: string | null
+          enc: string | null
           id: string
           name_ar: string | null
           name_en: string | null
@@ -134,13 +135,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          active?: boolean
+          active?: boolean | null
           address?: string | null
           company?: string | null
           created_at?: string
           created_by?: string | null
-          default_currency?: Database["public"]["Enums"]["currency_code"]
+          default_currency?: Database["public"]["Enums"]["currency_code"] | null
           email?: string | null
+          enc?: string | null
           id?: string
           name_ar?: string | null
           name_en?: string | null
@@ -150,13 +152,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          active?: boolean
+          active?: boolean | null
           address?: string | null
           company?: string | null
           created_at?: string
           created_by?: string | null
-          default_currency?: Database["public"]["Enums"]["currency_code"]
+          default_currency?: Database["public"]["Enums"]["currency_code"] | null
           email?: string | null
+          enc?: string | null
           id?: string
           name_ar?: string | null
           name_en?: string | null
@@ -169,95 +172,101 @@ export type Database = {
       }
       expense_categories: {
         Row: {
-          active: boolean
+          active: boolean | null
           color: string | null
           created_at: string
+          enc: string | null
           icon: string | null
           id: string
-          name_ar: string
-          name_en: string
-          sort_order: number
+          name_ar: string | null
+          name_en: string | null
+          sort_order: number | null
         }
         Insert: {
-          active?: boolean
+          active?: boolean | null
           color?: string | null
           created_at?: string
+          enc?: string | null
           icon?: string | null
           id?: string
-          name_ar: string
-          name_en: string
-          sort_order?: number
+          name_ar?: string | null
+          name_en?: string | null
+          sort_order?: number | null
         }
         Update: {
-          active?: boolean
+          active?: boolean | null
           color?: string | null
           created_at?: string
+          enc?: string | null
           icon?: string | null
           id?: string
-          name_ar?: string
-          name_en?: string
-          sort_order?: number
+          name_ar?: string | null
+          name_en?: string | null
+          sort_order?: number | null
         }
         Relationships: []
       }
       expenses: {
         Row: {
-          amount: number
+          amount: number | null
           category_id: string | null
           created_at: string
           created_by: string | null
-          currency: Database["public"]["Enums"]["currency_code"]
+          currency: Database["public"]["Enums"]["currency_code"] | null
           description_ar: string | null
           description_en: string | null
+          enc: string | null
           exchange_rate_to_usd: number | null
-          expense_date: string
+          expense_date: string | null
           id: string
-          method: Database["public"]["Enums"]["payment_method"]
+          method: Database["public"]["Enums"]["payment_method"] | null
           notes: string | null
           project_id: string | null
           receipt_path: string | null
           reference: string | null
-          status: Database["public"]["Enums"]["expense_status"]
+          status: Database["public"]["Enums"]["expense_status"] | null
           updated_at: string
           vendor: string | null
         }
         Insert: {
-          amount: number
+          amount?: number | null
           category_id?: string | null
           created_at?: string
           created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
           description_ar?: string | null
           description_en?: string | null
+          enc?: string | null
           exchange_rate_to_usd?: number | null
-          expense_date?: string
+          expense_date?: string | null
           id?: string
-          method?: Database["public"]["Enums"]["payment_method"]
+          method?: Database["public"]["Enums"]["payment_method"] | null
           notes?: string | null
           project_id?: string | null
           receipt_path?: string | null
           reference?: string | null
-          status?: Database["public"]["Enums"]["expense_status"]
+          status?: Database["public"]["Enums"]["expense_status"] | null
           updated_at?: string
           vendor?: string | null
         }
         Update: {
-          amount?: number
+          amount?: number | null
           category_id?: string | null
           created_at?: string
           created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
           description_ar?: string | null
           description_en?: string | null
+          enc?: string | null
           exchange_rate_to_usd?: number | null
-          expense_date?: string
+          expense_date?: string | null
           id?: string
-          method?: Database["public"]["Enums"]["payment_method"]
+          method?: Database["public"]["Enums"]["payment_method"] | null
           notes?: string | null
           project_id?: string | null
           receipt_path?: string | null
           reference?: string | null
-          status?: Database["public"]["Enums"]["expense_status"]
+          status?: Database["public"]["Enums"]["expense_status"] | null
           updated_at?: string
           vendor?: string | null
         }
@@ -305,6 +314,36 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_vault_meta: {
+        Row: {
+          created_at: string
+          encrypted_at: string | null
+          id: boolean
+          kdf_iterations: number
+          kdf_salt: string
+          updated_at: string
+          verifier: string
+        }
+        Insert: {
+          created_at?: string
+          encrypted_at?: string | null
+          id?: boolean
+          kdf_iterations?: number
+          kdf_salt: string
+          updated_at?: string
+          verifier: string
+        }
+        Update: {
+          created_at?: string
+          encrypted_at?: string | null
+          id?: boolean
+          kdf_iterations?: number
+          kdf_salt?: string
+          updated_at?: string
+          verifier?: string
+        }
+        Relationships: []
+      }
       financial_settings: {
         Row: {
           bank_details_ar: string | null
@@ -315,11 +354,12 @@ export type Database = {
           company_name_ar: string | null
           company_name_en: string | null
           company_phone: string | null
-          default_currency: Database["public"]["Enums"]["currency_code"]
-          default_tax_rate: number
+          default_currency: Database["public"]["Enums"]["currency_code"] | null
+          default_tax_rate: number | null
+          enc: string | null
           id: boolean
           invoice_next_number: number
-          invoice_number_prefix: string
+          invoice_number_prefix: string | null
           invoice_terms_ar: string | null
           invoice_terms_en: string | null
           signature_url: string | null
@@ -336,11 +376,12 @@ export type Database = {
           company_name_ar?: string | null
           company_name_en?: string | null
           company_phone?: string | null
-          default_currency?: Database["public"]["Enums"]["currency_code"]
-          default_tax_rate?: number
+          default_currency?: Database["public"]["Enums"]["currency_code"] | null
+          default_tax_rate?: number | null
+          enc?: string | null
           id?: boolean
           invoice_next_number?: number
-          invoice_number_prefix?: string
+          invoice_number_prefix?: string | null
           invoice_terms_ar?: string | null
           invoice_terms_en?: string | null
           signature_url?: string | null
@@ -357,11 +398,12 @@ export type Database = {
           company_name_ar?: string | null
           company_name_en?: string | null
           company_phone?: string | null
-          default_currency?: Database["public"]["Enums"]["currency_code"]
-          default_tax_rate?: number
+          default_currency?: Database["public"]["Enums"]["currency_code"] | null
+          default_tax_rate?: number | null
+          enc?: string | null
           id?: boolean
           invoice_next_number?: number
-          invoice_number_prefix?: string
+          invoice_number_prefix?: string | null
           invoice_terms_ar?: string | null
           invoice_terms_en?: string | null
           signature_url?: string | null
@@ -375,76 +417,82 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
-          effective_date: string
+          effective_date: string | null
+          enc: string | null
           id: string
           note: string | null
-          syp_per_usd: number
+          syp_per_usd: number | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
-          effective_date: string
+          effective_date?: string | null
+          enc?: string | null
           id?: string
           note?: string | null
-          syp_per_usd: number
+          syp_per_usd?: number | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
-          effective_date?: string
+          effective_date?: string | null
+          enc?: string | null
           id?: string
           note?: string | null
-          syp_per_usd?: number
+          syp_per_usd?: number | null
         }
         Relationships: []
       }
       income_entries: {
         Row: {
-          amount: number
+          amount: number | null
           category: string | null
           created_at: string
           created_by: string | null
-          currency: Database["public"]["Enums"]["currency_code"]
+          currency: Database["public"]["Enums"]["currency_code"] | null
           description_ar: string | null
           description_en: string | null
+          enc: string | null
           exchange_rate_to_usd: number | null
           id: string
-          income_date: string
-          method: Database["public"]["Enums"]["payment_method"]
+          income_date: string | null
+          method: Database["public"]["Enums"]["payment_method"] | null
           notes: string | null
           reference: string | null
           source: string | null
           updated_at: string
         }
         Insert: {
-          amount: number
+          amount?: number | null
           category?: string | null
           created_at?: string
           created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
           description_ar?: string | null
           description_en?: string | null
+          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
-          income_date?: string
-          method?: Database["public"]["Enums"]["payment_method"]
+          income_date?: string | null
+          method?: Database["public"]["Enums"]["payment_method"] | null
           notes?: string | null
           reference?: string | null
           source?: string | null
           updated_at?: string
         }
         Update: {
-          amount?: number
+          amount?: number | null
           category?: string | null
           created_at?: string
           created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
           description_ar?: string | null
           description_en?: string | null
+          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
-          income_date?: string
-          method?: Database["public"]["Enums"]["payment_method"]
+          income_date?: string | null
+          method?: Database["public"]["Enums"]["payment_method"] | null
           notes?: string | null
           reference?: string | null
           source?: string | null
@@ -539,35 +587,38 @@ export type Database = {
         Row: {
           description_ar: string | null
           description_en: string | null
-          discount_amount: number
+          discount_amount: number | null
+          enc: string | null
           id: string
           invoice_id: string
-          line_total: number
-          quantity: number
-          sort_order: number
-          unit_price: number
+          line_total: number | null
+          quantity: number | null
+          sort_order: number | null
+          unit_price: number | null
         }
         Insert: {
           description_ar?: string | null
           description_en?: string | null
-          discount_amount?: number
+          discount_amount?: number | null
+          enc?: string | null
           id?: string
           invoice_id: string
-          line_total?: number
-          quantity?: number
-          sort_order?: number
-          unit_price?: number
+          line_total?: number | null
+          quantity?: number | null
+          sort_order?: number | null
+          unit_price?: number | null
         }
         Update: {
           description_ar?: string | null
           description_en?: string | null
-          discount_amount?: number
+          discount_amount?: number | null
+          enc?: string | null
           id?: string
           invoice_id?: string
-          line_total?: number
-          quantity?: number
-          sort_order?: number
-          unit_price?: number
+          line_total?: number | null
+          quantity?: number | null
+          sort_order?: number | null
+          unit_price?: number | null
         }
         Relationships: [
           {
@@ -581,43 +632,46 @@ export type Database = {
       }
       invoice_payments: {
         Row: {
-          amount: number
+          amount: number | null
           created_at: string
-          currency: Database["public"]["Enums"]["currency_code"]
+          currency: Database["public"]["Enums"]["currency_code"] | null
+          enc: string | null
           exchange_rate_to_usd: number | null
           id: string
           invoice_id: string
-          method: Database["public"]["Enums"]["payment_method"]
+          method: Database["public"]["Enums"]["payment_method"] | null
           notes: string | null
-          paid_at: string
+          paid_at: string | null
           proof_path: string | null
           recorded_by: string | null
           reference: string | null
         }
         Insert: {
-          amount: number
+          amount?: number | null
           created_at?: string
-          currency: Database["public"]["Enums"]["currency_code"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
           invoice_id: string
-          method?: Database["public"]["Enums"]["payment_method"]
+          method?: Database["public"]["Enums"]["payment_method"] | null
           notes?: string | null
-          paid_at?: string
+          paid_at?: string | null
           proof_path?: string | null
           recorded_by?: string | null
           reference?: string | null
         }
         Update: {
-          amount?: number
+          amount?: number | null
           created_at?: string
-          currency?: Database["public"]["Enums"]["currency_code"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
           invoice_id?: string
-          method?: Database["public"]["Enums"]["payment_method"]
+          method?: Database["public"]["Enums"]["payment_method"] | null
           notes?: string | null
-          paid_at?: string
+          paid_at?: string | null
           proof_path?: string | null
           recorded_by?: string | null
           reference?: string | null
@@ -634,78 +688,81 @@ export type Database = {
       }
       invoices: {
         Row: {
-          amount_paid: number
+          amount_paid: number | null
           created_at: string
           created_by: string | null
-          currency: Database["public"]["Enums"]["currency_code"]
-          customer_id: string
-          discount_amount: number
+          currency: Database["public"]["Enums"]["currency_code"] | null
+          customer_id: string | null
+          discount_amount: number | null
           due_date: string | null
+          enc: string | null
           exchange_rate_to_usd: number | null
           id: string
-          issue_date: string
+          issue_date: string | null
           notes_ar: string | null
           notes_en: string | null
-          number: string
+          number: string | null
           pdf_path: string | null
           project_id: string | null
-          status: Database["public"]["Enums"]["invoice_status"]
-          subtotal: number
-          tax_amount: number
-          tax_rate: number
+          status: Database["public"]["Enums"]["invoice_status"] | null
+          subtotal: number | null
+          tax_amount: number | null
+          tax_rate: number | null
           terms_ar: string | null
           terms_en: string | null
-          total: number
+          total: number | null
           updated_at: string
         }
         Insert: {
-          amount_paid?: number
+          amount_paid?: number | null
           created_at?: string
           created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
-          customer_id: string
-          discount_amount?: number
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          customer_id?: string | null
+          discount_amount?: number | null
           due_date?: string | null
+          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
-          issue_date?: string
+          issue_date?: string | null
           notes_ar?: string | null
           notes_en?: string | null
-          number: string
+          number?: string | null
           pdf_path?: string | null
           project_id?: string | null
-          status?: Database["public"]["Enums"]["invoice_status"]
-          subtotal?: number
-          tax_amount?: number
-          tax_rate?: number
+          status?: Database["public"]["Enums"]["invoice_status"] | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          tax_rate?: number | null
           terms_ar?: string | null
           terms_en?: string | null
-          total?: number
+          total?: number | null
           updated_at?: string
         }
         Update: {
-          amount_paid?: number
+          amount_paid?: number | null
           created_at?: string
           created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
-          customer_id?: string
-          discount_amount?: number
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          customer_id?: string | null
+          discount_amount?: number | null
           due_date?: string | null
+          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
-          issue_date?: string
+          issue_date?: string | null
           notes_ar?: string | null
           notes_en?: string | null
-          number?: string
+          number?: string | null
           pdf_path?: string | null
           project_id?: string | null
-          status?: Database["public"]["Enums"]["invoice_status"]
-          subtotal?: number
-          tax_amount?: number
-          tax_rate?: number
+          status?: Database["public"]["Enums"]["invoice_status"] | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          tax_rate?: number | null
           terms_ar?: string | null
           terms_en?: string | null
-          total?: number
+          total?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -920,35 +977,38 @@ export type Database = {
       }
       member_salary_settings: {
         Row: {
-          base_salary: number
+          base_salary: number | null
           created_at: string
-          currency: Database["public"]["Enums"]["currency_code"]
+          currency: Database["public"]["Enums"]["currency_code"] | null
+          enc: string | null
           notes: string | null
-          other_fixed_allowance: number
-          points_bonus_rate: number
-          transport_allowance: number
+          other_fixed_allowance: number | null
+          points_bonus_rate: number | null
+          transport_allowance: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          base_salary?: number
+          base_salary?: number | null
           created_at?: string
-          currency?: Database["public"]["Enums"]["currency_code"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          enc?: string | null
           notes?: string | null
-          other_fixed_allowance?: number
-          points_bonus_rate?: number
-          transport_allowance?: number
+          other_fixed_allowance?: number | null
+          points_bonus_rate?: number | null
+          transport_allowance?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          base_salary?: number
+          base_salary?: number | null
           created_at?: string
-          currency?: Database["public"]["Enums"]["currency_code"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          enc?: string | null
           notes?: string | null
-          other_fixed_allowance?: number
-          points_bonus_rate?: number
-          transport_allowance?: number
+          other_fixed_allowance?: number | null
+          points_bonus_rate?: number | null
+          transport_allowance?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -1278,65 +1338,68 @@ export type Database = {
       }
       payroll_entries: {
         Row: {
-          base_salary: number
+          base_salary: number | null
           created_at: string
-          currency: Database["public"]["Enums"]["currency_code"]
-          deductions: number
+          currency: Database["public"]["Enums"]["currency_code"] | null
+          deductions: number | null
+          enc: string | null
           id: string
-          manual_bonus: number
-          net_amount: number
+          manual_bonus: number | null
+          net_amount: number | null
           notes: string | null
-          other_allowance: number
+          other_allowance: number | null
           paid_at: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           period_id: string
-          points_bonus: number
-          points_snapshot: number
-          streak_bonus: number
-          tasks_done_snapshot: number
-          transport_allowance: number
+          points_bonus: number | null
+          points_snapshot: number | null
+          streak_bonus: number | null
+          tasks_done_snapshot: number | null
+          transport_allowance: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          base_salary?: number
+          base_salary?: number | null
           created_at?: string
-          currency?: Database["public"]["Enums"]["currency_code"]
-          deductions?: number
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          deductions?: number | null
+          enc?: string | null
           id?: string
-          manual_bonus?: number
-          net_amount?: number
+          manual_bonus?: number | null
+          net_amount?: number | null
           notes?: string | null
-          other_allowance?: number
+          other_allowance?: number | null
           paid_at?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           period_id: string
-          points_bonus?: number
-          points_snapshot?: number
-          streak_bonus?: number
-          tasks_done_snapshot?: number
-          transport_allowance?: number
+          points_bonus?: number | null
+          points_snapshot?: number | null
+          streak_bonus?: number | null
+          tasks_done_snapshot?: number | null
+          transport_allowance?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          base_salary?: number
+          base_salary?: number | null
           created_at?: string
-          currency?: Database["public"]["Enums"]["currency_code"]
-          deductions?: number
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          deductions?: number | null
+          enc?: string | null
           id?: string
-          manual_bonus?: number
-          net_amount?: number
+          manual_bonus?: number | null
+          net_amount?: number | null
           notes?: string | null
-          other_allowance?: number
+          other_allowance?: number | null
           paid_at?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           period_id?: string
-          points_bonus?: number
-          points_snapshot?: number
-          streak_bonus?: number
-          tasks_done_snapshot?: number
-          transport_allowance?: number
+          points_bonus?: number | null
+          points_snapshot?: number | null
+          streak_bonus?: number | null
+          tasks_done_snapshot?: number | null
+          transport_allowance?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -1368,38 +1431,41 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          enc: string | null
           finalized_at: string | null
           id: string
-          month: number
+          month: number | null
           notes: string | null
           paid_at: string | null
-          status: Database["public"]["Enums"]["payroll_period_status"]
+          status: Database["public"]["Enums"]["payroll_period_status"] | null
           updated_at: string
-          year: number
+          year: number | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          enc?: string | null
           finalized_at?: string | null
           id?: string
-          month: number
+          month?: number | null
           notes?: string | null
           paid_at?: string | null
-          status?: Database["public"]["Enums"]["payroll_period_status"]
+          status?: Database["public"]["Enums"]["payroll_period_status"] | null
           updated_at?: string
-          year: number
+          year?: number | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          enc?: string | null
           finalized_at?: string | null
           id?: string
-          month?: number
+          month?: number | null
           notes?: string | null
           paid_at?: string | null
-          status?: Database["public"]["Enums"]["payroll_period_status"]
+          status?: Database["public"]["Enums"]["payroll_period_status"] | null
           updated_at?: string
-          year?: number
+          year?: number | null
         }
         Relationships: [
           {
@@ -1747,56 +1813,59 @@ export type Database = {
       }
       subscriptions_expense: {
         Row: {
-          amount: number
-          auto_create_expense: boolean
+          amount: number | null
+          auto_create_expense: boolean | null
           category: string | null
           created_at: string
           created_by: string | null
-          currency: Database["public"]["Enums"]["currency_code"]
-          cycle: Database["public"]["Enums"]["subscription_cycle"]
+          currency: Database["public"]["Enums"]["currency_code"] | null
+          cycle: Database["public"]["Enums"]["subscription_cycle"] | null
+          enc: string | null
           id: string
-          name: string
-          next_renewal_date: string
+          name: string | null
+          next_renewal_date: string | null
           notes: string | null
-          reminder_days: number
+          reminder_days: number | null
           start_date: string | null
-          status: Database["public"]["Enums"]["subscription_status"]
+          status: Database["public"]["Enums"]["subscription_status"] | null
           updated_at: string
           vendor: string | null
         }
         Insert: {
-          amount?: number
-          auto_create_expense?: boolean
+          amount?: number | null
+          auto_create_expense?: boolean | null
           category?: string | null
           created_at?: string
           created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
-          cycle?: Database["public"]["Enums"]["subscription_cycle"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          cycle?: Database["public"]["Enums"]["subscription_cycle"] | null
+          enc?: string | null
           id?: string
-          name: string
-          next_renewal_date: string
+          name?: string | null
+          next_renewal_date?: string | null
           notes?: string | null
-          reminder_days?: number
+          reminder_days?: number | null
           start_date?: string | null
-          status?: Database["public"]["Enums"]["subscription_status"]
+          status?: Database["public"]["Enums"]["subscription_status"] | null
           updated_at?: string
           vendor?: string | null
         }
         Update: {
-          amount?: number
-          auto_create_expense?: boolean
+          amount?: number | null
+          auto_create_expense?: boolean | null
           category?: string | null
           created_at?: string
           created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
-          cycle?: Database["public"]["Enums"]["subscription_cycle"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          cycle?: Database["public"]["Enums"]["subscription_cycle"] | null
+          enc?: string | null
           id?: string
-          name?: string
-          next_renewal_date?: string
+          name?: string | null
+          next_renewal_date?: string | null
           notes?: string | null
-          reminder_days?: number
+          reminder_days?: number | null
           start_date?: string | null
-          status?: Database["public"]["Enums"]["subscription_status"]
+          status?: Database["public"]["Enums"]["subscription_status"] | null
           updated_at?: string
           vendor?: string | null
         }
@@ -1819,57 +1888,60 @@ export type Database = {
       }
       subscriptions_income: {
         Row: {
-          amount: number
-          auto_create_invoice: boolean
+          amount: number | null
+          auto_create_invoice: boolean | null
           created_at: string
           created_by: string | null
-          currency: Database["public"]["Enums"]["currency_code"]
-          customer_id: string
-          cycle: Database["public"]["Enums"]["subscription_cycle"]
+          currency: Database["public"]["Enums"]["currency_code"] | null
+          customer_id: string | null
+          cycle: Database["public"]["Enums"]["subscription_cycle"] | null
           description: string | null
+          enc: string | null
           id: string
-          next_invoice_date: string
+          next_invoice_date: string | null
           notes: string | null
-          plan_name: string
-          reminder_days: number
-          start_date: string
-          status: Database["public"]["Enums"]["subscription_status"]
+          plan_name: string | null
+          reminder_days: number | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["subscription_status"] | null
           updated_at: string
         }
         Insert: {
-          amount?: number
-          auto_create_invoice?: boolean
+          amount?: number | null
+          auto_create_invoice?: boolean | null
           created_at?: string
           created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
-          customer_id: string
-          cycle?: Database["public"]["Enums"]["subscription_cycle"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          customer_id?: string | null
+          cycle?: Database["public"]["Enums"]["subscription_cycle"] | null
           description?: string | null
+          enc?: string | null
           id?: string
-          next_invoice_date: string
+          next_invoice_date?: string | null
           notes?: string | null
-          plan_name: string
-          reminder_days?: number
-          start_date?: string
-          status?: Database["public"]["Enums"]["subscription_status"]
+          plan_name?: string | null
+          reminder_days?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
           updated_at?: string
         }
         Update: {
-          amount?: number
-          auto_create_invoice?: boolean
+          amount?: number | null
+          auto_create_invoice?: boolean | null
           created_at?: string
           created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
-          customer_id?: string
-          cycle?: Database["public"]["Enums"]["subscription_cycle"]
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          customer_id?: string | null
+          cycle?: Database["public"]["Enums"]["subscription_cycle"] | null
           description?: string | null
+          enc?: string | null
           id?: string
-          next_invoice_date?: string
+          next_invoice_date?: string | null
           notes?: string | null
-          plan_name?: string
-          reminder_days?: number
-          start_date?: string
-          status?: Database["public"]["Enums"]["subscription_status"]
+          plan_name?: string | null
+          reminder_days?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
           updated_at?: string
         }
         Relationships: [
@@ -2373,6 +2445,7 @@ export type Database = {
         Returns: boolean
       }
       next_invoice_number: { Args: never; Returns: string }
+      next_invoice_seq: { Args: never; Returns: number }
       resolve_login_email: { Args: { p_name: string }; Returns: string }
       restore_full_snapshot: { Args: { payload: Json }; Returns: Json }
       sync_master_admin: { Args: never; Returns: undefined }

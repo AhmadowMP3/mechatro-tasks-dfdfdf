@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { vaultDb as supabase } from "@/lib/finance/vault-db";
 import { useApp } from "@/lib/app-context";
 import { formatMoney, invoiceStatusColor, invoiceStatusKey, type Invoice, type InvoiceStatus, type Customer } from "@/lib/finance";
 import { formatDate } from "@/lib/format";

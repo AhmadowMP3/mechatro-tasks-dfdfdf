@@ -1,27 +1,55 @@
 import type { Database } from "@/integrations/supabase/types";
 
+type Row<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"];
+
+/**
+ * Finance columns are nullable in the database because every value now lives
+ * inside the encrypted `enc` payload. The vault layer always hands back fully
+ * populated records, so we restore the original non-null shape here.
+ */
+type Req<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
+
 export type Currency = Database["public"]["Enums"]["currency_code"];
 export type InvoiceStatus = Database["public"]["Enums"]["invoice_status"];
 export type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 export type ExpenseStatus = Database["public"]["Enums"]["expense_status"];
 
-export type Customer = Database["public"]["Tables"]["customers"]["Row"];
-export type Invoice = Database["public"]["Tables"]["invoices"]["Row"];
-export type InvoiceItem = Database["public"]["Tables"]["invoice_items"]["Row"];
-export type InvoicePayment = Database["public"]["Tables"]["invoice_payments"]["Row"];
-export type Expense = Database["public"]["Tables"]["expenses"]["Row"];
-export type ExpenseCategory = Database["public"]["Tables"]["expense_categories"]["Row"];
-export type IncomeEntry = Database["public"]["Tables"]["income_entries"]["Row"];
-export type FxRate = Database["public"]["Tables"]["fx_rates"]["Row"];
-export type FinancialSettings = Database["public"]["Tables"]["financial_settings"]["Row"];
-export type MemberSalarySettings = Database["public"]["Tables"]["member_salary_settings"]["Row"];
-export type PayrollPeriod = Database["public"]["Tables"]["payroll_periods"]["Row"];
-export type PayrollEntry = Database["public"]["Tables"]["payroll_entries"]["Row"];
-export type SubscriptionExpense = Database["public"]["Tables"]["subscriptions_expense"]["Row"];
-export type SubscriptionIncome = Database["public"]["Tables"]["subscriptions_income"]["Row"];
+export type Customer = Req<Row<"customers">, "default_currency" | "active">;
+export type Invoice = Req<
+  Row<"invoices">,
+  "number" | "customer_id" | "issue_date" | "currency" | "subtotal" | "discount_amount" | "tax_rate" | "tax_amount" | "total" | "amount_paid" | "status"
+>;
+export type InvoiceItem = Req<Row<"invoice_items">, "quantity" | "unit_price" | "discount_amount" | "line_total" | "sort_order">;
+export type InvoicePayment = Req<Row<"invoice_payments">, "amount" | "currency" | "paid_at" | "method">;
+export type Expense = Req<Row<"expenses">, "expense_date" | "amount" | "currency" | "method" | "status">;
+export type ExpenseCategory = Req<Row<"expense_categories">, "name_ar" | "name_en" | "active" | "sort_order">;
+export type IncomeEntry = Req<Row<"income_entries">, "income_date" | "amount" | "currency" | "method">;
+export type FxRate = Req<Row<"fx_rates">, "effective_date" | "syp_per_usd">;
+export type FinancialSettings = Req<
+  Row<"financial_settings">,
+  "default_tax_rate" | "default_currency" | "invoice_number_prefix" | "invoice_next_number"
+>;
+export type MemberSalarySettings = Req<
+  Row<"member_salary_settings">,
+  "base_salary" | "currency" | "transport_allowance" | "other_fixed_allowance" | "points_bonus_rate"
+>;
+export type PayrollPeriod = Req<Row<"payroll_periods">, "year" | "month" | "status">;
+export type PayrollEntry = Req<
+  Row<"payroll_entries">,
+  "currency" | "base_salary" | "transport_allowance" | "other_allowance" | "points_bonus" | "streak_bonus" | "manual_bonus" | "deductions" | "net_amount" | "points_snapshot" | "tasks_done_snapshot"
+>;
+export type SubscriptionExpense = Req<
+  Row<"subscriptions_expense">,
+  "name" | "cycle" | "amount" | "currency" | "next_renewal_date" | "reminder_days" | "status" | "auto_create_expense"
+>;
+export type SubscriptionIncome = Req<
+  Row<"subscriptions_income">,
+  "customer_id" | "plan_name" | "cycle" | "amount" | "currency" | "start_date" | "next_invoice_date" | "status" | "auto_create_invoice" | "reminder_days"
+>;
 export type SubscriptionCycle = Database["public"]["Enums"]["subscription_cycle"];
 export type SubscriptionStatus = Database["public"]["Enums"]["subscription_status"];
 export type PayrollPeriodStatus = Database["public"]["Enums"]["payroll_period_status"];
+
 
 export function subscriptionCycleKey(c: SubscriptionCycle): "cycleMonthly" | "cycleQuarterly" | "cycleSemiannual" | "cycleAnnual" {
   switch (c) {
