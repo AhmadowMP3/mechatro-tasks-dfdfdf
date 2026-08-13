@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { detectIconFromUrl, faviconFor, isValidHttpUrl } from "@/lib/references";
 
@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { useConfirm } from "@/components/confirm-dialog";
+import { sanitizeUrl } from "@/lib/security/sanitize";
 
 export const Route = createFileRoute("/_authenticated/references")({ component: ReferencesPage });
 
@@ -468,7 +469,7 @@ function RefCard({ row, canManage, onPin, onEdit, onDelete, t, lang }: {
       {/* Actions */}
       <div style={{ display: "flex", gap: 6, padding: "10px 12px", borderTop: "1px solid var(--border)" }}>
         <a
-          href={row.url}
+          href={sanitizeUrl(row.url) || "#"}
           target="_blank"
           rel="noopener noreferrer"
           style={{

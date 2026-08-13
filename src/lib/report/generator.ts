@@ -1,7 +1,7 @@
 import type { ReportData } from "./data";
 import { buildReportHtml, buildBilingualHtml } from "./report-html";
 import type { Lang } from "@/i18n/dict";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 import montArabic from "@/assets/MontserratArabic-Regular.ttf.asset.json";
 import logoBundledUrl from "@/assets/mechatro-logo.png";
 

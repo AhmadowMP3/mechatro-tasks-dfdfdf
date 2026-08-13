@@ -22,7 +22,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { Avatar } from "@/components/Avatar";

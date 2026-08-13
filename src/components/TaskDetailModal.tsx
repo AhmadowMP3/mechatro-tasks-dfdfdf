@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { X, Play, Pause, MessageSquare, Link as LinkIcon, Trash2, ExternalLink, Send, Save, Star, Copy } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 import { useApp, type Profile } from "@/lib/app-context";
 import { StatusPill, PriorityPill, OverduePill } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
@@ -15,6 +15,7 @@ import { ThemedSelect } from "@/components/ui/ThemedSelect";
 import { AssigneeMultiSelect } from "@/components/ui/AssigneeMultiSelect";
 import { saveTaskAssignees } from "@/lib/task-assignees";
 import { AwardPointsPanel } from "@/components/tasks/AwardPointsPanel";
+import { sanitizeUrl } from "@/lib/security/sanitize";
 
 type Task = {
   id: string; project_id: string; title: string; description: string | null;
@@ -517,7 +518,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
                 <div style={{ fontWeight: 700 }}>{f.file_name}</div>
                 <div style={{ fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.drive_url}</div>
               </div>
-              <a href={f.drive_url} target="_blank" rel="noopener noreferrer" className="brand-btn-sm" style={{ background: "var(--grad-blue)", color: "#fff", textDecoration: "none" }}><ExternalLink size={16} /> {t("open")}</a>
+              <a href={sanitizeUrl(f.drive_url) || "#"} target="_blank" rel="noopener noreferrer" className="brand-btn-sm" style={{ background: "var(--grad-blue)", color: "#fff", textDecoration: "none" }}><ExternalLink size={16} /> {t("open")}</a>
               {canEdit && <button onClick={() => deleteLink(f.id)} aria-label={t("delete")} style={{ width: 44, height: 44, borderRadius: 10, background: "transparent", color: "#F0676A", cursor: "pointer", border: "1px solid var(--border)" }}><Trash2 size={16} style={{ margin: "auto" }} /></button>}
             </div>
           ))}

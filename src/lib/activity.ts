@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 
 // Canonical action vocabulary used across the app + Activity Log filters.
 export type ActivityAction =

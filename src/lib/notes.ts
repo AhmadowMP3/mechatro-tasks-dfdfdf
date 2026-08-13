@@ -2,7 +2,8 @@
 // Uses casted supabase queries because the generated types file has not yet
 // been regenerated with the new tables.
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
+import { sanitizeHtml, sanitizeText } from "@/lib/security/sanitize";
 
 export function errMsg(e: unknown): string {
   if (!e) return "Unknown error";
@@ -118,7 +119,12 @@ export async function createNote(ownerId: string): Promise<Note> {
 }
 
 export async function updateNote(id: string, patch: Partial<Note>): Promise<void> {
-  const { error } = await db.from("notes").update(patch).eq("id", id);
+  const clean: Partial<Note> = { ...patch };
+  if (typeof clean.title === "string") clean.title = sanitizeText(clean.title, { maxLength: 200 });
+  if (typeof clean.content_html === "string") clean.content_html = sanitizeHtml(clean.content_html);
+  if (typeof clean.content_text === "string") clean.content_text = sanitizeText(clean.content_text, { maxLength: 200000, multiline: true });
+  if (typeof clean.emoji === "string") clean.emoji = sanitizeText(clean.emoji, { maxLength: 8 });
+  const { error } = await db.from("notes").update(clean).eq("id", id);
   if (error) throw error;
 }
 
@@ -134,13 +140,13 @@ export async function listFolders(): Promise<NoteFolder[]> {
 }
 
 export async function createFolder(ownerId: string, name: string): Promise<NoteFolder> {
-  const { data, error } = await db.from("note_folders").insert({ owner_id: ownerId, name }).select("*").single();
+  const { data, error } = await db.from("note_folders").insert({ owner_id: ownerId, name: sanitizeText(name, { maxLength: 80 }) }).select("*").single();
   if (error) throw error;
   return data as NoteFolder;
 }
 
 export async function renameFolder(id: string, name: string): Promise<void> {
-  const { error } = await db.from("note_folders").update({ name }).eq("id", id);
+  const { error } = await db.from("note_folders").update({ name: sanitizeText(name, { maxLength: 80 }) }).eq("id", id);
   if (error) throw error;
 }
 
@@ -156,7 +162,7 @@ export async function listTags(): Promise<NoteTag[]> {
 }
 
 export async function createTag(ownerId: string, name: string, color = "blue"): Promise<NoteTag> {
-  const { data, error } = await db.from("note_tags").insert({ owner_id: ownerId, name, color }).select("*").single();
+  const { data, error } = await db.from("note_tags").insert({ owner_id: ownerId, name: sanitizeText(name, { maxLength: 40 }), color: sanitizeText(color, { maxLength: 20 }) }).select("*").single();
   if (error) throw error;
   return data as NoteTag;
 }
@@ -242,7 +248,7 @@ export async function signedAttachmentUrl(path: string): Promise<string | null> 
 export function htmlToPlain(html: string): string {
   if (typeof window === "undefined") return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   const div = document.createElement("div");
-  div.innerHTML = html;
+  div.innerHTML = sanitizeHtml(html);
   return (div.textContent ?? "").replace(/\s+/g, " ").trim();
 }
 
@@ -264,7 +270,7 @@ export async function listComments(noteId: string): Promise<NoteComment[]> {
   return (data ?? []) as NoteComment[];
 }
 export async function addComment(noteId: string, authorId: string, body: string): Promise<NoteComment> {
-  const { data, error } = await db.from("note_comments").insert({ note_id: noteId, author_id: authorId, body }).select("*").single();
+  const { data, error } = await db.from("note_comments").insert({ note_id: noteId, author_id: authorId, body: sanitizeText(body, { maxLength: 4000, multiline: true }) }).select("*").single();
   if (error) throw error;
   return data as NoteComment;
 }

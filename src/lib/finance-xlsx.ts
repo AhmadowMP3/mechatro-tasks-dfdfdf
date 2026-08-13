@@ -6,6 +6,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import logoUrl from "@/assets/mechatro-logo.png";
 import type { Lang } from "@/i18n/dict";
+import { sanitizeCell } from "@/lib/security/sanitize";
 
 const BRAND = {
   blue: "FF189FD1",
@@ -132,7 +133,7 @@ export async function exportFinanceWorkbook(
         const v = row[c.key];
         if (v === null || v === undefined) return "";
         if (c.kind === "date" && !(v instanceof Date)) return new Date(String(v));
-        return v;
+        return sanitizeCell(v) as typeof v;
       });
       const excelRow = sheet.addRow(values);
       const zebra = idx % 2 === 1;
@@ -164,7 +165,7 @@ export async function exportFinanceWorkbook(
     if (spec.totalsRow) {
       const values = spec.columns.map((c) => {
         const v = spec.totalsRow?.[c.key];
-        return v === null || v === undefined ? "" : v;
+        return v === null || v === undefined ? "" : (sanitizeCell(v) as typeof v);
       });
       const totalRow = sheet.addRow(values);
       totalRow.eachCell({ includeEmpty: true }, (cell, colIdx) => {

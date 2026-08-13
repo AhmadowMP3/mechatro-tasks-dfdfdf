@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ArrowRight, Plus, Trash2, Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { TaskCard } from "@/components/TaskCard";

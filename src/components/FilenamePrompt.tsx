@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
+import { sanitizeFilename } from "@/lib/security/sanitize";
 
 export type PromptFilenameOptions = {
   defaultName: string;
@@ -14,7 +15,7 @@ export type PromptFilenameOptions = {
 
 /** Strip characters illegal in most filesystems + trim. */
 function sanitize(name: string): string {
-  return name.replace(/[\\/:*?"<>|\x00-\x1F]+/g, "").replace(/\s+/g, " ").trim();
+  return sanitizeFilename(name, "");
 }
 
 function stripExt(name: string, ext: string): string {

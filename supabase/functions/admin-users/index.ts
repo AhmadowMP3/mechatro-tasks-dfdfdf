@@ -27,6 +27,26 @@ function errMsg(e: unknown): string {
   return String(e);
 }
 
+// ─── Input safety (defense in depth; the client sanitizes too) ───
+const CTRL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+const INVIS_RE = /[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function sText(value: unknown, maxLength = 500): string {
+  if (value === null || value === undefined) return "";
+  let s = String(value).replace(CTRL_RE, "").replace(INVIS_RE, "");
+  s = s.replace(/<[^>]*>/g, "");
+  s = s.replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"')
+       .replace(/&#39;/g, "'").replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&");
+  s = s.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  return s.length > maxLength ? s.slice(0, maxLength).trim() : s;
+}
+
+function sUuid(value: unknown): string {
+  const s = String(value ?? "").trim();
+  return UUID_RE.test(s) ? s : "";
+}
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -54,7 +74,7 @@ Deno.serve(async (req) => {
 
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { /* ignore */ }
-  const action = String(body.action ?? "");
+  const action = sText(body.action, 40);
 
   // Any admin (regular or master) can perform admin actions.
   // Target-level checks below still prevent mutating the master admin.
@@ -89,8 +109,8 @@ Deno.serve(async (req) => {
 
 
       case "set_role": {
-        const user_id = String(body.user_id ?? "");
-        const role = String(body.role ?? "");
+        const user_id = sUuid(body.user_id);
+        const role = sText(body.role, 20);
         if (!user_id || !["admin", "member"].includes(role)) {
           return json(400, { error: "user_id + role (admin|member) required" });
         }
@@ -102,7 +122,7 @@ Deno.serve(async (req) => {
       }
 
       case "set_password": {
-        const user_id = String(body.user_id ?? "");
+        const user_id = sUuid(body.user_id);
         const password = String(body.password ?? "");
         if (!user_id) return json(400, { error: "user_id required" });
         if (password.length < 8 || password.length > 72) {
@@ -125,7 +145,7 @@ Deno.serve(async (req) => {
       }
 
       case "approve": {
-        const user_id = String(body.user_id ?? "");
+        const user_id = sUuid(body.user_id);
         const role = String(body.role ?? "member") === "admin" ? "admin" : "member";
         if (!user_id) return json(400, { error: "user_id required" });
         const { error } = await admin.from("profiles").update({
@@ -137,12 +157,12 @@ Deno.serve(async (req) => {
 
       case "suspend":
       case "activate": {
-        const user_id = String(body.user_id ?? "");
+        const user_id = sUuid(body.user_id);
         if (!user_id) return json(400, { error: "user_id required" });
         const { data: t } = await admin.from("profiles").select("is_master_admin").eq("id", user_id).maybeSingle();
         if (t?.is_master_admin) return json(400, { error: "cannot suspend master admin" });
         if (action === "suspend") {
-          const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+          const reason = sText(body.reason, 500);
           await admin.from("profiles").update({
             status: "suspended", active: false,
             suspended_by: me.id,
@@ -162,7 +182,7 @@ Deno.serve(async (req) => {
       }
 
       case "delete": {
-        const user_id = String(body.user_id ?? "");
+        const user_id = sUuid(body.user_id);
         if (!user_id) return json(400, { error: "user_id required" });
         if (user_id === me.id) return json(400, { error: "cannot delete yourself" });
         const { data: t } = await admin.from("profiles").select("is_master_admin").eq("id", user_id).maybeSingle();

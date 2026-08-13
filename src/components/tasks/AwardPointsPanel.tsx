@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Star, Divide, RotateCcw, Check } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 import { useApp, type Profile } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { toLocalDigits } from "@/lib/format";

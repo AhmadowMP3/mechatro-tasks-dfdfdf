@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, useMemo } from "react";
 import { Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskDetailModal } from "@/components/TaskDetailModal";

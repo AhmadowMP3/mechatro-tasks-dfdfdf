@@ -5,6 +5,7 @@
 import { renderAndDownloadPdf } from "./pdf-render";
 import { stampFilename } from "./pdf/brand";
 import type { Note, NoteTag } from "./notes";
+import { sanitizeHtml } from "@/lib/security/sanitize";
 
 type Params = {
   note: Note;
@@ -79,7 +80,7 @@ export async function exportNoteToPdf(p: Params): Promise<void> {
       <div
         className="note-pdf-content"
         style={{ fontSize: 14, lineHeight: 1.85, color: ink }}
-        dangerouslySetInnerHTML={{ __html: note.content_html || `<p style="color:${muted}">${isAr ? "لا يوجد محتوى" : "No content"}</p>` }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(note.content_html) || `<p style="color:${muted}">${isAr ? "لا يوجد محتوى" : "No content"}</p>` }}
       />
 
       <style>{`

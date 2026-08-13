@@ -6,6 +6,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import logoUrl from "@/assets/mechatro-logo.png";
 import type { Lang } from "@/i18n/dict";
+import { sanitizeCell } from "@/lib/security/sanitize";
 
 export const BRAND = {
   blue: "FF189FD1",
@@ -171,7 +172,7 @@ export async function exportToBrandedXlsx<Row>(opts: XlsxExportOptions<Row>) {
       if (c.kind === "date" || c.kind === "datetime") {
         return v instanceof Date ? v : new Date(String(v));
       }
-      return v;
+      return sanitizeCell(v) as typeof v;
     });
     const excelRow = sheet.addRow(values);
     const zebra = idx % 2 === 1;
