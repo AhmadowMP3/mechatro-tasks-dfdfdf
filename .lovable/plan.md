@@ -1,53 +1,32 @@
-## Access Matrix — final
+# Password management
 
-| Area | Member | Admin | Master |
-|---|---|---|---|
-| Dashboard `/` | ✓ (own stats) | ✓ | ✓ |
-| Tasks `/tasks` | ✓ only tasks where they are assignee/co-assignee | ✓ | ✓ |
-| Projects `/projects`, `/projects/:id` | ✓ only projects containing a task assigned to them | ✓ | ✓ |
-| References | ✓ | ✓ | ✓ |
-| League | ✓ | ✓ | ✓ |
-| Notes | ✓ full (own + shared) | ✓ | ✓ |
-| Notifications | ✓ | ✓ | ✓ |
-| Settings | ✓ | ✓ | ✓ |
-| Team `/team`, `/team/:id` | ✗ hidden + route blocked | ✓ | ✓ |
-| Activity log, Reports, Report history | ✗ | ✓ | ✓ |
-| Access Control (People & Invites) | ✗ | ✓ | ✓ |
-| Share Links | ✗ | ✗ | ✓ (master only) |
-| Finance (all tabs) | ✗ | ✗ | ✓ (master only) |
+Two new abilities: every signed-in user can change their own password, and admins (including the master admin) can set a password for any other user.
 
-## Changes
+## 1. Change my password (all roles)
 
-### 1. Sidebar (`src/components/layout/Sidebar.tsx`)
-- Move **Notes** out of `adminSection` into a new `workSection` (or `personalSection`) so members see it.
-- Remove **Team** and **League** from the shared `teamSection` split: keep **League** for everyone, gate **Team** to admins only. Simplest: split `teamSection` — League stays public, Team goes into `adminSection`.
-- Change `financeSection` gate from `financeOnly` (isFinanceAdmin) to `masterOnly` (isMasterAdmin).
+- A key icon next to the pencil (edit name) in the sidebar profile card opens a themed dialog, so members reach it without the admin-only Settings page.
+- Fields: current password, new password, confirm new password. Bilingual AR/EN, same dark card styling as the Edit Name modal.
+- The current password is verified first by re-signing in with the account's login email; only then is the new password saved.
+- Rules: minimum 8 characters, new password must differ from the current one, confirm must match. Errors show as clear localized toasts (no raw database text).
+- On success: success toast, dialog closes, session stays signed in, and the change is written to the activity log.
 
-### 2. Role helper (`src/lib/app-context.tsx`)
-- Redefine `isFinanceAdmin` = `isMasterAdmin` only (drops the `is_finance_admin` grant path and the "admins get finance" path). This makes every existing `if (isFinanceAdmin)` guard automatically strict-master.
+## 2. Reset a user's password (admins + master)
 
-### 3. Route guards (client-side redirect for anyone typing the URL)
-Add a `beforeLoad` check that redirects to `/` when the user lacks access:
-- `team.index.tsx`, `team.$id.tsx` → admin only
-- `activity.tsx`, `reports.tsx`, `reports-history.tsx`, `reports-history_.compare.tsx` → admin only
-- `access-control.tsx` → admin only
-- `share-links.tsx` → master only
-- `finance.tsx` (parent layout) → master only — one guard covers all finance sub-routes
+- On the Access Control page, each user row's action menu gains "Reset password", visible to admins and the master admin.
+- Guardrails: the master admin's password can only be reset by the master admin; admins cannot reset another admin's password, only members and pending users; nobody can reset their own from here (they use the profile dialog).
+- The dialog offers both paths: type a new password (with confirm), or press "Generate" to fill a strong random password. Minimum 8 characters.
+- After saving, the password is displayed once with a copy button so the admin can hand it over, plus a note that it is not retrievable later.
+- The action is recorded in the activity log (who reset whose password), never the password itself.
 
-### 4. Projects list scoping (`src/routes/_authenticated/projects.index.tsx`)
-Currently members see every project. Filter enriched list for non-admins to only projects where `memberIds.includes(user.id)` OR they have a task in `task_assignees`. Fetch member's task project_ids (primary + co-assignee) like `tasks.tsx` already does, then filter projects.
+## Technical notes
 
-### 5. Project detail (`projects.$id.tsx`)
-If member and no task assigned to them in that project → redirect to `/projects`. Prevents URL-guessing into unrelated projects.
+- Self-service change uses the browser Supabase client: resolve the login email via the existing `resolve_login_email` RPC, re-authenticate with `signInWithPassword` to verify the current password, then `supabase.auth.updateUser({ password })`.
+- Admin reset adds a `set_password` action to the existing `admin-users` edge function, which already validates the caller's admin status server-side. It loads the target profile, enforces the master/admin guardrails, and calls `auth.admin.updateUserById(user_id, { password })`. Password length is validated server-side too, so the endpoint is safe even if called directly.
+- Access Control calls it through the existing `call("set_password", ...)` helper; errors surface through `explainSupabaseError`.
+- Generated passwords come from `crypto.getRandomValues` in the browser dialog; nothing is stored in the database or logs.
 
-### 6. Verify — no DB changes
-Server-side RLS already restricts writes/reads appropriately (checked: tasks use assignee scoping, projects have policies). This pass is UI + client route gating only — matches the "UI change stays in frontend" rule. If a spot-check reveals a policy gap, I'll flag it separately rather than expanding scope.
+## Files touched
 
-### 7. Sanity pass
-- Grep every `isFinanceAdmin` call site to confirm the tightened definition doesn't break a legitimate admin-only-not-master flow.
-- Typecheck.
-
-## Out of scope
-- No password/user changes.
-- No DB migrations (RLS already enforces server-side).
-- No removal of `is_finance_admin` column — just stop honoring it in the UI (safe rollback path).
+- `src/components/layout/Sidebar.tsx` — key button + new `ChangePasswordModal`
+- `src/routes/_authenticated/access-control.tsx` — row action, reset dialog
+- `supabase/functions/admin-users/index.ts` — `set_password` action
