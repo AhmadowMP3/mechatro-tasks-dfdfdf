@@ -3,7 +3,7 @@ import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settin
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { RoleBadge } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";

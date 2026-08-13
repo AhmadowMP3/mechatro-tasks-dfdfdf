@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { KeyRound, Eye, EyeOff } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "12px 40px 12px 14px", borderRadius: 10,

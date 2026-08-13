@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Plus, FileText, UserPlus } from "lucide-react";
 import { GenerateReportDialog } from "@/components/team/GenerateReportDialog";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 import { useApp, type Profile } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { RoleBadge } from "@/components/Pills";

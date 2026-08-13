@@ -2,7 +2,7 @@
 // Uses casted supabase queries because the generated types file has not yet
 // been regenerated with the new tables.
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/security/db";
 import { sanitizeHtml, sanitizeText } from "@/lib/security/sanitize";
 
 export function errMsg(e: unknown): string {
