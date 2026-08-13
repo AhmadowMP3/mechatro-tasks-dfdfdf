@@ -1,6 +1,6 @@
 // Shared hooks for finance features
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { vaultDb as supabase } from "@/lib/finance/vault-db";
 import type { CompanySettings } from "@/components/finance/BrandedDocuments";
 
 /** Fetch financial_settings singleton, cached under ["financial_settings"]. */
