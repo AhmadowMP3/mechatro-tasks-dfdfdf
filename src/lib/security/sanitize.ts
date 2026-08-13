@@ -48,7 +48,7 @@ export function safeString(maxLength = 500, opts?: { multiline?: boolean }) {
     .transform((v) => sanitizeText(v, { maxLength, multiline: opts?.multiline }));
 }
 
-const HTML_CONFIG = {
+const HTML_CONFIG: Record<string, unknown> = {
   ALLOWED_TAGS: [
     "p", "br", "hr", "div", "span",
     "h1", "h2", "h3", "h4", "h5", "h6",
@@ -66,7 +66,7 @@ const HTML_CONFIG = {
   ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|data:image\/(?:png|jpe?g|gif|webp|svg\+xml);base64,|#|\/)/i,
   FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "link", "meta", "base"],
   FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "formaction", "srcdoc", "xlink:href"],
-} as const;
+};
 
 let hookInstalled = false;
 function installHook() {
