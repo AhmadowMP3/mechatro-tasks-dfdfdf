@@ -8,10 +8,24 @@ import { z } from "zod";
  * sent to an AI model, rendered as HTML, or written into a spreadsheet.
  */
 
+// DOMPurify needs a real DOM. The app also renders on the server (Cloudflare
+// Workers), where no DOM exists, so every DOM-backed call is gated behind this
+// check and falls back to a DOM-free implementation.
+const HAS_DOM = typeof window !== "undefined" && typeof window.document !== "undefined";
+
 // Control chars (except \n and \t) + zero-width / bidi override characters.
 // eslint-disable-next-line no-control-regex
 const CONTROL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 const INVISIBLE_RE = /[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g;
+
+/** Remove every tag (and the content of dangerous ones) without needing a DOM. */
+function stripTags(input: string): string {
+  return input
+    .replace(/<\s*(script|style|iframe|object|embed|template|noscript)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, "")
+    .replace(/<\s*(script|style|iframe|object|embed|template|noscript)\b[^>]*>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<[^>]*>/g, "");
+}
 
 /** Strip HTML tags, control/invisible characters and collapse whitespace. */
 export function sanitizeText(value: unknown, opts?: { maxLength?: number; multiline?: boolean }): string {
@@ -19,7 +33,8 @@ export function sanitizeText(value: unknown, opts?: { maxLength?: number; multil
   let s = String(value);
   s = s.replace(CONTROL_RE, "").replace(INVISIBLE_RE, "");
   // Remove any markup entirely — plain-text fields never carry HTML.
-  s = DOMPurify.sanitize(s, { ALLOWED_TAGS: [], ALLOWED_ATTR: [], KEEP_CONTENT: true });
+  s = stripTags(s);
+
   // DOMPurify escapes entities; decode the handful that matter back to text.
   s = s
     .replace(/&amp;/g, "&")
