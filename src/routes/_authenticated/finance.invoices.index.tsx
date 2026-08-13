@@ -152,7 +152,7 @@ function InvoicesListPage() {
           onExportXlsx={() => exportFinanceListXlsx(buildExport())}
           disabled={filtered.length === 0}
         />
-        <Link to="/finance/invoices/new" className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", textDecoration: "none" }}>
+        <Link to="/finance/invoices/$id" params={{ id: "new" }} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", textDecoration: "none" }}>
           <Plus size={16} /> {t("newInvoice")}
         </Link>
 
