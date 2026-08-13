@@ -44,7 +44,6 @@ import { Route as AuthenticatedFinanceIncomeRouteImport } from './routes/_authen
 import { Route as AuthenticatedFinanceExpensesRouteImport } from './routes/_authenticated/finance.expenses'
 import { Route as AuthenticatedFinanceCustomersRouteImport } from './routes/_authenticated/finance.customers'
 import { Route as AuthenticatedFinanceInvoicesIndexRouteImport } from './routes/_authenticated/finance.invoices.index'
-import { Route as ApiPublicHooksFinanceRemindersRouteImport } from './routes/api/public/hooks/finance-reminders'
 import { Route as ApiPublicHooksBackupAutoApproveRouteImport } from './routes/api/public/hooks/backup-auto-approve'
 import { Route as AuthenticatedFinanceInvoicesIdRouteImport } from './routes/_authenticated/finance.invoices.$id'
 
@@ -236,12 +235,6 @@ const AuthenticatedFinanceInvoicesIndexRoute =
     path: '/invoices/',
     getParentRoute: () => AuthenticatedFinanceRoute,
   } as any)
-const ApiPublicHooksFinanceRemindersRoute =
-  ApiPublicHooksFinanceRemindersRouteImport.update({
-    id: '/api/public/hooks/finance-reminders',
-    path: '/api/public/hooks/finance-reminders',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicHooksBackupAutoApproveRoute =
   ApiPublicHooksBackupAutoApproveRouteImport.update({
     id: '/api/public/hooks/backup-auto-approve',
@@ -291,7 +284,6 @@ export interface FileRoutesByFullPath {
   '/share/$token/': typeof ShareTokenIndexRoute
   '/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
-  '/api/public/hooks/finance-reminders': typeof ApiPublicHooksFinanceRemindersRoute
   '/finance/invoices/': typeof AuthenticatedFinanceInvoicesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -327,7 +319,6 @@ export interface FileRoutesByTo {
   '/share/$token': typeof ShareTokenIndexRoute
   '/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
-  '/api/public/hooks/finance-reminders': typeof ApiPublicHooksFinanceRemindersRoute
   '/finance/invoices': typeof AuthenticatedFinanceInvoicesIndexRoute
 }
 export interface FileRoutesById {
@@ -368,7 +359,6 @@ export interface FileRoutesById {
   '/share/$token/': typeof ShareTokenIndexRoute
   '/_authenticated/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
-  '/api/public/hooks/finance-reminders': typeof ApiPublicHooksFinanceRemindersRoute
   '/_authenticated/finance/invoices/': typeof AuthenticatedFinanceInvoicesIndexRoute
 }
 export interface FileRouteTypes {
@@ -409,7 +399,6 @@ export interface FileRouteTypes {
     | '/share/$token/'
     | '/finance/invoices/$id'
     | '/api/public/hooks/backup-auto-approve'
-    | '/api/public/hooks/finance-reminders'
     | '/finance/invoices/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -445,7 +434,6 @@ export interface FileRouteTypes {
     | '/share/$token'
     | '/finance/invoices/$id'
     | '/api/public/hooks/backup-auto-approve'
-    | '/api/public/hooks/finance-reminders'
     | '/finance/invoices'
   id:
     | '__root__'
@@ -485,7 +473,6 @@ export interface FileRouteTypes {
     | '/share/$token/'
     | '/_authenticated/finance/invoices/$id'
     | '/api/public/hooks/backup-auto-approve'
-    | '/api/public/hooks/finance-reminders'
     | '/_authenticated/finance/invoices/'
   fileRoutesById: FileRoutesById
 }
@@ -496,7 +483,6 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShareTokenRoute: typeof ShareTokenRouteWithChildren
   ApiPublicHooksBackupAutoApproveRoute: typeof ApiPublicHooksBackupAutoApproveRoute
-  ApiPublicHooksFinanceRemindersRoute: typeof ApiPublicHooksFinanceRemindersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -746,13 +732,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinanceInvoicesIndexRouteImport
       parentRoute: typeof AuthenticatedFinanceRoute
     }
-    '/api/public/hooks/finance-reminders': {
-      id: '/api/public/hooks/finance-reminders'
-      path: '/api/public/hooks/finance-reminders'
-      fullPath: '/api/public/hooks/finance-reminders'
-      preLoaderRoute: typeof ApiPublicHooksFinanceRemindersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/hooks/backup-auto-approve': {
       id: '/api/public/hooks/backup-auto-approve'
       path: '/api/public/hooks/backup-auto-approve'
@@ -881,7 +860,6 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ShareTokenRoute: ShareTokenRouteWithChildren,
   ApiPublicHooksBackupAutoApproveRoute: ApiPublicHooksBackupAutoApproveRoute,
-  ApiPublicHooksFinanceRemindersRoute: ApiPublicHooksFinanceRemindersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
