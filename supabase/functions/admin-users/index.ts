@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
 
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { /* ignore */ }
-  const action = String(body.action ?? "");
+  const action = sText(body.action, 40);
 
   // Any admin (regular or master) can perform admin actions.
   // Target-level checks below still prevent mutating the master admin.
