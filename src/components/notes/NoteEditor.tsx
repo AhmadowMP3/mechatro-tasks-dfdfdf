@@ -15,6 +15,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/lib/app-context";
 import { NoteToolbar } from "./NoteToolbar";
 import { SlashMenu } from "./SlashMenu";
+import { sanitizeHtml } from "@/lib/security/sanitize";
 
 type Props = {
   noteId: string;
@@ -57,7 +58,7 @@ export function NoteEditor({ noteId, content, onChange, editable = true, onEdito
     ],
     content,
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
+      const html = sanitizeHtml(editor.getHTML());
       setLiveHtml(html);
       onChange(html, editor.getText());
     },
@@ -122,7 +123,7 @@ export function NoteEditor({ noteId, content, onChange, editable = true, onEdito
     if (!mirror || !editorRoot) return;
 
     const compute = () => {
-      mirror.innerHTML = liveHtml || "";
+      mirror.innerHTML = sanitizeHtml(liveHtml) || "";
       const eBlocks = Array.from(editorRoot.children) as HTMLElement[];
       const mBlocks = Array.from(mirror.children) as HTMLElement[];
       const count = Math.min(eBlocks.length, mBlocks.length);
