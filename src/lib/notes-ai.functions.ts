@@ -1,12 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { sanitizeForPrompt, sanitizeHtml } from "@/lib/security/sanitize";
 
 type Action = "summarize" | "rewrite" | "translate_en" | "translate_ar" | "continue" | "fix_grammar" | "outline";
 
 const ActionSchema = z.object({
   action: z.enum(["summarize", "rewrite", "translate_en", "translate_ar", "continue", "fix_grammar", "outline"]),
-  text: z.string().min(1).max(20000),
+  text: z.string().min(1).max(20000).transform((v) => sanitizeForPrompt(v, 20000)),
   lang: z.enum(["en", "ar"]).default("en"),
 });
 
@@ -126,7 +127,7 @@ export const noteAi = createServerFn({ method: "POST" })
 
     const action = data.action as Action;
     const system = `${PREAMBLE}\n\n${DIRECTIVES[action]}`;
-    const userMsg = `<<<INPUT>>>\n${data.text}\n<<<END_INPUT>>>`;
+    const userMsg = `<<<INPUT>>>\n${sanitizeForPrompt(data.text, 20000)}\n<<<END_INPUT>>>`;
     const temperature = TEMP[action];
 
     let html = await callModel(system, userMsg, temperature, apiKey);
@@ -141,6 +142,6 @@ export const noteAi = createServerFn({ method: "POST" })
       throw new Error("aiCannotTranslate");
     }
 
-    return { html };
+    return { html: sanitizeHtml(html) };
   });
 
