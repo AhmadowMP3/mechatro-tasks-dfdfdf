@@ -109,8 +109,8 @@ Deno.serve(async (req) => {
 
 
       case "set_role": {
-        const user_id = String(body.user_id ?? "");
-        const role = String(body.role ?? "");
+        const user_id = sUuid(body.user_id);
+        const role = sText(body.role, 20);
         if (!user_id || !["admin", "member"].includes(role)) {
           return json(400, { error: "user_id + role (admin|member) required" });
         }
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
       }
 
       case "set_password": {
-        const user_id = String(body.user_id ?? "");
+        const user_id = sUuid(body.user_id);
         const password = String(body.password ?? "");
         if (!user_id) return json(400, { error: "user_id required" });
         if (password.length < 8 || password.length > 72) {
@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
       }
 
       case "approve": {
-        const user_id = String(body.user_id ?? "");
+        const user_id = sUuid(body.user_id);
         const role = String(body.role ?? "member") === "admin" ? "admin" : "member";
         if (!user_id) return json(400, { error: "user_id required" });
         const { error } = await admin.from("profiles").update({
@@ -157,12 +157,12 @@ Deno.serve(async (req) => {
 
       case "suspend":
       case "activate": {
-        const user_id = String(body.user_id ?? "");
+        const user_id = sUuid(body.user_id);
         if (!user_id) return json(400, { error: "user_id required" });
         const { data: t } = await admin.from("profiles").select("is_master_admin").eq("id", user_id).maybeSingle();
         if (t?.is_master_admin) return json(400, { error: "cannot suspend master admin" });
         if (action === "suspend") {
-          const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+          const reason = sText(body.reason, 500);
           await admin.from("profiles").update({
             status: "suspended", active: false,
             suspended_by: me.id,
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
       }
 
       case "delete": {
-        const user_id = String(body.user_id ?? "");
+        const user_id = sUuid(body.user_id);
         if (!user_id) return json(400, { error: "user_id required" });
         if (user_id === me.id) return json(400, { error: "cannot delete yourself" });
         const { data: t } = await admin.from("profiles").select("is_master_admin").eq("id", user_id).maybeSingle();
