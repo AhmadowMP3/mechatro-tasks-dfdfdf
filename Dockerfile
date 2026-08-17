@@ -29,7 +29,8 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
 
 # vite.deploy.config.ts pins the Nitro target to the Node server preset,
 # producing a plain Node app in /app/.output
-RUN bunx vite build --config vite.deploy.config.ts
+RUN bunx vite build --config vite.deploy.config.ts \
+ && test -f .output/server/index.mjs
 
 # ---------- Stage 2: runtime ----------
 FROM node:22-alpine AS runner
