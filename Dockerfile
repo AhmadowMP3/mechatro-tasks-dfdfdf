@@ -10,7 +10,9 @@ WORKDIR /app
 
 # Install dependencies from the lockfile for reproducible builds
 COPY package.json package-lock.json* ./
-RUN npm ci
+# The lockfile may lag behind package.json (the project also uses bun), so fall
+# back to a plain install instead of failing the build.
+RUN npm ci --include=dev || npm install --include=dev --no-audit --no-fund
 
 # App sources
 COPY . .
