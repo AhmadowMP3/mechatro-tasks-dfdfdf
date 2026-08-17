@@ -1,4 +1,6 @@
-project_id = "hxzttehtfnxpnfyeclzj"
+# Migrated target: self-hosted Supabase on supamecha.hub4tech.net
+# Old Lovable Cloud ref: hxzttehtfnxpnfyeclzj
+project_id = "supamecha"
 
 [functions.backup-snapshot]
 verify_jwt = false
