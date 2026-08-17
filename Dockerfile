@@ -40,6 +40,16 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOST=0.0.0.0
 
+# Server-side (SSR + server functions) reads the NON-prefixed names at runtime.
+# They can be supplied by the platform env; these build args are a fallback so
+# the image still works when only the VITE_* values were provided at build time.
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_PUBLISHABLE_KEY
+ARG VITE_SUPABASE_PROJECT_ID
+ENV SUPABASE_URL=$VITE_SUPABASE_URL \
+    SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY \
+    SUPABASE_PROJECT_ID=$VITE_SUPABASE_PROJECT_ID
+
 # The Nitro node-server output is fully self-contained (deps are bundled)
 COPY --from=builder /app/.output ./.output
 
@@ -51,4 +61,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["node", ".output/server/index.mjs"]
+# Mirror VITE_* -> non-prefixed names when the platform only set one form,
+# then start the server.
+CMD ["sh", "-c", ": \"${SUPABASE_URL:=$VITE_SUPABASE_URL}\"; : \"${SUPABASE_PUBLISHABLE_KEY:=$VITE_SUPABASE_PUBLISHABLE_KEY}\"; : \"${SUPABASE_PROJECT_ID:=$VITE_SUPABASE_PROJECT_ID}\"; export SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_PROJECT_ID; exec node .output/server/index.mjs"]
