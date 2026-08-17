@@ -31,11 +31,12 @@ RUN bunx vite build --config vite.deploy.config.ts
 
 # The framework emits no index.html, so snapshot the rendered shell from the
 # built server once and ship it as the SPA entry document.
-RUN node -e "\
-const { spawn } = require('child_process');\
-const s = spawn('node', ['.output/server/index.mjs'], { env: { ...process.env, PORT: '3123' }, stdio: 'inherit' });\
+# The framework emits no index.html, so snapshot the rendered shell from the
+# built server once and ship it as the SPA entry document.
+RUN bun -e "\
+const s = Bun.spawn(['bun', '.output/server/index.mjs'], { env: { ...process.env, PORT: '3123' }, stdout: 'inherit', stderr: 'inherit' });\
 const wait = async () => { for (let i = 0; i < 60; i++) { try { const r = await fetch('http://127.0.0.1:3123/'); if (r.ok) return await r.text(); } catch {} await new Promise(r => setTimeout(r, 500)); } throw new Error('server did not start'); };\
-wait().then(html => { require('fs').writeFileSync('.output/public/index.html', html); s.kill(); process.exit(0); }).catch(e => { console.error(e); s.kill(); process.exit(1); });\
+wait().then(async (html) => { await Bun.write('.output/public/index.html', html); s.kill(); process.exit(0); }).catch((e) => { console.error(e); s.kill(); process.exit(1); });\
 "
 
 # ---------- Stage 2: serve ----------
