@@ -1,98 +1,58 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Deploy all Edge Functions to the self-hosted Supabase instance.
-# Run this script from the project root on the VPS (or anywhere with network access to the Supabase functions API).
+# Deploy Edge Functions to the self-hosted Supabase (Coolify) box over SSH.
 #
-# Usage:
+# Usage (from the project root, on your machine):
 #   chmod +x scripts/deploy-edge-functions.sh
 #   ./scripts/deploy-edge-functions.sh
 #
-# It tries the Supabase CLI first, then falls back to a direct curl deploy.
+# Overridable env vars:
+#   SSH_TARGET      deploy@179.198.193.155
+#   REMOTE_TMP      /tmp/fn
+#   FUNCTIONS_CONTAINER   name/id of the supabase functions container (auto-detected if empty)
+#   REMOTE_FUNCTIONS_DIR  path inside the container (default /home/deno/functions)
 
-PROJECT_REF="${SUPABASE_PROJECT_REF:-supamecha}"
-SUPABASE_URL="${SUPABASE_URL:-https://supamecha.hub4tech.net}"
-SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-}"
-
-FUNCTIONS=(
-  admin-invites
-  admin-users
-  backup-snapshot
-  claim-device-slot
-  redeem-invite
-  share-access
-)
+SSH_TARGET="${SSH_TARGET:-deploy@179.198.193.155}"
+REMOTE_TMP="${REMOTE_TMP:-/tmp/fn}"
+FUNCTIONS_CONTAINER="${FUNCTIONS_CONTAINER:-}"
+REMOTE_FUNCTIONS_DIR="${REMOTE_FUNCTIONS_DIR:-/home/deno/functions}"
 
 log() { echo "[deploy] $*"; }
 
-deploy_with_cli() {
-  if ! command -v supabase &>/dev/null; then
-    return 1
-  fi
+cd "$(dirname "$0")/.."
 
-  log "Supabase CLI found. Deploying via CLI..."
-  for fn in "${FUNCTIONS[@]}"; do
-    log "Deploying $fn..."
-    supabase functions deploy "$fn" --project-ref "$PROJECT_REF"
-  done
-  return 0
-}
+# 1) Push the function sources to the server.
+log "Syncing supabase/functions -> $SSH_TARGET:$REMOTE_TMP/"
+rsync -avz --delete --exclude 'main' supabase/functions/ "$SSH_TARGET:$REMOTE_TMP/"
 
-bundle_function() {
-  local fn="$1"
-  local tmpdir="$(mktemp -d)"
-  local out="$tmpdir/$fn.tar.gz"
+# 2) Copy them into the functions container and restart it.
+log "Installing functions inside the container..."
+ssh "$SSH_TARGET" FUNCTIONS_CONTAINER="$FUNCTIONS_CONTAINER" REMOTE_TMP="$REMOTE_TMP" \
+  REMOTE_FUNCTIONS_DIR="$REMOTE_FUNCTIONS_DIR" 'bash -s' <<'REMOTE'
+set -euo pipefail
 
-  # Edge functions on self-hosted Supabase accept the function directory as a tarball.
-  tar -czf "$out" -C "supabase/functions" "$fn"
-  echo "$out"
-}
+container="${FUNCTIONS_CONTAINER:-}"
+if [ -z "$container" ]; then
+  container="$(docker ps --format '{{.Names}}' | grep -i -m1 -E 'functions|edge-runtime' || true)"
+fi
+if [ -z "$container" ]; then
+  echo "ERROR: could not find the supabase functions container. Run 'docker ps' and set FUNCTIONS_CONTAINER."
+  exit 1
+fi
+echo "[remote] container: $container"
 
-deploy_with_curl() {
-  if [ -z "$SERVICE_ROLE_KEY" ]; then
-    echo "ERROR: SUPABASE_SERVICE_ROLE_KEY is not set."
-    echo "Set it with: export SUPABASE_SERVICE_ROLE_KEY='<your-service-role-key>'"
-    return 1
-  fi
+for dir in "$REMOTE_TMP"/*/; do
+  fn="$(basename "$dir")"
+  echo "[remote] installing $fn"
+  docker exec "$container" mkdir -p "$REMOTE_FUNCTIONS_DIR/$fn"
+  docker cp "$dir." "$container:$REMOTE_FUNCTIONS_DIR/$fn"
+done
 
-  log "Deploying via direct API calls to $SUPABASE_URL..."
-  for fn in "${FUNCTIONS[@]}"; do
-    log "Bundling and deploying $fn..."
-    bundle="$(bundle_function "$fn")"
+echo "[remote] restarting $container"
+docker restart "$container" >/dev/null
+echo "[remote] done"
+REMOTE
 
-    # Management API endpoint for self-hosted Supabase
-    url="$SUPABASE_URL/v1/projects/$PROJECT_REF/functions/deploy"
-
-    http_code=$(curl -s -o /tmp/deploy-$fn.out -w "%{http_code}" \
-      -X POST "$url" \
-      -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
-      -F "file=@$bundle" \
-      -F "slug=$fn" \
-      -F "version=1")
-
-    rm -f "$bundle"
-
-    if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
-      log "$fn deployed successfully (HTTP $http_code)"
-    else
-      log "FAILED to deploy $fn (HTTP $http_code)"
-      cat /tmp/deploy-$fn.out
-      return 1
-    fi
-  done
-}
-
-main() {
-  cd "$(dirname "$0")/.."
-
-  if deploy_with_cli; then
-    log "All functions deployed via Supabase CLI."
-    exit 0
-  fi
-
-  log "Supabase CLI not available or deploy failed. Trying direct API..."
-  deploy_with_curl
-  log "Done."
-}
-
-main "$@"
+log "All functions deployed. Verify with:"
+log "  curl -i -X OPTIONS https://supamecha.hub4tech.net/functions/v1/admin-users"
