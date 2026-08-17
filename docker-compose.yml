@@ -6,18 +6,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
-        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
-        VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID}
+      # Backend defaults are baked into the Dockerfile, so no build args are
+      # required. To target a different backend, add:
+      #   args:
+      #     VITE_SUPABASE_URL: ...
+      #     VITE_SUPABASE_PUBLISHABLE_KEY: ...
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       NODE_ENV: production
-      # SSR / server functions read these NON-prefixed names at runtime.
-      SUPABASE_URL: ${SUPABASE_URL:-${VITE_SUPABASE_URL}}
-      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-${VITE_SUPABASE_PUBLISHABLE_KEY}}
-      SUPABASE_PROJECT_ID: ${SUPABASE_PROJECT_ID:-${VITE_SUPABASE_PROJECT_ID}}
+      # SSR / server functions read SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY at
+      # runtime. Defaults are baked into the image; set them in .env only to
+      # point this deployment at a different backend.
       PORT: "3000"
       HOST: 0.0.0.0
     expose:
