@@ -130,3 +130,21 @@ and deep links.
 - **Uploads rejected** — raise `client_max_body_size` in `nginx.conf`.
 - **Deep links 404 in Option B** — the SPA fallback is missing; confirm
   `nginx.spa.conf` was copied into the image.
+
+## Environment variables (important)
+
+The app needs the backend credentials in **two** forms:
+
+| Name | Where it is used |
+| --- | --- |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID` | inlined into the browser bundle **at build time** (pass as build args) |
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_PROJECT_ID` | read by SSR + server functions **at runtime** (container env) |
+
+Symptom when the runtime ones are missing:
+`Something went wrong — Missing Supabase environment variable(s): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY`.
+
+Copy `.env.example` to `.env` next to `docker-compose.yml` and fill in the
+values (they are the same values shown in your Lovable project's `.env`).
+On a PaaS (Coolify/Dokploy/etc.) add the same six variables in the app's
+Environment Variables screen — the three `VITE_*` ones must also be marked as
+**build** variables.
