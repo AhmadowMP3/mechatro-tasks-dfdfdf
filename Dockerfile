@@ -4,15 +4,15 @@
 # ---------------------------------------------------------------------------
 
 # ---------- Stage 1: build ----------
-FROM node:22-alpine AS builder
+# The project's real lockfile is bun.lock, and the Nitro node-server build
+# only resolves correctly with bun's module layout, so build with bun.
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies from the lockfile for reproducible builds
-COPY package.json package-lock.json* ./
-# The lockfile may lag behind package.json (the project also uses bun), so fall
-# back to a plain install instead of failing the build.
-RUN npm ci --include=dev || npm install --include=dev --no-audit --no-fund
+# Install dependencies from the bun lockfile for reproducible builds
+COPY package.json bun.lock* bunfig.toml* ./
+RUN bun install --frozen-lockfile || bun install
 
 # App sources
 COPY . .
