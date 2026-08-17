@@ -12,5 +12,12 @@ export default defineConfig({
   },
   nitro: {
     preset: "node-server",
+    // Bundle every dependency into the server output. This keeps the runtime
+    // image self-contained AND skips Nitro's node_modules tracing step, which
+    // fails inside the build container (`@vercel/nft` named-export interop).
+    noExternals: true,
+    output: {
+      dir: ".output",
+    },
   },
 });
