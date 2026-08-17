@@ -17,10 +17,9 @@ services:
         required: false
     environment:
       NODE_ENV: production
-      # SSR / server functions read these NON-prefixed names at runtime.
-      SUPABASE_URL: ${SUPABASE_URL:-}
-      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
-      SUPABASE_PROJECT_ID: ${SUPABASE_PROJECT_ID:-}
+      # SSR / server functions read SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY at
+      # runtime. Defaults are baked into the image; set them in .env only to
+      # point this deployment at a different backend.
       PORT: "3000"
       HOST: 0.0.0.0
     expose:
