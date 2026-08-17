@@ -6,12 +6,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        # Defaults are baked into the Dockerfile; override here only to point
-        # the deployment at a different backend.
-        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
-        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-}
-        VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID:-}
+      # Backend defaults are baked into the Dockerfile, so no build args are
+      # required. To target a different backend, add:
+      #   args:
+      #     VITE_SUPABASE_URL: ...
+      #     VITE_SUPABASE_PUBLISHABLE_KEY: ...
     env_file:
       - path: .env
         required: false

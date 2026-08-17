@@ -140,7 +140,12 @@ The app needs the backend credentials in **two** forms:
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID` | inlined into the browser bundle **at build time** (pass as build args) |
 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_PROJECT_ID` | read by SSR + server functions **at runtime** (container env) |
 
-Symptom when the runtime ones are missing:
+Both sets now have **defaults baked into the `Dockerfile`**, so a plain
+`docker compose up -d --build` (or a PaaS build with no env configured) works
+out of the box. Set them explicitly only to point the deployment at a
+different backend.
+
+Symptom when the runtime ones are missing (older images / custom overrides):
 `Something went wrong — Missing Supabase environment variable(s): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY`.
 
 Copy `.env.example` to `.env` next to `docker-compose.yml` and fill in the
