@@ -438,9 +438,11 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const { t, user, lang } = useApp();
   const [form, setForm] = useState({ name_ar: "", name_en: "", description: "", color: "blue", due_date: "" });
   const submit = async () => {
-    if (!form.name_ar || !form.name_en) { toast.error(t("fullName")); return; }
+    const ar = form.name_ar.trim();
+    const en = form.name_en.trim();
+    if (!ar && !en) { toast.error(t("projectNameRequiredOne")); return; }
     const { data, error } = await supabase.from("projects").insert({
-      name_ar: form.name_ar, name_en: form.name_en,
+      name_ar: ar || en, name_en: en || ar,
       description: form.description || null,
       color: form.color, due_date: form.due_date || null,
       start_date: new Date().toISOString(),
