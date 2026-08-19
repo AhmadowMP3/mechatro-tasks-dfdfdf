@@ -76,6 +76,8 @@ export const dict = {
   typeToConfirm: { ar: "اكتب اسم المشروع للتأكيد", en: "Type the project name to confirm" },
   projectDeleted: { ar: "تم حذف المشروع", en: "Project deleted" },
   noProjects: { ar: "لا توجد مشاريع بعد — أنشئ أول مشروع", en: "No projects yet — create your first project" },
+  noProject: { ar: "بدون مشروع", en: "No project" },
+  optionalField: { ar: "اختياري", en: "Optional" },
   progress: { ar: "التقدم", en: "Progress" },
   dueDate: { ar: "تاريخ الاستحقاق", en: "Due date" },
   members: { ar: "الأعضاء", en: "Members" },
