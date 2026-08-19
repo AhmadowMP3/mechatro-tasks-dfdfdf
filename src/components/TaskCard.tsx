@@ -92,11 +92,13 @@ export function TaskCard({ task, project, assignee, assignees, onClick }: {
             {t("createdAt")}: {formatDate(task.created_at, lang)}
           </div>
         )}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8, fontSize: 12, color: "var(--muted)", alignItems: "center", gap: 8 }}>
-          {assignees && assignees.length > 0
-            ? <AssigneeStack users={assignees} size={24} />
-            : assignee && <Avatar id={assignee.id} name={assignee.full_name} size={24} />}
-          <span style={{ color: overdue ? "#F0676A" : "var(--muted)", fontWeight: overdue ? 700 : 500 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12, color: "var(--muted)", alignItems: "center", gap: 8 }}>
+          <AssigneeNames
+            users={assignees && assignees.length > 0 ? assignees : (assignee ? [assignee] : [])}
+            size={22}
+            maxNames={2}
+          />
+          <span style={{ flex: "0 0 auto", color: overdue ? "#F0676A" : "var(--muted)", fontWeight: overdue ? 700 : 500 }}>
             {task.due_date ? formatDate(task.due_date, lang) : t("na")}
           </span>
         </div>
