@@ -2195,7 +2195,7 @@ export type Database = {
           points_awarded_at: string | null
           priority: Database["public"]["Enums"]["task_priority"]
           progress: number
-          project_id: string
+          project_id: string | null
           sort_order: number | null
           start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
@@ -2215,7 +2215,7 @@ export type Database = {
           points_awarded_at?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
-          project_id: string
+          project_id?: string | null
           sort_order?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
@@ -2235,7 +2235,7 @@ export type Database = {
           points_awarded_at?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
-          project_id?: string
+          project_id?: string | null
           sort_order?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
