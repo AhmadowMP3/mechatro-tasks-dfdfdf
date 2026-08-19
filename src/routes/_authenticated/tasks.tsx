@@ -122,11 +122,12 @@ function TasksPage() {
         }
         tasksQ.or(orClauses.join(","));
       }
-      const [tasks, projects, files, allAssignees] = await Promise.all([
+      const [tasks, projects, files, allAssignees, sessions] = await Promise.all([
         tasksQ,
         supabase.from("projects").select("id,name_ar,name_en,color"),
         supabase.from("task_files").select("task_id"),
         supabase.from("task_assignees").select("task_id,user_id,assigned_at").order("assigned_at", { ascending: true }),
+        supabase.from("work_sessions").select("user_id,duration_minutes"),
       ]);
       const fileCounts: Record<string, number> = {};
       for (const row of files.data ?? []) fileCounts[row.task_id] = (fileCounts[row.task_id] ?? 0) + 1;
@@ -134,7 +135,13 @@ function TasksPage() {
       for (const row of allAssignees.data ?? []) {
         (assigneesByTask[row.task_id] ||= []).push(row.user_id);
       }
-      return { tasks: tasks.data ?? [], projects: projects.data ?? [], fileCounts, assigneesByTask };
+      const minutesByUser: Record<string, number> = {};
+      for (const row of sessions.data ?? []) {
+        if (!row.user_id) continue;
+        minutesByUser[row.user_id] = (minutesByUser[row.user_id] ?? 0) + (row.duration_minutes ?? 0);
+      }
+      return { tasks: tasks.data ?? [], projects: projects.data ?? [], fileCounts, assigneesByTask, minutesByUser };
+
     },
   });
 
