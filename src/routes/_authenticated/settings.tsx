@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2, Upload } from "lucide-react";
+import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2, Upload, CloudUpload, CloudOff, Cloud } from "lucide-react";
 import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { formatDate, toLocalDigits } from "@/lib/format";
