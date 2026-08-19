@@ -8,6 +8,9 @@ import { TaskCard } from "@/components/TaskCard";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { NewTaskModal } from "@/components/NewTaskModal";
 import { ViewSwitcher, type TaskView } from "@/components/tasks/ViewSwitcher";
+import { MemberBoard, buildMemberGroups, type MemberGroup } from "@/components/tasks/MemberBoard";
+import { exportByMemberPdf, exportByMemberXlsx } from "@/lib/export/by-member-export";
+
 import { KanbanView } from "@/components/tasks/KanbanView";
 import { TableView } from "@/components/tasks/TableView";
 
