@@ -146,11 +146,16 @@ export function TableView({
                   )}
                   <td style={{ ...td, fontWeight: 700, color: "var(--foreground)" }}>{tk.title}</td>
                   <td className="hide-md" style={td}>
-                    {project && (
+                    {project ? (
                       <span style={{
                         padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700,
                         color: "#fff", background: PROJECT_COLORS[project.color] ?? PROJECT_COLORS.blue,
                       }}>{lang === "ar" ? project.name_ar : project.name_en}</span>
+                    ) : (
+                      <span style={{
+                        padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                        color: "var(--muted)", background: "var(--surface-2)", border: "1px solid var(--border)",
+                      }}>{lang === "ar" ? "بدون مشروع" : "No project"}</span>
                     )}
                   </td>
                   <td style={td}>
