@@ -1,17 +1,20 @@
-import { LayoutGrid, Columns3, Table2 } from "lucide-react";
+import { LayoutGrid, Columns3, Table2, Users } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import type { DictKey } from "@/i18n/dict";
 
-export type TaskView = "cards" | "kanban" | "table";
+export type TaskView = "cards" | "kanban" | "table" | "byMember";
 
 const OPTIONS: { key: TaskView; label: DictKey; Icon: typeof LayoutGrid }[] = [
   { key: "cards", label: "viewCards", Icon: LayoutGrid },
   { key: "kanban", label: "viewKanban", Icon: Columns3 },
   { key: "table", label: "viewTable", Icon: Table2 },
+  { key: "byMember", label: "viewByMember", Icon: Users },
 ];
 
-export function ViewSwitcher({ value, onChange }: { value: TaskView; onChange: (v: TaskView) => void }) {
+export function ViewSwitcher({ value, onChange, showByMember = false }: { value: TaskView; onChange: (v: TaskView) => void; showByMember?: boolean }) {
   const { t } = useApp();
+  const options = OPTIONS.filter((o) => o.key !== "byMember" || showByMember);
+
   return (
     <div
       role="tablist"
