@@ -153,12 +153,15 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
 
       <Field label={t("title")}><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} style={inp} /></Field>
       <Field label={t("description")}><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ ...inp, minHeight: 70 }} /></Field>
-      <Field label={t("filterProject")}>
+      <Field label={`${t("filterProject")} · ${t("optionalField")}`}>
         <ThemedSelect
           value={form.project_id}
-          onChange={(v) => setForm({ ...form, project_id: v })}
-          placeholder="—"
-          options={(projects ?? []).map((p) => ({ value: p.id, label: lang === "ar" ? p.name_ar : p.name_en }))}
+          onChange={(v) => setForm({ ...form, project_id: v === "__none__" ? "" : v })}
+          placeholder={t("noProject")}
+          options={[
+            { value: "__none__", label: t("noProject") },
+            ...(projects ?? []).map((p) => ({ value: p.id, label: lang === "ar" ? p.name_ar : p.name_en })),
+          ]}
         />
       </Field>
       <Field label={t("assignees")}>
