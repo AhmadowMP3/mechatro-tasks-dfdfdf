@@ -409,15 +409,17 @@ function SortableCard({
       <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35, marginBottom: 8, color: "var(--foreground)" }}>
         {title}
       </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: overdue ? "#F0676A" : "var(--muted)", fontWeight: overdue ? 700 : 500 }}>
-          <PriorityDot p={priority} />
-          <span>{due ? formatDate(due, lang) : "—"}</span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: overdue ? "#F0676A" : "var(--muted)", fontWeight: overdue ? 700 : 500 }}>
+            <PriorityDot p={priority} />
+            <span>{due ? formatDate(due, lang) : "—"}</span>
+          </div>
+          <AssigneeNames
+            users={taskAssignees.length > 0 ? taskAssignees : (assignee ? [assignee] : [])}
+            size={20}
+            maxNames={1}
+          />
         </div>
-        {taskAssignees.length > 1
-          ? <AssigneeStack users={taskAssignees} size={22} max={3} />
-          : assignee && <Avatar id={assignee.id} name={assignee.full_name} size={22} />}
-      </div>
     </div>
   );
 }
