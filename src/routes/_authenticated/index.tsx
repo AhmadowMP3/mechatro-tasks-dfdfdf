@@ -108,7 +108,7 @@ function Dashboard() {
   // Apply project + status filters to tasks
   const tasks = useMemo(() => {
     return allTasks.filter((t) => {
-      if (filters.projects.length && !filters.projects.includes(t.project_id)) return false;
+      if (filters.projects.length && (!t.project_id || !filters.projects.includes(t.project_id))) return false;
       if (filters.statuses.length && !filters.statuses.includes(t.status)) return false;
       return true;
     });
