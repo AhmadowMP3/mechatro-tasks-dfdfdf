@@ -2,8 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { useApp, type Profile } from "@/lib/app-context";
 import { StatusPill, PriorityPill } from "@/components/Pills";
-import { Avatar } from "@/components/Avatar";
-import { AssigneeStack } from "@/components/AssigneeStack";
+import { AssigneeNames } from "@/components/AssigneeNames";
 import { BulkCheckbox } from "@/lib/bulk-selection";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
@@ -159,18 +158,12 @@ export function TableView({
                     )}
                   </td>
                   <td style={td}>
-                    {taskAssignees.length > 1 ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                        <AssigneeStack users={taskAssignees} size={24} max={3} />
-                        <span style={{ fontSize: 12, color: "var(--muted)" }}>
-                          {taskAssignees.length} {/* count hint */}
-                        </span>
-                      </span>
-                    ) : assignee ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                        <Avatar id={assignee.id} name={assignee.full_name} size={24} />
-                        <span style={{ fontSize: 13 }}>{assignee.full_name}</span>
-                      </span>
+                    {taskAssignees.length > 0 || assignee ? (
+                      <AssigneeNames
+                        users={taskAssignees.length > 0 ? taskAssignees : (assignee ? [assignee] : [])}
+                        size={24}
+                        maxNames={2}
+                      />
                     ) : <span style={{ color: "var(--muted)" }}>—</span>}
                   </td>
                   <td style={td}><StatusPill status={tk.status} /></td>

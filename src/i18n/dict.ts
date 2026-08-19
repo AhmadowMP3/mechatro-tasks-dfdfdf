@@ -97,6 +97,7 @@ export const dict = {
   all: { ar: "الكل", en: "All" },
   noTasks: { ar: "لا توجد مهام مطابقة", en: "No matching tasks" },
   overdue: { ar: "متأخرة", en: "Overdue" },
+  andMore: { ar: "+{n} آخرون", en: "+{n} more" },
   // Task detail
   title: { ar: "العنوان", en: "Title" },
   description: { ar: "الوصف", en: "Description" },
