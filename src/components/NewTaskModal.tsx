@@ -79,7 +79,7 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
     const primaryAssignee = assigneeIds[0] ?? null;
     const { data, error } = await supabase.from("tasks").insert({
       title: form.title, description: form.description || null,
-      project_id: form.project_id, assignee_id: primaryAssignee,
+      project_id: form.project_id || null, assignee_id: primaryAssignee,
       priority: form.priority as never, status: form.status as never,
       due_date: form.due_date || null, progress: 0,
       start_date: startISO, created_by: user?.id ?? null,
