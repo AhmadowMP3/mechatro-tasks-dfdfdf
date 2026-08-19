@@ -335,13 +335,54 @@ function TasksPage() {
     }
   };
 
+  const memberLabels: Record<string, string> = {
+    members: lang === "ar" ? "الموظفون" : "Members",
+    member: lang === "ar" ? "الموظف" : "Member",
+    tasks: t("tasks"),
+    task: t("taskTitle"),
+    project: t("filterProject"),
+    status: t("filterStatus"),
+    priority: t("filterPriority"),
+    dueDate: t("dueDate"),
+    points: t("points"),
+    overdue: t("overdue"),
+    completionRate: t("completionRate"),
+    loggedHours: t("loggedHours"),
+    progress: t("progress"),
+    byMemberReport: t("byMemberReport"),
+    todo: t("todo"), in_progress: t("in_progress"), paused: t("paused"),
+    in_review: t("in_review"), done: t("done"),
+    low: t("low"), normal: t("normal"), high: t("high"), urgent: t("urgent"),
+  };
+
+  const memberExportBase = (groups: MemberGroup[]) => ({
+    groups,
+    projects,
+    lang,
+    labels: memberLabels,
+    title: t("byMemberReport"),
+    subtitle: t("reportTitle"),
+    filtersSummary: chips.map((c) => c.label).join(" · ") || (lang === "ar" ? "بدون فلاتر" : "No filters"),
+    generatedBy: user?.full_name,
+  });
+
+  const onMemberPdf = async (groups: MemberGroup[]) => {
+    try { await exportByMemberPdf(memberExportBase(groups)); }
+    catch (e) { console.error(e); toast.error(t("exportFailed")); }
+  };
+  const onMemberXlsx = async (groups: MemberGroup[]) => {
+    try { await exportByMemberXlsx(memberExportBase(groups)); toast.success(t("exported")); }
+    catch (e) { console.error(e); toast.error(t("exportFailed")); }
+  };
+
   return (
     <div>
       <PageHeader
         title={isAdmin ? t("tasks") : (lang === "ar" ? "مهامي" : "My Tasks")}
         actions={
           <>
-            <ViewSwitcher value={view} onChange={setView} />
+            <ViewSwitcher value={view} onChange={setView} showByMember={isAdmin} />
+
             {isAdmin && (
               <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
                 <Plus size={18} /> {t("newTask")}
