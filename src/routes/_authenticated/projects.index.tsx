@@ -438,9 +438,11 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const { t, user, lang } = useApp();
   const [form, setForm] = useState({ name_ar: "", name_en: "", description: "", color: "blue", due_date: "" });
   const submit = async () => {
-    if (!form.name_ar || !form.name_en) { toast.error(t("fullName")); return; }
+    const ar = form.name_ar.trim();
+    const en = form.name_en.trim();
+    if (!ar && !en) { toast.error(t("projectNameRequiredOne")); return; }
     const { data, error } = await supabase.from("projects").insert({
-      name_ar: form.name_ar, name_en: form.name_en,
+      name_ar: ar || en, name_en: en || ar,
       description: form.description || null,
       color: form.color, due_date: form.due_date || null,
       start_date: new Date().toISOString(),
@@ -460,10 +462,10 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
   };
   return (
     <ModalShell title={t("newProject")} onClose={onClose}>
-      <Field label={`${t("fullName")} (ع)`}><input value={form.name_ar} onChange={(e) => setForm({ ...form, name_ar: e.target.value })} style={inp} /></Field>
-      <Field label={`${t("fullName")} (EN)`}><input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} style={inp} /></Field>
-      <Field label={t("description")}><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ ...inp, minHeight: 70 }} /></Field>
-      <Field label={t("color")}>
+      <Field label={`${t("projectNameAr")} — ${t("optionalField")}`}><input value={form.name_ar} onChange={(e) => setForm({ ...form, name_ar: e.target.value })} style={inp} /></Field>
+      <Field label={`${t("projectNameEn")} — ${t("optionalField")}`}><input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} style={inp} /></Field>
+      <Field label={`${t("description")} — ${t("optionalField")}`}><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ ...inp, minHeight: 70 }} /></Field>
+      <Field label={`${t("color")} — ${t("optionalField")}`}>
         <ThemedSelect
           value={form.color}
           onChange={(v) => setForm({ ...form, color: v })}
@@ -475,7 +477,7 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
           ]}
         />
       </Field>
-      <Field label={t("dueDate")}><DatePickerField value={form.due_date} onChange={(v) => setForm({ ...form, due_date: v })} lang={lang} /></Field>
+      <Field label={`${t("dueDate")} — ${t("optionalField")}`}><DatePickerField value={form.due_date} onChange={(v) => setForm({ ...form, due_date: v })} lang={lang} /></Field>
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
         <button onClick={submit} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff", flex: 1 }}>{t("create")}</button>
         <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
