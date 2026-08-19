@@ -18,7 +18,7 @@ import { AwardPointsPanel } from "@/components/tasks/AwardPointsPanel";
 import { sanitizeUrl } from "@/lib/security/sanitize";
 
 type Task = {
-  id: string; project_id: string; title: string; description: string | null;
+  id: string; project_id: string | null; title: string; description: string | null;
   assignee_id: string | null; priority: string; status: string; progress: number;
   due_date: string | null; completed_at: string | null; created_at: string;
   start_date: string | null;
