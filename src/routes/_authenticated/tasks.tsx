@@ -8,6 +8,9 @@ import { TaskCard } from "@/components/TaskCard";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { NewTaskModal } from "@/components/NewTaskModal";
 import { ViewSwitcher, type TaskView } from "@/components/tasks/ViewSwitcher";
+import { MemberBoard, buildMemberGroups, type MemberGroup } from "@/components/tasks/MemberBoard";
+import { exportByMemberPdf, exportByMemberXlsx } from "@/lib/export/by-member-export";
+
 import { KanbanView } from "@/components/tasks/KanbanView";
 import { TableView } from "@/components/tasks/TableView";
 
@@ -91,8 +94,9 @@ function TasksPage() {
   const [view, setView] = useState<TaskView>(() => {
     if (typeof window === "undefined") return "cards";
     const v = window.localStorage.getItem(VIEW_KEY);
-    return (v === "kanban" || v === "table" || v === "cards") ? v : "cards";
+    return (v === "kanban" || v === "table" || v === "cards" || v === "byMember") ? v : "cards";
   });
+
   useEffect(() => { if (typeof window !== "undefined") window.localStorage.setItem(VIEW_KEY, view); }, [view]);
 
   const [f, setF] = useState<Filters>(DEFAULTS);
@@ -121,11 +125,12 @@ function TasksPage() {
         }
         tasksQ.or(orClauses.join(","));
       }
-      const [tasks, projects, files, allAssignees] = await Promise.all([
+      const [tasks, projects, files, allAssignees, sessions] = await Promise.all([
         tasksQ,
         supabase.from("projects").select("id,name_ar,name_en,color"),
         supabase.from("task_files").select("task_id"),
         supabase.from("task_assignees").select("task_id,user_id,assigned_at").order("assigned_at", { ascending: true }),
+        supabase.from("work_sessions").select("user_id,duration_minutes"),
       ]);
       const fileCounts: Record<string, number> = {};
       for (const row of files.data ?? []) fileCounts[row.task_id] = (fileCounts[row.task_id] ?? 0) + 1;
@@ -133,7 +138,13 @@ function TasksPage() {
       for (const row of allAssignees.data ?? []) {
         (assigneesByTask[row.task_id] ||= []).push(row.user_id);
       }
-      return { tasks: tasks.data ?? [], projects: projects.data ?? [], fileCounts, assigneesByTask };
+      const minutesByUser: Record<string, number> = {};
+      for (const row of sessions.data ?? []) {
+        if (!row.user_id) continue;
+        minutesByUser[row.user_id] = (minutesByUser[row.user_id] ?? 0) + (row.duration_minutes ?? 0);
+      }
+      return { tasks: tasks.data ?? [], projects: projects.data ?? [], fileCounts, assigneesByTask, minutesByUser };
+
     },
   });
 
@@ -324,13 +335,54 @@ function TasksPage() {
     }
   };
 
+  const memberLabels: Record<string, string> = {
+    members: lang === "ar" ? "الموظفون" : "Members",
+    member: lang === "ar" ? "الموظف" : "Member",
+    tasks: t("tasks"),
+    task: t("taskTitle"),
+    project: t("filterProject"),
+    status: t("filterStatus"),
+    priority: t("filterPriority"),
+    dueDate: t("dueDate"),
+    points: t("points"),
+    overdue: t("overdue"),
+    completionRate: t("completionRate"),
+    loggedHours: t("loggedHours"),
+    progress: t("progress"),
+    byMemberReport: t("byMemberReport"),
+    todo: t("todo"), in_progress: t("in_progress"), paused: t("paused"),
+    in_review: t("in_review"), done: t("done"),
+    low: t("low"), normal: t("normal"), high: t("high"), urgent: t("urgent"),
+  };
+
+  const memberExportBase = (groups: MemberGroup[]) => ({
+    groups,
+    projects,
+    lang,
+    labels: memberLabels,
+    title: t("byMemberReport"),
+    subtitle: t("reportTitle"),
+    filtersSummary: chips.map((c) => c.label).join(" · ") || (lang === "ar" ? "بدون فلاتر" : "No filters"),
+    generatedBy: user?.full_name,
+  });
+
+  const onMemberPdf = async (groups: MemberGroup[]) => {
+    try { await exportByMemberPdf(memberExportBase(groups)); }
+    catch (e) { console.error(e); toast.error(t("exportFailed")); }
+  };
+  const onMemberXlsx = async (groups: MemberGroup[]) => {
+    try { await exportByMemberXlsx(memberExportBase(groups)); toast.success(t("exported")); }
+    catch (e) { console.error(e); toast.error(t("exportFailed")); }
+  };
+
   return (
     <div>
       <PageHeader
         title={isAdmin ? t("tasks") : (lang === "ar" ? "مهامي" : "My Tasks")}
         actions={
           <>
-            <ViewSwitcher value={view} onChange={setView} />
+            <ViewSwitcher value={view} onChange={setView} showByMember={isAdmin} />
+
             {isAdmin && (
               <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
                 <Plus size={18} /> {t("newTask")}
@@ -513,6 +565,25 @@ function TasksPage() {
             tasks={filtered} projects={projects} users={displayUsers}
             assigneesByTask={assigneesByTask} onOpen={setSelected} onChanged={refetch}
           />
+
+        ) : view === "byMember" ? (
+          <MemberBoard
+            groups={buildMemberGroups({
+              tasks: filtered,
+              users: displayUsers.filter((u) => u.active !== false),
+              assigneesByTask,
+              hoursByUser: data?.minutesByUser ?? {},
+              unassignedLabel: t("unassigned"),
+            })}
+            projects={projects}
+            users={displayUsers}
+            assigneesByTask={assigneesByTask}
+            onOpen={setSelected}
+            onExportPdf={onMemberPdf}
+            onExportXlsx={onMemberXlsx}
+          />
+
+
 
         ) : (
           <TableView
