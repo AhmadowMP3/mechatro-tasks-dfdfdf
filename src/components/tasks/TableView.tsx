@@ -158,18 +158,12 @@ export function TableView({
                     )}
                   </td>
                   <td style={td}>
-                    {taskAssignees.length > 1 ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                        <AssigneeStack users={taskAssignees} size={24} max={3} />
-                        <span style={{ fontSize: 12, color: "var(--muted)" }}>
-                          {taskAssignees.length} {/* count hint */}
-                        </span>
-                      </span>
-                    ) : assignee ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                        <Avatar id={assignee.id} name={assignee.full_name} size={24} />
-                        <span style={{ fontSize: 13 }}>{assignee.full_name}</span>
-                      </span>
+                    {taskAssignees.length > 0 || assignee ? (
+                      <AssigneeNames
+                        users={taskAssignees.length > 0 ? taskAssignees : (assignee ? [assignee] : [])}
+                        size={24}
+                        maxNames={2}
+                      />
                     ) : <span style={{ color: "var(--muted)" }}>—</span>}
                   </td>
                   <td style={td}><StatusPill status={tk.status} /></td>
