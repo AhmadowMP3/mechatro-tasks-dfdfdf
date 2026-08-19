@@ -91,8 +91,9 @@ function TasksPage() {
   const [view, setView] = useState<TaskView>(() => {
     if (typeof window === "undefined") return "cards";
     const v = window.localStorage.getItem(VIEW_KEY);
-    return (v === "kanban" || v === "table" || v === "cards") ? v : "cards";
+    return (v === "kanban" || v === "table" || v === "cards" || v === "byMember") ? v : "cards";
   });
+
   useEffect(() => { if (typeof window !== "undefined") window.localStorage.setItem(VIEW_KEY, view); }, [view]);
 
   const [f, setF] = useState<Filters>(DEFAULTS);
