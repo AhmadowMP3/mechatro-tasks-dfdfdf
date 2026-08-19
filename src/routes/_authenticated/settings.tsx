@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2, Upload } from "lucide-react";
+import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2, Upload, CloudUpload, CloudOff, Cloud } from "lucide-react";
 import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { formatDate, toLocalDigits } from "@/lib/format";
@@ -83,6 +83,9 @@ function SeedTestUsersSection() {
 
 type Backup = { name: string; size: number; created_at: string; };
 
+type DriveRow = { file: string; drive_link: string | null; synced_at: string | null; error: string | null };
+
+
 type BackupRequest = {
   id: string;
   status: "pending" | "approved" | "rejected" | "completed" | "failed" | "expired";
@@ -136,6 +139,41 @@ function BackupsSection() {
       return (data ?? []) as BackupRequest[];
     },
   });
+
+  // Google Drive sync state
+  const { data: driveStatus } = useQuery({
+    queryKey: ["backup_drive_status"],
+    enabled: !!isMasterAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("backup-snapshot", { body: { drive_status: true } });
+      if (error) throw error;
+      return data as { configured: boolean; error?: string; files?: Array<{ id: string; name: string }> };
+    },
+  });
+
+  const { data: driveRows, refetch: refetchDrive } = useQuery({
+    queryKey: ["backup_drive_files"],
+    enabled: !!isMasterAdmin,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as unknown as (t: string) => any)("backup_drive_files")
+        .select("file, drive_link, synced_at, error");
+      if (error) throw error;
+      return (data ?? []) as DriveRow[];
+    },
+  });
+
+  const driveByFile = new Map((driveRows ?? []).map((r) => [r.file, r]));
+
+  const syncToDrive = async (b: Backup) => {
+    setActingId(b.name);
+    const { data, error } = await supabase.functions.invoke("backup-snapshot", { body: { sync_to_drive: true, file: b.name } });
+    setActingId(null);
+    const resp = data as { ok?: boolean; error?: string } | null;
+    if (error || resp?.error) { toast.error(resp?.error ?? error?.message ?? "err"); return; }
+    toast.success(t("driveSyncDone"));
+    refetchDrive();
+  };
+
 
 
   const runBackup = async () => {
@@ -284,7 +322,14 @@ function BackupsSection() {
           })()}</span>
           <span>· 📦 {t("retentionPolicy")}</span>
           <span>· 📎 {t("includesAllFiles")}</span>
+          <span style={{ width: "100%", height: 0 }} />
+          <span style={{ color: driveStatus?.configured ? "#5BD6A6" : "#E7B03A" }}>
+            ☁️ {t("driveSync")}: {driveStatus?.configured
+              ? (driveStatus.error ? driveStatus.error : t("driveAutoNote"))
+              : t("driveNotConfigured")}
+          </span>
         </div>
+
       )}
 
       {!isMasterAdmin && (
@@ -367,8 +412,9 @@ function BackupsSection() {
                 <span style={{ fontSize: 14, fontWeight: 700 }}>{formatDate(b.created_at, lang)}</span>
                 <span style={{ fontSize: 12, color: "var(--muted)", wordBreak: "break-all" }}>{b.name}</span>
                 <span style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{toLocalDigits(Math.round(b.size / 1024), lang)} KB</span>
+                <DriveBadge row={driveByFile.get(b.name)} />
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => download(b)} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "var(--surface-3)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
                   <Download size={14} /> {t("download")}
                 </button>
@@ -378,7 +424,13 @@ function BackupsSection() {
                 <button onClick={() => deleteBackup(b)} disabled={actingId === b.name || b.name === latestBackupName} title={b.name === latestBackupName ? t("latestBackupProtected") : undefined} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "rgba(217,72,75,.15)", color: "#F0676A", border: "1px solid rgba(217,72,75,.4)", opacity: (actingId === b.name || b.name === latestBackupName) ? 0.5 : 1, cursor: b.name === latestBackupName ? "not-allowed" : undefined }}>
                   <Trash2 size={14} /> {t("delete")}
                 </button>
+                {driveStatus?.configured && (
+                  <button onClick={() => syncToDrive(b)} disabled={actingId === b.name} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "rgba(66,194,238,.15)", color: "#42C2EE", border: "1px solid rgba(66,194,238,.35)", opacity: actingId === b.name ? 0.5 : 1 }}>
+                    <CloudUpload size={14} /> {t("driveSyncNow")}
+                  </button>
+                )}
               </div>
+
             </div>
           ))}
         </div>
@@ -389,20 +441,27 @@ function BackupsSection() {
             <tr style={{ color: "var(--muted)", textAlign: lang === "ar" ? "right" : "left" }}>
               <th style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>{t("when")}</th>
               <th style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>{t("size")}</th>
+              <th style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>{t("driveSync")}</th>
               <th style={{ padding: 10, borderBottom: "1px solid var(--border)" }}></th>
             </tr>
           </thead>
           <tbody>
             {(data ?? []).length === 0 ? (
-              <tr><td colSpan={3} style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>—</td></tr>
+              <tr><td colSpan={4} style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>—</td></tr>
             ) : (data ?? []).map((b) => (
               <tr key={b.name}>
                 <td style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>{formatDate(b.created_at, lang)} · <span style={{ color: "var(--muted)" }}>{b.name}</span></td>
                 <td style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>{toLocalDigits(Math.round(b.size / 1024), lang)} KB</td>
+                <td style={{ padding: 10, borderBottom: "1px solid var(--border)" }}><DriveBadge row={driveByFile.get(b.name)} /></td>
                 <td style={{ padding: 10, borderBottom: "1px solid var(--border)", textAlign: lang === "ar" ? "left" : "right" }}>
                   <button onClick={() => download(b)} className="brand-btn-sm" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)", marginInlineEnd: 6 }}>
                     <Download size={14} /> {t("download")}
                   </button>
+                  {driveStatus?.configured && (
+                    <button onClick={() => syncToDrive(b)} disabled={actingId === b.name} className="brand-btn-sm" style={{ background: "rgba(66,194,238,.15)", color: "#42C2EE", border: "1px solid rgba(66,194,238,.35)", marginInlineEnd: 6, opacity: actingId === b.name ? 0.5 : 1 }}>
+                      <CloudUpload size={14} /> {t("driveSyncNow")}
+                    </button>
+                  )}
                   <button onClick={() => setRestoreTarget(b)} className="brand-btn-sm" style={{ background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)", marginInlineEnd: 6 }}>
                     <RotateCcw size={14} /> {t("restore")}
                   </button>
@@ -410,6 +469,7 @@ function BackupsSection() {
                     <Trash2 size={14} /> {t("delete")}
                   </button>
                 </td>
+
               </tr>
             ))}
           </tbody>
@@ -473,5 +533,34 @@ function RestoreDialog({ source, onClose, onDone }: { source: RestoreSource; onC
         </div>
       </div>
     </div>
+  );
+}
+
+function DriveBadge({ row }: { row?: DriveRow }) {
+  const { t, lang } = useApp();
+  if (!row || (!row.synced_at && !row.error)) {
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted)" }}>
+        <CloudOff size={14} /> {t("driveNotSynced")}
+      </span>
+    );
+  }
+  if (row.error) {
+    return (
+      <span title={row.error} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#F0676A" }}>
+        <CloudOff size={14} /> {row.error.slice(0, 40)}
+      </span>
+    );
+  }
+  const label = `${t("driveSynced")} · ${formatDate(row.synced_at!, lang)}`;
+  return row.drive_link ? (
+    <a href={row.drive_link} target="_blank" rel="noreferrer" title={t("driveOpen")}
+       style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#5BD6A6", textDecoration: "none" }}>
+      <Cloud size={14} /> {label}
+    </a>
+  ) : (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#5BD6A6" }}>
+      <Cloud size={14} /> {label}
+    </span>
   );
 }

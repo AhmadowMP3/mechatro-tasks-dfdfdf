@@ -265,6 +265,21 @@ export const dict = {
     ar: "تشمل جميع الملفات (فواتير، تقارير، إيصالات، مرفقات)",
     en: "Includes all files (invoices, reports, receipts, attachments)",
   },
+  driveSync: { ar: "مزامنة Google Drive", en: "Google Drive sync" },
+  driveSynced: { ar: "مزامَن مع Drive", en: "Synced to Drive" },
+  driveNotSynced: { ar: "غير مزامَن", en: "Not synced" },
+  driveSyncNow: { ar: "رفع إلى Drive", en: "Upload to Drive" },
+  driveOpen: { ar: "فتح في Drive", en: "Open in Drive" },
+  driveSyncDone: { ar: "تم الرفع إلى Google Drive", en: "Uploaded to Google Drive" },
+  driveNotConfigured: {
+    ar: "مزامنة Google Drive غير مفعّلة — أضف مفتاح حساب الخدمة ومعرّف المجلد.",
+    en: "Google Drive sync is not configured — add the service-account key and folder ID.",
+  },
+  driveAutoNote: {
+    ar: "كل نسخة جديدة تُرفع تلقائياً كملف ZIP واحد إلى مجلد Drive (آخر 12 نسخة).",
+    en: "Every new backup is uploaded automatically as a single ZIP to the Drive folder (last 12 kept).",
+  },
+
   
   download: { ar: "تنزيل", en: "Download" },
   restore: { ar: "استعادة", en: "Restore" },

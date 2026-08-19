@@ -11,8 +11,13 @@
 //   { reject_request_id: "<uuid>" }      — master admin rejects a pending request
 //   { restore: true, file: "backup-...json" } — master admin restore (data only)
 //   { delete: true, file: "backup-...json" } — master admin delete a backup file
+//   { sync_to_drive: true, file: "..." } — master admin: push an existing backup to Google Drive
+//   { drive_status: true }               — master admin: Drive config + remote file list
 //   { auto_approve_pending: true }       — service-role only: snapshot any pending >24h
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import {
+  BlobWriter, TextReader, Uint8ArrayReader, ZipWriter,
+} from "https://esm.sh/@zip.js/zip.js@2.7.45";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -67,6 +72,159 @@ const FILE_BUCKETS = [
 // Safety cap per file to avoid memory blowups inside the edge function.
 const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
 
+// ─────────────────────────────────────────────────────────────
+// Google Drive sync (service account / JWT flow)
+// env: GOOGLE_DRIVE_SA_JSON, GOOGLE_DRIVE_FOLDER_ID
+// A service account has no Drive quota of its own, so the destination folder
+// must be shared with its email from a real account (or be a Shared Drive).
+// ─────────────────────────────────────────────────────────────
+const DRIVE_KEEP = 12;
+
+type DriveFile = { id: string; name: string; createdTime?: string; webViewLink?: string; size?: string };
+type ZipEntry = { path: string; bytes: Uint8Array };
+
+function driveConfigured(): boolean {
+  return !!Deno.env.get("GOOGLE_DRIVE_SA_JSON") && !!Deno.env.get("GOOGLE_DRIVE_FOLDER_ID");
+}
+
+function driveFolderId(): string {
+  return Deno.env.get("GOOGLE_DRIVE_FOLDER_ID") ?? "";
+}
+
+function b64url(input: Uint8Array | string): string {
+  const raw = typeof input === "string"
+    ? input
+    : Array.from(input).map((b) => String.fromCharCode(b)).join("");
+  return btoa(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function pemToPkcs8(pem: string): ArrayBuffer {
+  const body = pem
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\s+/g, "");
+  const bin = atob(body);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+
+let driveToken: { token: string; exp: number } | null = null;
+
+async function driveAccessToken(): Promise<string> {
+  if (driveToken && driveToken.exp > Date.now() + 60_000) return driveToken.token;
+  const raw = Deno.env.get("GOOGLE_DRIVE_SA_JSON");
+  if (!raw) throw new Error("GOOGLE_DRIVE_SA_JSON is not set");
+  const sa = JSON.parse(raw) as { client_email: string; private_key: string };
+  if (!sa.client_email || !sa.private_key) throw new Error("invalid service account JSON");
+  const pk = sa.private_key.replace(/\\n/g, "\n");
+
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claim = b64url(JSON.stringify({
+    iss: sa.client_email,
+    scope: "https://www.googleapis.com/auth/drive",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  }));
+  const signingInput = `${header}.${claim}`;
+  const key = await crypto.subtle.importKey(
+    "pkcs8", pemToPkcs8(pk),
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sig = new Uint8Array(
+    await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(signingInput)),
+  );
+  const jwt = `${signingInput}.${b64url(sig)}`;
+
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`google token [${res.status}]: ${text}`);
+  const parsed = JSON.parse(text) as { access_token: string; expires_in: number };
+  driveToken = { token: parsed.access_token, exp: Date.now() + parsed.expires_in * 1000 };
+  return parsed.access_token;
+}
+
+async function driveUpload(name: string, blob: Blob): Promise<DriveFile> {
+  const token = await driveAccessToken();
+  const boundary = `mechatro-${crypto.randomUUID()}`;
+  const meta = JSON.stringify({ name, parents: [driveFolderId()] });
+  const enc = new TextEncoder();
+  const head = enc.encode(
+    `--${boundary}\r\ncontent-type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n` +
+    `--${boundary}\r\ncontent-type: application/zip\r\n\r\n`,
+  );
+  const tail = enc.encode(`\r\n--${boundary}--\r\n`);
+  const body = new Blob([head, blob, tail]);
+
+  const res = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,createdTime,webViewLink,size",
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": `multipart/related; boundary=${boundary}`,
+      },
+      body,
+    },
+  );
+  const text = await res.text();
+  if (!res.ok) throw new Error(`drive upload [${res.status}]: ${text}`);
+  return JSON.parse(text) as DriveFile;
+}
+
+async function driveList(): Promise<DriveFile[]> {
+  const token = await driveAccessToken();
+  const q = encodeURIComponent(`'${driveFolderId()}' in parents and trashed = false`);
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime desc&pageSize=100` +
+    `&fields=files(id,name,createdTime,webViewLink,size)&supportsAllDrives=true&includeItemsFromAllDrives=true`,
+    { headers: { authorization: `Bearer ${token}` } },
+  );
+  const text = await res.text();
+  if (!res.ok) throw new Error(`drive list [${res.status}]: ${text}`);
+  return (JSON.parse(text) as { files?: DriveFile[] }).files ?? [];
+}
+
+async function driveDelete(id: string): Promise<void> {
+  const token = await driveAccessToken();
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${id}?supportsAllDrives=true`,
+    { method: "DELETE", headers: { authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok && res.status !== 404) throw new Error(`drive delete [${res.status}]: ${await res.text()}`);
+}
+
+async function drivePrune(keep: number): Promise<number> {
+  const files = await driveList();
+  const stale = files.slice(keep);
+  for (const f of stale) {
+    try { await driveDelete(f.id); } catch (e) { console.warn("drive prune", errMsg(e)); }
+  }
+  return stale.length;
+}
+
+async function buildZip(dbJson: string, entries: ZipEntry[]): Promise<Blob> {
+  const writer = new ZipWriter(new BlobWriter("application/zip"), { level: 6 });
+  await writer.add("database.json", new TextReader(dbJson));
+  for (const e of entries) {
+    try {
+      await writer.add(`files/${e.path}`, new Uint8ArrayReader(e.bytes));
+    } catch (err) {
+      console.warn(`zip entry ${e.path}: ${errMsg(err)}`);
+    }
+  }
+  return await writer.close();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
@@ -84,6 +242,8 @@ Deno.serve(async (req) => {
     approve_request_id?: string;
     reject_request_id?: string;
     auto_approve_pending?: boolean;
+    sync_to_drive?: boolean;
+    drive_status?: boolean;
   } = {};
   try { body = await req.json(); } catch (_) { /* ignore */ }
 
@@ -128,7 +288,10 @@ Deno.serve(async (req) => {
     return out;
   }
 
-  async function mirrorBucketFiles(stamp: string): Promise<{ mirrored: number; skipped: number; errors: number }> {
+  async function mirrorBucketFiles(
+    stamp: string,
+    collect?: ZipEntry[],
+  ): Promise<{ mirrored: number; skipped: number; errors: number }> {
     let mirrored = 0, skipped = 0, errors = 0;
     for (const bucket of FILE_BUCKETS) {
       let paths: string[] = [];
@@ -151,6 +314,7 @@ Deno.serve(async (req) => {
             upsert: true,
           });
           if (upErr) { errors += 1; continue; }
+          collect?.push({ path: `${bucket}/${p}`, bytes: buf });
           mirrored += 1;
         } catch (e) {
           console.warn(`mirror ${bucket}/${p} → ${errMsg(e)}`);
@@ -187,6 +351,64 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Build the single archive for a backup and push it to Google Drive.
+  // Best-effort: never fails the surrounding snapshot.
+  async function syncToDrive(
+    backupFile: string,
+    dbJson: string,
+    entries: ZipEntry[],
+  ): Promise<{ ok: boolean; skipped?: boolean; error?: string; file_id?: string; link?: string; name?: string }> {
+    if (!driveConfigured()) return { ok: false, skipped: true };
+    try {
+      const stamp = backupFile.replace(/^backup-/, "").replace(/\.json$/, "");
+      const name = `mechatro-backup-${stamp}.zip`;
+      const blob = await buildZip(dbJson, entries);
+      const uploaded = await driveUpload(name, blob);
+      await drivePrune(DRIVE_KEEP);
+      await sb.from("backup_drive_files").upsert({
+        file: backupFile,
+        drive_file_id: uploaded.id,
+        drive_name: uploaded.name,
+        drive_link: uploaded.webViewLink ?? null,
+        size_bytes: uploaded.size ? Number(uploaded.size) : blob.size,
+        synced_at: new Date().toISOString(),
+        error: null,
+      }, { onConflict: "file" });
+      return { ok: true, file_id: uploaded.id, link: uploaded.webViewLink, name: uploaded.name };
+    } catch (e) {
+      const msg = errMsg(e);
+      console.error("drive sync failed", msg);
+      try {
+        await sb.from("backup_drive_files").upsert({
+          file: backupFile, synced_at: null, error: msg,
+        }, { onConflict: "file" });
+      } catch (_) { /* ignore */ }
+      return { ok: false, error: msg };
+    }
+  }
+
+  // Rebuild the archive for an already stored backup and push it to Drive.
+  async function syncExistingToDrive(backupFile: string) {
+    const { data: dl, error: dlErr } = await sb.storage.from("backups").download(backupFile);
+    if (dlErr || !dl) throw new Error(dlErr?.message ?? "download failed");
+    const dbJson = await dl.text();
+    const stamp = backupFile.replace(/^backup-/, "").replace(/\.json$/, "");
+    const mirrorRoot = `snapshot-${stamp}`;
+    const entries: ZipEntry[] = [];
+    for (const bucket of FILE_BUCKETS) {
+      let paths: string[] = [];
+      try { paths = await listBucketRecursive("backups", `${mirrorRoot}/${bucket}`); } catch (_) { continue; }
+      for (const full of paths) {
+        try {
+          const { data: f } = await sb.storage.from("backups").download(full);
+          if (!f || f.size > MAX_FILE_BYTES) continue;
+          entries.push({ path: full.slice(`${mirrorRoot}/`.length), bytes: new Uint8Array(await f.arrayBuffer()) });
+        } catch (_) { /* skip */ }
+      }
+    }
+    return await syncToDrive(backupFile, dbJson, entries);
+  }
+
   async function runSnapshot(requestId: string | null, systemDecision = false) {
     const snapshot: Record<string, unknown[]> = {};
     for (const t of TABLES) {
@@ -196,14 +418,19 @@ Deno.serve(async (req) => {
     }
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const filename = `backup-${stamp}.json`;
-    const payload = new TextEncoder().encode(JSON.stringify(snapshot, null, 2));
+    const dbJson = JSON.stringify(snapshot, null, 2);
+    const payload = new TextEncoder().encode(dbJson);
     const { error: upErr } = await sb.storage.from("backups").upload(filename, payload, {
       contentType: "application/json", upsert: false,
     });
     if (upErr) throw new Error(upErr.message);
 
     // Mirror storage buckets for cold recovery (files not restored, but preserved).
-    const fileStats = await mirrorBucketFiles(stamp);
+    const zipEntries: ZipEntry[] = [];
+    const fileStats = await mirrorBucketFiles(stamp, driveConfigured() ? zipEntries : undefined);
+
+    // Push a single compressed archive to Google Drive (best-effort).
+    const drive = await syncToDrive(filename, dbJson, zipEntries);
 
     // Retain last 12 backups (DB JSON + matching file folder).
     const { data: list } = await sb.storage.from("backups").list("", {
@@ -231,6 +458,7 @@ Deno.serve(async (req) => {
       file: filename,
       tables: Object.fromEntries(Object.entries(snapshot).map(([k, v]) => [k, v.length])),
       files: fileStats,
+      drive,
     };
   }
 
@@ -265,6 +493,27 @@ Deno.serve(async (req) => {
         }
       }
       return json(200, { ok: true, processed: results.length, results });
+    }
+
+    // ---- Google Drive status ----
+    if (body.drive_status) {
+      if (isSystem) return json(403, { error: "user only" });
+      if (!driveConfigured()) return json(200, { ok: true, configured: false, files: [] });
+      try {
+        const files = await driveList();
+        return json(200, { ok: true, configured: true, folder_id: driveFolderId(), files });
+      } catch (e) {
+        return json(200, { ok: false, configured: true, error: errMsg(e), files: [] });
+      }
+    }
+
+    // ---- Sync an existing backup to Google Drive ----
+    if (body.sync_to_drive && body.file) {
+      if (isSystem) return json(403, { error: "user only" });
+      if (!driveConfigured()) return json(400, { error: "drive_not_configured" });
+      const res = await syncExistingToDrive(body.file);
+      if (!res.ok) return json(500, { error: res.error ?? "drive sync failed" });
+      return json(200, res);
     }
 
     // ---- Reject a pending request ----
