@@ -175,6 +175,7 @@ function ProjectDetail() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 300px), 1fr))", gap: 14 }}>
           {data.tasks.map((tk) => {
             const checked = isSelected(tk.id);
+            const mine = isAdmin || (!!user && (tk.assignee_id === user.id || (data.assigneesByTask[tk.id] ?? []).includes(user.id)));
             return (
               <div
                 key={tk.id}
@@ -198,7 +199,14 @@ function ProjectDetail() {
                     <BulkCheckbox checked={checked} onChange={() => toggle(tk.id)} label={lang === "ar" ? "تحديد" : "Select"} />
                   </div>
                 )}
-                <div style={{ pointerEvents: bulkMode ? "none" : "auto" }}>
+                {!mine && (
+                  <span style={{
+                    position: "absolute", top: 10, insetInlineEnd: 10, zIndex: 5,
+                    fontSize: 11, padding: "3px 8px", borderRadius: 999,
+                    background: "var(--surface-2)", color: "var(--muted)", border: "1px solid var(--border)",
+                  }}>{t("viewOnly")}</span>
+                )}
+                <div style={{ pointerEvents: bulkMode ? "none" : "auto", opacity: mine ? 1 : 0.75 }}>
                   <TaskCard task={tk} project={p}
                     assignee={users.find((u) => u.id === tk.assignee_id) ?? null}
                     assignees={(data.assigneesByTask[tk.id] ?? []).map((uid) => users.find((u) => u.id === uid)).filter(Boolean) as never}

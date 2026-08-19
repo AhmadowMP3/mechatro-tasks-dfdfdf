@@ -67,21 +67,34 @@ function Dashboard() {
   }, []);
 
   const { data, refetch } = useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ["dashboard", isAdmin, user?.id ?? ""],
     queryFn: async () => {
-      const [tasksRes, projectsRes, activityRes, profilesRes, sessionsRes] = await Promise.all([
+      const [tasksRes, projectsRes, activityRes, profilesRes, sessionsRes, myAssignRes, pulseRes] = await Promise.all([
         supabase.from("tasks").select("*"),
         supabase.from("projects").select("*"),
         supabase.from("activity_log").select("*").neq("action", "signed_in").neq("action", "signed_out").order("created_at", { ascending: false }).limit(200),
         supabase.from("profiles").select("id, full_name, avatar_url, role").eq("active", true),
         supabase.from("work_sessions").select("id, user_id, task_id, started_at, ended_at, duration_minutes").order("started_at", { ascending: false }).limit(500),
+        !isAdmin && user ? supabase.from("task_assignees").select("task_id").eq("user_id", user.id) : Promise.resolve({ data: [] as Array<{ task_id: string }> }),
+        !isAdmin ? supabase.rpc("team_pulse") : Promise.resolve({ data: null }),
       ]);
+      const myTaskIds = ((myAssignRes as { data: Array<{ task_id: string }> | null }).data ?? []).map((r) => r.task_id);
+      const rawTasks = tasksRes.data ?? [];
+      const scopedTasks = isAdmin || !user
+        ? rawTasks
+        : rawTasks.filter((t) => t.assignee_id === user.id || myTaskIds.includes(t.id));
+      const scopedTaskIds = new Set(scopedTasks.map((t) => t.id));
+      const rawActivity = activityRes.data ?? [];
+      const scopedActivity = isAdmin || !user
+        ? rawActivity
+        : rawActivity.filter((a) => a.actor_id === user.id || (a.entity_type === "task" && a.entity_id && scopedTaskIds.has(a.entity_id)));
       return {
-        tasks: tasksRes.data ?? [],
+        tasks: scopedTasks,
         projects: projectsRes.data ?? [],
-        activity: activityRes.data ?? [],
+        activity: scopedActivity,
         profiles: profilesRes.data ?? [],
         sessions: sessionsRes.data ?? [],
+        pulse: (pulseRes as { data: unknown }).data as null | { done_this_week: number; open_total: number; active_members: number; team_points: number },
       };
     },
   });
@@ -293,6 +306,25 @@ function Dashboard() {
       </div>
 
       {/* League podium */}
+      {!isAdmin && data?.pulse && (
+        <div className="brand-card" style={{ padding: 20 }}>
+          <h2 style={{ fontSize: 17, margin: "0 0 12px" }}>{t("teamPulse")}</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12 }}>
+            {([
+              [t("doneThisWeek"), data.pulse.done_this_week],
+              [t("openTotal"), data.pulse.open_total],
+              [t("activeMembers"), data.pulse.active_members],
+              [t("teamPoints"), data.pulse.team_points],
+            ] as Array<[string, number]>).map(([label, value]) => (
+              <div key={label} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 14px" }}>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>{label}</div>
+                <div style={{ fontSize: 22, fontWeight: 700 }}>{toLocalDigits(String(value ?? 0), lang)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <LeaguePodiumCard />
 
 

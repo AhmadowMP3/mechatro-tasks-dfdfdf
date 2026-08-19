@@ -122,10 +122,21 @@ export function CommandPalette() {
     const t = setTimeout(async () => {
       const like = `%${escapeIlike(q)}%`;
       try {
+        let myTaskIds: string[] = [];
+        if (!isAdmin && user) {
+          const { data: ta } = await supabase.from("task_assignees").select("task_id").eq("user_id", user.id);
+          myTaskIds = (ta ?? []).map((r) => r.task_id);
+        }
+        const taskQuery = supabase.from("tasks").select("id,title,status,project_id").ilike("title", like);
+        const scopedTaskQuery = !isAdmin && user
+          ? taskQuery.or(
+              myTaskIds.length
+                ? `assignee_id.eq.${user.id},id.in.(${myTaskIds.join(",")})`
+                : `assignee_id.eq.${user.id}`,
+            )
+          : taskQuery;
         const [tasks, projects, refs, people] = await Promise.all([
-          supabase.from("tasks")
-            .select("id,title,status,project_id")
-            .ilike("title", like).limit(6),
+          scopedTaskQuery.limit(6),
           supabase.from("projects")
             .select("id,name_ar,name_en")
             .or(`name_ar.ilike.${like},name_en.ilike.${like}`).limit(6),
