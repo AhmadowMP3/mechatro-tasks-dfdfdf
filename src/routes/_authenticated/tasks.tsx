@@ -380,7 +380,10 @@ function TasksPage() {
           <ChipMultiSelect
             value={f.projects}
             onChange={(v) => patch({ projects: v })}
-            options={projects.map((p) => ({ value: p.id, label: lang === "ar" ? p.name_ar : p.name_en }))}
+            options={[
+              ...projects.map((p) => ({ value: p.id, label: lang === "ar" ? p.name_ar : p.name_en })),
+              { value: "__none__", label: t("noProject") },
+            ]}
           />
         </FilterSection>
 
