@@ -128,7 +128,7 @@ function Dashboard() {
       if (rangeStart || rangeEnd) { if (!inRange(s.started_at)) return false; }
       if (filters.projects.length) {
         const tk = allTasks.find((x) => x.id === s.task_id);
-        if (!tk || !filters.projects.includes(tk.project_id)) return false;
+        if (!tk || !tk.project_id || !filters.projects.includes(tk.project_id)) return false;
       }
       return true;
     });
