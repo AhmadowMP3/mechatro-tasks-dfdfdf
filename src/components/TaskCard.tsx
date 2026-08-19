@@ -1,6 +1,5 @@
 import { StatusPill, PriorityPill, OverduePill } from "@/components/Pills";
-import { Avatar } from "@/components/Avatar";
-import { AssigneeStack } from "@/components/AssigneeStack";
+import { AssigneeNames } from "@/components/AssigneeNames";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 import { useApp } from "@/lib/app-context";
