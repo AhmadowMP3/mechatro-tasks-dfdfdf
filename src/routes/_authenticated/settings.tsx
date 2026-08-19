@@ -535,3 +535,32 @@ function RestoreDialog({ source, onClose, onDone }: { source: RestoreSource; onC
     </div>
   );
 }
+
+function DriveBadge({ row }: { row?: DriveRow }) {
+  const { t, lang } = useApp();
+  if (!row || (!row.synced_at && !row.error)) {
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted)" }}>
+        <CloudOff size={14} /> {t("driveNotSynced")}
+      </span>
+    );
+  }
+  if (row.error) {
+    return (
+      <span title={row.error} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#F0676A" }}>
+        <CloudOff size={14} /> {row.error.slice(0, 40)}
+      </span>
+    );
+  }
+  const label = `${t("driveSynced")} · ${formatDate(row.synced_at!, lang)}`;
+  return row.drive_link ? (
+    <a href={row.drive_link} target="_blank" rel="noreferrer" title={t("driveOpen")}
+       style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#5BD6A6", textDecoration: "none" }}>
+      <Cloud size={14} /> {label}
+    </a>
+  ) : (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#5BD6A6" }}>
+      <Cloud size={14} /> {label}
+    </span>
+  );
+}
