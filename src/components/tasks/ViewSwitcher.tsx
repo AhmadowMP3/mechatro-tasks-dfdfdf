@@ -27,7 +27,7 @@ export function ViewSwitcher({ value, onChange, showByMember = false }: { value:
         borderRadius: 12,
       }}
     >
-      {OPTIONS.map(({ key, label, Icon }) => {
+      {options.map(({ key, label, Icon }) => {
         const active = value === key;
         return (
           <button
