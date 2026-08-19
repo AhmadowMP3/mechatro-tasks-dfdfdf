@@ -67,21 +67,34 @@ function Dashboard() {
   }, []);
 
   const { data, refetch } = useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ["dashboard", isAdmin, user?.id ?? ""],
     queryFn: async () => {
-      const [tasksRes, projectsRes, activityRes, profilesRes, sessionsRes] = await Promise.all([
+      const [tasksRes, projectsRes, activityRes, profilesRes, sessionsRes, myAssignRes, pulseRes] = await Promise.all([
         supabase.from("tasks").select("*"),
         supabase.from("projects").select("*"),
         supabase.from("activity_log").select("*").neq("action", "signed_in").neq("action", "signed_out").order("created_at", { ascending: false }).limit(200),
         supabase.from("profiles").select("id, full_name, avatar_url, role").eq("active", true),
         supabase.from("work_sessions").select("id, user_id, task_id, started_at, ended_at, duration_minutes").order("started_at", { ascending: false }).limit(500),
+        !isAdmin && user ? supabase.from("task_assignees").select("task_id").eq("user_id", user.id) : Promise.resolve({ data: [] as Array<{ task_id: string }> }),
+        !isAdmin ? supabase.rpc("team_pulse") : Promise.resolve({ data: null }),
       ]);
+      const myTaskIds = ((myAssignRes as { data: Array<{ task_id: string }> | null }).data ?? []).map((r) => r.task_id);
+      const rawTasks = tasksRes.data ?? [];
+      const scopedTasks = isAdmin || !user
+        ? rawTasks
+        : rawTasks.filter((t) => t.assignee_id === user.id || myTaskIds.includes(t.id));
+      const scopedTaskIds = new Set(scopedTasks.map((t) => t.id));
+      const rawActivity = activityRes.data ?? [];
+      const scopedActivity = isAdmin || !user
+        ? rawActivity
+        : rawActivity.filter((a) => a.actor_id === user.id || (a.entity_type === "task" && a.entity_id && scopedTaskIds.has(a.entity_id)));
       return {
-        tasks: tasksRes.data ?? [],
+        tasks: scopedTasks,
         projects: projectsRes.data ?? [],
-        activity: activityRes.data ?? [],
+        activity: scopedActivity,
         profiles: profilesRes.data ?? [],
         sessions: sessionsRes.data ?? [],
+        pulse: (pulseRes as { data: unknown }).data as null | { done_this_week: number; open_total: number; active_members: number; team_points: number },
       };
     },
   });
