@@ -306,6 +306,25 @@ function Dashboard() {
       </div>
 
       {/* League podium */}
+      {!isAdmin && data?.pulse && (
+        <div className="brand-card" style={{ padding: 20 }}>
+          <h2 style={{ fontSize: 17, margin: "0 0 12px" }}>{t("teamPulse")}</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12 }}>
+            {([
+              [t("doneThisWeek"), data.pulse.done_this_week],
+              [t("openTotal"), data.pulse.open_total],
+              [t("activeMembers"), data.pulse.active_members],
+              [t("teamPoints"), data.pulse.team_points],
+            ] as Array<[string, number]>).map(([label, value]) => (
+              <div key={label} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 14px" }}>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>{label}</div>
+                <div style={{ fontSize: 22, fontWeight: 700 }}>{toLocalDigits(String(value ?? 0), lang)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <LeaguePodiumCard />
 
 
