@@ -63,8 +63,12 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     if (!tk) return;
     setTask(tk as Task);
     setDirty({});
-    const { data: pr } = await supabase.from("projects").select("id,name_ar,name_en,color").eq("id", tk.project_id).maybeSingle();
-    if (pr) setProject(pr);
+    if (tk.project_id) {
+      const { data: pr } = await supabase.from("projects").select("id,name_ar,name_en,color").eq("id", tk.project_id).maybeSingle();
+      setProject(pr ?? null);
+    } else {
+      setProject(null);
+    }
     const { data: cm } = await supabase.from("task_comments").select("*").eq("task_id", taskId).order("created_at");
     setComments(cm ?? []);
     const { data: fl } = await supabase.from("task_files").select("*").eq("task_id", taskId).order("created_at");
