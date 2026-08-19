@@ -289,7 +289,7 @@ function TasksPage() {
       const cols: XlsxColumn<typeof filtered[number]>[] = [
         { key: "title", header: t("taskTitle"), width: 42, get: (r) => r.title },
         { key: "project", header: t("filterProject"), width: 26, get: (r) => {
-          const p = projects.find((x) => x.id === r.project_id); return p ? (lang === "ar" ? p.name_ar : p.name_en) : "";
+          const p = projects.find((x) => x.id === r.project_id); return p ? (lang === "ar" ? p.name_ar : p.name_en) : "—";
         }},
         { key: "assignee", header: t("filterAssignee"), width: 34, get: (r) => {
           const ids = assigneesByTask[r.id] ?? (r.assignee_id ? [r.assignee_id] : []);
