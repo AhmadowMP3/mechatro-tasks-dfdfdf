@@ -1,6 +1,8 @@
 import { Avatar } from "@/components/Avatar";
 import { useApp, type Profile } from "@/lib/app-context";
 import { toLocalDigits } from "@/lib/format";
+import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
+import { useState } from "react";
 import {
   HoverCard,
   HoverCardContent,
@@ -24,6 +26,7 @@ export function AssigneeNames({
   className?: string;
 }) {
   const { lang, t } = useApp();
+  const [open, setOpen] = useState(false);
   if (users.length === 0) return null;
 
   const shown = users.slice(0, maxNames);
@@ -127,16 +130,31 @@ export function AssigneeNames({
     </span>
   );
 
-  if (users.length <= maxNames) return inlineContent;
-
   return (
-    <HoverCard openDelay={150} closeDelay={100}>
-      <HoverCardTrigger asChild>{inlineContent}</HoverCardTrigger>
+    <HoverCard openDelay={80} closeDelay={120} open={open} onOpenChange={setOpen}>
+      <HoverCardTrigger asChild>
+        <span
+          style={{ display: "inline-flex", minWidth: 0, cursor: "pointer" }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setOpen((v) => !v);
+          }}
+        >
+          {inlineContent}
+        </span>
+      </HoverCardTrigger>
+      <HoverCardPrimitive.Portal>
       <HoverCardContent
         side="top"
         align={lang === "ar" ? "end" : "start"}
         sideOffset={8}
-        className="w-auto min-w-[180px] max-w-[280px] rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-lg"
+        className="z-[80] w-auto min-w-[180px] max-w-[280px] rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-lg"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div
           style={{
@@ -186,6 +204,7 @@ export function AssigneeNames({
           </div>
         </div>
       </HoverCardContent>
+      </HoverCardPrimitive.Portal>
     </HoverCard>
   );
 }
