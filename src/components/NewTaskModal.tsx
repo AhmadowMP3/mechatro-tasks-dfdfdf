@@ -68,7 +68,6 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
   const isValid =
     form.title.trim().length > 0 &&
     form.description.trim().length > 0 &&
-    form.project_id !== "" &&
     assigneeIds.length > 0 &&
     form.due_date !== "" &&
     !!form.priority &&
