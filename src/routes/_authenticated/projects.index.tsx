@@ -462,10 +462,10 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
   };
   return (
     <ModalShell title={t("newProject")} onClose={onClose}>
-      <Field label={`${t("fullName")} (ع)`}><input value={form.name_ar} onChange={(e) => setForm({ ...form, name_ar: e.target.value })} style={inp} /></Field>
-      <Field label={`${t("fullName")} (EN)`}><input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} style={inp} /></Field>
-      <Field label={t("description")}><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ ...inp, minHeight: 70 }} /></Field>
-      <Field label={t("color")}>
+      <Field label={`${t("projectNameAr")} — ${t("optionalField")}`}><input value={form.name_ar} onChange={(e) => setForm({ ...form, name_ar: e.target.value })} style={inp} /></Field>
+      <Field label={`${t("projectNameEn")} — ${t("optionalField")}`}><input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} style={inp} /></Field>
+      <Field label={`${t("description")} — ${t("optionalField")}`}><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ ...inp, minHeight: 70 }} /></Field>
+      <Field label={`${t("color")} — ${t("optionalField")}`}>
         <ThemedSelect
           value={form.color}
           onChange={(v) => setForm({ ...form, color: v })}
