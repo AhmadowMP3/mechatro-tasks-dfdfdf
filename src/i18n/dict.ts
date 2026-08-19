@@ -78,8 +78,6 @@ export const dict = {
   noProjects: { ar: "لا توجد مشاريع بعد — أنشئ أول مشروع", en: "No projects yet — create your first project" },
   noProject: { ar: "بدون مشروع", en: "No project" },
   viewOnly: { ar: "للاطلاع", en: "View only" },
-  teamPulse: { ar: "نبض الفريق", en: "Team pulse" },
-  doneThisWeek: { ar: "منجزة هذا الأسبوع", en: "Done this week" },
   openTotal: { ar: "مهام مفتوحة", en: "Open tasks" },
   activeMembers: { ar: "أعضاء نشطون", en: "Active members" },
   teamPoints: { ar: "نقاط الفريق", en: "Team points" },
