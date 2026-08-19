@@ -25,8 +25,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/lib/security/db";
 import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
-import { Avatar } from "@/components/Avatar";
-import { AssigneeStack } from "@/components/AssigneeStack";
+import { AssigneeNames } from "@/components/AssigneeNames";
 
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 
