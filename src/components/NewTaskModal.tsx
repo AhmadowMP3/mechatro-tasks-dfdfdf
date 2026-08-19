@@ -68,7 +68,6 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
   const isValid =
     form.title.trim().length > 0 &&
     form.description.trim().length > 0 &&
-    form.project_id !== "" &&
     assigneeIds.length > 0 &&
     form.due_date !== "" &&
     !!form.priority &&
@@ -80,7 +79,7 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
     const primaryAssignee = assigneeIds[0] ?? null;
     const { data, error } = await supabase.from("tasks").insert({
       title: form.title, description: form.description || null,
-      project_id: form.project_id, assignee_id: primaryAssignee,
+      project_id: form.project_id || null, assignee_id: primaryAssignee,
       priority: form.priority as never, status: form.status as never,
       due_date: form.due_date || null, progress: 0,
       start_date: startISO, created_by: user?.id ?? null,
@@ -154,12 +153,15 @@ export function NewTaskModal({ onClose, onCreated, defaultProjectId }: { onClose
 
       <Field label={t("title")}><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} style={inp} /></Field>
       <Field label={t("description")}><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ ...inp, minHeight: 70 }} /></Field>
-      <Field label={t("filterProject")}>
+      <Field label={`${t("filterProject")} · ${t("optionalField")}`}>
         <ThemedSelect
           value={form.project_id}
-          onChange={(v) => setForm({ ...form, project_id: v })}
-          placeholder="—"
-          options={(projects ?? []).map((p) => ({ value: p.id, label: lang === "ar" ? p.name_ar : p.name_en }))}
+          onChange={(v) => setForm({ ...form, project_id: v === "__none__" ? "" : v })}
+          placeholder={t("noProject")}
+          options={[
+            { value: "__none__", label: t("noProject") },
+            ...(projects ?? []).map((p) => ({ value: p.id, label: lang === "ar" ? p.name_ar : p.name_en })),
+          ]}
         />
       </Field>
       <Field label={t("assignees")}>

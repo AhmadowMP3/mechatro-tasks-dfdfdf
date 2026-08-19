@@ -147,7 +147,7 @@ function TasksPage() {
     const { since, until } = resolveDateRange(f.datePreset, f.dateFrom, f.dateTo);
     const priorityRank: Record<string, number> = { urgent: 4, high: 3, normal: 2, low: 1 };
     let out = (data?.tasks ?? []).filter((tk) => {
-      if (f.projects.length && !f.projects.includes(tk.project_id ?? "")) return false;
+      if (f.projects.length && !f.projects.includes(tk.project_id ?? "__none__")) return false;
       if (f.assignees.length) {
         const taskAssignees = assigneesByTask[tk.id] ?? (tk.assignee_id ? [tk.assignee_id] : []);
         if (!taskAssignees.some((a) => f.assignees.includes(a))) return false;
@@ -289,7 +289,7 @@ function TasksPage() {
       const cols: XlsxColumn<typeof filtered[number]>[] = [
         { key: "title", header: t("taskTitle"), width: 42, get: (r) => r.title },
         { key: "project", header: t("filterProject"), width: 26, get: (r) => {
-          const p = projects.find((x) => x.id === r.project_id); return p ? (lang === "ar" ? p.name_ar : p.name_en) : "";
+          const p = projects.find((x) => x.id === r.project_id); return p ? (lang === "ar" ? p.name_ar : p.name_en) : "—";
         }},
         { key: "assignee", header: t("filterAssignee"), width: 34, get: (r) => {
           const ids = assigneesByTask[r.id] ?? (r.assignee_id ? [r.assignee_id] : []);
@@ -380,7 +380,10 @@ function TasksPage() {
           <ChipMultiSelect
             value={f.projects}
             onChange={(v) => patch({ projects: v })}
-            options={projects.map((p) => ({ value: p.id, label: lang === "ar" ? p.name_ar : p.name_en }))}
+            options={[
+              ...projects.map((p) => ({ value: p.id, label: lang === "ar" ? p.name_ar : p.name_en })),
+              { value: "__none__", label: t("noProject") },
+            ]}
           />
         </FilterSection>
 

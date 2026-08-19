@@ -18,7 +18,7 @@ import { AwardPointsPanel } from "@/components/tasks/AwardPointsPanel";
 import { sanitizeUrl } from "@/lib/security/sanitize";
 
 type Task = {
-  id: string; project_id: string; title: string; description: string | null;
+  id: string; project_id: string | null; title: string; description: string | null;
   assignee_id: string | null; priority: string; status: string; progress: number;
   due_date: string | null; completed_at: string | null; created_at: string;
   start_date: string | null;
@@ -63,8 +63,12 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
     if (!tk) return;
     setTask(tk as Task);
     setDirty({});
-    const { data: pr } = await supabase.from("projects").select("id,name_ar,name_en,color").eq("id", tk.project_id).maybeSingle();
-    if (pr) setProject(pr);
+    if (tk.project_id) {
+      const { data: pr } = await supabase.from("projects").select("id,name_ar,name_en,color").eq("id", tk.project_id).maybeSingle();
+      setProject(pr ?? null);
+    } else {
+      setProject(null);
+    }
     const { data: cm } = await supabase.from("task_comments").select("*").eq("task_id", taskId).order("created_at");
     setComments(cm ?? []);
     const { data: fl } = await supabase.from("task_files").select("*").eq("task_id", taskId).order("created_at");
@@ -121,7 +125,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
   // and lets admins change status/priority without refilling missing legacy fields.
   const dirtyKeys = Object.keys(dirty) as (keyof Task)[];
   const nonEmpty = (v: unknown) => (typeof v === "string" ? v.trim().length > 0 : v != null && v !== "");
-  const requiredIfDirty: (keyof Task)[] = ["title", "description", "project_id", "assignee_id", "due_date", "priority"];
+  const requiredIfDirty: (keyof Task)[] = ["title", "description", "assignee_id", "due_date", "priority"];
   const dirtyFieldsValid = requiredIfDirty.every((k) => !dirtyKeys.includes(k) || nonEmpty(merged[k]));
   const titleOk = (merged.title ?? "").trim().length > 0;
   const pointsOk = !canEditAll || merged.points_awarded_at

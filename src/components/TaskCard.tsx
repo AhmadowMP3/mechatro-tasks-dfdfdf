@@ -7,7 +7,7 @@ import { useApp } from "@/lib/app-context";
 import type { Profile } from "@/lib/app-context";
 
 export type TaskRow = {
-  id: string; title: string; project_id: string; status: string; priority: string;
+  id: string; title: string; project_id: string | null; status: string; priority: string;
   progress: number; due_date: string | null; assignee_id: string | null;
   start_date?: string | null;
   created_at?: string | null;
@@ -50,11 +50,16 @@ export function TaskCard({ task, project, assignee, assignees, onClick }: {
       background: "var(--card)", color: "var(--foreground)", display: "block",
     }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
-        {project && (
+        {project ? (
           <span style={{
             padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, color: "#fff",
             background: PROJECT_COLORS[project.color] ?? PROJECT_COLORS.blue,
           }}>{projectName}</span>
+        ) : (
+          <span style={{
+            padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+            color: "var(--muted)", background: "var(--surface-2)", border: "1px solid var(--border)",
+          }}>{t("noProject")}</span>
         )}
         <PriorityPill priority={task.priority} />
         <StatusPill status={task.status} />
