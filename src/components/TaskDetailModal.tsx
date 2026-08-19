@@ -125,7 +125,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
   // and lets admins change status/priority without refilling missing legacy fields.
   const dirtyKeys = Object.keys(dirty) as (keyof Task)[];
   const nonEmpty = (v: unknown) => (typeof v === "string" ? v.trim().length > 0 : v != null && v !== "");
-  const requiredIfDirty: (keyof Task)[] = ["title", "description", "project_id", "assignee_id", "due_date", "priority"];
+  const requiredIfDirty: (keyof Task)[] = ["title", "description", "assignee_id", "due_date", "priority"];
   const dirtyFieldsValid = requiredIfDirty.every((k) => !dirtyKeys.includes(k) || nonEmpty(merged[k]));
   const titleOk = (merged.title ?? "").trim().length > 0;
   const pointsOk = !canEditAll || merged.points_awarded_at
