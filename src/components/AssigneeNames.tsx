@@ -1,10 +1,16 @@
 import { Avatar } from "@/components/Avatar";
 import { useApp, type Profile } from "@/lib/app-context";
 import { toLocalDigits } from "@/lib/format";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 /**
  * Inline assignee names next to small avatars.
  * Shows up to `maxNames` names, then a "+N" chip for the rest.
+ * Hovering reveals a popup with the full assignee list.
  */
 export function AssigneeNames({
   users,
@@ -22,10 +28,9 @@ export function AssigneeNames({
 
   const shown = users.slice(0, maxNames);
   const extra = users.length - shown.length;
-  const rest = extra > 0 ? users.slice(maxNames) : [];
   const overlap = Math.round(size * 0.25);
 
-  return (
+  const inlineContent = (
     <span
       className={className}
       style={{
@@ -39,7 +44,6 @@ export function AssigneeNames({
         {shown.map((u, i) => (
           <span
             key={u.id}
-            title={u.full_name}
             style={{
               marginInlineStart: i === 0 ? 0 : -overlap,
               borderRadius: "50%",
@@ -54,7 +58,6 @@ export function AssigneeNames({
         ))}
         {extra > 0 && (
           <span
-            title={rest.map((u) => u.full_name).join(", ")}
             style={{
               marginInlineStart: -overlap,
               width: size,
@@ -90,7 +93,6 @@ export function AssigneeNames({
         {shown.map((u, i) => (
           <span
             key={u.id}
-            title={u.full_name}
             style={{
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -108,7 +110,6 @@ export function AssigneeNames({
         ))}
         {extra > 0 && (
           <span
-            title={rest.map((u) => u.full_name).join(", ")}
             style={{
               flex: "0 0 auto",
               padding: "2px 7px",
@@ -124,5 +125,67 @@ export function AssigneeNames({
         )}
       </span>
     </span>
+  );
+
+  if (users.length <= maxNames) return inlineContent;
+
+  return (
+    <HoverCard openDelay={150} closeDelay={100}>
+      <HoverCardTrigger asChild>{inlineContent}</HoverCardTrigger>
+      <HoverCardContent
+        side="top"
+        align={lang === "ar" ? "end" : "start"}
+        sideOffset={8}
+        className="w-auto min-w-[180px] max-w-[280px] rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-lg"
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            direction: lang === "ar" ? "rtl" : "ltr",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--muted)",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+            }}
+          >
+            {t("assignees")} ({toLocalDigits(users.length, lang)})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+            {users.map((u) => (
+              <div
+                key={u.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <Avatar id={u.id} name={u.full_name} size={26} />
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "var(--foreground)",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: 210,
+                  }}
+                >
+                  {u.full_name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
