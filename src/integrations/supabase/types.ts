@@ -77,6 +77,39 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_drive_files: {
+        Row: {
+          created_at: string
+          drive_file_id: string | null
+          drive_link: string | null
+          drive_name: string | null
+          error: string | null
+          file: string
+          size_bytes: number | null
+          synced_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          drive_file_id?: string | null
+          drive_link?: string | null
+          drive_name?: string | null
+          error?: string | null
+          file: string
+          size_bytes?: number | null
+          synced_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          drive_file_id?: string | null
+          drive_link?: string | null
+          drive_name?: string | null
+          error?: string | null
+          file?: string
+          size_bytes?: number | null
+          synced_at?: string | null
+        }
+        Relationships: []
+      }
       backup_requests: {
         Row: {
           created_at: string
