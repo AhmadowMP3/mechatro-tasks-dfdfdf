@@ -2449,6 +2449,7 @@ export type Database = {
       resolve_login_email: { Args: { p_name: string }; Returns: string }
       restore_full_snapshot: { Args: { payload: Json }; Returns: Json }
       sync_master_admin: { Args: never; Returns: undefined }
+      team_pulse: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "manager" | "member" | "viewer"
