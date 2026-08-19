@@ -581,6 +581,11 @@ export const dict = {
   activeMember: { ar: "نشط", en: "Active" },
   inactiveMember: { ar: "غير نشط", en: "Inactive" },
   completionRate: { ar: "معدل الإنجاز", en: "Completion rate" },
+  hideEmptyMembers: { ar: "إخفاء الموظفين بدون مهام", en: "Hide members with no tasks" },
+  loggedHours: { ar: "ساعات العمل", en: "Logged hours" },
+  viewByMember: { ar: "حسب الموظف", en: "By member" },
+  byMemberReport: { ar: "المهام حسب الموظف", en: "Tasks by member" },
+
   totalCount: { ar: "إجمالي المهام", en: "Total tasks" },
   noneLbl: { ar: "بدون", en: "None" },
 
