@@ -175,6 +175,7 @@ function ProjectDetail() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 300px), 1fr))", gap: 14 }}>
           {data.tasks.map((tk) => {
             const checked = isSelected(tk.id);
+            const mine = isAdmin || (!!user && (tk.assignee_id === user.id || (data.assigneesByTask[tk.id] ?? []).includes(user.id)));
             return (
               <div
                 key={tk.id}
