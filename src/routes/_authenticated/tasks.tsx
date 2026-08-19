@@ -566,6 +566,25 @@ function TasksPage() {
             assigneesByTask={assigneesByTask} onOpen={setSelected} onChanged={refetch}
           />
 
+        ) : view === "byMember" ? (
+          <MemberBoard
+            groups={buildMemberGroups({
+              tasks: filtered,
+              users: displayUsers.filter((u) => u.active !== false),
+              assigneesByTask,
+              hoursByUser: data?.minutesByUser ?? {},
+              unassignedLabel: t("unassigned"),
+            })}
+            projects={projects}
+            users={displayUsers}
+            assigneesByTask={assigneesByTask}
+            onOpen={setSelected}
+            onExportPdf={onMemberPdf}
+            onExportXlsx={onMemberXlsx}
+          />
+
+
+
         ) : (
           <TableView
             tasks={filtered} projects={projects} users={displayUsers}
