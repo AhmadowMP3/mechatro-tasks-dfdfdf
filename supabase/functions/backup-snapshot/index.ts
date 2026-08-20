@@ -164,14 +164,32 @@ function normalizeFolderId(input: string): string {
 // deno-lint-ignore no-explicit-any
 async function loadDriveConfig(sb: any): Promise<{ dbError?: string }> {
   DRIVE_CFG = null;
+  DRIVE_TARGETS = [];
   let dbError: string | undefined;
   try {
     const { data } = await sb.from("drive_config").select("*").eq("id", true).maybeSingle();
-    if (data?.sa_json_enc && data?.folder_id) {
+    if (data?.auth_mode === "oauth" && data?.refresh_token_enc) {
+      try {
+        DRIVE_CFG = {
+          mode: "oauth",
+          refreshToken: await decryptText(data.refresh_token_enc),
+          accountEmail: data.account_email ?? null,
+          folderId: data.folder_id ?? "",
+          folderName: data.folder_name ?? null,
+        };
+      } catch (e) {
+        dbError = `stored credentials unreadable: ${errMsg(e)}`;
+      }
+    } else if (data?.sa_json_enc) {
       try {
         const sa = JSON.parse(await decryptText(data.sa_json_enc)) as ServiceAccount;
-        DRIVE_CFG = { sa, folderId: data.folder_id, folderName: data.folder_name };
-        return {};
+        DRIVE_CFG = {
+          mode: "service_account",
+          sa,
+          accountEmail: data.client_email ?? sa.client_email,
+          folderId: data.folder_id ?? "",
+          folderName: data.folder_name ?? null,
+        };
       } catch (e) {
         dbError = `stored credentials unreadable: ${errMsg(e)}`;
       }
@@ -179,14 +197,43 @@ async function loadDriveConfig(sb: any): Promise<{ dbError?: string }> {
   } catch (e) {
     dbError = errMsg(e);
   }
-  const envRaw = Deno.env.get("GOOGLE_DRIVE_SA_JSON");
-  const envFolder = Deno.env.get("GOOGLE_DRIVE_FOLDER_ID");
-  if (envRaw && envFolder) {
-    try {
-      DRIVE_CFG = { sa: JSON.parse(envRaw) as ServiceAccount, folderId: envFolder };
-    } catch (e) {
-      dbError = `env service account invalid: ${errMsg(e)}`;
+
+  if (!DRIVE_CFG) {
+    const envRaw = Deno.env.get("GOOGLE_DRIVE_SA_JSON");
+    const envFolder = Deno.env.get("GOOGLE_DRIVE_FOLDER_ID");
+    if (envRaw && envFolder) {
+      try {
+        const sa = JSON.parse(envRaw) as ServiceAccount;
+        DRIVE_CFG = { mode: "service_account", sa, accountEmail: sa.client_email, folderId: envFolder };
+      } catch (e) {
+        dbError = `env service account invalid: ${errMsg(e)}`;
+      }
     }
+  }
+
+  if (DRIVE_CFG) {
+    try {
+      const { data: rows } = await sb.from("drive_targets")
+        .select("id, folder_id, folder_name, keep, enabled")
+        .eq("enabled", true)
+        .order("created_at", { ascending: true });
+      DRIVE_TARGETS = (rows ?? []).map((r: Record<string, unknown>) => ({
+        id: r.id as string,
+        folder_id: r.folder_id as string,
+        folder_name: (r.folder_name as string) ?? null,
+        keep: Number(r.keep ?? DRIVE_KEEP) || DRIVE_KEEP,
+      }));
+    } catch (_) { /* table may not exist yet */ }
+    if (!DRIVE_TARGETS.length && DRIVE_CFG.folderId) {
+      DRIVE_TARGETS = [{
+        id: null,
+        folder_id: DRIVE_CFG.folderId,
+        folder_name: DRIVE_CFG.folderName ?? null,
+        keep: DRIVE_KEEP,
+      }];
+    }
+    // Without any destination folder the credentials are useless.
+    if (!DRIVE_TARGETS.length) DRIVE_CFG = null;
   }
   return dbError ? { dbError } : {};
 }
