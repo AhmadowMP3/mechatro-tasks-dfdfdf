@@ -639,6 +639,7 @@ function DriveConnectSection() {
   const linked = !!status?.linked;
   const connected = !!status?.configured;
   const targets = status?.targets ?? [];
+  const oauthReady = status ? !!status.oauth_available : undefined;
 
   // Folder picker list (only once an account is linked).
   const { data: folders, refetch: refetchFolders, isFetching: loadingFolders } = useQuery({
@@ -811,8 +812,9 @@ function DriveConnectSection() {
         <>
           <p style={{ margin: "0 0 12px", color: "var(--muted)", fontSize: 13 }}>{t("driveSignInHint")}</p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button onClick={signInWithGoogle} disabled={busy} className="brand-btn"
-              style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy ? 0.6 : 1 }}>
+            <button onClick={signInWithGoogle} disabled={busy || oauthReady === false} className="brand-btn"
+              title={oauthReady === false ? t("driveOauthSetupNeeded") : undefined}
+              style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || oauthReady === false ? 0.5 : 1, cursor: oauthReady === false ? "not-allowed" : "pointer" }}>
               <Cloud size={16} /> {busy ? t("driveConnecting") : t("driveSignIn")}
             </button>
             <button onClick={() => setShowAdvanced((v) => !v)} className="brand-btn"
@@ -820,8 +822,17 @@ function DriveConnectSection() {
               {t("driveAdvanced")}
             </button>
           </div>
+          {oauthReady === false && (
+            <p style={{
+              margin: "10px 0 0", fontSize: 12.5, color: "#E7B03A",
+              display: "flex", alignItems: "center", gap: 6,
+            }}>
+              <AlertTriangle size={14} /> {t("driveOauthSetupNeeded")}
+            </p>
+          )}
         </>
       )}
+
 
       {linked && (
         <div style={{

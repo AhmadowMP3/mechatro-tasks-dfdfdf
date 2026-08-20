@@ -317,6 +317,10 @@ export const dict = {
     en: "Sign in with Google once, then pick the backup folders — no key files needed.",
   },
   driveAccount: { ar: "الحساب", en: "Account" },
+  driveOauthSetupNeeded: {
+    ar: "الربط بضغطة يحتاج إعداد مفاتيح Google OAuth أولاً — اتبع «دليل الإعداد الكامل» بالأسفل، أو استخدم حساب خدمة.",
+    en: "One-click connect needs Google OAuth keys first — follow the full setup guide below, or use a service account.",
+  },
   driveAdvanced: { ar: "خيارات متقدّمة (حساب خدمة)", en: "Advanced (service account)" },
   driveTargets: { ar: "مجلدات النسخ", en: "Backup folders" },
   driveTargetsEmpty: {
