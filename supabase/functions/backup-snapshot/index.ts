@@ -205,15 +205,16 @@ function pemToPkcs8(pem: string): ArrayBuffer {
   return buf.buffer;
 }
 
-let driveToken: { token: string; exp: number } | null = null;
+let driveToken: { token: string; exp: number; owner: string } | null = null;
 
 async function driveAccessToken(): Promise<string> {
-  if (driveToken && driveToken.exp > Date.now() + 60_000) return driveToken.token;
-  const raw = Deno.env.get("GOOGLE_DRIVE_SA_JSON");
-  if (!raw) throw new Error("GOOGLE_DRIVE_SA_JSON is not set");
-  const sa = JSON.parse(raw) as { client_email: string; private_key: string };
-  if (!sa.client_email || !sa.private_key) throw new Error("invalid service account JSON");
+  const sa = DRIVE_CFG?.sa;
+  if (!sa?.client_email || !sa?.private_key) throw new Error("drive_not_configured");
+  if (driveToken && driveToken.owner === sa.client_email && driveToken.exp > Date.now() + 60_000) {
+    return driveToken.token;
+  }
   const pk = sa.private_key.replace(/\\n/g, "\n");
+
 
   const now = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
