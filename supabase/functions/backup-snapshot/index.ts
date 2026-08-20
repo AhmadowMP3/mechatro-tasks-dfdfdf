@@ -341,8 +341,15 @@ Deno.serve(async (req) => {
     auto_approve_pending?: boolean;
     sync_to_drive?: boolean;
     drive_status?: boolean;
+    drive_connect?: boolean;
+    drive_disconnect?: boolean;
+    sa_json?: string;
+    folder?: string;
   } = {};
   try { body = await req.json(); } catch (_) { /* ignore */ }
+
+  const driveLoad = await loadDriveConfig(sb);
+
 
   // ---- Auth: master admin OR service-role bearer (system) ----
   const authHeader = req.headers.get("Authorization") ?? "";
