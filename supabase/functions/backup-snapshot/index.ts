@@ -585,41 +585,73 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Build the single archive for a backup and push it to Google Drive.
+  async function recordDriveRow(row: Record<string, unknown>) {
+    const q = sb.from("backup_drive_files").delete().eq("file", row.file);
+    if (row.target_id) await q.eq("target_id", row.target_id);
+    else await q.is("target_id", null);
+    await sb.from("backup_drive_files").insert(row);
+  }
+
+  // Build the single archive for a backup and push it to every enabled Drive folder.
   // Best-effort: never fails the surrounding snapshot.
   async function syncToDrive(
     backupFile: string,
     dbJson: string,
     entries: ZipEntry[],
-  ): Promise<{ ok: boolean; skipped?: boolean; error?: string; file_id?: string; link?: string; name?: string }> {
-    if (!driveConfigured()) return { ok: false, skipped: true };
+  ): Promise<{
+    ok: boolean; skipped?: boolean; error?: string; link?: string;
+    targets?: Array<{ folder_id: string; folder_name: string | null; ok: boolean; link?: string; error?: string }>;
+  }> {
+    if (!driveConfigured() || !DRIVE_TARGETS.length) return { ok: false, skipped: true };
+    const stamp = backupFile.replace(/^backup-/, "").replace(/\.json$/, "");
+    const name = `mechatro-backup-${stamp}.zip`;
+    let blob: Blob;
     try {
-      const stamp = backupFile.replace(/^backup-/, "").replace(/\.json$/, "");
-      const name = `mechatro-backup-${stamp}.zip`;
-      const blob = await buildZip(dbJson, entries);
-      const uploaded = await driveUpload(name, blob);
-      await drivePrune(DRIVE_KEEP);
-      await sb.from("backup_drive_files").upsert({
-        file: backupFile,
-        drive_file_id: uploaded.id,
-        drive_name: uploaded.name,
-        drive_link: uploaded.webViewLink ?? null,
-        size_bytes: uploaded.size ? Number(uploaded.size) : blob.size,
-        synced_at: new Date().toISOString(),
-        error: null,
-      }, { onConflict: "file" });
-      return { ok: true, file_id: uploaded.id, link: uploaded.webViewLink, name: uploaded.name };
+      blob = await buildZip(dbJson, entries);
     } catch (e) {
-      const msg = errMsg(e);
-      console.error("drive sync failed", msg);
-      try {
-        await sb.from("backup_drive_files").upsert({
-          file: backupFile, synced_at: null, error: msg,
-        }, { onConflict: "file" });
-      } catch (_) { /* ignore */ }
-      return { ok: false, error: msg };
+      return { ok: false, error: errMsg(e) };
     }
+
+    const results: Array<{ folder_id: string; folder_name: string | null; ok: boolean; link?: string; error?: string }> = [];
+    for (const target of DRIVE_TARGETS) {
+      try {
+        const uploaded = await driveUpload(name, blob, target.folder_id);
+        await drivePrune(target.keep || DRIVE_KEEP, target.folder_id);
+        await recordDriveRow({
+          file: backupFile,
+          target_id: target.id,
+          drive_file_id: uploaded.id,
+          drive_name: uploaded.name,
+          drive_link: uploaded.webViewLink ?? null,
+          size_bytes: uploaded.size ? Number(uploaded.size) : blob.size,
+          synced_at: new Date().toISOString(),
+          error: null,
+        });
+        if (target.id) {
+          await sb.from("drive_targets")
+            .update({ last_synced_at: new Date().toISOString(), last_error: null })
+            .eq("id", target.id);
+        }
+        results.push({ folder_id: target.folder_id, folder_name: target.folder_name, ok: true, link: uploaded.webViewLink });
+      } catch (e) {
+        const msg = errMsg(e);
+        console.error("drive sync failed", target.folder_id, msg);
+        try {
+          await recordDriveRow({ file: backupFile, target_id: target.id, synced_at: null, error: msg });
+          if (target.id) await sb.from("drive_targets").update({ last_error: msg }).eq("id", target.id);
+        } catch (_) { /* ignore */ }
+        results.push({ folder_id: target.folder_id, folder_name: target.folder_name, ok: false, error: msg });
+      }
+    }
+    const okOne = results.find((r) => r.ok);
+    return {
+      ok: !!okOne,
+      link: okOne?.link,
+      error: okOne ? undefined : results[0]?.error,
+      targets: results,
+    };
   }
+
 
   // Rebuild the archive for an already stored backup and push it to Drive.
   async function syncExistingToDrive(backupFile: string) {
