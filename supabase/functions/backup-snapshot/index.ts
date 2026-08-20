@@ -682,7 +682,7 @@ Deno.serve(async (req) => {
         folder_id: driveFolderId(),
         folder_name: cfgRow?.folder_name ?? null,
         connected_at: cfgRow?.connected_at ?? null,
-        source: cfgRow?.sa_json_enc === undefined && !cfgRow?.client_email ? "env" : "db",
+        source: cfgRow?.client_email ? "db" : "env",
       };
       try {
         const files = await driveList();
