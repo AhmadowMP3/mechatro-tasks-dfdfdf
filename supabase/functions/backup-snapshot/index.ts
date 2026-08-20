@@ -942,22 +942,34 @@ Deno.serve(async (req) => {
     if (body.drive_status) {
       if (isSystem) return json(403, { error: "user only" });
       const { data: cfgRow } = await sb.from("drive_config")
-        .select("client_email, folder_id, folder_name, connected_at, last_error")
+        .select("auth_mode, client_email, account_email, folder_id, folder_name, connected_at, last_error")
         .eq("id", true).maybeSingle();
-      if (!driveConfigured()) {
+      const { data: targetRows } = await sb.from("drive_targets")
+        .select("id, folder_id, folder_name, enabled, keep, last_error, last_synced_at")
+        .order("created_at", { ascending: true });
+      const targets = targetRows ?? [];
+
+      if (!driveLinked()) {
         return json(200, {
-          ok: true, configured: false, files: [],
+          ok: true, linked: false, configured: false, targets, files: [],
+          oauth_available: !!Deno.env.get("GOOGLE_OAUTH_CLIENT_ID"),
           error: driveLoad.dbError ?? cfgRow?.last_error ?? null,
         });
       }
       const base = {
-        configured: true,
-        client_email: cfgRow?.client_email ?? DRIVE_CFG?.sa.client_email ?? null,
+        linked: true,
+        configured: driveConfigured(),
+        auth_mode: DRIVE_CFG?.mode ?? cfgRow?.auth_mode ?? "service_account",
+        client_email: cfgRow?.client_email ?? DRIVE_CFG?.sa?.client_email ?? null,
+        account_email: cfgRow?.account_email ?? DRIVE_CFG?.accountEmail ?? null,
         folder_id: driveFolderId(),
-        folder_name: cfgRow?.folder_name ?? null,
+        folder_name: DRIVE_TARGETS[0]?.folder_name ?? cfgRow?.folder_name ?? null,
         connected_at: cfgRow?.connected_at ?? null,
-        source: cfgRow?.client_email ? "db" : "env",
+        oauth_available: !!Deno.env.get("GOOGLE_OAUTH_CLIENT_ID"),
+        targets,
+        source: cfgRow?.connected_at ? "db" : "env",
       };
+      if (!driveConfigured()) return json(200, { ok: true, ...base, files: [] });
       try {
         const files = await driveList();
         return json(200, { ok: true, ...base, files });
@@ -965,6 +977,7 @@ Deno.serve(async (req) => {
         return json(200, { ok: false, ...base, error: errMsg(e), files: [] });
       }
     }
+
 
 
     // ---- Sync an existing backup to Google Drive ----
