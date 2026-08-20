@@ -599,17 +599,99 @@ Deno.serve(async (req) => {
       return json(200, { ok: true, processed: results.length, results });
     }
 
+    // ---- Google Drive: connect (upload service account + folder) ----
+    if (body.drive_connect) {
+      if (isSystem) return json(403, { error: "user only" });
+      let sa: ServiceAccount;
+      try {
+        sa = JSON.parse(body.sa_json ?? "") as ServiceAccount;
+      } catch (_) {
+        return json(400, { error: "invalid_sa_json" });
+      }
+      if (!sa?.client_email || !sa?.private_key) return json(400, { error: "invalid_sa_json" });
+
+      const folderId = normalizeFolderId(body.folder ?? "");
+      if (!folderId || folderId.length < 10) return json(400, { error: "bad_folder_id" });
+
+      // Probe with the submitted credentials before persisting anything.
+      DRIVE_CFG = { sa, folderId };
+      driveToken = null;
+      let folderName = "";
+      try {
+        const info = await driveFolderInfo(folderId);
+        folderName = info.name;
+      } catch (e) {
+        DRIVE_CFG = null;
+        driveToken = null;
+        const msg = errMsg(e);
+        let code = "drive_connect_failed";
+        if (/accessNotConfigured|has not been used|is disabled/i.test(msg)) code = "drive_api_disabled";
+        else if (/\[404\]|notFound/i.test(msg)) code = "folder_not_shared";
+        else if (/\[403\]|insufficient|forbidden/i.test(msg)) code = "folder_not_shared";
+        else if (/invalid_grant|Invalid JWT|unauthorized_client/i.test(msg)) code = "invalid_credentials";
+        await sb.from("drive_config").upsert({ id: true, last_error: msg }, { onConflict: "id" });
+        return json(400, { error: code, detail: msg, client_email: sa.client_email });
+      }
+
+      const enc = await encryptText(JSON.stringify({ client_email: sa.client_email, private_key: sa.private_key }));
+      const { error: saveErr } = await sb.from("drive_config").upsert({
+        id: true,
+        client_email: sa.client_email,
+        folder_id: folderId,
+        folder_name: folderName,
+        sa_json_enc: enc,
+        connected_at: new Date().toISOString(),
+        connected_by: actorId,
+        last_error: null,
+      }, { onConflict: "id" });
+      if (saveErr) return json(500, { error: saveErr.message });
+
+      let files: DriveFile[] = [];
+      try { files = await driveList(); } catch (_) { /* ignore */ }
+      return json(200, {
+        ok: true, configured: true,
+        client_email: sa.client_email, folder_id: folderId, folder_name: folderName, files,
+      });
+    }
+
+    // ---- Google Drive: disconnect ----
+    if (body.drive_disconnect) {
+      if (isSystem) return json(403, { error: "user only" });
+      const { error } = await sb.from("drive_config").delete().eq("id", true);
+      if (error) return json(500, { error: error.message });
+      DRIVE_CFG = null;
+      driveToken = null;
+      return json(200, { ok: true, configured: false, files: [] });
+    }
+
     // ---- Google Drive status ----
     if (body.drive_status) {
       if (isSystem) return json(403, { error: "user only" });
-      if (!driveConfigured()) return json(200, { ok: true, configured: false, files: [] });
+      const { data: cfgRow } = await sb.from("drive_config")
+        .select("client_email, folder_id, folder_name, connected_at, last_error")
+        .eq("id", true).maybeSingle();
+      if (!driveConfigured()) {
+        return json(200, {
+          ok: true, configured: false, files: [],
+          error: driveLoad.dbError ?? cfgRow?.last_error ?? null,
+        });
+      }
+      const base = {
+        configured: true,
+        client_email: cfgRow?.client_email ?? DRIVE_CFG?.sa.client_email ?? null,
+        folder_id: driveFolderId(),
+        folder_name: cfgRow?.folder_name ?? null,
+        connected_at: cfgRow?.connected_at ?? null,
+        source: cfgRow?.sa_json_enc === undefined && !cfgRow?.client_email ? "env" : "db",
+      };
       try {
         const files = await driveList();
-        return json(200, { ok: true, configured: true, folder_id: driveFolderId(), files });
+        return json(200, { ok: true, ...base, files });
       } catch (e) {
-        return json(200, { ok: false, configured: true, error: errMsg(e), files: [] });
+        return json(200, { ok: false, ...base, error: errMsg(e), files: [] });
       }
     }
+
 
     // ---- Sync an existing backup to Google Drive ----
     if (body.sync_to_drive && body.file) {
