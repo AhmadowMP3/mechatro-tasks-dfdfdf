@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2, Upload, CloudUpload, CloudOff, Cloud } from "lucide-react";
 import { supabase } from "@/lib/security/db";
@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useServerFn } from "@tanstack/react-start";
 import { provisionTestUsers } from "@/lib/provision-test-users.functions";
+import { startDriveOAuth } from "@/lib/drive-oauth.functions";
 import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
@@ -567,13 +568,28 @@ function DriveBadge({ row }: { row?: DriveRow }) {
   );
 }
 
+type DriveTarget = {
+  id: string;
+  folder_id: string;
+  folder_name: string | null;
+  enabled: boolean;
+  keep: number;
+  last_error: string | null;
+  last_synced_at: string | null;
+};
+
 type DriveStatus = {
+  linked?: boolean;
   configured: boolean;
+  auth_mode?: "oauth" | "service_account";
+  oauth_available?: boolean;
   error?: string | null;
   client_email?: string | null;
+  account_email?: string | null;
   folder_id?: string | null;
   folder_name?: string | null;
   connected_at?: string | null;
+  targets?: DriveTarget[];
   files?: Array<{ id: string; name: string }>;
 };
 
@@ -586,14 +602,28 @@ const DRIVE_ERR_KEYS: Record<string, string> = {
   drive_connect_failed: "driveErrGeneric",
 };
 
+type DriveFn = Record<string, unknown>;
+
+async function driveCall<T = Record<string, unknown>>(body: DriveFn): Promise<{ data: T | null; code?: string; detail?: string }> {
+  const { data, error } = await supabase.functions.invoke("backup-snapshot", { body });
+  const resp = (data ?? null) as (T & { error?: string; detail?: string }) | null;
+  if (resp?.error) return { data: null, code: resp.error, detail: resp.detail };
+  if (error) return { data: null, code: "drive_connect_failed", detail: error.message };
+  return { data: resp as T };
+}
+
 function DriveConnectSection() {
   const { t, lang } = useApp();
   const qc = useQueryClient();
   const confirm = useConfirm();
+  const startOAuth = useServerFn(startDriveOAuth);
   const saInputRef = useRef<HTMLInputElement | null>(null);
   const [saJson, setSaJson] = useState<string | null>(null);
   const [saEmail, setSaEmail] = useState<string>("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [folder, setFolder] = useState("");
+  const [search, setSearch] = useState("");
+  const [newFolderName, setNewFolderName] = useState("");
   const [busy, setBusy] = useState(false);
 
   const { data: status } = useQuery({
@@ -605,127 +635,320 @@ function DriveConnectSection() {
     },
   });
 
+  const linked = !!status?.linked;
+  const connected = !!status?.configured;
+  const targets = status?.targets ?? [];
+
+  // Folder picker list (only once an account is linked).
+  const { data: folders, refetch: refetchFolders, isFetching: loadingFolders } = useQuery({
+    queryKey: ["backup_drive_folders", search],
+    enabled: linked,
+    queryFn: async () => {
+      const { data, code, detail } = await driveCall<{ folders: Array<{ id: string; name: string }> }>({
+        drive_folders: true, search: search.trim() || undefined,
+      });
+      if (!data) throw new Error(detail ?? code ?? "failed");
+      return data.folders ?? [];
+    },
+  });
+
+  // Toast the result of the OAuth round-trip.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const res = params.get("drive");
+    if (!res) return;
+    if (res === "connected") toast.success(t("driveOauthConnected"));
+    else toast.error(t("driveErrGeneric"), { description: params.get("detail") ?? undefined });
+    window.history.replaceState({}, "", window.location.pathname);
+    qc.invalidateQueries({ queryKey: ["backup_drive_status"] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["backup_drive_status"] });
+    qc.invalidateQueries({ queryKey: ["backup_drive_folders"] });
+    qc.invalidateQueries({ queryKey: ["backup_drive_files"] });
+  };
+
+  const showErr = (code?: string, detail?: string) =>
+    toast.error(t((DRIVE_ERR_KEYS[code ?? ""] ?? "driveErrGeneric") as Parameters<typeof t>[0]), {
+      description: detail?.slice(0, 180),
+    });
+
+  const signInWithGoogle = async () => {
+    setBusy(true);
+    try {
+      const { url } = await startOAuth({ data: { origin: window.location.origin } });
+      window.location.href = url;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(/oauth_not_configured/.test(msg) ? t("driveOauthUnavailable") : t("driveErrGeneric"), {
+        description: msg.slice(0, 180),
+      });
+      setBusy(false);
+    }
+  };
+
   const onSaFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text) as { client_email?: string; private_key?: string };
+      const raw = (await file.text()).replace(/^\uFEFF/, "").trim();
+      const parsed = JSON.parse(raw) as { client_email?: string; private_key?: string; type?: string };
       if (!parsed?.client_email || !parsed?.private_key) {
-        toast.error(t("driveErrInvalidJson"));
+        toast.error(t("driveErrInvalidJson"), {
+          description: parsed?.type === "authorized_user"
+            ? "OAuth client file — use a service-account key instead."
+            : "Missing client_email / private_key.",
+        });
         return;
       }
-      setSaJson(text);
+      setSaJson(raw);
       setSaEmail(parsed.client_email);
-    } catch {
-      toast.error(t("driveErrInvalidJson"));
+    } catch (err) {
+      toast.error(t("driveErrInvalidJson"), { description: err instanceof Error ? err.message : undefined });
     }
   };
 
-  const connect = async () => {
+  const connectServiceAccount = async () => {
     if (!saJson) { toast.error(t("driveErrInvalidJson")); return; }
-    if (!folder.trim()) { toast.error(t("driveErrBadFolder")); return; }
     setBusy(true);
-    const { data, error } = await supabase.functions.invoke("backup-snapshot", {
-      body: { drive_connect: true, sa_json: saJson, folder: folder.trim() },
+    const { data, code, detail } = await driveCall({
+      drive_connect: true, sa_json: saJson, folder: folder.trim() || undefined,
     });
     setBusy(false);
-    const resp = (data ?? null) as ({ ok?: boolean; error?: string; detail?: string } | null);
-    const code = resp?.error;
-    if (code) {
-      toast.error(t((DRIVE_ERR_KEYS[code] ?? "driveErrGeneric") as Parameters<typeof t>[0]), { description: resp?.detail?.slice(0, 180) });
-      return;
-    }
-    if (error) {
-      // The function returns 400 with a JSON body for known failures; supabase-js
-      // surfaces it as an error when the body could not be parsed.
-      toast.error(t("driveErrGeneric"), { description: error.message });
-      return;
-    }
+    if (!data) { showErr(code, detail); return; }
     toast.success(t("driveConnectedOk"));
     setSaJson(null); setSaEmail(""); setFolder("");
-    qc.invalidateQueries({ queryKey: ["backup_drive_status"] });
-    qc.invalidateQueries({ queryKey: ["backup_drive_files"] });
+    refresh();
+  };
+
+  const addTarget = async (folderRef: string) => {
+    if (!folderRef.trim()) { toast.error(t("driveErrBadFolder")); return; }
+    setBusy(true);
+    const { data, code, detail } = await driveCall({ drive_target_add: true, folder: folderRef.trim() });
+    setBusy(false);
+    if (!data) { showErr(code, detail); return; }
+    toast.success(t("driveFolderAdded"));
+    setFolder("");
+    refresh();
+  };
+
+  const createFolder = async () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    setBusy(true);
+    const { data, code, detail } = await driveCall<{ folder: { id: string; name: string } }>({
+      drive_create_folder: true, name,
+    });
+    if (!data) { setBusy(false); showErr(code, detail); return; }
+    setNewFolderName("");
+    setBusy(false);
+    await addTarget(data.folder.id);
+  };
+
+  const toggleTarget = async (target: DriveTarget) => {
+    const { data, code, detail } = await driveCall({
+      drive_target_toggle: true, target_id: target.id, enabled: !target.enabled,
+    });
+    if (!data) { showErr(code, detail); return; }
+    refresh();
+  };
+
+  const removeTarget = async (target: DriveTarget) => {
+    const ok = await confirm({
+      title: t("driveRemove"),
+      message: target.folder_name ?? target.folder_id,
+      confirmText: t("driveRemove"),
+      danger: true,
+    });
+    if (!ok) return;
+    const { data, code, detail } = await driveCall({ drive_target_remove: true, target_id: target.id });
+    if (!data) { showErr(code, detail); return; }
+    refresh();
   };
 
   const disconnect = async () => {
-    const ok = await confirm({ title: t("driveDisconnect"), message: t("driveConnectTitle"), confirmText: t("driveDisconnect"), danger: true });
+    const ok = await confirm({
+      title: t("driveDisconnect"), message: t("driveConnectTitle"),
+      confirmText: t("driveDisconnect"), danger: true,
+    });
     if (!ok) return;
     setBusy(true);
     const { error } = await supabase.functions.invoke("backup-snapshot", { body: { drive_disconnect: true } });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success(t("driveDisconnected"));
-    qc.invalidateQueries({ queryKey: ["backup_drive_status"] });
+    refresh();
   };
 
-  const connected = !!status?.configured;
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "10px 12px", borderRadius: 10, fontSize: 13,
+    border: "1px solid var(--border)", background: "var(--surface-2)", color: "var(--fg)",
+  };
+
+  const statusColor = connected ? "#5BD6A6" : linked ? "#E7B03A" : "#E7B03A";
+  const statusLabel = connected ? t("driveConnected") : linked ? t("driveLinkedNoFolder") : t("driveNotConfigured");
 
   return (
     <section className="brand-card" style={{ padding: 20 }}>
       <input ref={saInputRef} type="file" accept="application/json,.json" style={{ display: "none" }} onChange={onSaFile} />
+
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
         <Cloud size={18} color={connected ? "#5BD6A6" : "var(--muted)"} />
         <h2 style={{ margin: 0, flex: 1, fontSize: 18 }}>{t("driveConnectTitle")}</h2>
         <span style={{
-          fontSize: 12, padding: "4px 10px", borderRadius: 999,
-          color: connected ? "#5BD6A6" : "#E7B03A",
-          background: connected ? "rgba(91,214,166,.12)" : "rgba(231,176,58,.12)",
-          border: `1px solid ${connected ? "rgba(91,214,166,.35)" : "rgba(231,176,58,.35)"}`,
+          fontSize: 12, padding: "4px 10px", borderRadius: 999, color: statusColor,
+          background: `${statusColor}1f`, border: `1px solid ${statusColor}59`,
         }}>
-          {connected ? t("driveConnected") : t("driveNotConfigured")}
+          {statusLabel}
         </span>
       </div>
 
-      {connected && (
+      {!linked && (
+        <>
+          <p style={{ margin: "0 0 12px", color: "var(--muted)", fontSize: 13 }}>{t("driveSignInHint")}</p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button onClick={signInWithGoogle} disabled={busy} className="brand-btn"
+              style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy ? 0.6 : 1 }}>
+              <Cloud size={16} /> {busy ? t("driveConnecting") : t("driveSignIn")}
+            </button>
+            <button onClick={() => setShowAdvanced((v) => !v)} className="brand-btn"
+              style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
+              {t("driveAdvanced")}
+            </button>
+          </div>
+        </>
+      )}
+
+      {linked && (
         <div style={{
           display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10,
           padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-2)",
-          fontSize: 13, marginBottom: 12,
+          fontSize: 13, marginBottom: 14,
         }}>
-          <div><b>{t("driveFolderName")}:</b> {status?.folder_name ?? status?.folder_id ?? "—"}</div>
-          <div style={{ wordBreak: "break-all" }}><b>{t("driveServiceAccount")}:</b> {status?.client_email ?? "—"}</div>
+          <div style={{ wordBreak: "break-all" }}>
+            <b>{status?.auth_mode === "oauth" ? t("driveAccount") : t("driveServiceAccount")}:</b>{" "}
+            {status?.account_email ?? status?.client_email ?? "—"}
+          </div>
           <div><b>{t("driveFilesCount")}:</b> {toLocalDigits(String(status?.files?.length ?? 0), lang)}</div>
           {status?.connected_at && <div><b>{t("driveConnected")}:</b> {formatDate(status.connected_at, lang)}</div>}
           {status?.error && <div style={{ color: "#F0676A", gridColumn: "1 / -1" }}>{status.error}</div>}
         </div>
       )}
 
-      <p style={{ margin: "0 0 12px", color: "var(--muted)", fontSize: 13 }}>{t("driveShareHint")}</p>
+      {linked && (
+        <div style={{ marginBottom: 14 }}>
+          <h3 style={{ margin: "0 0 8px", fontSize: 14 }}>{t("driveTargets")}</h3>
+          {targets.length === 0 && (
+            <p style={{ margin: "0 0 10px", color: "#E7B03A", fontSize: 13 }}>{t("driveTargetsEmpty")}</p>
+          )}
+          <div style={{ display: "grid", gap: 8 }}>
+            {targets.map((tg) => (
+              <div key={tg.id} style={{
+                display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                padding: "10px 12px", borderRadius: 10,
+                border: "1px solid var(--border)", background: "var(--surface-2)",
+              }}>
+                <Cloud size={15} color={tg.enabled ? "#5BD6A6" : "var(--muted)"} />
+                <div style={{ flex: 1, minWidth: 160 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{tg.folder_name ?? tg.folder_id}</div>
+                  <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                    {t("driveKeep")}: {toLocalDigits(String(tg.keep), lang)}
+                    {tg.last_synced_at ? ` · ${t("driveSynced")} ${formatDate(tg.last_synced_at, lang)}` : ""}
+                  </div>
+                  {tg.last_error && <div style={{ fontSize: 11, color: "#F0676A" }}>{tg.last_error}</div>}
+                </div>
+                <button onClick={() => toggleTarget(tg)} className="brand-btn"
+                  style={{ fontSize: 12, padding: "6px 10px", background: "var(--surface)", color: "var(--fg)", border: "1px solid var(--border)" }}>
+                  {tg.enabled ? t("driveEnabled") : t("driveDisabled")}
+                </button>
+                <button onClick={() => removeTarget(tg)} className="brand-btn"
+                  style={{ fontSize: 12, padding: "6px 10px", background: "rgba(240,103,106,.12)", color: "#F0676A", border: "1px solid rgba(240,103,106,.35)" }}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
 
-      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
-        <div>
-          <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>{t("driveSaFile")}</label>
-          <button onClick={() => saInputRef.current?.click()} className="brand-btn"
-            style={{ width: "100%", background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
-            <Upload size={16} /> {saEmail ? saEmail : t("driveSaPick")}
-          </button>
-        </div>
-        <div>
-          <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>{t("driveFolderLabel")}</label>
-          <input value={folder} onChange={(e) => setFolder(e.target.value)}
-            placeholder="https://drive.google.com/drive/folders/..."
-            style={{
-              width: "100%", padding: "10px 12px", borderRadius: 10, fontSize: 13,
-              border: "1px solid var(--border)", background: "var(--surface-2)", color: "var(--fg)",
-            }} />
-        </div>
-      </div>
+          <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", marginTop: 12 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>{t("drivePickFolder")}</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("driveSearchFolders")} style={inputStyle} />
+                <button onClick={() => refetchFolders()} className="brand-btn" title={t("driveRefreshFolders")}
+                  style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
+                  <RotateCcw size={15} />
+                </button>
+              </div>
+              <div style={{ maxHeight: 160, overflowY: "auto", marginTop: 8, display: "grid", gap: 6 }}>
+                {loadingFolders && <span style={{ fontSize: 12, color: "var(--muted)" }}>…</span>}
+                {(folders ?? [])
+                  .filter((f) => !targets.some((tg) => tg.folder_id === f.id))
+                  .map((f) => (
+                    <button key={f.id} onClick={() => addTarget(f.id)} disabled={busy}
+                      style={{
+                        textAlign: "start", padding: "8px 10px", borderRadius: 8, fontSize: 13, cursor: "pointer",
+                        border: "1px solid var(--border)", background: "var(--surface)", color: "var(--fg)",
+                      }}>
+                      {f.name}
+                    </button>
+                  ))}
+              </div>
+            </div>
 
-      <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-        <button onClick={connect} disabled={busy || !saJson || !folder.trim()} className="brand-btn"
-          style={{ background: "var(--grad-blue)", color: "#fff", opacity: (busy || !saJson || !folder.trim()) ? 0.6 : 1 }}>
-          <CloudUpload size={16} /> {busy ? t("driveConnecting") : t("driveConnectBtn")}
-        </button>
-        {connected && (
+            <div>
+              <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>{t("driveFolderLabel")}</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input value={folder} onChange={(e) => setFolder(e.target.value)}
+                  placeholder="https://drive.google.com/drive/folders/..." style={inputStyle} />
+                <button onClick={() => addTarget(folder)} disabled={busy || !folder.trim()} className="brand-btn"
+                  style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || !folder.trim() ? 0.6 : 1 }}>
+                  <CloudUpload size={15} />
+                </button>
+              </div>
+
+              <label style={{ display: "block", fontSize: 12, color: "var(--muted)", margin: "12px 0 6px" }}>{t("driveNewFolderName")}</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder={t("driveNewFolder")} style={inputStyle} />
+                <button onClick={createFolder} disabled={busy || !newFolderName.trim()} className="brand-btn"
+                  style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)", opacity: busy || !newFolderName.trim() ? 0.6 : 1 }}>
+                  {t("driveCreateFolder")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(showAdvanced || (linked && status?.auth_mode === "service_account")) && (
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, marginTop: 4 }}>
+          <p style={{ margin: "0 0 10px", color: "var(--muted)", fontSize: 13 }}>{t("driveShareHint")}</p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <button onClick={() => saInputRef.current?.click()} className="brand-btn"
+              style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
+              <Upload size={16} /> {saEmail || t("driveSaPick")}
+            </button>
+            <button onClick={connectServiceAccount} disabled={busy || !saJson} className="brand-btn"
+              style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || !saJson ? 0.6 : 1 }}>
+              <CloudUpload size={16} /> {busy ? t("driveConnecting") : t("driveConnectBtn")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {linked && (
+        <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
           <button onClick={disconnect} disabled={busy} className="brand-btn"
             style={{ background: "rgba(240,103,106,.12)", color: "#F0676A", border: "1px solid rgba(240,103,106,.35)" }}>
             <CloudOff size={16} /> {t("driveDisconnect")}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
+
 

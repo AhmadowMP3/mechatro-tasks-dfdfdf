@@ -45,6 +45,7 @@ import { Route as AuthenticatedFinanceExpensesRouteImport } from './routes/_auth
 import { Route as AuthenticatedFinanceCustomersRouteImport } from './routes/_authenticated/finance.customers'
 import { Route as AuthenticatedFinanceInvoicesIndexRouteImport } from './routes/_authenticated/finance.invoices.index'
 import { Route as ApiPublicHooksBackupAutoApproveRouteImport } from './routes/api/public/hooks/backup-auto-approve'
+import { Route as ApiPublicGoogleDriveCallbackRouteImport } from './routes/api/public/google/drive-callback'
 import { Route as AuthenticatedFinanceInvoicesIdRouteImport } from './routes/_authenticated/finance.invoices.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -241,6 +242,12 @@ const ApiPublicHooksBackupAutoApproveRoute =
     path: '/api/public/hooks/backup-auto-approve',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGoogleDriveCallbackRoute =
+  ApiPublicGoogleDriveCallbackRouteImport.update({
+    id: '/api/public/google/drive-callback',
+    path: '/api/public/google/drive-callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedFinanceInvoicesIdRoute =
   AuthenticatedFinanceInvoicesIdRouteImport.update({
     id: '/invoices/$id',
@@ -283,6 +290,7 @@ export interface FileRoutesByFullPath {
   '/team/': typeof AuthenticatedTeamIndexRoute
   '/share/$token/': typeof ShareTokenIndexRoute
   '/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
+  '/api/public/google/drive-callback': typeof ApiPublicGoogleDriveCallbackRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
   '/finance/invoices/': typeof AuthenticatedFinanceInvoicesIndexRoute
 }
@@ -318,6 +326,7 @@ export interface FileRoutesByTo {
   '/team': typeof AuthenticatedTeamIndexRoute
   '/share/$token': typeof ShareTokenIndexRoute
   '/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
+  '/api/public/google/drive-callback': typeof ApiPublicGoogleDriveCallbackRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
   '/finance/invoices': typeof AuthenticatedFinanceInvoicesIndexRoute
 }
@@ -358,6 +367,7 @@ export interface FileRoutesById {
   '/_authenticated/team/': typeof AuthenticatedTeamIndexRoute
   '/share/$token/': typeof ShareTokenIndexRoute
   '/_authenticated/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
+  '/api/public/google/drive-callback': typeof ApiPublicGoogleDriveCallbackRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
   '/_authenticated/finance/invoices/': typeof AuthenticatedFinanceInvoicesIndexRoute
 }
@@ -398,6 +408,7 @@ export interface FileRouteTypes {
     | '/team/'
     | '/share/$token/'
     | '/finance/invoices/$id'
+    | '/api/public/google/drive-callback'
     | '/api/public/hooks/backup-auto-approve'
     | '/finance/invoices/'
   fileRoutesByTo: FileRoutesByTo
@@ -433,6 +444,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/share/$token'
     | '/finance/invoices/$id'
+    | '/api/public/google/drive-callback'
     | '/api/public/hooks/backup-auto-approve'
     | '/finance/invoices'
   id:
@@ -472,6 +484,7 @@ export interface FileRouteTypes {
     | '/_authenticated/team/'
     | '/share/$token/'
     | '/_authenticated/finance/invoices/$id'
+    | '/api/public/google/drive-callback'
     | '/api/public/hooks/backup-auto-approve'
     | '/_authenticated/finance/invoices/'
   fileRoutesById: FileRoutesById
@@ -482,6 +495,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShareTokenRoute: typeof ShareTokenRouteWithChildren
+  ApiPublicGoogleDriveCallbackRoute: typeof ApiPublicGoogleDriveCallbackRoute
   ApiPublicHooksBackupAutoApproveRoute: typeof ApiPublicHooksBackupAutoApproveRoute
 }
 
@@ -739,6 +753,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksBackupAutoApproveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/google/drive-callback': {
+      id: '/api/public/google/drive-callback'
+      path: '/api/public/google/drive-callback'
+      fullPath: '/api/public/google/drive-callback'
+      preLoaderRoute: typeof ApiPublicGoogleDriveCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/finance/invoices/$id': {
       id: '/_authenticated/finance/invoices/$id'
       path: '/invoices/$id'
@@ -859,6 +880,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ShareTokenRoute: ShareTokenRouteWithChildren,
+  ApiPublicGoogleDriveCallbackRoute: ApiPublicGoogleDriveCallbackRoute,
   ApiPublicHooksBackupAutoApproveRoute: ApiPublicHooksBackupAutoApproveRoute,
 }
 export const routeTree = rootRouteImport
