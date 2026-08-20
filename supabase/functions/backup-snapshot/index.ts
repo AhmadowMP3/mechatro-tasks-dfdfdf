@@ -473,8 +473,20 @@ Deno.serve(async (req) => {
     drive_status?: boolean;
     drive_connect?: boolean;
     drive_disconnect?: boolean;
+    drive_folders?: boolean;
+    drive_create_folder?: boolean;
+    drive_target_add?: boolean;
+    drive_target_remove?: boolean;
+    drive_target_toggle?: boolean;
+    target_id?: string;
+    enabled?: boolean;
+    keep?: number;
+    name?: string;
+    parent?: string;
+    search?: string;
     sa_json?: string;
     folder?: string;
+
   } = {};
   try { body = await req.json(); } catch (_) { /* ignore */ }
 
