@@ -98,8 +98,13 @@ type DriveTarget = { id: string | null; folder_id: string; folder_name: string |
 let DRIVE_CFG: DriveCfg | null = null;
 let DRIVE_TARGETS: DriveTarget[] = [];
 
-function driveConfigured(): boolean {
+function driveLinked(): boolean {
   return !!DRIVE_CFG;
+}
+
+// Ready to upload = credentials linked AND at least one destination folder.
+function driveConfigured(): boolean {
+  return !!DRIVE_CFG && DRIVE_TARGETS.length > 0;
 }
 
 function driveFolderId(): string {
