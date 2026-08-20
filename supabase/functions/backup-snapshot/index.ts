@@ -773,46 +773,60 @@ Deno.serve(async (req) => {
       return json(200, { ok: true, processed: results.length, results });
     }
 
-    // ---- Google Drive: connect (upload service account + folder) ----
+    // Map a Google API failure to a stable UI error code.
+    function driveErrCode(msg: string): string {
+      if (/accessNotConfigured|has not been used|is disabled/i.test(msg)) return "drive_api_disabled";
+      if (/\[404\]|notFound/i.test(msg)) return "folder_not_shared";
+      if (/\[403\]|insufficient|forbidden/i.test(msg)) return "folder_not_shared";
+      if (/invalid_grant|Invalid JWT|unauthorized_client|invalid_client/i.test(msg)) return "invalid_credentials";
+      return "drive_connect_failed";
+    }
+
+    // ---- Google Drive: connect with a service account (advanced mode) ----
     if (body.drive_connect) {
       if (isSystem) return json(403, { error: "user only" });
       let sa: ServiceAccount;
       try {
-        sa = JSON.parse(body.sa_json ?? "") as ServiceAccount;
-      } catch (_) {
-        return json(400, { error: "invalid_sa_json" });
+        // Tolerate BOM / stray whitespace from downloaded key files.
+        sa = JSON.parse((body.sa_json ?? "").replace(/^\uFEFF/, "").trim()) as ServiceAccount;
+      } catch (e) {
+        return json(400, { error: "invalid_sa_json", detail: errMsg(e) });
       }
-      if (!sa?.client_email || !sa?.private_key) return json(400, { error: "invalid_sa_json" });
+      if (!sa?.client_email || !sa?.private_key) {
+        return json(400, { error: "invalid_sa_json", detail: "missing client_email/private_key" });
+      }
 
-      const folderId = normalizeFolderId(body.folder ?? "");
-      if (!folderId || folderId.length < 10) return json(400, { error: "bad_folder_id" });
+      const folderId = body.folder ? normalizeFolderId(body.folder) : "";
+      if (body.folder && (!folderId || folderId.length < 10)) return json(400, { error: "bad_folder_id" });
 
       // Probe with the submitted credentials before persisting anything.
-      DRIVE_CFG = { sa, folderId };
+      const prevCfg = DRIVE_CFG;
+      DRIVE_CFG = { mode: "service_account", sa, accountEmail: sa.client_email, folderId };
       driveToken = null;
       let folderName = "";
       try {
-        const info = await driveFolderInfo(folderId);
-        folderName = info.name;
+        if (folderId) {
+          folderName = (await driveFolderInfo(folderId)).name;
+        } else {
+          await driveListFolders();
+        }
       } catch (e) {
-        DRIVE_CFG = null;
+        DRIVE_CFG = prevCfg;
         driveToken = null;
         const msg = errMsg(e);
-        let code = "drive_connect_failed";
-        if (/accessNotConfigured|has not been used|is disabled/i.test(msg)) code = "drive_api_disabled";
-        else if (/\[404\]|notFound/i.test(msg)) code = "folder_not_shared";
-        else if (/\[403\]|insufficient|forbidden/i.test(msg)) code = "folder_not_shared";
-        else if (/invalid_grant|Invalid JWT|unauthorized_client/i.test(msg)) code = "invalid_credentials";
         await sb.from("drive_config").upsert({ id: true, last_error: msg }, { onConflict: "id" });
-        return json(400, { error: code, detail: msg, client_email: sa.client_email });
+        return json(400, { error: driveErrCode(msg), detail: msg, client_email: sa.client_email });
       }
 
       const enc = await encryptText(JSON.stringify({ client_email: sa.client_email, private_key: sa.private_key }));
       const { error: saveErr } = await sb.from("drive_config").upsert({
         id: true,
+        auth_mode: "service_account",
         client_email: sa.client_email,
-        folder_id: folderId,
-        folder_name: folderName,
+        account_email: sa.client_email,
+        refresh_token_enc: null,
+        folder_id: folderId || null,
+        folder_name: folderName || null,
         sa_json_enc: enc,
         connected_at: new Date().toISOString(),
         connected_by: actorId,
@@ -820,11 +834,16 @@ Deno.serve(async (req) => {
       }, { onConflict: "id" });
       if (saveErr) return json(500, { error: saveErr.message });
 
-      let files: DriveFile[] = [];
-      try { files = await driveList(); } catch (_) { /* ignore */ }
+      if (folderId) {
+        await sb.from("drive_targets").upsert({
+          folder_id: folderId, folder_name: folderName, enabled: true, created_by: actorId, last_error: null,
+        }, { onConflict: "folder_id" });
+        DRIVE_TARGETS = [{ id: null, folder_id: folderId, folder_name: folderName, keep: DRIVE_KEEP }];
+      }
+
       return json(200, {
-        ok: true, configured: true,
-        client_email: sa.client_email, folder_id: folderId, folder_name: folderName, files,
+        ok: true, configured: true, auth_mode: "service_account",
+        client_email: sa.client_email, folder_id: folderId, folder_name: folderName,
       });
     }
 
@@ -833,10 +852,88 @@ Deno.serve(async (req) => {
       if (isSystem) return json(403, { error: "user only" });
       const { error } = await sb.from("drive_config").delete().eq("id", true);
       if (error) return json(500, { error: error.message });
+      await sb.from("drive_targets").delete().neq("folder_id", "");
       DRIVE_CFG = null;
+      DRIVE_TARGETS = [];
       driveToken = null;
       return json(200, { ok: true, configured: false, files: [] });
     }
+
+    // ---- Google Drive: browse folders (picker) ----
+    if (body.drive_folders) {
+      if (isSystem) return json(403, { error: "user only" });
+      if (!DRIVE_CFG) return json(400, { error: "drive_not_configured" });
+      try {
+        const folders = await driveListFolders(
+          body.parent ? normalizeFolderId(body.parent) : undefined,
+          body.search?.trim() || undefined,
+        );
+        return json(200, { ok: true, folders });
+      } catch (e) {
+        const msg = errMsg(e);
+        return json(400, { error: driveErrCode(msg), detail: msg });
+      }
+    }
+
+    // ---- Google Drive: create a folder ----
+    if (body.drive_create_folder) {
+      if (isSystem) return json(403, { error: "user only" });
+      if (!DRIVE_CFG) return json(400, { error: "drive_not_configured" });
+      const name = (body.name ?? "").trim();
+      if (!name) return json(400, { error: "bad_folder_name" });
+      try {
+        const folder = await driveCreateFolder(name, body.parent ? normalizeFolderId(body.parent) : undefined);
+        return json(200, { ok: true, folder });
+      } catch (e) {
+        const msg = errMsg(e);
+        return json(400, { error: driveErrCode(msg), detail: msg });
+      }
+    }
+
+    // ---- Google Drive: add a destination folder ----
+    if (body.drive_target_add) {
+      if (isSystem) return json(403, { error: "user only" });
+      if (!DRIVE_CFG) return json(400, { error: "drive_not_configured" });
+      const folderId = normalizeFolderId(body.folder ?? "");
+      if (!folderId || folderId.length < 10) return json(400, { error: "bad_folder_id" });
+      let folderName = body.name ?? "";
+      try {
+        folderName = (await driveFolderInfo(folderId)).name;
+      } catch (e) {
+        const msg = errMsg(e);
+        return json(400, { error: driveErrCode(msg), detail: msg });
+      }
+      const { error } = await sb.from("drive_targets").upsert({
+        folder_id: folderId,
+        folder_name: folderName,
+        enabled: true,
+        keep: body.keep && body.keep > 0 ? body.keep : DRIVE_KEEP,
+        created_by: actorId,
+        last_error: null,
+      }, { onConflict: "folder_id" });
+      if (error) return json(500, { error: error.message });
+      return json(200, { ok: true, folder_id: folderId, folder_name: folderName });
+    }
+
+    // ---- Google Drive: remove / enable / disable a destination ----
+    if (body.drive_target_remove) {
+      if (isSystem) return json(403, { error: "user only" });
+      if (!body.target_id) return json(400, { error: "bad_target" });
+      const { error } = await sb.from("drive_targets").delete().eq("id", body.target_id);
+      if (error) return json(500, { error: error.message });
+      return json(200, { ok: true });
+    }
+
+    if (body.drive_target_toggle) {
+      if (isSystem) return json(403, { error: "user only" });
+      if (!body.target_id) return json(400, { error: "bad_target" });
+      const { error } = await sb.from("drive_targets")
+        .update({ enabled: body.enabled !== false }).eq("id", body.target_id);
+      if (error) return json(500, { error: error.message });
+      return json(200, { ok: true });
+    }
+
+
 
     // ---- Google Drive status ----
     if (body.drive_status) {
