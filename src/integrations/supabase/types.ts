@@ -87,6 +87,7 @@ export type Database = {
           file: string
           size_bytes: number | null
           synced_at: string | null
+          target_id: string | null
         }
         Insert: {
           created_at?: string
@@ -97,6 +98,7 @@ export type Database = {
           file: string
           size_bytes?: number | null
           synced_at?: string | null
+          target_id?: string | null
         }
         Update: {
           created_at?: string
@@ -107,6 +109,7 @@ export type Database = {
           file?: string
           size_bytes?: number | null
           synced_at?: string | null
+          target_id?: string | null
         }
         Relationships: []
       }
@@ -205,6 +208,8 @@ export type Database = {
       }
       drive_config: {
         Row: {
+          account_email: string | null
+          auth_mode: string
           client_email: string | null
           connected_at: string | null
           connected_by: string | null
@@ -212,9 +217,14 @@ export type Database = {
           folder_name: string | null
           id: boolean
           last_error: string | null
+          oauth_state: string | null
+          oauth_state_exp: string | null
+          refresh_token_enc: string | null
           sa_json_enc: string | null
         }
         Insert: {
+          account_email?: string | null
+          auth_mode?: string
           client_email?: string | null
           connected_at?: string | null
           connected_by?: string | null
@@ -222,9 +232,14 @@ export type Database = {
           folder_name?: string | null
           id?: boolean
           last_error?: string | null
+          oauth_state?: string | null
+          oauth_state_exp?: string | null
+          refresh_token_enc?: string | null
           sa_json_enc?: string | null
         }
         Update: {
+          account_email?: string | null
+          auth_mode?: string
           client_email?: string | null
           connected_at?: string | null
           connected_by?: string | null
@@ -232,7 +247,46 @@ export type Database = {
           folder_name?: string | null
           id?: boolean
           last_error?: string | null
+          oauth_state?: string | null
+          oauth_state_exp?: string | null
+          refresh_token_enc?: string | null
           sa_json_enc?: string | null
+        }
+        Relationships: []
+      }
+      drive_targets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          folder_id: string
+          folder_name: string | null
+          id: string
+          keep: number
+          last_error: string | null
+          last_synced_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          folder_id: string
+          folder_name?: string | null
+          id?: string
+          keep?: number
+          last_error?: string | null
+          last_synced_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          folder_id?: string
+          folder_name?: string | null
+          id?: string
+          keep?: number
+          last_error?: string | null
+          last_synced_at?: string | null
         }
         Relationships: []
       }
