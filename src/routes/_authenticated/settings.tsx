@@ -947,6 +947,12 @@ function DriveConnectSection() {
           </button>
         </div>
       )}
+
+      <DriveSetupGuide
+        defaultOpen={!linked}
+        accountEmail={status?.account_email ?? null}
+        clientEmail={status?.client_email ?? null}
+      />
     </section>
   );
 }
