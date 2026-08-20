@@ -639,6 +639,7 @@ function DriveConnectSection() {
   const linked = !!status?.linked;
   const connected = !!status?.configured;
   const targets = status?.targets ?? [];
+  const oauthReady = status ? !!status.oauth_available : undefined;
 
   // Folder picker list (only once an account is linked).
   const { data: folders, refetch: refetchFolders, isFetching: loadingFolders } = useQuery({
