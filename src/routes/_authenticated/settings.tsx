@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2, Upload, CloudUpload, CloudOff, Cloud } from "lucide-react";
 import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
@@ -632,7 +632,7 @@ function DriveConnectSection() {
     const resp = (data ?? null) as ({ ok?: boolean; error?: string; detail?: string } | null);
     const code = resp?.error;
     if (code) {
-      toast.error(t(DRIVE_ERR_KEYS[code] ?? "driveErrGeneric"), { description: resp?.detail?.slice(0, 180) });
+      toast.error(t((DRIVE_ERR_KEYS[code] ?? "driveErrGeneric") as Parameters<typeof t>[0]), { description: resp?.detail?.slice(0, 180) });
       return;
     }
     if (error) {
@@ -648,7 +648,7 @@ function DriveConnectSection() {
   };
 
   const disconnect = async () => {
-    const ok = await confirm({ title: t("driveDisconnect"), description: t("driveConnectTitle"), confirmText: t("driveDisconnect") });
+    const ok = await confirm({ title: t("driveDisconnect"), message: t("driveConnectTitle"), confirmText: t("driveDisconnect"), danger: true });
     if (!ok) return;
     setBusy(true);
     const { error } = await supabase.functions.invoke("backup-snapshot", { body: { drive_disconnect: true } });
