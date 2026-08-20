@@ -289,7 +289,7 @@ export const dict = {
   driveConnected: { ar: "متصل", en: "Connected" },
   driveConnectedOk: { ar: "تم ربط Google Drive بنجاح", en: "Google Drive connected" },
   driveDisconnected: { ar: "تم فصل الربط", en: "Drive disconnected" },
-  driveFolder: { ar: "المجلد", en: "Folder" },
+  driveFolderName: { ar: "المجلد", en: "Folder" },
   driveServiceAccount: { ar: "حساب الخدمة", en: "Service account" },
   driveFilesCount: { ar: "النسخ على Drive", en: "Backups on Drive" },
   driveShareHint: {
