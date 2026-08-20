@@ -84,18 +84,34 @@ type DriveFile = { id: string; name: string; createdTime?: string; webViewLink?:
 type ZipEntry = { path: string; bytes: Uint8Array };
 
 type ServiceAccount = { client_email: string; private_key: string };
-type DriveCfg = { sa: ServiceAccount; folderId: string; folderName?: string | null };
+type DriveCfg = {
+  mode: "service_account" | "oauth";
+  sa?: ServiceAccount;
+  refreshToken?: string;
+  accountEmail?: string | null;
+  folderId: string;
+  folderName?: string | null;
+};
+type DriveTarget = { id: string | null; folder_id: string; folder_name: string | null; keep: number };
 
 // Loaded per request from public.drive_config (falls back to env vars).
 let DRIVE_CFG: DriveCfg | null = null;
+let DRIVE_TARGETS: DriveTarget[] = [];
 
 function driveConfigured(): boolean {
   return !!DRIVE_CFG;
 }
 
 function driveFolderId(): string {
-  return DRIVE_CFG?.folderId ?? "";
+  return DRIVE_TARGETS[0]?.folder_id ?? DRIVE_CFG?.folderId ?? "";
 }
+
+function driveOwner(): string {
+  return DRIVE_CFG?.mode === "oauth"
+    ? `oauth:${DRIVE_CFG.accountEmail ?? "user"}`
+    : `sa:${DRIVE_CFG?.sa?.client_email ?? ""}`;
+}
+
 
 // ---- at-rest encryption for the service-account JSON ----
 async function vaultKey(): Promise<CryptoKey> {
