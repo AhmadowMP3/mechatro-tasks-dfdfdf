@@ -34,7 +34,9 @@ function SettingsPage() {
       </section>
 
       {isMasterAdmin && <SeedTestUsersSection />}
+      {isMasterAdmin && <DriveConnectSection />}
       <BackupsSection />
+
     </div>
   );
 }
