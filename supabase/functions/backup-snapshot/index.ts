@@ -865,6 +865,33 @@ Deno.serve(async (req) => {
       return json(200, { ok: true, configured: false, files: [] });
     }
 
+    // ---- Google Drive: store an OAuth refresh token (called by the app's
+    // OAuth callback route with the service-role bearer after Google consent) ----
+    if (body.drive_oauth_save) {
+      if (!isSystem) return json(403, { error: "system only" });
+      const refresh = (body.refresh_token ?? "").trim();
+      if (!refresh) return json(400, { error: "missing_refresh_token" });
+      const enc = await encryptText(refresh);
+      const { error } = await sb.from("drive_config").upsert({
+        id: true,
+        auth_mode: "oauth",
+        account_email: body.account_email ?? null,
+        client_email: null,
+        sa_json_enc: null,
+        refresh_token_enc: enc,
+        connected_at: new Date().toISOString(),
+        oauth_state: null,
+        oauth_state_exp: null,
+        last_error: null,
+      }, { onConflict: "id" });
+      if (error) return json(500, { error: error.message });
+      DRIVE_CFG = { mode: "oauth", refreshToken: refresh, accountEmail: body.account_email ?? null, folderId: "" };
+      driveToken = null;
+      return json(200, { ok: true, configured: true, auth_mode: "oauth" });
+    }
+
+
+
     // ---- Google Drive: browse folders (picker) ----
     if (body.drive_folders) {
       if (isSystem) return json(403, { error: "user only" });
