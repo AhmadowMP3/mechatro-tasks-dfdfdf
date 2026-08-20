@@ -311,6 +311,39 @@ export const dict = {
     en: "Google rejected the service-account credentials.",
   },
   driveErrGeneric: { ar: "تعذّر الربط بـ Google Drive", en: "Could not connect to Google Drive" },
+  driveSignIn: { ar: "الربط بحساب Google", en: "Connect with Google" },
+  driveSignInHint: {
+    ar: "سجّل الدخول بحساب Google مرة واحدة، ثم اختر مجلدات النسخ الاحتياطي — بدون أي ملفات مفاتيح.",
+    en: "Sign in with Google once, then pick the backup folders — no key files needed.",
+  },
+  driveAccount: { ar: "الحساب", en: "Account" },
+  driveAdvanced: { ar: "خيارات متقدّمة (حساب خدمة)", en: "Advanced (service account)" },
+  driveTargets: { ar: "مجلدات النسخ", en: "Backup folders" },
+  driveTargetsEmpty: {
+    ar: "لم يتم اختيار أي مجلد بعد — أضف مجلداً واحداً على الأقل حتى تبدأ المزامنة.",
+    en: "No folder selected yet — add at least one so syncing can start.",
+  },
+  driveAddFolder: { ar: "إضافة مجلد", en: "Add folder" },
+  driveNewFolder: { ar: "مجلد جديد", en: "New folder" },
+  driveNewFolderName: { ar: "اسم المجلد الجديد", en: "New folder name" },
+  driveCreateFolder: { ar: "إنشاء", en: "Create" },
+  drivePickFolder: { ar: "اختر مجلداً من Drive", en: "Pick a Drive folder" },
+  driveRefreshFolders: { ar: "تحديث القائمة", en: "Refresh list" },
+  driveSearchFolders: { ar: "بحث عن مجلد…", en: "Search folders…" },
+  driveKeep: { ar: "عدد النسخ المحفوظة", en: "Backups kept" },
+  driveEnabled: { ar: "مفعّل", en: "Enabled" },
+  driveDisabled: { ar: "موقوف", en: "Paused" },
+  driveRemove: { ar: "إزالة", en: "Remove" },
+  driveFolderAdded: { ar: "تمت إضافة المجلد", en: "Folder added" },
+  driveOauthConnected: { ar: "تم ربط حساب Google بنجاح", en: "Google account connected" },
+  driveOauthUnavailable: {
+    ar: "ربط حساب Google غير مهيّأ على الخادم — استخدم حساب الخدمة.",
+    en: "Google sign-in is not configured on the server — use a service account.",
+  },
+  driveLinkedNoFolder: {
+    ar: "الحساب مربوط — اختر مجلداً واحداً على الأقل.",
+    en: "Account linked — choose at least one folder.",
+  },
 
 
 
