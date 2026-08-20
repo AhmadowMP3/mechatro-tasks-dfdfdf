@@ -237,8 +237,6 @@ async function loadDriveConfig(sb: any): Promise<{ dbError?: string }> {
         keep: DRIVE_KEEP,
       }];
     }
-    // Without any destination folder the credentials are useless.
-    if (!DRIVE_TARGETS.length) DRIVE_CFG = null;
   }
   return dbError ? { dbError } : {};
 }
