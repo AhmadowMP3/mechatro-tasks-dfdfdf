@@ -481,6 +481,9 @@ Deno.serve(async (req) => {
     drive_target_add?: boolean;
     drive_target_remove?: boolean;
     drive_target_toggle?: boolean;
+    drive_oauth_save?: boolean;
+    refresh_token?: string;
+    account_email?: string;
     target_id?: string;
     enabled?: boolean;
     keep?: number;
