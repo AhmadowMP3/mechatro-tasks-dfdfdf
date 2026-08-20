@@ -279,6 +279,40 @@ export const dict = {
     ar: "كل نسخة جديدة تُرفع تلقائياً كملف ZIP واحد إلى مجلد Drive (آخر 12 نسخة).",
     en: "Every new backup is uploaded automatically as a single ZIP to the Drive folder (last 12 kept).",
   },
+  driveConnectTitle: { ar: "ربط Google Drive", en: "Connect Google Drive" },
+  driveSaFile: { ar: "ملف حساب الخدمة (JSON)", en: "Service account file (JSON)" },
+  driveSaPick: { ar: "اختيار ملف JSON", en: "Choose JSON file" },
+  driveFolderLabel: { ar: "رابط أو معرّف مجلد Drive", en: "Drive folder link or ID" },
+  driveConnectBtn: { ar: "ربط واختبار", en: "Connect & test" },
+  driveConnecting: { ar: "جاري الاختبار…", en: "Testing…" },
+  driveDisconnect: { ar: "فصل الربط", en: "Disconnect" },
+  driveConnected: { ar: "متصل", en: "Connected" },
+  driveConnectedOk: { ar: "تم ربط Google Drive بنجاح", en: "Google Drive connected" },
+  driveDisconnected: { ar: "تم فصل الربط", en: "Drive disconnected" },
+  driveFolderName: { ar: "المجلد", en: "Folder" },
+  driveServiceAccount: { ar: "حساب الخدمة", en: "Service account" },
+  driveFilesCount: { ar: "النسخ على Drive", en: "Backups on Drive" },
+  driveShareHint: {
+    ar: "شارك مجلد Drive مع بريد حساب الخدمة بصلاحية Editor قبل الربط.",
+    en: "Share the Drive folder with the service-account email as Editor before connecting.",
+  },
+  driveErrInvalidJson: { ar: "الملف ليس ملف حساب خدمة صالح", en: "Not a valid service-account JSON file" },
+  driveErrBadFolder: { ar: "رابط أو معرّف المجلد غير صحيح", en: "Invalid folder link or ID" },
+  driveErrNotShared: {
+    ar: "المجلد غير مشترك مع حساب الخدمة — شاركه بصلاحية Editor.",
+    en: "The folder is not shared with the service account — share it as Editor.",
+  },
+  driveErrApiDisabled: {
+    ar: "Google Drive API غير مفعّل في مشروع Google Cloud.",
+    en: "Google Drive API is not enabled in the Google Cloud project.",
+  },
+  driveErrCredentials: {
+    ar: "بيانات حساب الخدمة مرفوضة من Google.",
+    en: "Google rejected the service-account credentials.",
+  },
+  driveErrGeneric: { ar: "تعذّر الربط بـ Google Drive", en: "Could not connect to Google Drive" },
+
+
 
   
   download: { ar: "تنزيل", en: "Download" },

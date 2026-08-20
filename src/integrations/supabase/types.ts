@@ -203,6 +203,39 @@ export type Database = {
         }
         Relationships: []
       }
+      drive_config: {
+        Row: {
+          client_email: string | null
+          connected_at: string | null
+          connected_by: string | null
+          folder_id: string | null
+          folder_name: string | null
+          id: boolean
+          last_error: string | null
+          sa_json_enc: string | null
+        }
+        Insert: {
+          client_email?: string | null
+          connected_at?: string | null
+          connected_by?: string | null
+          folder_id?: string | null
+          folder_name?: string | null
+          id?: boolean
+          last_error?: string | null
+          sa_json_enc?: string | null
+        }
+        Update: {
+          client_email?: string | null
+          connected_at?: string | null
+          connected_by?: string | null
+          folder_id?: string | null
+          folder_name?: string | null
+          id?: boolean
+          last_error?: string | null
+          sa_json_enc?: string | null
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           active: boolean | null
