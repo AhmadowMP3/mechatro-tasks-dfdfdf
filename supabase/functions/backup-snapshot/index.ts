@@ -246,7 +246,7 @@ async function driveAccessToken(): Promise<string> {
   const text = await res.text();
   if (!res.ok) throw new Error(`google token [${res.status}]: ${text}`);
   const parsed = JSON.parse(text) as { access_token: string; expires_in: number };
-  driveToken = { token: parsed.access_token, exp: Date.now() + parsed.expires_in * 1000 };
+  driveToken = { token: parsed.access_token, exp: Date.now() + parsed.expires_in * 1000, owner: sa.client_email };
   return parsed.access_token;
 }
 
