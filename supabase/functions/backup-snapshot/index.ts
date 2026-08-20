@@ -270,14 +270,41 @@ function pemToPkcs8(pem: string): ArrayBuffer {
 
 let driveToken: { token: string; exp: number; owner: string } | null = null;
 
+async function oauthAccessToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
+  const clientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") ?? "";
+  const clientSecret = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET") ?? "";
+  if (!clientId || !clientSecret) throw new Error("oauth_not_configured");
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`google refresh [${res.status}]: ${text}`);
+  return JSON.parse(text) as { access_token: string; expires_in: number };
+}
+
 async function driveAccessToken(): Promise<string> {
-  const sa = DRIVE_CFG?.sa;
-  if (!sa?.client_email || !sa?.private_key) throw new Error("drive_not_configured");
-  if (driveToken && driveToken.owner === sa.client_email && driveToken.exp > Date.now() + 60_000) {
+  if (!DRIVE_CFG) throw new Error("drive_not_configured");
+  const owner = driveOwner();
+  if (driveToken && driveToken.owner === owner && driveToken.exp > Date.now() + 60_000) {
     return driveToken.token;
   }
-  const pk = sa.private_key.replace(/\\n/g, "\n");
 
+  if (DRIVE_CFG.mode === "oauth") {
+    const parsed = await oauthAccessToken(DRIVE_CFG.refreshToken ?? "");
+    driveToken = { token: parsed.access_token, exp: Date.now() + parsed.expires_in * 1000, owner };
+    return parsed.access_token;
+  }
+
+  const sa = DRIVE_CFG.sa;
+  if (!sa?.client_email || !sa?.private_key) throw new Error("drive_not_configured");
+  const pk = sa.private_key.replace(/\\n/g, "\n");
 
   const now = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
@@ -309,14 +336,14 @@ async function driveAccessToken(): Promise<string> {
   const text = await res.text();
   if (!res.ok) throw new Error(`google token [${res.status}]: ${text}`);
   const parsed = JSON.parse(text) as { access_token: string; expires_in: number };
-  driveToken = { token: parsed.access_token, exp: Date.now() + parsed.expires_in * 1000, owner: sa.client_email };
+  driveToken = { token: parsed.access_token, exp: Date.now() + parsed.expires_in * 1000, owner };
   return parsed.access_token;
 }
 
-async function driveUpload(name: string, blob: Blob): Promise<DriveFile> {
+async function driveUpload(name: string, blob: Blob, folderId: string): Promise<DriveFile> {
   const token = await driveAccessToken();
   const boundary = `mechatro-${crypto.randomUUID()}`;
-  const meta = JSON.stringify({ name, parents: [driveFolderId()] });
+  const meta = JSON.stringify({ name, parents: [folderId] });
   const enc = new TextEncoder();
   const head = enc.encode(
     `--${boundary}\r\ncontent-type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n` +
@@ -341,9 +368,9 @@ async function driveUpload(name: string, blob: Blob): Promise<DriveFile> {
   return JSON.parse(text) as DriveFile;
 }
 
-async function driveList(): Promise<DriveFile[]> {
+async function driveList(folderId = driveFolderId()): Promise<DriveFile[]> {
   const token = await driveAccessToken();
-  const q = encodeURIComponent(`'${driveFolderId()}' in parents and trashed = false`);
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
   const res = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime desc&pageSize=100` +
     `&fields=files(id,name,createdTime,webViewLink,size)&supportsAllDrives=true&includeItemsFromAllDrives=true`,
@@ -352,6 +379,45 @@ async function driveList(): Promise<DriveFile[]> {
   const text = await res.text();
   if (!res.ok) throw new Error(`drive list [${res.status}]: ${text}`);
   return (JSON.parse(text) as { files?: DriveFile[] }).files ?? [];
+}
+
+// Folders the connected account can write to (for the in-app folder picker).
+async function driveListFolders(parent?: string, search?: string): Promise<DriveFile[]> {
+  const token = await driveAccessToken();
+  const clauses = [
+    "mimeType = 'application/vnd.google-apps.folder'",
+    "trashed = false",
+  ];
+  if (parent) clauses.push(`'${parent}' in parents`);
+  if (search) clauses.push(`name contains '${search.replace(/'/g, "\\'")}'`);
+  const q = encodeURIComponent(clauses.join(" and "));
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=name&pageSize=100` +
+    `&fields=files(id,name,webViewLink)&supportsAllDrives=true&includeItemsFromAllDrives=true`,
+    { headers: { authorization: `Bearer ${token}` } },
+  );
+  const text = await res.text();
+  if (!res.ok) throw new Error(`drive folders [${res.status}]: ${text}`);
+  return (JSON.parse(text) as { files?: DriveFile[] }).files ?? [];
+}
+
+async function driveCreateFolder(name: string, parent?: string): Promise<DriveFile> {
+  const token = await driveAccessToken();
+  const res = await fetch(
+    "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true&fields=id,name,webViewLink",
+    {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        name,
+        mimeType: "application/vnd.google-apps.folder",
+        ...(parent ? { parents: [parent] } : {}),
+      }),
+    },
+  );
+  const text = await res.text();
+  if (!res.ok) throw new Error(`drive create folder [${res.status}]: ${text}`);
+  return JSON.parse(text) as DriveFile;
 }
 
 async function driveDelete(id: string): Promise<void> {
@@ -363,14 +429,15 @@ async function driveDelete(id: string): Promise<void> {
   if (!res.ok && res.status !== 404) throw new Error(`drive delete [${res.status}]: ${await res.text()}`);
 }
 
-async function drivePrune(keep: number): Promise<number> {
-  const files = await driveList();
+async function drivePrune(keep: number, folderId: string): Promise<number> {
+  const files = await driveList(folderId);
   const stale = files.slice(keep);
   for (const f of stale) {
     try { await driveDelete(f.id); } catch (e) { console.warn("drive prune", errMsg(e)); }
   }
   return stale.length;
 }
+
 
 async function buildZip(dbJson: string, entries: ZipEntry[]): Promise<Blob> {
   const writer = new ZipWriter(new BlobWriter("application/zip"), { level: 6 });
