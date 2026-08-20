@@ -83,13 +83,109 @@ const DRIVE_KEEP = 12;
 type DriveFile = { id: string; name: string; createdTime?: string; webViewLink?: string; size?: string };
 type ZipEntry = { path: string; bytes: Uint8Array };
 
+type ServiceAccount = { client_email: string; private_key: string };
+type DriveCfg = { sa: ServiceAccount; folderId: string; folderName?: string | null };
+
+// Loaded per request from public.drive_config (falls back to env vars).
+let DRIVE_CFG: DriveCfg | null = null;
+
 function driveConfigured(): boolean {
-  return !!Deno.env.get("GOOGLE_DRIVE_SA_JSON") && !!Deno.env.get("GOOGLE_DRIVE_FOLDER_ID");
+  return !!DRIVE_CFG;
 }
 
 function driveFolderId(): string {
-  return Deno.env.get("GOOGLE_DRIVE_FOLDER_ID") ?? "";
+  return DRIVE_CFG?.folderId ?? "";
 }
+
+// ---- at-rest encryption for the service-account JSON ----
+async function vaultKey(): Promise<CryptoKey> {
+  const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`drive-vault:${secret}`));
+  return await crypto.subtle.importKey("raw", digest, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+}
+
+function toB64(bytes: Uint8Array): string {
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+}
+
+function fromB64(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function encryptText(plain: string): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await vaultKey();
+  const ct = new Uint8Array(
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(plain)),
+  );
+  const merged = new Uint8Array(iv.length + ct.length);
+  merged.set(iv, 0);
+  merged.set(ct, iv.length);
+  return toB64(merged);
+}
+
+async function decryptText(b64: string): Promise<string> {
+  const raw = fromB64(b64);
+  const key = await vaultKey();
+  const plain = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: raw.slice(0, 12) }, key, raw.slice(12),
+  );
+  return new TextDecoder().decode(plain);
+}
+
+function normalizeFolderId(input: string): string {
+  const s = (input ?? "").trim();
+  const m = s.match(/\/folders\/([A-Za-z0-9_-]+)/) ?? s.match(/[?&]id=([A-Za-z0-9_-]+)/);
+  if (m) return m[1];
+  return s.replace(/^https?:\/\/\S*\//, "").replace(/[?#].*$/, "");
+}
+
+// deno-lint-ignore no-explicit-any
+async function loadDriveConfig(sb: any): Promise<{ dbError?: string }> {
+  DRIVE_CFG = null;
+  let dbError: string | undefined;
+  try {
+    const { data } = await sb.from("drive_config").select("*").eq("id", true).maybeSingle();
+    if (data?.sa_json_enc && data?.folder_id) {
+      try {
+        const sa = JSON.parse(await decryptText(data.sa_json_enc)) as ServiceAccount;
+        DRIVE_CFG = { sa, folderId: data.folder_id, folderName: data.folder_name };
+        return {};
+      } catch (e) {
+        dbError = `stored credentials unreadable: ${errMsg(e)}`;
+      }
+    }
+  } catch (e) {
+    dbError = errMsg(e);
+  }
+  const envRaw = Deno.env.get("GOOGLE_DRIVE_SA_JSON");
+  const envFolder = Deno.env.get("GOOGLE_DRIVE_FOLDER_ID");
+  if (envRaw && envFolder) {
+    try {
+      DRIVE_CFG = { sa: JSON.parse(envRaw) as ServiceAccount, folderId: envFolder };
+    } catch (e) {
+      dbError = `env service account invalid: ${errMsg(e)}`;
+    }
+  }
+  return dbError ? { dbError } : {};
+}
+
+async function driveFolderInfo(id: string): Promise<{ id: string; name: string }> {
+  const token = await driveAccessToken();
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,mimeType&supportsAllDrives=true`,
+    { headers: { authorization: `Bearer ${token}` } },
+  );
+  const text = await res.text();
+  if (!res.ok) throw new Error(`drive folder [${res.status}]: ${text}`);
+  return JSON.parse(text) as { id: string; name: string };
+}
+
 
 function b64url(input: Uint8Array | string): string {
   const raw = typeof input === "string"
