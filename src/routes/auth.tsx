@@ -233,6 +233,15 @@ function AuthPage() {
 
           <button
             type="button"
+            onClick={() => setShowForgot(true)}
+            style={{
+              background: "transparent", border: "none", color: ghostColor,
+              cursor: "pointer", fontSize: 12.5, padding: "4px 0", fontWeight: 700,
+            }}
+          >{l ? "نسيت كلمة المرور؟" : "Forgot your password?"}</button>
+
+          <button
+            type="button"
             onClick={() => setShowInfo((s) => !s)}
             style={{
               background: "transparent", border: "none", color: ghostColor,
@@ -242,6 +251,7 @@ function AuthPage() {
             onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
             onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
           >{l ? "طلب صلاحية الوصول" : "Request access"}</button>
+
 
           {showInfo && (
             <div style={{
