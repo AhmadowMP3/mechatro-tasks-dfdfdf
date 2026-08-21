@@ -618,14 +618,12 @@ function DriveConnectSection() {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const startOAuth = useServerFn(startDriveOAuth);
-  const saInputRef = useRef<HTMLInputElement | null>(null);
-  const [saJson, setSaJson] = useState<string | null>(null);
-  const [saEmail, setSaEmail] = useState<string>("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [folder, setFolder] = useState("");
   const [search, setSearch] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResults, setTestResults] = useState<TestResult[] | null>(null);
 
   const { data: status } = useQuery({
     queryKey: ["backup_drive_status"],
