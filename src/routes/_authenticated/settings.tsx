@@ -935,24 +935,15 @@ function DriveConnectSection() {
         </div>
       )}
 
-      {(showAdvanced || (linked && status?.auth_mode === "service_account")) && (
-        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, marginTop: 4 }}>
-          <p style={{ margin: "0 0 10px", color: "var(--muted)", fontSize: 13 }}>{t("driveShareHint")}</p>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <button onClick={() => saInputRef.current?.click()} className="brand-btn"
-              style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
-              <Upload size={16} /> {saEmail || t("driveSaPick")}
-            </button>
-            <button onClick={connectServiceAccount} disabled={busy || !saJson} className="brand-btn"
-              style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || !saJson ? 0.6 : 1 }}>
-              <CloudUpload size={16} /> {busy ? t("driveConnecting") : t("driveConnectBtn")}
-            </button>
-          </div>
-        </div>
-      )}
-
       {linked && (
-        <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
+          <button onClick={runTest} disabled={busy || testing || targets.length === 0} className="brand-btn"
+            style={{
+              background: "var(--grad-green)", color: "#fff",
+              opacity: busy || testing || targets.length === 0 ? 0.6 : 1,
+            }}>
+            <CloudUpload size={16} /> {testing ? t("driveTesting") : t("driveTestBackup")}
+          </button>
           <button onClick={disconnect} disabled={busy} className="brand-btn"
             style={{ background: "rgba(240,103,106,.12)", color: "#F0676A", border: "1px solid rgba(240,103,106,.35)" }}>
             <CloudOff size={16} /> {t("driveDisconnect")}
@@ -960,10 +951,34 @@ function DriveConnectSection() {
         </div>
       )}
 
+      {testResults && (
+        <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+          {testResults.map((r) => (
+            <div key={r.folder_id} style={{
+              display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+              padding: "9px 12px", borderRadius: 10, fontSize: 12.5,
+              border: `1px solid ${r.ok ? "rgba(91,214,166,.35)" : "rgba(240,103,106,.35)"}`,
+              background: r.ok ? "rgba(91,214,166,.10)" : "rgba(240,103,106,.10)",
+              color: r.ok ? "#5BD6A6" : "#F0676A",
+            }}>
+              {r.ok ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+              <b>{r.folder_name ?? r.folder_id}</b>
+              <span>
+                {r.ok
+                  ? `${t("driveTestOk")} · ${toLocalDigits(String(r.verified_bytes ?? 0), lang)} B`
+                  : t((DRIVE_ERR_KEYS[r.error ?? ""] ?? "driveErrGeneric") as Parameters<typeof t>[0])}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <BackupErrorsPanel />
+
       <DriveSetupGuide
         defaultOpen={!linked}
         accountEmail={status?.account_email ?? null}
-        clientEmail={status?.client_email ?? null}
+        clientEmail={null}
       />
     </section>
   );
