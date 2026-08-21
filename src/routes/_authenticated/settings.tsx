@@ -531,18 +531,20 @@ function BackupsSection() {
                         <span style={{ fontSize: 11, color: "var(--muted)" }}>{toLocalDigits(Math.round(b.size / 1024), lang)} KB · <DriveBadge row={driveByFile.get(b.name)} /></span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        <IconBtn onClick={() => download(b)} title={t("download")} icon={<Download size={14} />} color="var(--foreground)" bg="var(--surface-3)" />
+                        <IconBtn onClick={() => download(b)} title={t("download")} icon={<Download size={14} />} color="var(--foreground)" bg="var(--surface-3)" loading={actingId === b.name} disabled={!!actingId && actingId !== b.name} />
                         {driveStatus?.configured && (
-                          <IconBtn onClick={() => syncToDrive(b)} title={t("driveSyncNow")} icon={<CloudUpload size={14} />} color="#42C2EE" bg="rgba(66,194,238,.15)" disabled={actingId === b.name} />
+                          <IconBtn onClick={() => syncToDrive(b)} title={t("driveSyncNow")} icon={<CloudUpload size={14} />} color="#42C2EE" bg="rgba(66,194,238,.15)" loading={actingId === b.name} disabled={!!actingId && actingId !== b.name} />
                         )}
-                        <IconBtn onClick={() => setRestoreTarget(b)} title={t("restore")} icon={<RotateCcw size={14} />} color="#FF9255" bg="rgba(232,115,46,.15)" />
+                        <IconBtn onClick={() => setRestoreTarget(b)} title={t("restore")} icon={<RotateCcw size={14} />} color="#FF9255" bg="rgba(232,115,46,.15)" disabled={!!actingId} />
                         <IconBtn
                           onClick={() => deleteBackup(b)}
                           title={b.name === latestBackupName ? t("latestBackupProtected") : t("delete")}
                           icon={<Trash2 size={14} />}
                           color="#F0676A"
                           bg="rgba(217,72,75,.15)"
-                          disabled={actingId === b.name || b.name === latestBackupName}
+                          loading={actingId === b.name}
+                          disabled={!!actingId || b.name === latestBackupName}
+
                         />
                       </div>
                     </div>
