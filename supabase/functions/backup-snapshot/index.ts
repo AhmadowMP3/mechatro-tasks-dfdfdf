@@ -98,20 +98,18 @@ const FILE_BUCKETS = [
 const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
 
 // ─────────────────────────────────────────────────────────────
-// Google Drive sync (service account / JWT flow)
-// env: GOOGLE_DRIVE_SA_JSON, GOOGLE_DRIVE_FOLDER_ID
-// A service account has no Drive quota of its own, so the destination folder
-// must be shared with its email from a real account (or be a Shared Drive).
+// Google Drive sync (Google OAuth only)
+// env: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET
+// The master admin links a real Google account once; the refresh token is
+// stored encrypted in public.drive_config.
 // ─────────────────────────────────────────────────────────────
 const DRIVE_KEEP = 12;
 
 type DriveFile = { id: string; name: string; createdTime?: string; webViewLink?: string; size?: string };
 type ZipEntry = { path: string; bytes: Uint8Array };
 
-type ServiceAccount = { client_email: string; private_key: string };
 type DriveCfg = {
-  mode: "service_account" | "oauth";
-  sa?: ServiceAccount;
+  mode: "oauth";
   refreshToken?: string;
   accountEmail?: string | null;
   folderId: string;
@@ -119,7 +117,7 @@ type DriveCfg = {
 };
 type DriveTarget = { id: string | null; folder_id: string; folder_name: string | null; keep: number };
 
-// Loaded per request from public.drive_config (falls back to env vars).
+// Loaded per request from public.drive_config.
 let DRIVE_CFG: DriveCfg | null = null;
 let DRIVE_TARGETS: DriveTarget[] = [];
 
@@ -137,9 +135,7 @@ function driveFolderId(): string {
 }
 
 function driveOwner(): string {
-  return DRIVE_CFG?.mode === "oauth"
-    ? `oauth:${DRIVE_CFG.accountEmail ?? "user"}`
-    : `sa:${DRIVE_CFG?.sa?.client_email ?? ""}`;
+  return `oauth:${DRIVE_CFG?.accountEmail ?? "user"}`;
 }
 
 
