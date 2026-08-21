@@ -765,7 +765,7 @@ function DriveConnectSection() {
   // Folder picker list (only once an account is linked).
   const { data: folders, refetch: refetchFolders, isFetching: loadingFolders } = useQuery({
     queryKey: ["backup_drive_folders", search],
-    enabled: linked,
+    enabled: linked && pickerOpen,
     queryFn: async () => {
       const { data, code, detail } = await driveCall<{ folders: Array<{ id: string; name: string }> }>({
         drive_folders: true, search: search.trim() || undefined,
@@ -774,6 +774,8 @@ function DriveConnectSection() {
       return data.folders ?? [];
     },
   });
+
+  const availableFolders = (folders ?? []).filter((f) => !targets.some((tg) => tg.folder_id === f.id));
 
   // Toast the result of the OAuth round-trip.
   useEffect(() => {
