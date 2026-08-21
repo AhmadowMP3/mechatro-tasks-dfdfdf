@@ -441,83 +441,74 @@ function BackupsSection() {
         </div>
       )}
 
-      {isMasterAdmin && (isMobile ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {(data ?? []).length === 0 ? (
-            <div style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>—</div>
-          ) : (data ?? []).map((b) => (
-            <div key={b.name} style={{
-              padding: 14, borderRadius: 12, border: "1px solid var(--border)",
-              background: "var(--surface-2)", display: "flex", flexDirection: "column", gap: 10,
-            }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <span style={{ fontSize: 14, fontWeight: 700 }}>{formatDate(b.created_at, lang)}</span>
-                <span style={{ fontSize: 12, color: "var(--muted)", wordBreak: "break-all" }}>{b.name}</span>
-                <span style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{toLocalDigits(Math.round(b.size / 1024), lang)} KB</span>
-                <DriveBadge row={driveByFile.get(b.name)} />
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={() => download(b)} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "var(--surface-3)", color: "var(--foreground)", border: "1px solid var(--border)" }}>
-                  <Download size={14} /> {t("download")}
-                </button>
-                <button onClick={() => setRestoreTarget(b)} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)" }}>
-                  <RotateCcw size={14} /> {t("restore")}
-                </button>
-                <button onClick={() => deleteBackup(b)} disabled={actingId === b.name || b.name === latestBackupName} title={b.name === latestBackupName ? t("latestBackupProtected") : undefined} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "rgba(217,72,75,.15)", color: "#F0676A", border: "1px solid rgba(217,72,75,.4)", opacity: (actingId === b.name || b.name === latestBackupName) ? 0.5 : 1, cursor: b.name === latestBackupName ? "not-allowed" : undefined }}>
-                  <Trash2 size={14} /> {t("delete")}
-                </button>
-                {driveStatus?.configured && (
-                  <button onClick={() => syncToDrive(b)} disabled={actingId === b.name} className="brand-btn-sm" style={{ flex: 1, minHeight: 44, background: "rgba(66,194,238,.15)", color: "#42C2EE", border: "1px solid rgba(66,194,238,.35)", opacity: actingId === b.name ? 0.5 : 1 }}>
-                    <CloudUpload size={14} /> {t("driveSyncNow")}
-                  </button>
-                )}
-              </div>
+      {isMasterAdmin && (
+        <div style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--surface-2)", overflow: "hidden" }}>
+          <button
+            onClick={() => setListOpen((v) => !v)}
+            style={{
+              width: "100%", padding: "12px 14px", display: "flex", alignItems: "center", gap: 10,
+              background: "transparent", border: "none", color: "var(--foreground)", cursor: "pointer",
+              textAlign: lang === "ar" ? "right" : "left", fontSize: 14,
+            }}
+          >
+            <span style={{ flex: 1, fontWeight: 700 }}>
+              {t("backups")}
+            </span>
+            <span style={{ color: "var(--muted)", fontSize: 12, whiteSpace: "nowrap" }}>
+              {(() => {
+                const count = (data ?? []).length;
+                const latest = data?.[0];
+                return `${toLocalDigits(String(count), lang)} ${t("backupCount")}${latest ? ` · ${formatDate(latest.created_at, lang)}` : ""}`;
+              })()}
+            </span>
+            <span style={{ color: "var(--muted)", display: "inline-flex" }}>
+              {listOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </span>
+          </button>
 
+          {listOpen && (
+            <div style={{ borderTop: "1px solid var(--border)", padding: "10px 12px" }}>
+              {(data ?? []).length === 0 ? (
+                <div style={{ padding: 18, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>—</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {(data ?? []).map((b) => (
+                    <div
+                      key={b.name}
+                      style={{
+                        padding: "8px 10px", borderRadius: 10, border: "1px solid var(--border)",
+                        background: "var(--surface)", display: "flex", alignItems: "center", gap: 10,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 160, display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>{formatDate(b.created_at, lang)}</span>
+                        <span style={{ fontSize: 11, color: "var(--muted)", wordBreak: "break-all" }}>{b.name}</span>
+                        <span style={{ fontSize: 11, color: "var(--muted)" }}>{toLocalDigits(Math.round(b.size / 1024), lang)} KB · <DriveBadge row={driveByFile.get(b.name)} /></span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <IconBtn onClick={() => download(b)} title={t("download")} icon={<Download size={14} />} color="var(--foreground)" bg="var(--surface-3)" />
+                        {driveStatus?.configured && (
+                          <IconBtn onClick={() => syncToDrive(b)} title={t("driveSyncNow")} icon={<CloudUpload size={14} />} color="#42C2EE" bg="rgba(66,194,238,.15)" disabled={actingId === b.name} />
+                        )}
+                        <IconBtn onClick={() => setRestoreTarget(b)} title={t("restore")} icon={<RotateCcw size={14} />} color="#FF9255" bg="rgba(232,115,46,.15)" />
+                        <IconBtn
+                          onClick={() => deleteBackup(b)}
+                          title={b.name === latestBackupName ? t("latestBackupProtected") : t("delete")}
+                          icon={<Trash2 size={14} />}
+                          color="#F0676A"
+                          bg="rgba(217,72,75,.15)"
+                          disabled={actingId === b.name || b.name === latestBackupName}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
+          )}
         </div>
-      ) : (
-      <div style={{ overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
-            <tr style={{ color: "var(--muted)", textAlign: lang === "ar" ? "right" : "left" }}>
-              <th style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>{t("when")}</th>
-              <th style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>{t("size")}</th>
-              <th style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>{t("driveSync")}</th>
-              <th style={{ padding: 10, borderBottom: "1px solid var(--border)" }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data ?? []).length === 0 ? (
-              <tr><td colSpan={4} style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>—</td></tr>
-            ) : (data ?? []).map((b) => (
-              <tr key={b.name}>
-                <td style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>{formatDate(b.created_at, lang)} · <span style={{ color: "var(--muted)" }}>{b.name}</span></td>
-                <td style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>{toLocalDigits(Math.round(b.size / 1024), lang)} KB</td>
-                <td style={{ padding: 10, borderBottom: "1px solid var(--border)" }}><DriveBadge row={driveByFile.get(b.name)} /></td>
-                <td style={{ padding: 10, borderBottom: "1px solid var(--border)", textAlign: lang === "ar" ? "left" : "right" }}>
-                  <button onClick={() => download(b)} className="brand-btn-sm" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)", marginInlineEnd: 6 }}>
-                    <Download size={14} /> {t("download")}
-                  </button>
-                  {driveStatus?.configured && (
-                    <button onClick={() => syncToDrive(b)} disabled={actingId === b.name} className="brand-btn-sm" style={{ background: "rgba(66,194,238,.15)", color: "#42C2EE", border: "1px solid rgba(66,194,238,.35)", marginInlineEnd: 6, opacity: actingId === b.name ? 0.5 : 1 }}>
-                      <CloudUpload size={14} /> {t("driveSyncNow")}
-                    </button>
-                  )}
-                  <button onClick={() => setRestoreTarget(b)} className="brand-btn-sm" style={{ background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)", marginInlineEnd: 6 }}>
-                    <RotateCcw size={14} /> {t("restore")}
-                  </button>
-                  <button onClick={() => deleteBackup(b)} disabled={actingId === b.name || b.name === latestBackupName} title={b.name === latestBackupName ? t("latestBackupProtected") : undefined} className="brand-btn-sm" style={{ background: "rgba(217,72,75,.15)", color: "#F0676A", border: "1px solid rgba(217,72,75,.4)", opacity: (actingId === b.name || b.name === latestBackupName) ? 0.5 : 1, cursor: b.name === latestBackupName ? "not-allowed" : undefined }}>
-                    <Trash2 size={14} /> {t("delete")}
-                  </button>
-                </td>
-
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      ))}
+      )}
       {restoreTarget && <RestoreDialog source={{ kind: "cloud", name: restoreTarget.name }} onClose={() => setRestoreTarget(null)} onDone={() => { setRestoreTarget(null); refetch(); }} />}
       {externalRestore && <RestoreDialog source={{ kind: "external", name: externalRestore.name, payload: externalRestore.payload }} onClose={() => setExternalRestore(null)} onDone={() => { setExternalRestore(null); refetch(); }} />}
     </section>
