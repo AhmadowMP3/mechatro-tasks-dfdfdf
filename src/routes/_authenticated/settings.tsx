@@ -827,7 +827,7 @@ function DriveConnectSection() {
     refresh();
   };
 
-  const addTarget = async (folderRef: string) => {
+  const addTarget = async (folderRef: string, onDone?: () => void) => {
     if (!folderRef.trim()) { toast.error(t("driveErrBadFolder")); return; }
     setBusy(true);
     const { data, code, detail } = await driveCall({ drive_target_add: true, folder: folderRef.trim() });
@@ -835,10 +835,11 @@ function DriveConnectSection() {
     if (!data) { showErr(code, detail); return; }
     toast.success(t("driveFolderAdded"));
     setFolder("");
+    onDone?.();
     refresh();
   };
 
-  const createFolder = async () => {
+  const createFolder = async (onDone?: () => void) => {
     const name = newFolderName.trim();
     if (!name) return;
     setBusy(true);
@@ -848,7 +849,7 @@ function DriveConnectSection() {
     if (!data) { setBusy(false); showErr(code, detail); return; }
     setNewFolderName("");
     setBusy(false);
-    await addTarget(data.folder.id);
+    await addTarget(data.folder.id, onDone);
   };
 
   const toggleTarget = async (target: DriveTarget) => {
