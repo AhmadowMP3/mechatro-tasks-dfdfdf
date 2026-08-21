@@ -622,6 +622,12 @@ Deno.serve(async (req) => {
         const msg = errMsg(e);
         console.error("drive sync failed", target.folder_id, msg);
         try {
+          await sb.from("backup_error_log").insert({
+            kind: "upload", message: msg.slice(0, 4000),
+            file: backupFile, folder_id: target.folder_id,
+          });
+        } catch (_) { /* ignore */ }
+        try {
           await recordDriveRow({ file: backupFile, target_id: target.id, synced_at: null, error: msg });
           if (target.id) await sb.from("drive_targets").update({ last_error: msg }).eq("id", target.id);
         } catch (_) { /* ignore */ }
