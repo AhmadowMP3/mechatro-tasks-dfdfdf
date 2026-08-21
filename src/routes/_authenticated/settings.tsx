@@ -1057,27 +1057,6 @@ function DriveConnectSection() {
       )}
 
 
-      {testResults && (
-        <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
-          {testResults.map((r) => (
-            <div key={r.folder_id} style={{
-              display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-              padding: "9px 12px", borderRadius: 10, fontSize: 12.5,
-              border: `1px solid ${r.ok ? "rgba(91,214,166,.35)" : "rgba(240,103,106,.35)"}`,
-              background: r.ok ? "rgba(91,214,166,.10)" : "rgba(240,103,106,.10)",
-              color: r.ok ? "#5BD6A6" : "#F0676A",
-            }}>
-              {r.ok ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
-              <b>{r.folder_name ?? r.folder_id}</b>
-              <span>
-                {r.ok
-                  ? `${t("driveTestOk")} · ${toLocalDigits(String(r.verified_bytes ?? 0), lang)} B`
-                  : t((DRIVE_ERR_KEYS[r.error ?? ""] ?? "driveErrGeneric") as Parameters<typeof t>[0])}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
 
       <BackupErrorsPanel />
 
