@@ -1049,19 +1049,13 @@ function DriveConnectSection() {
 
       {linked && (
         <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
-          <button onClick={runTest} disabled={busy || testing || targets.length === 0} className="brand-btn"
-            style={{
-              background: "var(--grad-green)", color: "#fff",
-              opacity: busy || testing || targets.length === 0 ? 0.6 : 1,
-            }}>
-            <CloudUpload size={16} /> {testing ? t("driveTesting") : t("driveTestBackup")}
-          </button>
           <button onClick={disconnect} disabled={busy} className="brand-btn"
             style={{ background: "rgba(240,103,106,.12)", color: "#F0676A", border: "1px solid rgba(240,103,106,.35)" }}>
             <CloudOff size={16} /> {t("driveDisconnect")}
           </button>
         </div>
       )}
+
 
       {testResults && (
         <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
