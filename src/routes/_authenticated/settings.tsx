@@ -1069,11 +1069,12 @@ function DriveConnectSection() {
         </div>
       )}
 
-
-
-      <BackupErrorsPanel />
+          <BackupErrorsPanel />
+        </div>
+      )}
 
     </section>
+
   );
 }
 
