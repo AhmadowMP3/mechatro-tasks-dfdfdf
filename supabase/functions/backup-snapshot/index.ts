@@ -194,7 +194,7 @@ async function loadDriveConfig(sb: any): Promise<{ dbError?: string }> {
   let dbError: string | undefined;
   try {
     const { data } = await sb.from("drive_config").select("*").eq("id", true).maybeSingle();
-    if (data?.auth_mode === "oauth" && data?.refresh_token_enc) {
+    if (data?.refresh_token_enc) {
       try {
         DRIVE_CFG = {
           mode: "oauth",
@@ -206,36 +206,11 @@ async function loadDriveConfig(sb: any): Promise<{ dbError?: string }> {
       } catch (e) {
         dbError = `stored credentials unreadable: ${errMsg(e)}`;
       }
-    } else if (data?.sa_json_enc) {
-      try {
-        const sa = JSON.parse(await decryptText(data.sa_json_enc)) as ServiceAccount;
-        DRIVE_CFG = {
-          mode: "service_account",
-          sa,
-          accountEmail: data.client_email ?? sa.client_email,
-          folderId: data.folder_id ?? "",
-          folderName: data.folder_name ?? null,
-        };
-      } catch (e) {
-        dbError = `stored credentials unreadable: ${errMsg(e)}`;
-      }
     }
   } catch (e) {
     dbError = errMsg(e);
   }
 
-  if (!DRIVE_CFG) {
-    const envRaw = Deno.env.get("GOOGLE_DRIVE_SA_JSON");
-    const envFolder = Deno.env.get("GOOGLE_DRIVE_FOLDER_ID");
-    if (envRaw && envFolder) {
-      try {
-        const sa = JSON.parse(envRaw) as ServiceAccount;
-        DRIVE_CFG = { mode: "service_account", sa, accountEmail: sa.client_email, folderId: envFolder };
-      } catch (e) {
-        dbError = `env service account invalid: ${errMsg(e)}`;
-      }
-    }
-  }
 
   if (DRIVE_CFG) {
     try {
