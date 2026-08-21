@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { KeyRound, Eye, EyeOff } from "lucide-react";
@@ -48,7 +48,24 @@ export function ChangePasswordModal({ lang, onClose }: { lang: "ar" | "en"; onCl
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
+  const [recovery, setRecovery] = useState("");
+  const [savedRecovery, setSavedRecovery] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const { data: me } = await supabase.auth.getUser();
+      if (!me.user) return;
+      const { data } = await supabase
+        .from("profiles").select("recovery_email").eq("id", me.user.id).maybeSingle();
+      if (!alive) return;
+      const value = (data as { recovery_email?: string | null } | null)?.recovery_email ?? "";
+      setSavedRecovery(value || null);
+      setRecovery(value);
+    })();
+    return () => { alive = false; };
+  }, []);
 
   async function save() {
     if (next.length < 8) {
@@ -63,6 +80,11 @@ export function ChangePasswordModal({ lang, onClose }: { lang: "ar" | "en"; onCl
       toast.error(l ? "كلمة المرور الجديدة يجب أن تختلف عن الحالية." : "New password must differ from the current one.");
       return;
     }
+    const recoveryValue = recovery.trim().toLowerCase();
+    if (recoveryValue && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(recoveryValue)) {
+      toast.error(l ? "إيميل الاسترجاع غير صالح." : "Recovery email is not valid.");
+      return;
+    }
     setBusy(true);
     try {
       const { data: me } = await supabase.auth.getUser();
@@ -74,6 +96,18 @@ export function ChangePasswordModal({ lang, onClose }: { lang: "ar" | "en"; onCl
 
       const { error } = await supabase.auth.updateUser({ password: next });
       if (error) throw new Error(l ? "تعذّر تحديث كلمة المرور. حاول مرة أخرى." : "Could not update the password. Please try again.");
+
+      if (recoveryValue && recoveryValue !== (savedRecovery ?? "").toLowerCase()) {
+        const { data: res, error: recErr } = await supabase.functions.invoke("admin-users", {
+          body: { action: "set_recovery_email", email: recoveryValue },
+        });
+        const failed = recErr || (res as { error?: string } | null)?.error;
+        if (failed) {
+          toast.warning(l
+            ? "تم تغيير كلمة المرور، لكن تعذّر حفظ إيميل الاسترجاع."
+            : "Password changed, but the recovery email could not be saved.");
+        }
+      }
 
       if (me.user) {
         void supabase.from("activity_log").insert({
@@ -89,6 +123,7 @@ export function ChangePasswordModal({ lang, onClose }: { lang: "ar" | "en"; onCl
       setBusy(false);
     }
   }
+
 
   if (typeof document === "undefined") return null;
 
@@ -123,11 +158,36 @@ export function ChangePasswordModal({ lang, onClose }: { lang: "ar" | "en"; onCl
           <PasswordField label={l ? "كلمة المرور الحالية" : "Current password"} value={current} onChange={setCurrent} autoFocus />
           <PasswordField label={l ? "كلمة المرور الجديدة" : "New password"} value={next} onChange={setNext} />
           <PasswordField label={l ? "تأكيد كلمة المرور الجديدة" : "Confirm new password"} value={confirmPw} onChange={setConfirmPw} />
+
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700 }}>
+              {l ? "إيميل الاسترجاع (اختياري)" : "Recovery email (optional)"}
+            </span>
+            <input
+              type="email"
+              value={recovery}
+              onChange={(e) => setRecovery(e.target.value)}
+              dir="ltr"
+              placeholder="name@example.com"
+              autoComplete="email"
+              maxLength={200}
+              style={{ ...inputStyle, padding: "12px 14px" }}
+            />
+          </label>
         </div>
 
-        <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 10 }}>
+        <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 10, lineHeight: 1.7 }}>
           {l ? "8 أحرف على الأقل." : "At least 8 characters."}
+          <br />
+          {recovery.trim()
+            ? (l
+              ? "يُستخدم إيميل الاسترجاع فقط لإرسال رابط إعادة تعيين كلمة المرور عند نسيانها."
+              : "The recovery email is only used to send a reset link if you forget your password.")
+            : (l
+              ? "⚠️ بدون إيميل استرجاع لن تتمكّن من استعادة حسابك إذا نسيت كلمة المرور."
+              : "⚠️ Without a recovery email you won't be able to recover your account if you forget your password.")}
         </div>
+
 
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
           <button

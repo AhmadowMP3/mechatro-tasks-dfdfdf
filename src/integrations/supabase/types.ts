@@ -1653,6 +1653,8 @@ export type Database = {
           longest_streak: number
           max_devices: number
           phone: string | null
+          recovery_email: string | null
+          recovery_sent_at: string | null
           role: Database["public"]["Enums"]["app_role"]
           status: Database["public"]["Enums"]["profile_status"]
           suspend_reason: string | null
@@ -1680,6 +1682,8 @@ export type Database = {
           longest_streak?: number
           max_devices?: number
           phone?: string | null
+          recovery_email?: string | null
+          recovery_sent_at?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           suspend_reason?: string | null
@@ -1707,6 +1711,8 @@ export type Database = {
           longest_streak?: number
           max_devices?: number
           phone?: string | null
+          recovery_email?: string | null
+          recovery_sent_at?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           suspend_reason?: string | null
@@ -2590,6 +2596,15 @@ export type Database = {
         Returns: boolean
       }
       close_ended_seasons: { Args: never; Returns: number }
+      find_recovery_account: {
+        Args: { p_query: string }
+        Returns: {
+          full_name: string
+          recovery_email: string
+          recovery_sent_at: string
+          user_id: string
+        }[]
+      }
       is_note_owner: {
         Args: { _note_id: string; _user_id: string }
         Returns: boolean
