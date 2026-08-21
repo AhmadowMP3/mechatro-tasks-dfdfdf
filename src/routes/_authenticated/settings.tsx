@@ -1095,11 +1095,6 @@ function DriveConnectSection() {
 
       <BackupErrorsPanel />
 
-      <DriveSetupGuide
-        defaultOpen={!linked}
-        accountEmail={status?.account_email ?? null}
-        clientEmail={null}
-      />
     </section>
   );
 }
