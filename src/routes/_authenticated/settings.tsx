@@ -773,8 +773,6 @@ function DriveConnectSection() {
 
   return (
     <section className="brand-card" style={{ padding: 20 }}>
-      <input ref={saInputRef} type="file" accept="application/json,.json" style={{ display: "none" }} onChange={onSaFile} />
-
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
         <Cloud size={18} color={connected ? "#5BD6A6" : "var(--muted)"} />
         <h2 style={{ margin: 0, flex: 1, fontSize: 18 }}>{t("driveConnectTitle")}</h2>
@@ -794,10 +792,6 @@ function DriveConnectSection() {
               title={oauthReady === false ? t("driveOauthSetupNeeded") : undefined}
               style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || oauthReady === false ? 0.5 : 1, cursor: oauthReady === false ? "not-allowed" : "pointer" }}>
               <Cloud size={16} /> {busy ? t("driveConnecting") : t("driveSignIn")}
-            </button>
-            <button onClick={() => setShowAdvanced((v) => !v)} className="brand-btn"
-              style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
-              {t("driveAdvanced")}
             </button>
           </div>
           {oauthReady === false && (
@@ -819,8 +813,7 @@ function DriveConnectSection() {
           fontSize: 13, marginBottom: 14,
         }}>
           <div style={{ wordBreak: "break-all" }}>
-            <b>{status?.auth_mode === "oauth" ? t("driveAccount") : t("driveServiceAccount")}:</b>{" "}
-            {status?.account_email ?? status?.client_email ?? "—"}
+            <b>{t("driveAccount")}:</b> {status?.account_email ?? "—"}
           </div>
           <div><b>{t("driveFilesCount")}:</b> {toLocalDigits(String(status?.files?.length ?? 0), lang)}</div>
           {status?.connected_at && <div><b>{t("driveConnected")}:</b> {formatDate(status.connected_at, lang)}</div>}
