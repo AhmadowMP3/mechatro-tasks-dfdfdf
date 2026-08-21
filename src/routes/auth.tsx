@@ -24,6 +24,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
   const [btnHover, setBtnHover] = useState(false);
   const l = lang === "ar";
   const isLight = theme === "light";
