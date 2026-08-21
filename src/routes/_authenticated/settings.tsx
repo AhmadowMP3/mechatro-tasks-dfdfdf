@@ -201,7 +201,7 @@ function BackupsSection() {
     enabled: !!isMasterAdmin,
     queryFn: async () => {
       const { data, error } = await (supabase.from as unknown as (t: string) => any)("backup_drive_files")
-        .select("file, drive_link, synced_at, error");
+        .select("file, drive_link, synced_at, error, size_bytes");
       if (error) throw error;
       return (data ?? []) as DriveRow[];
     },
