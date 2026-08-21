@@ -70,14 +70,44 @@ Deno.serve(async (req) => {
     .eq("id", userRes.user.id)
     .maybeSingle();
   const isAdmin = me?.is_master_admin || me?.role === "admin";
-  if (!isAdmin) return json(403, { error: "admin only" });
 
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { /* ignore */ }
   const action = sText(body.action, 40);
 
+  // ── Self-service action (any signed-in user): recovery email ──
+  // The recovery email becomes the account's mail address so Supabase can
+  // deliver "forgot password" links to it. Login stays by username.
+  if (action === "set_recovery_email") {
+    const raw = sText(body.email, 200).toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(raw)) {
+      return json(400, { error: "invalid email" });
+    }
+    const { data: taken } = await admin
+      .from("profiles").select("id").ilike("email", raw).neq("id", userRes.user.id).maybeSingle();
+    if (taken) return json(409, { error: "email already used by another account" });
+
+    const { error: authErr } = await admin.auth.admin.updateUserById(userRes.user.id, {
+      email: raw, email_confirm: true,
+    });
+    if (authErr) return json(400, { error: errMsg(authErr) });
+
+    const { error: profErr } = await admin.from("profiles")
+      .update({ email: raw, recovery_email: raw }).eq("id", userRes.user.id);
+    if (profErr) return json(400, { error: errMsg(profErr) });
+
+    await admin.from("activity_log").insert({
+      actor_id: userRes.user.id, action: "updated",
+      entity_type: "auth", entity_id: userRes.user.id, meta: { recovery_email: true },
+    });
+    return json(200, { ok: true });
+  }
+
+  if (!isAdmin) return json(403, { error: "admin only" });
+
   // Any admin (regular or master) can perform admin actions.
   // Target-level checks below still prevent mutating the master admin.
+
 
 
   try {
