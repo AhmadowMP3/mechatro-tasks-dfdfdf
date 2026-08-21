@@ -1030,6 +1030,7 @@ Deno.serve(async (req) => {
       } catch (e) {
         const msg = errMsg(e);
         console.error("backup-snapshot approve error", e);
+        await logBackupError("snapshot", msg);
         await sb.from("backup_requests").update({
           status: "failed",
           decided_by: actorId,
