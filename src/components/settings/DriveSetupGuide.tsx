@@ -103,19 +103,14 @@ const TROUBLESHOOT: Array<{ symptom: Bi; cause: Bi; fix: Bi }> = [
     fix: { ar: "استخدم قائمة المجلدات داخل التطبيق بدل لصق الرابط، أو شارك المجلد بصلاحية Editor.", en: "Use the in-app folder list instead of pasting a link, or share the folder as Editor." },
   },
   {
-    symptom: { ar: "Service Accounts do not have storage quota", en: "Service Accounts do not have storage quota" },
-    cause: { ar: "الرفع يتم إلى مجلد يملكه حساب الخدمة نفسه.", en: "Uploading into a folder owned by the service account itself." },
-    fix: { ar: "ارفع دائماً إلى مجلد يملكه حسابك ومشترك مع حساب الخدمة، أو إلى Shared Drive.", en: "Always upload into a folder owned by your account and shared with the service account, or a Shared Drive." },
-  },
-  {
     symptom: { ar: "توقّفت المزامنة فجأة (invalid_grant)", en: "Sync stopped suddenly (invalid_grant)" },
     cause: { ar: "انتهت صلاحية Refresh token (تنتهي بعد 7 أيام إذا بقي التطبيق في وضع Testing، أو عند تغيير كلمة مرور Google).", en: "The refresh token expired (7 days while the app stays in Testing mode, or after a Google password change)." },
     fix: { ar: "انشر التطبيق في Google Cloud (Publish app) ثم أعد الربط من هذه الصفحة.", en: "Publish the app in Google Cloud, then reconnect from this page." },
   },
   {
-    symptom: { ar: "«الملف ليس ملف حساب خدمة صالح»", en: "«Not a valid service-account JSON file»" },
-    cause: { ar: "الملف المرفوع هو ملف OAuth client وليس مفتاح حساب خدمة.", en: "The uploaded file is an OAuth client file, not a service-account key." },
-    fix: { ar: "المفتاح الصحيح يحتوي على \"type\": \"service_account\" مع client_email و private_key.", en: "The correct key contains \"type\": \"service_account\" plus client_email and private_key." },
+    symptom: { ar: "فشل «تشغيل نسخة تجريبية»", en: "«Run test backup» fails" },
+    cause: { ar: "المجلد المستهدف محذوف أو تم سحب صلاحية الحساب المرتبط.", en: "The target folder was deleted, or the linked account lost access." },
+    fix: { ar: "احذف المجلد من قائمة الوجهات وأعد اختياره، أو أعد الربط بحساب Google.", en: "Remove the destination and pick it again, or reconnect the Google account." },
   },
 ];
 
