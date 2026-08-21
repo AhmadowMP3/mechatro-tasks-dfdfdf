@@ -113,6 +113,36 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_error_log: {
+        Row: {
+          created_at: string
+          file: string | null
+          folder_id: string | null
+          id: string
+          kind: string
+          message: string
+          meta: Json | null
+        }
+        Insert: {
+          created_at?: string
+          file?: string | null
+          folder_id?: string | null
+          id?: string
+          kind: string
+          message: string
+          meta?: Json | null
+        }
+        Update: {
+          created_at?: string
+          file?: string | null
+          folder_id?: string | null
+          id?: string
+          kind?: string
+          message?: string
+          meta?: Json | null
+        }
+        Relationships: []
+      }
       backup_requests: {
         Row: {
           created_at: string
