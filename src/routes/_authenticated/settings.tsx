@@ -746,6 +746,8 @@ function DriveConnectSection() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+
 
   const { data: status } = useQuery({
     queryKey: ["backup_drive_status"],
