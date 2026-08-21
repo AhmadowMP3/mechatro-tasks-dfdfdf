@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2, Upload, CloudUpload, CloudOff, Cloud, CheckCircle2 } from "lucide-react";
+import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2, Upload, CloudUpload, CloudOff, Cloud, CheckCircle2, FolderPlus } from "lucide-react";
+import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { formatDate, toLocalDigits } from "@/lib/format";
@@ -742,6 +743,9 @@ function DriveConnectSection() {
   const [search, setSearch] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[] | null>(null);
 
@@ -762,7 +766,7 @@ function DriveConnectSection() {
   // Folder picker list (only once an account is linked).
   const { data: folders, refetch: refetchFolders, isFetching: loadingFolders } = useQuery({
     queryKey: ["backup_drive_folders", search],
-    enabled: linked,
+    enabled: linked && pickerOpen,
     queryFn: async () => {
       const { data, code, detail } = await driveCall<{ folders: Array<{ id: string; name: string }> }>({
         drive_folders: true, search: search.trim() || undefined,
@@ -771,6 +775,8 @@ function DriveConnectSection() {
       return data.folders ?? [];
     },
   });
+
+  const availableFolders = (folders ?? []).filter((f) => !targets.some((tg) => tg.folder_id === f.id));
 
   // Toast the result of the OAuth round-trip.
   useEffect(() => {
@@ -824,7 +830,7 @@ function DriveConnectSection() {
     refresh();
   };
 
-  const addTarget = async (folderRef: string) => {
+  const addTarget = async (folderRef: string, onDone?: () => void) => {
     if (!folderRef.trim()) { toast.error(t("driveErrBadFolder")); return; }
     setBusy(true);
     const { data, code, detail } = await driveCall({ drive_target_add: true, folder: folderRef.trim() });
@@ -832,10 +838,11 @@ function DriveConnectSection() {
     if (!data) { showErr(code, detail); return; }
     toast.success(t("driveFolderAdded"));
     setFolder("");
+    onDone?.();
     refresh();
   };
 
-  const createFolder = async () => {
+  const createFolder = async (onDone?: () => void) => {
     const name = newFolderName.trim();
     if (!name) return;
     setBusy(true);
@@ -845,7 +852,7 @@ function DriveConnectSection() {
     if (!data) { setBusy(false); showErr(code, detail); return; }
     setNewFolderName("");
     setBusy(false);
-    await addTarget(data.folder.id);
+    await addTarget(data.folder.id, onDone);
   };
 
   const toggleTarget = async (target: DriveTarget) => {
@@ -975,54 +982,76 @@ function DriveConnectSection() {
             ))}
           </div>
 
-          <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", marginTop: 12 }}>
-            <div>
-              <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>{t("drivePickFolder")}</label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+            <button onClick={() => setPickerOpen(true)} disabled={busy} className="brand-btn"
+              style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
+              <Cloud size={15} /> {t("drivePickFolder")}
+            </button>
+            <button onClick={() => setLinkOpen(true)} disabled={busy} className="brand-btn"
+              style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
+              <CloudUpload size={15} /> {t("driveAddByLink")}
+            </button>
+            <button onClick={() => setCreateOpen(true)} disabled={busy} className="brand-btn"
+              style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
+              <FolderPlus size={15} /> {t("driveNewFolder")}
+            </button>
+          </div>
+
+          {pickerOpen && (
+            <ResponsiveModal title={t("drivePickFolder")} onClose={() => setPickerOpen(false)}>
               <div style={{ display: "flex", gap: 8 }}>
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("driveSearchFolders")} style={inputStyle} />
+                <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t("driveSearchFolders")} style={inputStyle} />
                 <button onClick={() => refetchFolders()} className="brand-btn" title={t("driveRefreshFolders")}
                   style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
                   <RotateCcw size={15} />
                 </button>
               </div>
-              <div style={{ maxHeight: 160, overflowY: "auto", marginTop: 8, display: "grid", gap: 6 }}>
+              <div style={{ maxHeight: 300, overflowY: "auto", marginTop: 10, display: "grid", gap: 6 }}>
                 {loadingFolders && <span style={{ fontSize: 12, color: "var(--muted)" }}>…</span>}
-                {(folders ?? [])
-                  .filter((f) => !targets.some((tg) => tg.folder_id === f.id))
-                  .map((f) => (
-                    <button key={f.id} onClick={() => addTarget(f.id)} disabled={busy}
-                      style={{
-                        textAlign: "start", padding: "8px 10px", borderRadius: 8, fontSize: 13, cursor: "pointer",
-                        border: "1px solid var(--border)", background: "var(--surface)", color: "var(--fg)",
-                      }}>
-                      {f.name}
-                    </button>
-                  ))}
+                {!loadingFolders && (availableFolders.length === 0) && (
+                  <span style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("driveNoFolders")}</span>
+                )}
+                {availableFolders.map((f) => (
+                  <button key={f.id} onClick={() => addTarget(f.id, () => setPickerOpen(false))} disabled={busy}
+                    style={{
+                      textAlign: "start", padding: "10px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer",
+                      border: "1px solid var(--border)", background: "var(--surface)", color: "var(--fg)",
+                    }}>
+                    {f.name}
+                  </button>
+                ))}
               </div>
-            </div>
+            </ResponsiveModal>
+          )}
 
-            <div>
+          {linkOpen && (
+            <ResponsiveModal title={t("driveAddByLink")} onClose={() => setLinkOpen(false)}>
               <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>{t("driveFolderLabel")}</label>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input value={folder} onChange={(e) => setFolder(e.target.value)}
-                  placeholder="https://drive.google.com/drive/folders/..." style={inputStyle} />
-                <button onClick={() => addTarget(folder)} disabled={busy || !folder.trim()} className="brand-btn"
+              <input autoFocus value={folder} onChange={(e) => setFolder(e.target.value)}
+                placeholder="https://drive.google.com/drive/folders/..." style={inputStyle} />
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+                <button onClick={() => addTarget(folder, () => setLinkOpen(false))} disabled={busy || !folder.trim()} className="brand-btn"
                   style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || !folder.trim() ? 0.6 : 1 }}>
-                  <CloudUpload size={15} />
+                  <CloudUpload size={15} /> {t("driveAddAction")}
                 </button>
               </div>
+            </ResponsiveModal>
+          )}
 
-              <label style={{ display: "block", fontSize: 12, color: "var(--muted)", margin: "12px 0 6px" }}>{t("driveNewFolderName")}</label>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)}
-                  placeholder={t("driveNewFolder")} style={inputStyle} />
-                <button onClick={createFolder} disabled={busy || !newFolderName.trim()} className="brand-btn"
-                  style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)", opacity: busy || !newFolderName.trim() ? 0.6 : 1 }}>
-                  {t("driveCreateFolder")}
+          {createOpen && (
+            <ResponsiveModal title={t("driveNewFolder")} onClose={() => setCreateOpen(false)}>
+              <label style={{ display: "block", fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>{t("driveNewFolderName")}</label>
+              <input autoFocus value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder={t("driveNewFolder")} style={inputStyle} />
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+                <button onClick={() => createFolder(() => setCreateOpen(false))} disabled={busy || !newFolderName.trim()} className="brand-btn"
+                  style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || !newFolderName.trim() ? 0.6 : 1 }}>
+                  <FolderPlus size={15} /> {t("driveCreateFolder")}
                 </button>
               </div>
-            </div>
-          </div>
+            </ResponsiveModal>
+          )}
         </div>
       )}
 
