@@ -33,7 +33,7 @@ function PasswordField({ label, value, onChange, autoFocus }: {
           onClick={() => setShow((s) => !s)}
           aria-label={show ? "Hide" : "Show"}
           style={{
-            position: "absolute", insetInlineEnd: 8, top: "50%", transform: "translateY(-50%)",
+            position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
             background: "transparent", border: "none", color: "var(--muted)", cursor: "pointer",
             padding: 4, display: "inline-flex",
           }}
