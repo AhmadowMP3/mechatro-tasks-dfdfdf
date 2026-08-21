@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2, Upload, CloudUpload, CloudOff, Cloud } from "lucide-react";
+import { Download, Play, RotateCcw, AlertTriangle, UserPlus, Trash2, Upload, CloudUpload, CloudOff, Cloud, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { formatDate, toLocalDigits } from "@/lib/format";
@@ -313,6 +313,43 @@ function BackupsSection() {
       </div>
 
 
+      {isMasterAdmin && (() => {
+        const last = data?.[0];
+        const lastDrive = last ? driveByFile.get(last.name) : undefined;
+        const ok = !!last && !lastDrive?.error;
+        const color = !last ? "#E7B03A" : ok ? "#5BD6A6" : "#F0676A";
+        return (
+          <div style={{
+            marginBottom: 12, padding: "12px 14px", borderRadius: 12,
+            display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 13,
+            border: `1px solid ${color}59`, background: `${color}14`,
+          }}>
+            {ok ? <CheckCircle2 size={17} color={color} /> : <AlertTriangle size={17} color={color} />}
+            <b style={{ color }}>{t("lastBackup")}</b>
+            <span style={{ color: "var(--muted)" }}>
+              {last ? formatDate(last.created_at, lang) : t("noBackupsYet")}
+            </span>
+            {last && (
+              <span style={{ color: "var(--muted)" }}>
+                · {toLocalDigits((last.size / 1024).toFixed(1), lang)} KB
+              </span>
+            )}
+            {last && (
+              <span style={{
+                marginInlineStart: "auto", fontSize: 12, padding: "3px 10px", borderRadius: 999,
+                color, background: `${color}1f`, border: `1px solid ${color}59`,
+              }}>
+                {lastDrive?.error
+                  ? t("driveSyncFailed")
+                  : lastDrive?.synced_at
+                    ? t("driveSyncedOk")
+                    : t("backupStored")}
+              </span>
+            )}
+          </div>
+        );
+      })()}
+
       {isMasterAdmin && (
         <div style={{
           marginBottom: 12, padding: "10px 12px", borderRadius: 10,
@@ -594,6 +631,89 @@ type DriveStatus = {
   files?: Array<{ id: string; name: string }>;
 };
 
+type TestResult = {
+  folder_id: string;
+  folder_name: string | null;
+  ok: boolean;
+  link?: string;
+  verified_bytes?: number;
+  error?: string;
+};
+
+type BackupErrorRow = {
+  id: string;
+  kind: string;
+  message: string;
+  file: string | null;
+  folder_id: string | null;
+  created_at: string;
+};
+
+function BackupErrorsPanel() {
+  const { t, lang } = useApp();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+
+  const { data: rows } = useQuery({
+    queryKey: ["backup_error_log"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as unknown as (tbl: string) => any)("backup_error_log")
+        .select("id, kind, message, file, folder_id, created_at")
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return (data ?? []) as BackupErrorRow[];
+    },
+  });
+
+  const list = rows ?? [];
+
+  const clearAll = async () => {
+    const { error } = await supabase.functions.invoke("backup-snapshot", { body: { errors_clear: true } });
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["backup_error_log"] });
+  };
+
+  return (
+    <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <button onClick={() => setOpen((v) => !v)} className="brand-btn"
+          style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)", fontSize: 13 }}>
+          <AlertTriangle size={15} color={list.length ? "#F0676A" : "var(--muted)"} />
+          {t("backupErrors")} ({toLocalDigits(String(list.length), lang)})
+        </button>
+        {open && list.length > 0 && (
+          <button onClick={clearAll} className="brand-btn"
+            style={{ background: "rgba(240,103,106,.12)", color: "#F0676A", border: "1px solid rgba(240,103,106,.35)", fontSize: 12 }}>
+            <Trash2 size={14} /> {t("clearLog")}
+          </button>
+        )}
+      </div>
+      {open && (
+        <div style={{ marginTop: 10, display: "grid", gap: 8, maxHeight: 300, overflowY: "auto" }}>
+          {list.length === 0 && (
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>{t("noBackupErrors")}</div>
+          )}
+          {list.map((r) => (
+            <div key={r.id} style={{
+              padding: "9px 12px", borderRadius: 10, fontSize: 12,
+              border: "1px solid rgba(240,103,106,.3)", background: "rgba(240,103,106,.07)",
+            }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", color: "var(--muted)", marginBottom: 4 }}>
+                <b style={{ color: "#F0676A", textTransform: "uppercase" }}>{r.kind}</b>
+                <span>{formatDate(r.created_at, lang)}</span>
+                {r.file && <span>· {r.file}</span>}
+              </div>
+              <div style={{ wordBreak: "break-word", color: "var(--fg)" }}>{r.message}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 const DRIVE_ERR_KEYS: Record<string, string> = {
   invalid_sa_json: "driveErrInvalidJson",
   bad_folder_id: "driveErrBadFolder",
@@ -618,14 +738,12 @@ function DriveConnectSection() {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const startOAuth = useServerFn(startDriveOAuth);
-  const saInputRef = useRef<HTMLInputElement | null>(null);
-  const [saJson, setSaJson] = useState<string | null>(null);
-  const [saEmail, setSaEmail] = useState<string>("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [folder, setFolder] = useState("");
   const [search, setSearch] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResults, setTestResults] = useState<TestResult[] | null>(null);
 
   const { data: status } = useQuery({
     queryKey: ["backup_drive_status"],
@@ -691,38 +809,18 @@ function DriveConnectSection() {
     }
   };
 
-  const onSaFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    try {
-      const raw = (await file.text()).replace(/^\uFEFF/, "").trim();
-      const parsed = JSON.parse(raw) as { client_email?: string; private_key?: string; type?: string };
-      if (!parsed?.client_email || !parsed?.private_key) {
-        toast.error(t("driveErrInvalidJson"), {
-          description: parsed?.type === "authorized_user"
-            ? "OAuth client file — use a service-account key instead."
-            : "Missing client_email / private_key.",
-        });
-        return;
-      }
-      setSaJson(raw);
-      setSaEmail(parsed.client_email);
-    } catch (err) {
-      toast.error(t("driveErrInvalidJson"), { description: err instanceof Error ? err.message : undefined });
-    }
-  };
-
-  const connectServiceAccount = async () => {
-    if (!saJson) { toast.error(t("driveErrInvalidJson")); return; }
-    setBusy(true);
-    const { data, code, detail } = await driveCall({
-      drive_connect: true, sa_json: saJson, folder: folder.trim() || undefined,
-    });
-    setBusy(false);
-    if (!data) { showErr(code, detail); return; }
-    toast.success(t("driveConnectedOk"));
-    setSaJson(null); setSaEmail(""); setFolder("");
+  const runTest = async () => {
+    setTesting(true);
+    setTestResults(null);
+    const { data, error } = await supabase.functions.invoke("backup-snapshot", { body: { drive_test: true } });
+    setTesting(false);
+    const resp = data as { ok?: boolean; results?: TestResult[]; error?: string; detail?: string } | null;
+    if (error && !resp?.results) { toast.error(error.message); return; }
+    if (resp?.error) { showErr(resp.error, resp.detail); return; }
+    setTestResults(resp?.results ?? []);
+    if (resp?.ok) toast.success(t("driveTestOk"));
+    else toast.error(t("driveTestFailed"));
+    qc.invalidateQueries({ queryKey: ["backup_error_log"] });
     refresh();
   };
 
@@ -795,8 +893,6 @@ function DriveConnectSection() {
 
   return (
     <section className="brand-card" style={{ padding: 20 }}>
-      <input ref={saInputRef} type="file" accept="application/json,.json" style={{ display: "none" }} onChange={onSaFile} />
-
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
         <Cloud size={18} color={connected ? "#5BD6A6" : "var(--muted)"} />
         <h2 style={{ margin: 0, flex: 1, fontSize: 18 }}>{t("driveConnectTitle")}</h2>
@@ -816,10 +912,6 @@ function DriveConnectSection() {
               title={oauthReady === false ? t("driveOauthSetupNeeded") : undefined}
               style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || oauthReady === false ? 0.5 : 1, cursor: oauthReady === false ? "not-allowed" : "pointer" }}>
               <Cloud size={16} /> {busy ? t("driveConnecting") : t("driveSignIn")}
-            </button>
-            <button onClick={() => setShowAdvanced((v) => !v)} className="brand-btn"
-              style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
-              {t("driveAdvanced")}
             </button>
           </div>
           {oauthReady === false && (
@@ -841,8 +933,7 @@ function DriveConnectSection() {
           fontSize: 13, marginBottom: 14,
         }}>
           <div style={{ wordBreak: "break-all" }}>
-            <b>{status?.auth_mode === "oauth" ? t("driveAccount") : t("driveServiceAccount")}:</b>{" "}
-            {status?.account_email ?? status?.client_email ?? "—"}
+            <b>{t("driveAccount")}:</b> {status?.account_email ?? "—"}
           </div>
           <div><b>{t("driveFilesCount")}:</b> {toLocalDigits(String(status?.files?.length ?? 0), lang)}</div>
           {status?.connected_at && <div><b>{t("driveConnected")}:</b> {formatDate(status.connected_at, lang)}</div>}
@@ -935,24 +1026,15 @@ function DriveConnectSection() {
         </div>
       )}
 
-      {(showAdvanced || (linked && status?.auth_mode === "service_account")) && (
-        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, marginTop: 4 }}>
-          <p style={{ margin: "0 0 10px", color: "var(--muted)", fontSize: 13 }}>{t("driveShareHint")}</p>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <button onClick={() => saInputRef.current?.click()} className="brand-btn"
-              style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)" }}>
-              <Upload size={16} /> {saEmail || t("driveSaPick")}
-            </button>
-            <button onClick={connectServiceAccount} disabled={busy || !saJson} className="brand-btn"
-              style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || !saJson ? 0.6 : 1 }}>
-              <CloudUpload size={16} /> {busy ? t("driveConnecting") : t("driveConnectBtn")}
-            </button>
-          </div>
-        </div>
-      )}
-
       {linked && (
-        <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
+          <button onClick={runTest} disabled={busy || testing || targets.length === 0} className="brand-btn"
+            style={{
+              background: "var(--grad-green)", color: "#fff",
+              opacity: busy || testing || targets.length === 0 ? 0.6 : 1,
+            }}>
+            <CloudUpload size={16} /> {testing ? t("driveTesting") : t("driveTestBackup")}
+          </button>
           <button onClick={disconnect} disabled={busy} className="brand-btn"
             style={{ background: "rgba(240,103,106,.12)", color: "#F0676A", border: "1px solid rgba(240,103,106,.35)" }}>
             <CloudOff size={16} /> {t("driveDisconnect")}
@@ -960,10 +1042,34 @@ function DriveConnectSection() {
         </div>
       )}
 
+      {testResults && (
+        <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+          {testResults.map((r) => (
+            <div key={r.folder_id} style={{
+              display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+              padding: "9px 12px", borderRadius: 10, fontSize: 12.5,
+              border: `1px solid ${r.ok ? "rgba(91,214,166,.35)" : "rgba(240,103,106,.35)"}`,
+              background: r.ok ? "rgba(91,214,166,.10)" : "rgba(240,103,106,.10)",
+              color: r.ok ? "#5BD6A6" : "#F0676A",
+            }}>
+              {r.ok ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+              <b>{r.folder_name ?? r.folder_id}</b>
+              <span>
+                {r.ok
+                  ? `${t("driveTestOk")} · ${toLocalDigits(String(r.verified_bytes ?? 0), lang)} B`
+                  : t((DRIVE_ERR_KEYS[r.error ?? ""] ?? "driveErrGeneric") as Parameters<typeof t>[0])}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <BackupErrorsPanel />
+
       <DriveSetupGuide
         defaultOpen={!linked}
         accountEmail={status?.account_email ?? null}
-        clientEmail={status?.client_email ?? null}
+        clientEmail={null}
       />
     </section>
   );
