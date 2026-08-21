@@ -570,16 +570,19 @@ function RestoreDialog({ source, onClose, onDone }: { source: RestoreSource; onC
   const { t } = useApp();
   const [text, setText] = useState("");
   const [running, setRunning] = useState(false);
+  const progress = useOperationProgress();
   const confirm = async () => {
     if (text !== "RESTORE") return;
     setRunning(true);
+    progress.start(["stageReadingFile", "stageValidating", "stageRestoringTables", "stageRestoringFiles", "stageFinalizing"], 20000);
     const body = source.kind === "cloud"
       ? { restore: true, file: source.name }
       : { restore_inline: true, payload: source.payload };
     const { data, error } = await supabase.functions.invoke("backup-snapshot", { body });
     setRunning(false);
     const resp = data as { ok?: boolean; error?: string; counts?: Record<string, number>; files?: { restored: number; skipped: number; mirrored: boolean } } | null;
-    if (error || resp?.error) { toast.error(resp?.error ?? error?.message ?? "err"); return; }
+    if (error || resp?.error) { progress.fail(resp?.error ?? error?.message ?? "err"); toast.error(resp?.error ?? error?.message ?? "err"); return; }
+    progress.succeed("stageFinalizing");
     const counts = resp?.counts ?? {};
     const tables = Object.keys(counts).filter((k) => (counts[k] ?? 0) > 0).length;
     const rows = Object.values(counts).reduce((a, b) => a + (b || 0), 0);
@@ -602,12 +605,13 @@ function RestoreDialog({ source, onClose, onDone }: { source: RestoreSource; onC
         </div>
         <p style={{ color: "var(--foreground)", fontSize: 14 }}>{t("restoreWarn")}</p>
         <p style={{ color: "var(--muted)", fontSize: 12, wordBreak: "break-all" }}>{source.name}</p>
+        <BackupProgress state={progress.state} />
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="RESTORE"
           style={{ width: "100%", minHeight: 48, padding: "10px 12px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--foreground)", fontSize: 14, marginTop: 8 }} />
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
           <button onClick={confirm} disabled={text !== "RESTORE" || running} className="brand-btn"
             style={{ background: "linear-gradient(135deg,#D9484B,#F0676A)", color: "#fff", flex: 1, opacity: text !== "RESTORE" || running ? 0.5 : 1 }}>
-            {t("restore")}
+            {running && <Spinner size={16} color="#fff" />} {running ? t(progress.state.stageKey as never) : t("restore")}
           </button>
           <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
         </div>
