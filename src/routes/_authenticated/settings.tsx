@@ -689,38 +689,18 @@ function DriveConnectSection() {
     }
   };
 
-  const onSaFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    try {
-      const raw = (await file.text()).replace(/^\uFEFF/, "").trim();
-      const parsed = JSON.parse(raw) as { client_email?: string; private_key?: string; type?: string };
-      if (!parsed?.client_email || !parsed?.private_key) {
-        toast.error(t("driveErrInvalidJson"), {
-          description: parsed?.type === "authorized_user"
-            ? "OAuth client file — use a service-account key instead."
-            : "Missing client_email / private_key.",
-        });
-        return;
-      }
-      setSaJson(raw);
-      setSaEmail(parsed.client_email);
-    } catch (err) {
-      toast.error(t("driveErrInvalidJson"), { description: err instanceof Error ? err.message : undefined });
-    }
-  };
-
-  const connectServiceAccount = async () => {
-    if (!saJson) { toast.error(t("driveErrInvalidJson")); return; }
-    setBusy(true);
-    const { data, code, detail } = await driveCall({
-      drive_connect: true, sa_json: saJson, folder: folder.trim() || undefined,
-    });
-    setBusy(false);
-    if (!data) { showErr(code, detail); return; }
-    toast.success(t("driveConnectedOk"));
-    setSaJson(null); setSaEmail(""); setFolder("");
+  const runTest = async () => {
+    setTesting(true);
+    setTestResults(null);
+    const { data, error } = await supabase.functions.invoke("backup-snapshot", { body: { drive_test: true } });
+    setTesting(false);
+    const resp = data as { ok?: boolean; results?: TestResult[]; error?: string; detail?: string } | null;
+    if (error && !resp?.results) { toast.error(error.message); return; }
+    if (resp?.error) { showErr(resp.error, resp.detail); return; }
+    setTestResults(resp?.results ?? []);
+    if (resp?.ok) toast.success(t("driveTestOk"));
+    else toast.error(t("driveTestFailed"));
+    qc.invalidateQueries({ queryKey: ["backup_error_log"] });
     refresh();
   };
 
