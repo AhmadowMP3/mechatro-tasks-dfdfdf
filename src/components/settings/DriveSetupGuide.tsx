@@ -79,36 +79,7 @@ const OAUTH_STEPS: Array<{ title: Bi; body: Bi; copy?: { label: Bi; value: strin
   },
 ];
 
-const SA_STEPS: Array<{ title: Bi; body: Bi }> = [
-  {
-    title: { ar: "أنشئ حساب خدمة", en: "Create a service account" },
-    body: {
-      ar: "Google Cloud ← IAM & Admin ← Service Accounts ← Create service account ← سمّه mechatro-backup ← Done (لا حاجة لأي أدوار).",
-      en: "Google Cloud → IAM & Admin → Service Accounts → Create service account → name it mechatro-backup → Done (no roles needed).",
-    },
-  },
-  {
-    title: { ar: "ولّد مفتاح JSON", en: "Generate a JSON key" },
-    body: {
-      ar: "افتح حساب الخدمة ← تبويب Keys ← Add key ← Create new key ← اختر JSON ← Create. سيُنزّل ملف يحتوي client_email و private_key.",
-      en: "Open the service account → Keys tab → Add key → Create new key → JSON → Create. A file containing client_email and private_key downloads.",
-    },
-  },
-  {
-    title: { ar: "شارك المجلد مع بريد حساب الخدمة", en: "Share the folder with the service account" },
-    body: {
-      ar: "من Google Drive: انقر يمين على المجلد ← Share ← الصق بريد حساب الخدمة (…iam.gserviceaccount.com) ← اختر Editor ← Send. مساحة حساب الخدمة صفر، لذلك يجب أن يكون المجلد ملكاً لحسابك أو داخل Shared Drive.",
-      en: "In Google Drive: right-click the folder → Share → paste the service-account email (…iam.gserviceaccount.com) → Editor → Send. A service account has zero storage quota, so the folder must be owned by your account or live in a Shared Drive.",
-    },
-  },
-  {
-    title: { ar: "ارفع الملف من «خيارات متقدّمة»", en: "Upload the file under «Advanced»" },
-    body: {
-      ar: "في أعلى هذه البطاقة اضغط «خيارات متقدّمة (حساب خدمة)» ← اختر ملف JSON ← الصق رابط المجلد ← «ربط واختبار».",
-      en: "At the top of this card open «Advanced (service account)» → choose the JSON file → paste the folder link → «Connect & test».",
-    },
-  },
-];
+const SA_STEPS: Array<{ title: Bi; body: Bi }> = [];
 
 const TROUBLESHOOT: Array<{ symptom: Bi; cause: Bi; fix: Bi }> = [
   {
