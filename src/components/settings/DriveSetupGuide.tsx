@@ -230,32 +230,23 @@ export function DriveSetupGuide({
         <div style={{ padding: "0 20px 20px" }}>
           <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--muted)", lineHeight: 1.8 }}>
             {ar
-              ? "أمامك مساران للربط. المسار الأول (تسجيل الدخول بحساب Google) هو الموصى به لمعظم الحالات. المسار الثاني (حساب خدمة) مناسب إذا أردت ربطاً لا يعتمد على تسجيل دخول بشري أو تستخدم Shared Drive."
-              : "There are two paths. Path 1 (sign in with Google) is recommended for most setups. Path 2 (service account) suits unattended servers or Shared Drives."}
+              ? "الربط يتم بتسجيل الدخول بحساب Google الذي ستُحفظ النسخ في مساحته. اتبع الخطوات مرة واحدة فقط، ثم تعمل المزامنة تلقائياً."
+              : "Linking works by signing in with the Google account whose storage will hold the backups. Follow these steps once; syncing then runs automatically."}
           </p>
 
-          <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
-            {[
-              {
-                icon: <MousePointerClick size={15} color="#5BD6A6" />,
-                title: ar ? "المسار 1 — الربط بضغطة (OAuth)" : "Path 1 — one-click (OAuth)",
-                desc: ar ? "أسهل وأسرع · يستخدم مساحة حسابك · 9 خطوات لمرة واحدة" : "Easiest · uses your own storage · 9 one-time steps",
-              },
-              {
-                icon: <KeyRound size={15} color="#E7B03A" />,
-                title: ar ? "المسار 2 — حساب خدمة" : "Path 2 — service account",
-                desc: ar ? "بدون تسجيل دخول بشري · يتطلب مشاركة المجلد يدوياً" : "No human sign-in · requires sharing the folder manually",
-              },
-            ].map((c) => (
-              <div key={c.title} style={{ padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-2)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700 }}>{c.icon}{c.title}</div>
-                <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted)" }}>{c.desc}</div>
-              </div>
-            ))}
+          <div style={{ padding: 12, borderRadius: 10, border: "1px solid rgba(231,176,58,.35)", background: "rgba(231,176,58,.10)", fontSize: 12.5, color: "#E7B03A", lineHeight: 1.8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}>
+              <MousePointerClick size={15} /> {ar ? "الأهم: أضف بريدك كـ Test user" : "Most important: add your email as a Test user"}
+            </div>
+            <div style={{ marginTop: 6 }}>
+              {ar
+                ? "طالما مشروع Google في وضع Testing، لن يسمح لك بالدخول إلا إذا كان بريدك مضافاً في OAuth consent screen ← Audience/Test users. بدون ذلك يظهر خطأ Access blocked / access_denied 403."
+                : "While the Google project is in Testing mode, sign-in only works for emails listed under OAuth consent screen → Audience/Test users. Otherwise you get Access blocked / access_denied 403."}
+            </div>
           </div>
 
           <SectionTitle icon={<MousePointerClick size={16} color="#5BD6A6" />}>
-            {ar ? "المسار 1: الربط بحساب Google خطوة بخطوة" : "Path 1: connect with Google, step by step"}
+            {ar ? "الربط بحساب Google خطوة بخطوة" : "Connect with Google, step by step"}
           </SectionTitle>
           <div style={{ display: "grid", gap: 8 }}>
             {OAUTH_STEPS.map((s, i) => (
@@ -267,26 +258,13 @@ export function DriveSetupGuide({
                     <CopyBox label={ar ? "النطاقات المصرّح بها (JavaScript origins)" : "Authorized JavaScript origins"} value={originsValue} lang={lang} />
                   </>
                 )}
-              </StepCard>
-            ))}
-          </div>
-
-          <SectionTitle icon={<KeyRound size={16} color="#E7B03A" />}>
-            {ar ? "المسار 2: حساب خدمة (Service Account)" : "Path 2: service account"}
-          </SectionTitle>
-          <div style={{ display: "grid", gap: 8 }}>
-            {SA_STEPS.map((s, i) => (
-              <StepCard key={i} index={i + 1} title={L(s.title)} body={L(s.body)}>
-                {i === 2 && (clientEmail || accountEmail) && (
-                  <CopyBox
-                    label={ar ? "بريد حساب الخدمة الحالي" : "Current service-account email"}
-                    value={(clientEmail ?? accountEmail) as string}
-                    lang={lang}
-                  />
+                {accountEmail && i === OAUTH_STEPS.length - 2 && (
+                  <CopyBox label={ar ? "الحساب المرتبط حالياً" : "Currently linked account"} value={accountEmail} lang={lang} />
                 )}
               </StepCard>
             ))}
           </div>
+
 
           <SectionTitle icon={<RefreshCw size={16} color="#5BD6A6" />}>
             {ar ? "كيف تعمل المزامنة بعد الربط" : "How syncing works once connected"}
