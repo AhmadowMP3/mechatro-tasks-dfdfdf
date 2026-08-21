@@ -191,10 +191,16 @@ function BackupsSection() {
 
   const syncToDrive = async (b: Backup) => {
     setActingId(b.name);
+    progress.start(["stagePreparing", "stageConnecting", "stageUploading", "stageFinalizing"], 10000);
     const { data, error } = await supabase.functions.invoke("backup-snapshot", { body: { sync_to_drive: true, file: b.name } });
     setActingId(null);
     const resp = data as { ok?: boolean; error?: string } | null;
-    if (error || resp?.error) { toast.error(resp?.error ?? error?.message ?? "err"); return; }
+    if (error || resp?.error) {
+      progress.fail(resp?.error ?? error?.message ?? "err");
+      toast.error(resp?.error ?? error?.message ?? "err");
+      return;
+    }
+    progress.succeed("stageDriveSync");
     toast.success(t("driveSyncDone"));
     refetchDrive();
   };
@@ -203,18 +209,23 @@ function BackupsSection() {
 
   const runBackup = async () => {
     setRunning(true);
+    progress.start(["stagePreparing", "stageReadingDb", "stageCollectingFiles", "stageUploading", "stageDriveSync", "stageFinalizing"], 25000);
     const { error } = await supabase.functions.invoke("backup-snapshot", { body: { manual: true } });
     setRunning(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { progress.fail(error.message); toast.error(error.message); return; }
+    progress.succeed("stageFinalizing");
     toast.success(t("saved"));
     refetch();
+    refetchDrive();
   };
 
   const approveRequest = async (r: BackupRequest) => {
     setActingId(r.id);
+    progress.start(["stagePreparing", "stageReadingDb", "stageCollectingFiles", "stageUploading", "stageDriveSync", "stageFinalizing"], 25000);
     const { error } = await supabase.functions.invoke("backup-snapshot", { body: { approve_request_id: r.id } });
     setActingId(null);
-    if (error) { toast.error(error.message); return; }
+    if (error) { progress.fail(error.message); toast.error(error.message); return; }
+    progress.succeed("stageFinalizing");
     toast.success(t("backupApproved"));
     refetch(); refetchPending();
   };
@@ -229,8 +240,11 @@ function BackupsSection() {
   };
 
   const download = async (b: Backup) => {
+    setActingId(b.name);
+    progress.start(["stageDownloading", "stageFinalizing"], 6000);
     const { data, error } = await supabase.storage.from("backups").download(b.name);
-    if (error || !data) { toast.error(error?.message ?? "err"); return; }
+    setActingId(null);
+    if (error || !data) { progress.fail(error?.message ?? "err"); toast.error(error?.message ?? "err"); return; }
     const url = URL.createObjectURL(data);
     const a = document.createElement("a");
     a.href = url;
@@ -239,22 +253,27 @@ function BackupsSection() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    progress.succeed("stageDownloading");
   };
 
   const deleteBackup = async (b: Backup) => {
     if (!(await confirm({ message: t("confirmDeleteBackup"), danger: true, confirmText: t("delete") }))) return;
     setActingId(b.name);
+    progress.start(["stageDeleting"], 5000);
     const { data: resp, error } = await supabase.functions.invoke("backup-snapshot", { body: { delete: true, file: b.name } });
     setActingId(null);
     if (error || (resp && (resp as { error?: string }).error)) {
       const code = (resp as { error?: string } | null)?.error;
-      if (code === "cannot_delete_latest") { toast.error(t("cannotDeleteLatest")); return; }
+      if (code === "cannot_delete_latest") { progress.fail(t("cannotDeleteLatest")); toast.error(t("cannotDeleteLatest")); return; }
+      progress.fail(error?.message ?? code ?? "err");
       toast.error(error?.message ?? code ?? "err");
       return;
     }
+    progress.succeed("stageDeleting");
     toast.success(t("backupDeleted"));
     refetch();
   };
+
 
   const latestBackupName = data?.[0]?.name;
 
