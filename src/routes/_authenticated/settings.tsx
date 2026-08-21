@@ -88,7 +88,14 @@ function SeedTestUsersSection() {
 
 type Backup = { name: string; size: number; created_at: string; };
 
-type DriveRow = { file: string; drive_link: string | null; synced_at: string | null; error: string | null };
+function formatBytes(bytes: number | null | undefined, lang: string): string {
+  if (bytes == null || !Number.isFinite(bytes) || bytes <= 0) return "—";
+  if (bytes < 1024) return `${toLocalDigits(String(Math.round(bytes)), lang)} B`;
+  if (bytes < 1024 * 1024) return `${toLocalDigits((bytes / 1024).toFixed(1), lang)} KB`;
+  return `${toLocalDigits((bytes / (1024 * 1024)).toFixed(2), lang)} MB`;
+}
+
+type DriveRow = { file: string; drive_link: string | null; synced_at: string | null; error: string | null; size_bytes?: number | null };
 
 
 type BackupRequest = {
