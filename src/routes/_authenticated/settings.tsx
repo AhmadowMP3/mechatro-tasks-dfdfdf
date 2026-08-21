@@ -191,10 +191,10 @@ function BackupsSection() {
   const driveByFile = new Map((driveRows ?? []).map((r) => [r.file, r]));
 
   const syncToDrive = async (b: Backup) => {
-    setActingId(b.name);
+    setActingId(b.name); setActingOp("drive");
     progress.start(["stagePreparing", "stageConnecting", "stageUploading", "stageFinalizing"], 10000);
     const { data, error } = await supabase.functions.invoke("backup-snapshot", { body: { sync_to_drive: true, file: b.name } });
-    setActingId(null);
+    setActingId(null); setActingOp(null);
     const resp = data as { ok?: boolean; error?: string } | null;
     if (error || resp?.error) {
       progress.fail(resp?.error ?? error?.message ?? "err");
@@ -224,7 +224,7 @@ function BackupsSection() {
     setActingId(r.id);
     progress.start(["stagePreparing", "stageReadingDb", "stageCollectingFiles", "stageUploading", "stageDriveSync", "stageFinalizing"], 25000);
     const { error } = await supabase.functions.invoke("backup-snapshot", { body: { approve_request_id: r.id } });
-    setActingId(null);
+    setActingId(null); setActingOp(null);
     if (error) { progress.fail(error.message); toast.error(error.message); return; }
     progress.succeed("stageFinalizing");
     toast.success(t("backupApproved"));
@@ -234,17 +234,17 @@ function BackupsSection() {
   const rejectRequest = async (r: BackupRequest) => {
     setActingId(r.id);
     const { error } = await supabase.functions.invoke("backup-snapshot", { body: { reject_request_id: r.id } });
-    setActingId(null);
+    setActingId(null); setActingOp(null);
     if (error) { toast.error(error.message); return; }
     toast.success(t("backupRejected"));
     refetchPending();
   };
 
   const download = async (b: Backup) => {
-    setActingId(b.name);
+    setActingId(b.name); setActingOp("download");
     progress.start(["stageDownloading", "stageFinalizing"], 6000);
     const { data, error } = await supabase.storage.from("backups").download(b.name);
-    setActingId(null);
+    setActingId(null); setActingOp(null);
     if (error || !data) { progress.fail(error?.message ?? "err"); toast.error(error?.message ?? "err"); return; }
     const url = URL.createObjectURL(data);
     const a = document.createElement("a");
@@ -259,10 +259,10 @@ function BackupsSection() {
 
   const deleteBackup = async (b: Backup) => {
     if (!(await confirm({ message: t("confirmDeleteBackup"), danger: true, confirmText: t("delete") }))) return;
-    setActingId(b.name);
+    setActingId(b.name); setActingOp("delete");
     progress.start(["stageDeleting"], 5000);
     const { data: resp, error } = await supabase.functions.invoke("backup-snapshot", { body: { delete: true, file: b.name } });
-    setActingId(null);
+    setActingId(null); setActingOp(null);
     if (error || (resp && (resp as { error?: string }).error)) {
       const code = (resp as { error?: string } | null)?.error;
       if (code === "cannot_delete_latest") { progress.fail(t("cannotDeleteLatest")); toast.error(t("cannotDeleteLatest")); return; }
@@ -532,9 +532,9 @@ function BackupsSection() {
                         <span style={{ fontSize: 11, color: "var(--muted)" }}>{toLocalDigits(Math.round(b.size / 1024), lang)} KB · <DriveBadge row={driveByFile.get(b.name)} /></span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        <IconBtn onClick={() => download(b)} title={t("download")} icon={<Download size={14} />} color="var(--foreground)" bg="var(--surface-3)" loading={actingId === b.name} disabled={!!actingId && actingId !== b.name} />
+                        <IconBtn onClick={() => download(b)} title={t("download")} icon={<Download size={14} />} color="var(--foreground)" bg="var(--surface-3)" loading={actingId === b.name && actingOp === "download"} disabled={!!actingId && actingId !== b.name} />
                         {driveStatus?.configured && (
-                          <IconBtn onClick={() => syncToDrive(b)} title={t("driveSyncNow")} icon={<CloudUpload size={14} />} color="#42C2EE" bg="rgba(66,194,238,.15)" loading={actingId === b.name} disabled={!!actingId && actingId !== b.name} />
+                          <IconBtn onClick={() => syncToDrive(b)} title={t("driveSyncNow")} icon={<CloudUpload size={14} />} color="#42C2EE" bg="rgba(66,194,238,.15)" loading={actingId === b.name && actingOp === "drive"} disabled={!!actingId && actingId !== b.name} />
                         )}
                         <IconBtn onClick={() => setRestoreTarget(b)} title={t("restore")} icon={<RotateCcw size={14} />} color="#FF9255" bg="rgba(232,115,46,.15)" disabled={!!actingId} />
                         <IconBtn
@@ -543,7 +543,7 @@ function BackupsSection() {
                           icon={<Trash2 size={14} />}
                           color="#F0676A"
                           bg="rgba(217,72,75,.15)"
-                          loading={actingId === b.name}
+                          loading={actingId === b.name && actingOp === "delete"}
                           disabled={!!actingId || b.name === latestBackupName}
 
                         />
