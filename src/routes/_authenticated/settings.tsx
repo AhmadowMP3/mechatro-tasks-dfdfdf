@@ -640,14 +640,6 @@ type DriveStatus = {
   files?: Array<{ id: string; name: string }>;
 };
 
-type TestResult = {
-  folder_id: string;
-  folder_name: string | null;
-  ok: boolean;
-  link?: string;
-  verified_bytes?: number;
-  error?: string;
-};
 
 type BackupErrorRow = {
   id: string;
