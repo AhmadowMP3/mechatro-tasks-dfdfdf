@@ -594,6 +594,89 @@ type DriveStatus = {
   files?: Array<{ id: string; name: string }>;
 };
 
+type TestResult = {
+  folder_id: string;
+  folder_name: string | null;
+  ok: boolean;
+  link?: string;
+  verified_bytes?: number;
+  error?: string;
+};
+
+type BackupErrorRow = {
+  id: string;
+  kind: string;
+  message: string;
+  file: string | null;
+  folder_id: string | null;
+  created_at: string;
+};
+
+function BackupErrorsPanel() {
+  const { t, lang } = useApp();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+
+  const { data: rows } = useQuery({
+    queryKey: ["backup_error_log"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as unknown as (tbl: string) => any)("backup_error_log")
+        .select("id, kind, message, file, folder_id, created_at")
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return (data ?? []) as BackupErrorRow[];
+    },
+  });
+
+  const list = rows ?? [];
+
+  const clearAll = async () => {
+    const { error } = await supabase.functions.invoke("backup-snapshot", { body: { errors_clear: true } });
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["backup_error_log"] });
+  };
+
+  return (
+    <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <button onClick={() => setOpen((v) => !v)} className="brand-btn"
+          style={{ background: "var(--surface-2)", color: "var(--fg)", border: "1px solid var(--border)", fontSize: 13 }}>
+          <AlertTriangle size={15} color={list.length ? "#F0676A" : "var(--muted)"} />
+          {t("backupErrors")} ({toLocalDigits(String(list.length), lang)})
+        </button>
+        {open && list.length > 0 && (
+          <button onClick={clearAll} className="brand-btn"
+            style={{ background: "rgba(240,103,106,.12)", color: "#F0676A", border: "1px solid rgba(240,103,106,.35)", fontSize: 12 }}>
+            <Trash2 size={14} /> {t("clearLog")}
+          </button>
+        )}
+      </div>
+      {open && (
+        <div style={{ marginTop: 10, display: "grid", gap: 8, maxHeight: 300, overflowY: "auto" }}>
+          {list.length === 0 && (
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>{t("noBackupErrors")}</div>
+          )}
+          {list.map((r) => (
+            <div key={r.id} style={{
+              padding: "9px 12px", borderRadius: 10, fontSize: 12,
+              border: "1px solid rgba(240,103,106,.3)", background: "rgba(240,103,106,.07)",
+            }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", color: "var(--muted)", marginBottom: 4 }}>
+                <b style={{ color: "#F0676A", textTransform: "uppercase" }}>{r.kind}</b>
+                <span>{formatDate(r.created_at, lang)}</span>
+                {r.file && <span>· {r.file}</span>}
+              </div>
+              <div style={{ wordBreak: "break-word", color: "var(--fg)" }}>{r.message}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 const DRIVE_ERR_KEYS: Record<string, string> = {
   invalid_sa_json: "driveErrInvalidJson",
   bad_folder_id: "driveErrBadFolder",
