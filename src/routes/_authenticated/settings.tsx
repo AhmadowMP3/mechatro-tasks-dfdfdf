@@ -885,17 +885,36 @@ function DriveConnectSection() {
   const statusLabel = connected ? t("driveConnected") : linked ? t("driveLinkedNoFolder") : t("driveNotConfigured");
 
   return (
-    <section className="brand-card" style={{ padding: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+    <section className="brand-card" style={{ padding: 0, overflow: "hidden" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", padding: "16px 20px", display: "flex", alignItems: "center", gap: 10,
+          background: "transparent", border: "none", color: "var(--fg)", cursor: "pointer",
+          textAlign: lang === "ar" ? "right" : "left", fontSize: 14,
+        }}
+      >
         <Cloud size={18} color={connected ? "#5BD6A6" : "var(--muted)"} />
-        <h2 style={{ margin: 0, flex: 1, fontSize: 18 }}>{t("driveConnectTitle")}</h2>
+        <span style={{ flex: 1, fontWeight: 700, fontSize: 16 }}>{t("driveConnectTitle")}</span>
+        {linked && status?.account_email && (
+          <span style={{ color: "var(--muted)", fontSize: 12, whiteSpace: "nowrap" }}>
+            {status.account_email}
+          </span>
+        )}
         <span style={{
           fontSize: 12, padding: "4px 10px", borderRadius: 999, color: statusColor,
-          background: `${statusColor}1f`, border: `1px solid ${statusColor}59`,
+          background: `${statusColor}1f`, border: `1px solid ${statusColor}59`, whiteSpace: "nowrap",
         }}>
           {statusLabel}
         </span>
-      </div>
+        <span style={{ color: "var(--muted)", display: "inline-flex" }}>
+          {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ padding: "0 20px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+
 
       {!linked && (
         <>
