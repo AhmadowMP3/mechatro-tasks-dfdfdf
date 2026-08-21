@@ -742,6 +742,9 @@ function DriveConnectSection() {
   const [search, setSearch] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[] | null>(null);
 
