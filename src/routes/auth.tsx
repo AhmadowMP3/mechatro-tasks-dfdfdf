@@ -267,6 +267,105 @@ function AuthPage() {
           )}
         </form>
       </div>
+
+      {showForgot && <ForgotPasswordModal lang={lang} onClose={() => setShowForgot(false)} />}
+    </div>
+  );
+}
+
+function ForgotPasswordModal({ lang, onClose }: { lang: "ar" | "en"; onClose: () => void }) {
+  const l = lang === "ar";
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function send() {
+    const value = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
+      toast.error(l ? "أدخل إيميل استرجاع صالح." : "Enter a valid recovery email.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await supabase.auth.resetPasswordForEmail(value, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      setSent(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,.55)",
+        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        dir={l ? "rtl" : "ltr"}
+        style={{
+          width: "100%", maxWidth: 400, background: "var(--sidebar)",
+          border: "1px solid var(--border)", borderRadius: 16, padding: 20,
+          color: "var(--foreground)", boxShadow: "0 24px 60px rgba(0,0,0,.5)",
+        }}
+      >
+        <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
+          {l ? "نسيت كلمة المرور" : "Forgot password"}
+        </div>
+        {sent ? (
+          <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.8 }}>
+            {l
+              ? "إذا كان هذا الإيميل مسجّلاً كإيميل استرجاع لأحد الحسابات، فقد أُرسل إليه رابط إعادة التعيين. تحقّق من بريدك (وصندوق الرسائل غير المرغوبة)."
+              : "If this address is registered as a recovery email, a reset link has been sent to it. Check your inbox (and spam)."}
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.8, marginBottom: 12 }}>
+              {l
+                ? "أدخل إيميل الاسترجاع الذي حفظته في إعدادات حسابك، وسنرسل لك رابط إعادة تعيين كلمة المرور."
+                : "Enter the recovery email saved in your account settings and we'll send you a reset link."}
+            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              dir="ltr"
+              autoFocus
+              placeholder="name@example.com"
+              style={{
+                width: "100%", padding: "12px 14px", borderRadius: 10,
+                background: "var(--surface-3)", color: "var(--foreground)",
+                border: "1px solid var(--border)", fontSize: 14, minHeight: 44, outline: "none",
+              }}
+            />
+          </>
+        )}
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          {!sent && (
+            <button
+              onClick={send}
+              disabled={busy}
+              style={{
+                flex: 1, minHeight: 44, borderRadius: 10, border: "none",
+                background: "linear-gradient(135deg,#1D9BF0,#0F6BB8)", color: "#fff",
+                fontWeight: 800, cursor: busy ? "wait" : "pointer", opacity: busy ? 0.6 : 1,
+              }}
+            >{busy ? "…" : (l ? "إرسال الرابط" : "Send link")}</button>
+          )}
+          <button
+            onClick={onClose}
+            style={{
+              minHeight: 44, padding: "0 16px", borderRadius: 10, background: "transparent",
+              color: "var(--foreground)", border: "1px solid var(--border)", fontWeight: 700, cursor: "pointer",
+              flex: sent ? 1 : undefined,
+            }}
+          >{sent ? (l ? "تم" : "Done") : (l ? "إلغاء" : "Cancel")}</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -279,3 +378,4 @@ function Field({ label, color, children }: { label: string; color: string; child
     </label>
   );
 }
+
