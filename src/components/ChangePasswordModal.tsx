@@ -154,62 +154,97 @@ export function ChangePasswordModal({ lang, onClose }: { lang: "ar" | "en"; onCl
           <div style={{ fontSize: 16, fontWeight: 800 }}>{l ? "تغيير كلمة المرور" : "Change password"}</div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <PasswordField label={l ? "كلمة المرور الحالية" : "Current password"} value={current} onChange={setCurrent} autoFocus />
-          <PasswordField label={l ? "كلمة المرور الجديدة" : "New password"} value={next} onChange={setNext} />
-          <PasswordField label={l ? "تأكيد كلمة المرور الجديدة" : "Confirm new password"} value={confirmPw} onChange={setConfirmPw} />
+        {mode === "change" ? (
+          <>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <PasswordField label={l ? "كلمة المرور الحالية" : "Current password"} value={current} onChange={setCurrent} autoFocus />
+              <PasswordField label={l ? "كلمة المرور الجديدة" : "New password"} value={next} onChange={setNext} />
+              <PasswordField label={l ? "تأكيد كلمة المرور الجديدة" : "Confirm new password"} value={confirmPw} onChange={setConfirmPw} />
+            </div>
 
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700 }}>
-              {l ? "إيميل الاسترجاع (اختياري)" : "Recovery email (optional)"}
-            </span>
-            <input
-              type="email"
-              value={recovery}
-              onChange={(e) => setRecovery(e.target.value)}
-              dir="ltr"
-              placeholder="name@example.com"
-              autoComplete="email"
-              maxLength={200}
-              style={{ ...inputStyle, padding: "12px 14px" }}
-            />
-          </label>
-        </div>
+            <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 10 }}>
+              {l ? "8 أحرف على الأقل." : "At least 8 characters."}
+            </div>
 
-        <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 10, lineHeight: 1.7 }}>
-          {l ? "8 أحرف على الأقل." : "At least 8 characters."}
-          <br />
-          {recovery.trim()
-            ? (l
-              ? "يُستخدم إيميل الاسترجاع فقط لإرسال رابط إعادة تعيين كلمة المرور عند نسيانها."
-              : "The recovery email is only used to send a reset link if you forget your password.")
-            : (l
-              ? "⚠️ بدون إيميل استرجاع لن تتمكّن من استعادة حسابك إذا نسيت كلمة المرور."
-              : "⚠️ Without a recovery email you won't be able to recover your account if you forget your password.")}
-        </div>
+            <button
+              type="button"
+              onClick={() => setMode("recover")}
+              style={{
+                marginTop: 10, background: "transparent", border: "none", padding: 0,
+                color: "#1D9BF0", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+              }}
+            >{l ? "نسيت كلمة المرور الحالية؟" : "Forgot your current password?"}</button>
 
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button
+                onClick={save}
+                disabled={busy}
+                style={{
+                  flex: 1, minHeight: 44, borderRadius: 10,
+                  background: "linear-gradient(135deg,#1D9BF0,#0F6BB8)",
+                  color: "#fff", border: "none", fontWeight: 800, cursor: busy ? "wait" : "pointer",
+                  opacity: busy ? 0.6 : 1,
+                }}
+              >{busy ? "…" : (l ? "حفظ" : "Save")}</button>
+              <button
+                onClick={onClose}
+                disabled={busy}
+                style={{
+                  minHeight: 44, padding: "0 16px", borderRadius: 10,
+                  background: "transparent", color: "var(--foreground)",
+                  border: "1px solid var(--border)", fontWeight: 700, cursor: "pointer",
+                }}
+              >{l ? "إلغاء" : "Cancel"}</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.8, marginBottom: 12 }}>
+              {l
+                ? "أدخل إيميل الاسترجاع الخاص بك. رح نحفظه على حسابك ونبعتلك عليه رابط إعادة تعيين كلمة المرور."
+                : "Enter your recovery email. We'll save it to your account and send you a password reset link."}
+            </div>
 
-        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-          <button
-            onClick={save}
-            disabled={busy}
-            style={{
-              flex: 1, minHeight: 44, borderRadius: 10,
-              background: "linear-gradient(135deg,#1D9BF0,#0F6BB8)",
-              color: "#fff", border: "none", fontWeight: 800, cursor: busy ? "wait" : "pointer",
-              opacity: busy ? 0.6 : 1,
-            }}
-          >{busy ? "…" : (l ? "حفظ" : "Save")}</button>
-          <button
-            onClick={onClose}
-            disabled={busy}
-            style={{
-              minHeight: 44, padding: "0 16px", borderRadius: 10,
-              background: "transparent", color: "var(--foreground)",
-              border: "1px solid var(--border)", fontWeight: 700, cursor: "pointer",
-            }}
-          >{l ? "إلغاء" : "Cancel"}</button>
-        </div>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700 }}>
+                {l ? "إيميل الاسترجاع" : "Recovery email"}
+              </span>
+              <input
+                type="email"
+                value={recovery}
+                onChange={(e) => setRecovery(e.target.value)}
+                dir="ltr"
+                placeholder="name@example.com"
+                autoComplete="email"
+                maxLength={200}
+                style={{ ...inputStyle, padding: "12px 14px" }}
+              />
+            </label>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button
+                onClick={sendRecovery}
+                disabled={busy}
+                style={{
+                  flex: 1, minHeight: 44, borderRadius: 10,
+                  background: "linear-gradient(135deg,#1D9BF0,#0F6BB8)",
+                  color: "#fff", border: "none", fontWeight: 800, cursor: busy ? "wait" : "pointer",
+                  opacity: busy ? 0.6 : 1,
+                }}
+              >{busy ? "…" : (l ? "إرسال رابط الاسترجاع" : "Send reset link")}</button>
+              <button
+                onClick={() => setMode("change")}
+                disabled={busy}
+                style={{
+                  minHeight: 44, padding: "0 16px", borderRadius: 10,
+                  background: "transparent", color: "var(--foreground)",
+                  border: "1px solid var(--border)", fontWeight: 700, cursor: "pointer",
+                }}
+              >{l ? "رجوع" : "Back"}</button>
+            </div>
+          </>
+        )}
+
       </div>
     </div>,
     document.body,
