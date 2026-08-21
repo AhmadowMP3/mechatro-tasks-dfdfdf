@@ -30,7 +30,21 @@ cd "$(dirname "$0")/.."
 log "Syncing supabase/functions -> $SSH_TARGET:$REMOTE_TMP/"
 rsync -avz --delete --exclude 'main' supabase/functions/ "$SSH_TARGET:$REMOTE_TMP/"
 
-# 2) Copy them into the functions container and restart it.
+# 2) Write function-local .env files for secrets that were provided locally.
+# This lets self-hosted edge functions read project secrets without recreating
+# the container. The .env file lives only on the server, never in git.
+for key in "${ENV_KEYS[@]}"; do
+  value="${!key:-}"
+  if [ -z "$value" ]; then
+    log "Note: $key is not set locally; skipping .env injection."
+    continue
+  fi
+  log "Injecting $key into backup-snapshot .env"
+  # Write into the remote tmp copy so it is copied into the container next.
+  ssh "$SSH_TARGET" "mkdir -p $REMOTE_TMP/backup-snapshot && printf '%s=%s\n' '$key' '$(printf '%s' "$value" | sed "s/'/'\\''/g")' > $REMOTE_TMP/backup-snapshot/.env"
+done
+
+# 3) Copy them into the functions container and restart it.
 log "Installing functions inside the container..."
 ssh "$SSH_TARGET" FUNCTIONS_CONTAINER="$FUNCTIONS_CONTAINER" REMOTE_TMP="$REMOTE_TMP" \
   REMOTE_FUNCTIONS_DIR="$REMOTE_FUNCTIONS_DIR" 'bash -s' <<'REMOTE'
@@ -57,19 +71,6 @@ echo "[remote] restarting $container"
 docker restart "$container" >/dev/null
 echo "[remote] done"
 REMOTE
-
-# 3) Write function-local .env files for secrets that were provided locally.
-# This lets self-hosted edge functions read project secrets without recreating
-# the container. The .env file lives only on the server, never in git.
-for key in "${ENV_KEYS[@]}"; do
-  value="${!key:-}"
-  if [ -z "$value" ]; then
-    log "Note: $key is not set locally; skipping .env injection."
-    continue
-  fi
-  log "Injecting $key into backup-snapshot .env"
-  ssh "$SSH_TARGET" "mkdir -p $REMOTE_TMP/backup-snapshot && echo '$key=$(printf '%q' "$value")' >> $REMOTE_TMP/backup-snapshot/.env"
-done
 
 log "All functions deployed. Verify with:"
 log "  curl -i -X OPTIONS https://supamecha.hub4tech.net/functions/v1/admin-users"
