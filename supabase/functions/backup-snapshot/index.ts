@@ -249,24 +249,6 @@ async function driveFolderInfo(id: string): Promise<{ id: string; name: string }
 }
 
 
-function b64url(input: Uint8Array | string): string {
-  const raw = typeof input === "string"
-    ? input
-    : Array.from(input).map((b) => String.fromCharCode(b)).join("");
-  return btoa(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function pemToPkcs8(pem: string): ArrayBuffer {
-  const body = pem
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\s+/g, "");
-  const bin = atob(body);
-  const buf = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-  return buf.buffer;
-}
-
 let driveToken: { token: string; exp: number; owner: string } | null = null;
 
 async function oauthAccessToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
@@ -294,49 +276,22 @@ async function driveAccessToken(): Promise<string> {
   if (driveToken && driveToken.owner === owner && driveToken.exp > Date.now() + 60_000) {
     return driveToken.token;
   }
-
-  if (DRIVE_CFG.mode === "oauth") {
-    const parsed = await oauthAccessToken(DRIVE_CFG.refreshToken ?? "");
-    driveToken = { token: parsed.access_token, exp: Date.now() + parsed.expires_in * 1000, owner };
-    return parsed.access_token;
-  }
-
-  const sa = DRIVE_CFG.sa;
-  if (!sa?.client_email || !sa?.private_key) throw new Error("drive_not_configured");
-  const pk = sa.private_key.replace(/\\n/g, "\n");
-
-  const now = Math.floor(Date.now() / 1000);
-  const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const claim = b64url(JSON.stringify({
-    iss: sa.client_email,
-    scope: "https://www.googleapis.com/auth/drive",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  }));
-  const signingInput = `${header}.${claim}`;
-  const key = await crypto.subtle.importKey(
-    "pkcs8", pemToPkcs8(pk),
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"],
-  );
-  const sig = new Uint8Array(
-    await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(signingInput)),
-  );
-  const jwt = `${signingInput}.${b64url(sig)}`;
-
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`google token [${res.status}]: ${text}`);
-  const parsed = JSON.parse(text) as { access_token: string; expires_in: number };
+  const parsed = await oauthAccessToken(DRIVE_CFG.refreshToken ?? "");
   driveToken = { token: parsed.access_token, exp: Date.now() + parsed.expires_in * 1000, owner };
   return parsed.access_token;
+}
+
+// Verify an uploaded file is really readable back from Drive.
+async function driveVerifyDownload(fileId: string): Promise<number> {
+  const token = await driveAccessToken();
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`,
+    { headers: { authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) throw new Error(`drive download [${res.status}]: ${await res.text()}`);
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (!buf.length) throw new Error("downloaded file is empty");
+  return buf.length;
 }
 
 async function driveUpload(name: string, blob: Blob, folderId: string): Promise<DriveFile> {
