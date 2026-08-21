@@ -1148,6 +1148,12 @@ Deno.serve(async (req) => {
     return json(200, res);
   } catch (e) {
     console.error("backup-snapshot error", e);
-    return json(500, { error: errMsg(e) });
+    const msg = errMsg(e);
+    await logBackupError(
+      body.restore || body.restore_inline ? "restore" : "snapshot",
+      msg,
+      { file: body.file },
+    );
+    return json(500, { error: msg });
   }
 });
