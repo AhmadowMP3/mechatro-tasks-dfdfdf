@@ -345,14 +345,25 @@ async function driveListFolders(parent?: string, search?: string): Promise<Drive
   if (parent) clauses.push(`'${parent}' in parents`);
   if (search) clauses.push(`name contains '${search.replace(/'/g, "\\'")}'`);
   const q = encodeURIComponent(clauses.join(" and "));
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=name&pageSize=100` +
-    `&fields=files(id,name,webViewLink)&supportsAllDrives=true&includeItemsFromAllDrives=true`,
-    { headers: { authorization: `Bearer ${token}` } },
-  );
-  const text = await res.text();
-  if (!res.ok) throw new Error(`drive folders [${res.status}]: ${text}`);
-  return (JSON.parse(text) as { files?: DriveFile[] }).files ?? [];
+  const out: DriveFile[] = [];
+  let pageToken: string | undefined;
+  // Drive caps a page at 1000 items; follow nextPageToken so accounts with
+  // thousands of folders are fully listed (bounded to keep the request fast).
+  for (let page = 0; page < 10; page++) {
+    const url =
+      `https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=name&pageSize=1000` +
+      `&fields=nextPageToken,files(id,name,webViewLink,parents,ownedByMe)` +
+      `&supportsAllDrives=true&includeItemsFromAllDrives=true` +
+      (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "");
+    const res = await fetch(url, { headers: { authorization: `Bearer ${token}` } });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`drive folders [${res.status}]: ${text}`);
+    const parsed = JSON.parse(text) as { files?: DriveFile[]; nextPageToken?: string };
+    out.push(...(parsed.files ?? []));
+    if (!parsed.nextPageToken || out.length >= 5000) break;
+    pageToken = parsed.nextPageToken;
+  }
+  return out;
 }
 
 async function driveCreateFolder(name: string, parent?: string): Promise<DriveFile> {
