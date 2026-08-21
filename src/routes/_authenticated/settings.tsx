@@ -957,7 +957,7 @@ function DriveConnectSection() {
             <button onClick={signInWithGoogle} disabled={busy || oauthReady === false} className="brand-btn"
               title={oauthReady === false ? t("driveOauthSetupNeeded") : undefined}
               style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || oauthReady === false ? 0.5 : 1, cursor: oauthReady === false ? "not-allowed" : "pointer" }}>
-              <Cloud size={16} /> {busy ? t("driveConnecting") : t("driveSignIn")}
+              {busy ? <Spinner size={16} color="#fff" /> : <Cloud size={16} />} {busy ? t("driveConnecting") : t("driveSignIn")}
             </button>
           </div>
           {oauthReady === false && (
@@ -1072,7 +1072,7 @@ function DriveConnectSection() {
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
                 <button onClick={() => addTarget(folder, () => setLinkOpen(false))} disabled={busy || !folder.trim()} className="brand-btn"
                   style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || !folder.trim() ? 0.6 : 1 }}>
-                  <CloudUpload size={15} /> {t("driveAddAction")}
+                  {busy ? <Spinner size={15} color="#fff" /> : <CloudUpload size={15} />} {t("driveAddAction")}
                 </button>
               </div>
             </ResponsiveModal>
@@ -1086,7 +1086,7 @@ function DriveConnectSection() {
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
                 <button onClick={() => createFolder(() => setCreateOpen(false))} disabled={busy || !newFolderName.trim()} className="brand-btn"
                   style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || !newFolderName.trim() ? 0.6 : 1 }}>
-                  <FolderPlus size={15} /> {t("driveCreateFolder")}
+                  {busy ? <Spinner size={15} color="#fff" /> : <FolderPlus size={15} />} {t("driveCreateFolder")}
                 </button>
               </div>
             </ResponsiveModal>
@@ -1098,7 +1098,7 @@ function DriveConnectSection() {
         <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
           <button onClick={disconnect} disabled={busy} className="brand-btn"
             style={{ background: "rgba(240,103,106,.12)", color: "#F0676A", border: "1px solid rgba(240,103,106,.35)" }}>
-            <CloudOff size={16} /> {t("driveDisconnect")}
+            {busy ? <Spinner size={16} color="#F0676A" /> : <CloudOff size={16} />} {t("driveDisconnect")}
           </button>
         </div>
       )}
