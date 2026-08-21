@@ -313,6 +313,43 @@ function BackupsSection() {
       </div>
 
 
+      {isMasterAdmin && (() => {
+        const last = data?.[0];
+        const lastDrive = last ? driveByFile.get(last.name) : undefined;
+        const ok = !!last && !lastDrive?.error;
+        const color = !last ? "#E7B03A" : ok ? "#5BD6A6" : "#F0676A";
+        return (
+          <div style={{
+            marginBottom: 12, padding: "12px 14px", borderRadius: 12,
+            display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 13,
+            border: `1px solid ${color}59`, background: `${color}14`,
+          }}>
+            {ok ? <CheckCircle2 size={17} color={color} /> : <AlertTriangle size={17} color={color} />}
+            <b style={{ color }}>{t("lastBackup")}</b>
+            <span style={{ color: "var(--muted)" }}>
+              {last ? formatDate(last.created_at, lang) : t("noBackupsYet")}
+            </span>
+            {last && (
+              <span style={{ color: "var(--muted)" }}>
+                · {toLocalDigits((last.size / 1024).toFixed(1), lang)} KB
+              </span>
+            )}
+            {last && (
+              <span style={{
+                marginInlineStart: "auto", fontSize: 12, padding: "3px 10px", borderRadius: 999,
+                color, background: `${color}1f`, border: `1px solid ${color}59`,
+              }}>
+                {lastDrive?.error
+                  ? t("driveSyncFailed")
+                  : lastDrive?.synced_at
+                    ? t("driveSyncedOk")
+                    : t("backupStored")}
+              </span>
+            )}
+          </div>
+        );
+      })()}
+
       {isMasterAdmin && (
         <div style={{
           marginBottom: 12, padding: "10px 12px", borderRadius: 10,
