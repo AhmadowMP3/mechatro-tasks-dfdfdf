@@ -19,6 +19,31 @@ import {
   BlobWriter, TextReader, Uint8ArrayReader, ZipWriter,
 } from "https://esm.sh/@zip.js/zip.js@2.7.45";
 
+// Self-hosted deployments: load a .env file placed next to this function so
+// secrets such as GOOGLE_OAUTH_CLIENT_ID are available without recreating
+// the edge-runtime container. Values already present in Deno.env are kept.
+async function loadLocalEnv() {
+  try {
+    const path = new URL(".env", import.meta.url);
+    const text = await Deno.readTextFile(path);
+    for (const raw of text.split("\n")) {
+      const line = raw.trim();
+      if (!line || line.startsWith("#")) continue;
+      const eq = line.indexOf("=");
+      if (eq <= 0) continue;
+      const key = line.slice(0, eq).trim();
+      let value = line.slice(eq + 1).trim();
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      if (key && !Deno.env.get(key)) Deno.env.set(key, value);
+    }
+  } catch {
+    // .env file is optional; fall back to Deno.env / Coolify-injected vars.
+  }
+}
+await loadLocalEnv();
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
