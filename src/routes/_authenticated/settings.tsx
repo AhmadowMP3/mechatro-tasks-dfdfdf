@@ -548,7 +548,7 @@ function BackupsSection() {
                       <div style={{ flex: 1, minWidth: 160, display: "flex", flexDirection: "column", gap: 2 }}>
                         <span style={{ fontSize: 13, fontWeight: 700 }}>{formatDate(b.created_at, lang)}</span>
                         <span style={{ fontSize: 11, color: "var(--muted)", wordBreak: "break-all" }}>{b.name}</span>
-                        <span style={{ fontSize: 11, color: "var(--muted)" }}>{toLocalDigits(Math.round(b.size / 1024), lang)} KB · <DriveBadge row={driveByFile.get(b.name)} /></span>
+                        <span style={{ fontSize: 11, color: "var(--muted)" }}>{formatBytes(b.size || driveByFile.get(b.name)?.size_bytes, lang)} · <DriveBadge row={driveByFile.get(b.name)} /></span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         <IconBtn onClick={() => download(b)} title={t("download")} icon={<Download size={14} />} color="var(--foreground)" bg="var(--surface-3)" loading={actingId === b.name && actingOp === "download"} disabled={!!actingId && actingId !== b.name} />
