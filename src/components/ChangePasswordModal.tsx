@@ -51,6 +51,8 @@ export function ChangePasswordModal({ lang, onClose }: { lang: "ar" | "en"; onCl
   const [recovery, setRecovery] = useState("");
   const [savedRecovery, setSavedRecovery] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"change" | "recover">("change");
+
 
   useEffect(() => {
     let alive = true;
