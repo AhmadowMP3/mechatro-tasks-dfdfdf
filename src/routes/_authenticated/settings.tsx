@@ -640,14 +640,6 @@ type DriveStatus = {
   files?: Array<{ id: string; name: string }>;
 };
 
-type TestResult = {
-  folder_id: string;
-  folder_name: string | null;
-  ok: boolean;
-  link?: string;
-  verified_bytes?: number;
-  error?: string;
-};
 
 type BackupErrorRow = {
   id: string;
@@ -754,8 +746,6 @@ function DriveConnectSection() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testResults, setTestResults] = useState<TestResult[] | null>(null);
 
   const { data: status } = useQuery({
     queryKey: ["backup_drive_status"],
@@ -823,20 +813,6 @@ function DriveConnectSection() {
     }
   };
 
-  const runTest = async () => {
-    setTesting(true);
-    setTestResults(null);
-    const { data, error } = await supabase.functions.invoke("backup-snapshot", { body: { drive_test: true } });
-    setTesting(false);
-    const resp = data as { ok?: boolean; results?: TestResult[]; error?: string; detail?: string } | null;
-    if (error && !resp?.results) { toast.error(error.message); return; }
-    if (resp?.error) { showErr(resp.error, resp.detail); return; }
-    setTestResults(resp?.results ?? []);
-    if (resp?.ok) toast.success(t("driveTestOk"));
-    else toast.error(t("driveTestFailed"));
-    qc.invalidateQueries({ queryKey: ["backup_error_log"] });
-    refresh();
-  };
 
   const addTarget = async (folderRef: string, onDone?: () => void) => {
     if (!folderRef.trim()) { toast.error(t("driveErrBadFolder")); return; }
@@ -1065,13 +1041,6 @@ function DriveConnectSection() {
 
       {linked && (
         <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
-          <button onClick={runTest} disabled={busy || testing || targets.length === 0} className="brand-btn"
-            style={{
-              background: "var(--grad-green)", color: "#fff",
-              opacity: busy || testing || targets.length === 0 ? 0.6 : 1,
-            }}>
-            <CloudUpload size={16} /> {testing ? t("driveTesting") : t("driveTestBackup")}
-          </button>
           <button onClick={disconnect} disabled={busy} className="brand-btn"
             style={{ background: "rgba(240,103,106,.12)", color: "#F0676A", border: "1px solid rgba(240,103,106,.35)" }}>
             <CloudOff size={16} /> {t("driveDisconnect")}
@@ -1079,27 +1048,7 @@ function DriveConnectSection() {
         </div>
       )}
 
-      {testResults && (
-        <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
-          {testResults.map((r) => (
-            <div key={r.folder_id} style={{
-              display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-              padding: "9px 12px", borderRadius: 10, fontSize: 12.5,
-              border: `1px solid ${r.ok ? "rgba(91,214,166,.35)" : "rgba(240,103,106,.35)"}`,
-              background: r.ok ? "rgba(91,214,166,.10)" : "rgba(240,103,106,.10)",
-              color: r.ok ? "#5BD6A6" : "#F0676A",
-            }}>
-              {r.ok ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
-              <b>{r.folder_name ?? r.folder_id}</b>
-              <span>
-                {r.ok
-                  ? `${t("driveTestOk")} · ${toLocalDigits(String(r.verified_bytes ?? 0), lang)} B`
-                  : t((DRIVE_ERR_KEYS[r.error ?? ""] ?? "driveErrGeneric") as Parameters<typeof t>[0])}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+
 
       <BackupErrorsPanel />
 
