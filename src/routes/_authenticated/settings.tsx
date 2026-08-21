@@ -97,7 +97,7 @@ type BackupRequest = {
   requested_at: string;
 };
 
-function IconBtn({ onClick, title, icon, color, bg, disabled }: { onClick: () => void; title: string; icon: React.ReactNode; color: string; bg: string; disabled?: boolean }) {
+function IconBtn({ onClick, title, icon, color, bg, disabled }: { onClick: () => void; title: string; icon: ReactNode; color: string; bg: string; disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
