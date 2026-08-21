@@ -13,7 +13,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { provisionTestUsers } from "@/lib/provision-test-users.functions";
 import { startDriveOAuth } from "@/lib/drive-oauth.functions";
 import { useConfirm } from "@/components/confirm-dialog";
-import { DriveSetupGuide } from "@/components/settings/DriveSetupGuide";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
@@ -1095,11 +1094,6 @@ function DriveConnectSection() {
 
       <BackupErrorsPanel />
 
-      <DriveSetupGuide
-        defaultOpen={!linked}
-        accountEmail={status?.account_email ?? null}
-        clientEmail={null}
-      />
     </section>
   );
 }
