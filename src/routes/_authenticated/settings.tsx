@@ -339,8 +339,9 @@ function BackupsSection() {
         {isMasterAdmin ? (
           <>
             <button onClick={runBackup} disabled={running} className="brand-btn" style={{ background: "var(--grad-green)", color: "#fff", opacity: running ? 0.6 : 1 }}>
-              <Play size={16} /> {t("backupNow")}
+              {running ? <Spinner size={16} color="#fff" /> : <Play size={16} />} {running ? t(progress.state.stageKey as never) : t("backupNow")}
             </button>
+
             <button onClick={onPickFile} className="brand-btn" style={{ background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)" }}>
               <Upload size={16} /> {t("restoreFromFile")}
             </button>
