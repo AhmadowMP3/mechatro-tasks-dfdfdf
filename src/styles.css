@@ -612,6 +612,7 @@ img, svg, video { max-width: 100%; }
 /* Spin used inside BulkActionBar */
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 1s linear infinite; }
+.brand-spin { animation: spin 1s linear infinite; }
 
 /* Reveal per-row bulk checkbox on hover */
 .row-bulk-check { opacity: 0; }

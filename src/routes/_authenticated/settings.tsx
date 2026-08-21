@@ -13,6 +13,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { provisionTestUsers } from "@/lib/provision-test-users.functions";
 import { startDriveOAuth } from "@/lib/drive-oauth.functions";
 import { useConfirm } from "@/components/confirm-dialog";
+import { BackupProgress, Spinner, useOperationProgress } from "@/components/settings/BackupProgress";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
@@ -97,29 +98,32 @@ type BackupRequest = {
   requested_at: string;
 };
 
-function IconBtn({ onClick, title, icon, color, bg, disabled }: { onClick: () => void; title: string; icon: ReactNode; color: string; bg: string; disabled?: boolean }) {
+function IconBtn({ onClick, title, icon, color, bg, disabled, loading }: { onClick: () => void; title: string; icon: ReactNode; color: string; bg: string; disabled?: boolean; loading?: boolean }) {
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || loading}
       title={title}
       className="brand-btn-sm"
       style={{
         width: 30, height: 30, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
         borderRadius: 8, border: "1px solid var(--border)", background: bg, color,
-        opacity: disabled ? 0.45 : 1, cursor: disabled ? "not-allowed" : "pointer",
+        opacity: (disabled || loading) ? 0.45 : 1, cursor: (disabled || loading) ? "not-allowed" : "pointer",
       }}
     >
-      {icon}
+      {loading ? <Spinner size={14} color={color} /> : icon}
     </button>
   );
 }
+
 
 function BackupsSection() {
   const { t, lang, isMasterAdmin, user } = useApp();
   const confirm = useConfirm();
   const [running, setRunning] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [actingOp, setActingOp] = useState<"download" | "drive" | "delete" | null>(null);
+  const progress = useOperationProgress();
   const [listOpen, setListOpen] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<Backup | null>(null);
   const [externalRestore, setExternalRestore] = useState<{ name: string; payload: Record<string, unknown[]> } | null>(null);
@@ -187,11 +191,17 @@ function BackupsSection() {
   const driveByFile = new Map((driveRows ?? []).map((r) => [r.file, r]));
 
   const syncToDrive = async (b: Backup) => {
-    setActingId(b.name);
+    setActingId(b.name); setActingOp("drive");
+    progress.start(["stagePreparing", "stageConnecting", "stageUploading", "stageFinalizing"], 10000);
     const { data, error } = await supabase.functions.invoke("backup-snapshot", { body: { sync_to_drive: true, file: b.name } });
-    setActingId(null);
+    setActingId(null); setActingOp(null);
     const resp = data as { ok?: boolean; error?: string } | null;
-    if (error || resp?.error) { toast.error(resp?.error ?? error?.message ?? "err"); return; }
+    if (error || resp?.error) {
+      progress.fail(resp?.error ?? error?.message ?? "err");
+      toast.error(resp?.error ?? error?.message ?? "err");
+      return;
+    }
+    progress.succeed("stageDriveSync");
     toast.success(t("driveSyncDone"));
     refetchDrive();
   };
@@ -200,18 +210,23 @@ function BackupsSection() {
 
   const runBackup = async () => {
     setRunning(true);
+    progress.start(["stagePreparing", "stageReadingDb", "stageCollectingFiles", "stageUploading", "stageDriveSync", "stageFinalizing"], 25000);
     const { error } = await supabase.functions.invoke("backup-snapshot", { body: { manual: true } });
     setRunning(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { progress.fail(error.message); toast.error(error.message); return; }
+    progress.succeed("stageFinalizing");
     toast.success(t("saved"));
     refetch();
+    refetchDrive();
   };
 
   const approveRequest = async (r: BackupRequest) => {
     setActingId(r.id);
+    progress.start(["stagePreparing", "stageReadingDb", "stageCollectingFiles", "stageUploading", "stageDriveSync", "stageFinalizing"], 25000);
     const { error } = await supabase.functions.invoke("backup-snapshot", { body: { approve_request_id: r.id } });
-    setActingId(null);
-    if (error) { toast.error(error.message); return; }
+    setActingId(null); setActingOp(null);
+    if (error) { progress.fail(error.message); toast.error(error.message); return; }
+    progress.succeed("stageFinalizing");
     toast.success(t("backupApproved"));
     refetch(); refetchPending();
   };
@@ -219,15 +234,18 @@ function BackupsSection() {
   const rejectRequest = async (r: BackupRequest) => {
     setActingId(r.id);
     const { error } = await supabase.functions.invoke("backup-snapshot", { body: { reject_request_id: r.id } });
-    setActingId(null);
+    setActingId(null); setActingOp(null);
     if (error) { toast.error(error.message); return; }
     toast.success(t("backupRejected"));
     refetchPending();
   };
 
   const download = async (b: Backup) => {
+    setActingId(b.name); setActingOp("download");
+    progress.start(["stageDownloading", "stageFinalizing"], 6000);
     const { data, error } = await supabase.storage.from("backups").download(b.name);
-    if (error || !data) { toast.error(error?.message ?? "err"); return; }
+    setActingId(null); setActingOp(null);
+    if (error || !data) { progress.fail(error?.message ?? "err"); toast.error(error?.message ?? "err"); return; }
     const url = URL.createObjectURL(data);
     const a = document.createElement("a");
     a.href = url;
@@ -236,22 +254,27 @@ function BackupsSection() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    progress.succeed("stageDownloading");
   };
 
   const deleteBackup = async (b: Backup) => {
     if (!(await confirm({ message: t("confirmDeleteBackup"), danger: true, confirmText: t("delete") }))) return;
-    setActingId(b.name);
+    setActingId(b.name); setActingOp("delete");
+    progress.start(["stageDeleting"], 5000);
     const { data: resp, error } = await supabase.functions.invoke("backup-snapshot", { body: { delete: true, file: b.name } });
-    setActingId(null);
+    setActingId(null); setActingOp(null);
     if (error || (resp && (resp as { error?: string }).error)) {
       const code = (resp as { error?: string } | null)?.error;
-      if (code === "cannot_delete_latest") { toast.error(t("cannotDeleteLatest")); return; }
+      if (code === "cannot_delete_latest") { progress.fail(t("cannotDeleteLatest")); toast.error(t("cannotDeleteLatest")); return; }
+      progress.fail(error?.message ?? code ?? "err");
       toast.error(error?.message ?? code ?? "err");
       return;
     }
+    progress.succeed("stageDeleting");
     toast.success(t("backupDeleted"));
     refetch();
   };
+
 
   const latestBackupName = data?.[0]?.name;
 
@@ -317,8 +340,9 @@ function BackupsSection() {
         {isMasterAdmin ? (
           <>
             <button onClick={runBackup} disabled={running} className="brand-btn" style={{ background: "var(--grad-green)", color: "#fff", opacity: running ? 0.6 : 1 }}>
-              <Play size={16} /> {t("backupNow")}
+              {running ? <Spinner size={16} color="#fff" /> : <Play size={16} />} {running ? t(progress.state.stageKey as never) : t("backupNow")}
             </button>
+
             <button onClick={onPickFile} className="brand-btn" style={{ background: "rgba(232,115,46,.15)", color: "#FF9255", border: "1px solid rgba(232,115,46,.35)" }}>
               <Upload size={16} /> {t("restoreFromFile")}
             </button>
@@ -329,6 +353,10 @@ function BackupsSection() {
           </button>
         )}
       </div>
+
+      <BackupProgress state={progress.state} />
+
+
 
 
       {isMasterAdmin && (() => {
@@ -504,18 +532,20 @@ function BackupsSection() {
                         <span style={{ fontSize: 11, color: "var(--muted)" }}>{toLocalDigits(Math.round(b.size / 1024), lang)} KB · <DriveBadge row={driveByFile.get(b.name)} /></span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        <IconBtn onClick={() => download(b)} title={t("download")} icon={<Download size={14} />} color="var(--foreground)" bg="var(--surface-3)" />
+                        <IconBtn onClick={() => download(b)} title={t("download")} icon={<Download size={14} />} color="var(--foreground)" bg="var(--surface-3)" loading={actingId === b.name && actingOp === "download"} disabled={!!actingId && actingId !== b.name} />
                         {driveStatus?.configured && (
-                          <IconBtn onClick={() => syncToDrive(b)} title={t("driveSyncNow")} icon={<CloudUpload size={14} />} color="#42C2EE" bg="rgba(66,194,238,.15)" disabled={actingId === b.name} />
+                          <IconBtn onClick={() => syncToDrive(b)} title={t("driveSyncNow")} icon={<CloudUpload size={14} />} color="#42C2EE" bg="rgba(66,194,238,.15)" loading={actingId === b.name && actingOp === "drive"} disabled={!!actingId && actingId !== b.name} />
                         )}
-                        <IconBtn onClick={() => setRestoreTarget(b)} title={t("restore")} icon={<RotateCcw size={14} />} color="#FF9255" bg="rgba(232,115,46,.15)" />
+                        <IconBtn onClick={() => setRestoreTarget(b)} title={t("restore")} icon={<RotateCcw size={14} />} color="#FF9255" bg="rgba(232,115,46,.15)" disabled={!!actingId} />
                         <IconBtn
                           onClick={() => deleteBackup(b)}
                           title={b.name === latestBackupName ? t("latestBackupProtected") : t("delete")}
                           icon={<Trash2 size={14} />}
                           color="#F0676A"
                           bg="rgba(217,72,75,.15)"
-                          disabled={actingId === b.name || b.name === latestBackupName}
+                          loading={actingId === b.name && actingOp === "delete"}
+                          disabled={!!actingId || b.name === latestBackupName}
+
                         />
                       </div>
                     </div>
@@ -540,16 +570,19 @@ function RestoreDialog({ source, onClose, onDone }: { source: RestoreSource; onC
   const { t } = useApp();
   const [text, setText] = useState("");
   const [running, setRunning] = useState(false);
+  const progress = useOperationProgress();
   const confirm = async () => {
     if (text !== "RESTORE") return;
     setRunning(true);
+    progress.start(["stageReadingFile", "stageValidating", "stageRestoringTables", "stageRestoringFiles", "stageFinalizing"], 20000);
     const body = source.kind === "cloud"
       ? { restore: true, file: source.name }
       : { restore_inline: true, payload: source.payload };
     const { data, error } = await supabase.functions.invoke("backup-snapshot", { body });
     setRunning(false);
     const resp = data as { ok?: boolean; error?: string; counts?: Record<string, number>; files?: { restored: number; skipped: number; mirrored: boolean } } | null;
-    if (error || resp?.error) { toast.error(resp?.error ?? error?.message ?? "err"); return; }
+    if (error || resp?.error) { progress.fail(resp?.error ?? error?.message ?? "err"); toast.error(resp?.error ?? error?.message ?? "err"); return; }
+    progress.succeed("stageFinalizing");
     const counts = resp?.counts ?? {};
     const tables = Object.keys(counts).filter((k) => (counts[k] ?? 0) > 0).length;
     const rows = Object.values(counts).reduce((a, b) => a + (b || 0), 0);
@@ -572,12 +605,13 @@ function RestoreDialog({ source, onClose, onDone }: { source: RestoreSource; onC
         </div>
         <p style={{ color: "var(--foreground)", fontSize: 14 }}>{t("restoreWarn")}</p>
         <p style={{ color: "var(--muted)", fontSize: 12, wordBreak: "break-all" }}>{source.name}</p>
+        <BackupProgress state={progress.state} />
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="RESTORE"
           style={{ width: "100%", minHeight: 48, padding: "10px 12px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--foreground)", fontSize: 14, marginTop: 8 }} />
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
           <button onClick={confirm} disabled={text !== "RESTORE" || running} className="brand-btn"
             style={{ background: "linear-gradient(135deg,#D9484B,#F0676A)", color: "#fff", flex: 1, opacity: text !== "RESTORE" || running ? 0.5 : 1 }}>
-            {t("restore")}
+            {running && <Spinner size={16} color="#fff" />} {running ? t(progress.state.stageKey as never) : t("restore")}
           </button>
           <button onClick={onClose} className="brand-btn" style={{ background: "var(--surface-2)", color: "var(--foreground)", border: "1px solid var(--border)" }}>{t("cancel")}</button>
         </div>
@@ -923,7 +957,7 @@ function DriveConnectSection() {
             <button onClick={signInWithGoogle} disabled={busy || oauthReady === false} className="brand-btn"
               title={oauthReady === false ? t("driveOauthSetupNeeded") : undefined}
               style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || oauthReady === false ? 0.5 : 1, cursor: oauthReady === false ? "not-allowed" : "pointer" }}>
-              <Cloud size={16} /> {busy ? t("driveConnecting") : t("driveSignIn")}
+              {busy ? <Spinner size={16} color="#fff" /> : <Cloud size={16} />} {busy ? t("driveConnecting") : t("driveSignIn")}
             </button>
           </div>
           {oauthReady === false && (
@@ -1038,7 +1072,7 @@ function DriveConnectSection() {
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
                 <button onClick={() => addTarget(folder, () => setLinkOpen(false))} disabled={busy || !folder.trim()} className="brand-btn"
                   style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || !folder.trim() ? 0.6 : 1 }}>
-                  <CloudUpload size={15} /> {t("driveAddAction")}
+                  {busy ? <Spinner size={15} color="#fff" /> : <CloudUpload size={15} />} {t("driveAddAction")}
                 </button>
               </div>
             </ResponsiveModal>
@@ -1052,7 +1086,7 @@ function DriveConnectSection() {
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
                 <button onClick={() => createFolder(() => setCreateOpen(false))} disabled={busy || !newFolderName.trim()} className="brand-btn"
                   style={{ background: "var(--grad-blue)", color: "#fff", opacity: busy || !newFolderName.trim() ? 0.6 : 1 }}>
-                  <FolderPlus size={15} /> {t("driveCreateFolder")}
+                  {busy ? <Spinner size={15} color="#fff" /> : <FolderPlus size={15} />} {t("driveCreateFolder")}
                 </button>
               </div>
             </ResponsiveModal>
@@ -1064,7 +1098,7 @@ function DriveConnectSection() {
         <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "center" }}>
           <button onClick={disconnect} disabled={busy} className="brand-btn"
             style={{ background: "rgba(240,103,106,.12)", color: "#F0676A", border: "1px solid rgba(240,103,106,.35)" }}>
-            <CloudOff size={16} /> {t("driveDisconnect")}
+            {busy ? <Spinner size={16} color="#F0676A" /> : <CloudOff size={16} />} {t("driveDisconnect")}
           </button>
         </div>
       )}
