@@ -88,7 +88,7 @@ function SeedTestUsersSection() {
 
 type Backup = { name: string; size: number; created_at: string; };
 
-function formatBytes(bytes: number | null | undefined, lang: string): string {
+function formatBytes(bytes: number | null | undefined, lang: "ar" | "en"): string {
   if (bytes == null || !Number.isFinite(bytes) || bytes <= 0) return "—";
   if (bytes < 1024) return `${toLocalDigits(String(Math.round(bytes)), lang)} B`;
   if (bytes < 1024 * 1024) return `${toLocalDigits((bytes / 1024).toFixed(1), lang)} KB`;
@@ -201,7 +201,7 @@ function BackupsSection() {
     enabled: !!isMasterAdmin,
     queryFn: async () => {
       const { data, error } = await (supabase.from as unknown as (t: string) => any)("backup_drive_files")
-        .select("file, drive_link, synced_at, error");
+        .select("file, drive_link, synced_at, error, size_bytes");
       if (error) throw error;
       return (data ?? []) as DriveRow[];
     },
@@ -396,7 +396,7 @@ function BackupsSection() {
             </span>
             {last && (
               <span style={{ color: "var(--muted)" }}>
-                · {toLocalDigits((last.size / 1024).toFixed(1), lang)} KB
+                · {formatBytes(last.size || lastDrive?.size_bytes, lang)}
               </span>
             )}
             {last && (
@@ -548,7 +548,7 @@ function BackupsSection() {
                       <div style={{ flex: 1, minWidth: 160, display: "flex", flexDirection: "column", gap: 2 }}>
                         <span style={{ fontSize: 13, fontWeight: 700 }}>{formatDate(b.created_at, lang)}</span>
                         <span style={{ fontSize: 11, color: "var(--muted)", wordBreak: "break-all" }}>{b.name}</span>
-                        <span style={{ fontSize: 11, color: "var(--muted)" }}>{toLocalDigits(Math.round(b.size / 1024), lang)} KB · <DriveBadge row={driveByFile.get(b.name)} /></span>
+                        <span style={{ fontSize: 11, color: "var(--muted)" }}>{formatBytes(b.size || driveByFile.get(b.name)?.size_bytes, lang)} · <DriveBadge row={driveByFile.get(b.name)} /></span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         <IconBtn onClick={() => download(b)} title={t("download")} icon={<Download size={14} />} color="var(--foreground)" bg="var(--surface-3)" loading={actingId === b.name && actingOp === "download"} disabled={!!actingId && actingId !== b.name} />
