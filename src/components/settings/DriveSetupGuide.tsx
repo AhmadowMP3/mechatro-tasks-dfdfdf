@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  BookOpen, ChevronDown, Copy, ShieldCheck, RefreshCw, AlertTriangle, KeyRound, MousePointerClick,
+  BookOpen, ChevronDown, Copy, ShieldCheck, RefreshCw, AlertTriangle, MousePointerClick,
 } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 
