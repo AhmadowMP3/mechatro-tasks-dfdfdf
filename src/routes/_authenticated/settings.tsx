@@ -353,6 +353,10 @@ function BackupsSection() {
         )}
       </div>
 
+      <BackupProgress state={progress.state} />
+
+
+
 
       {isMasterAdmin && (() => {
         const last = data?.[0];
