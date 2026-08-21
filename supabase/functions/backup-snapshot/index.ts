@@ -755,69 +755,83 @@ Deno.serve(async (req) => {
       return "drive_connect_failed";
     }
 
-    // ---- Google Drive: connect with a service account (advanced mode) ----
-    if (body.drive_connect) {
+    // ---- Recent backup errors ----
+    if (body.errors_log) {
       if (isSystem) return json(403, { error: "user only" });
-      let sa: ServiceAccount;
-      try {
-        // Tolerate BOM / stray whitespace from downloaded key files.
-        sa = JSON.parse((body.sa_json ?? "").replace(/^\uFEFF/, "").trim()) as ServiceAccount;
-      } catch (e) {
-        return json(400, { error: "invalid_sa_json", detail: errMsg(e) });
-      }
-      if (!sa?.client_email || !sa?.private_key) {
-        return json(400, { error: "invalid_sa_json", detail: "missing client_email/private_key" });
-      }
+      const { data, error } = await sb.from("backup_error_log")
+        .select("id, kind, message, file, folder_id, created_at")
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (error) return json(500, { error: error.message });
+      return json(200, { ok: true, errors: data ?? [] });
+    }
 
-      const folderId = body.folder ? normalizeFolderId(body.folder) : "";
-      if (body.folder && (!folderId || folderId.length < 10)) return json(400, { error: "bad_folder_id" });
+    if (body.errors_clear) {
+      if (isSystem) return json(403, { error: "user only" });
+      const { error } = await sb.from("backup_error_log").delete().neq("kind", "");
+      if (error) return json(500, { error: error.message });
+      return json(200, { ok: true });
+    }
 
-      // Probe with the submitted credentials before persisting anything.
-      const prevCfg = DRIVE_CFG;
-      DRIVE_CFG = { mode: "service_account", sa, accountEmail: sa.client_email, folderId };
-      driveToken = null;
-      let folderName = "";
+    // ---- Test backup: tiny archive → upload → verify download → clean up ----
+    if (body.drive_test) {
+      if (isSystem) return json(403, { error: "user only" });
+      if (!driveLinked()) return json(400, { error: "drive_not_linked" });
+      if (!DRIVE_TARGETS.length) return json(400, { error: "drive_no_targets" });
+
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const name = `mechatro-test-${stamp}.zip`;
+      const sample = JSON.stringify({
+        test: true,
+        created_at: new Date().toISOString(),
+        note: "Mechatro backup connectivity test",
+      }, null, 2);
+
+      let blob: Blob;
       try {
-        if (folderId) {
-          folderName = (await driveFolderInfo(folderId)).name;
-        } else {
-          await driveListFolders();
-        }
+        blob = await buildZip(sample, []);
       } catch (e) {
-        DRIVE_CFG = prevCfg;
-        driveToken = null;
         const msg = errMsg(e);
-        await sb.from("drive_config").upsert({ id: true, last_error: msg }, { onConflict: "id" });
-        return json(400, { error: driveErrCode(msg), detail: msg, client_email: sa.client_email });
+        await logBackupError("test", msg);
+        return json(500, { error: "zip_failed", detail: msg });
       }
 
-      const enc = await encryptText(JSON.stringify({ client_email: sa.client_email, private_key: sa.private_key }));
-      const { error: saveErr } = await sb.from("drive_config").upsert({
-        id: true,
-        auth_mode: "service_account",
-        client_email: sa.client_email,
-        account_email: sa.client_email,
-        refresh_token_enc: null,
-        folder_id: folderId || null,
-        folder_name: folderName || null,
-        sa_json_enc: enc,
-        connected_at: new Date().toISOString(),
-        connected_by: actorId,
-        last_error: null,
-      }, { onConflict: "id" });
-      if (saveErr) return json(500, { error: saveErr.message });
+      const results: Array<{
+        folder_id: string; folder_name: string | null; ok: boolean;
+        link?: string; verified_bytes?: number; error?: string;
+      }> = [];
 
-      if (folderId) {
-        await sb.from("drive_targets").upsert({
-          folder_id: folderId, folder_name: folderName, enabled: true, created_by: actorId, last_error: null,
-        }, { onConflict: "folder_id" });
-        DRIVE_TARGETS = [{ id: null, folder_id: folderId, folder_name: folderName, keep: DRIVE_KEEP }];
+      for (const target of DRIVE_TARGETS) {
+        try {
+          const uploaded = await driveUpload(name, blob, target.folder_id);
+          const bytes = await driveVerifyDownload(uploaded.id);
+          try { await driveDelete(uploaded.id); } catch (_) { /* leave it if delete fails */ }
+          if (target.id) {
+            await sb.from("drive_targets")
+              .update({ last_error: null }).eq("id", target.id);
+          }
+          results.push({
+            folder_id: target.folder_id,
+            folder_name: target.folder_name,
+            ok: true,
+            link: uploaded.webViewLink,
+            verified_bytes: bytes,
+          });
+        } catch (e) {
+          const msg = errMsg(e);
+          await logBackupError("test", msg, { folder_id: target.folder_id });
+          if (target.id) await sb.from("drive_targets").update({ last_error: msg }).eq("id", target.id);
+          results.push({
+            folder_id: target.folder_id,
+            folder_name: target.folder_name,
+            ok: false,
+            error: driveErrCode(msg),
+          });
+        }
       }
 
-      return json(200, {
-        ok: true, configured: true, auth_mode: "service_account",
-        client_email: sa.client_email, folder_id: folderId, folder_name: folderName,
-      });
+      const allOk = results.every((r) => r.ok);
+      return json(allOk ? 200 : 207, { ok: allOk, results });
     }
 
     // ---- Google Drive: disconnect ----
