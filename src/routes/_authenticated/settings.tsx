@@ -122,6 +122,7 @@ function BackupsSection() {
   const confirm = useConfirm();
   const [running, setRunning] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [actingOp, setActingOp] = useState<"download" | "drive" | "delete" | null>(null);
   const progress = useOperationProgress();
   const [listOpen, setListOpen] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<Backup | null>(null);
