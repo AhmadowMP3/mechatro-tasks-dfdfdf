@@ -425,7 +425,6 @@ Deno.serve(async (req) => {
     auto_approve_pending?: boolean;
     sync_to_drive?: boolean;
     drive_status?: boolean;
-    drive_connect?: boolean;
     drive_disconnect?: boolean;
     drive_folders?: boolean;
     drive_create_folder?: boolean;
@@ -433,6 +432,9 @@ Deno.serve(async (req) => {
     drive_target_remove?: boolean;
     drive_target_toggle?: boolean;
     drive_oauth_save?: boolean;
+    drive_test?: boolean;
+    errors_log?: boolean;
+    errors_clear?: boolean;
     refresh_token?: string;
     account_email?: string;
     target_id?: string;
@@ -441,13 +443,27 @@ Deno.serve(async (req) => {
     name?: string;
     parent?: string;
     search?: string;
-    sa_json?: string;
     folder?: string;
 
   } = {};
   try { body = await req.json(); } catch (_) { /* ignore */ }
 
   const driveLoad = await loadDriveConfig(sb);
+
+  // Persist a failure so the master admin can read it later in Settings.
+  async function logBackupError(kind: string, message: string, extra: Record<string, unknown> = {}) {
+    try {
+      await sb.from("backup_error_log").insert({
+        kind,
+        message: String(message).slice(0, 4000),
+        file: (extra.file as string) ?? null,
+        folder_id: (extra.folder_id as string) ?? null,
+        meta: extra.meta ?? null,
+      });
+    } catch (e) {
+      console.warn("logBackupError failed", errMsg(e));
+    }
+  }
 
 
   // ---- Auth: master admin OR service-role bearer (system) ----
