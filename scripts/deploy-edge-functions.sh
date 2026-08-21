@@ -5,7 +5,7 @@ set -euo pipefail
 #
 # Usage (from the project root, on your machine):
 #   chmod +x scripts/deploy-edge-functions.sh
-#   ./scripts/deploy-edge-functions.sh
+#   GOOGLE_OAUTH_CLIENT_ID=xxx GOOGLE_OAUTH_CLIENT_SECRET=yyy ./scripts/deploy-edge-functions.sh
 #
 # Overridable env vars:
 #   SSH_TARGET      deploy@179.198.193.155
@@ -17,6 +17,10 @@ SSH_TARGET="${SSH_TARGET:-deploy@179.198.193.155}"
 REMOTE_TMP="${REMOTE_TMP:-/tmp/fn}"
 FUNCTIONS_CONTAINER="${FUNCTIONS_CONTAINER:-}"
 REMOTE_FUNCTIONS_DIR="${REMOTE_FUNCTIONS_DIR:-/home/deno/functions}"
+
+# Secrets that should be written to a function-local .env file on the remote.
+# These are read by backup-snapshot via loadLocalEnv() at startup.
+ENV_KEYS=("GOOGLE_OAUTH_CLIENT_ID" "GOOGLE_OAUTH_CLIENT_SECRET")
 
 log() { echo "[deploy] $*"; }
 
@@ -53,6 +57,19 @@ echo "[remote] restarting $container"
 docker restart "$container" >/dev/null
 echo "[remote] done"
 REMOTE
+
+# 3) Write function-local .env files for secrets that were provided locally.
+# This lets self-hosted edge functions read project secrets without recreating
+# the container. The .env file lives only on the server, never in git.
+for key in "${ENV_KEYS[@]}"; do
+  value="${!key:-}"
+  if [ -z "$value" ]; then
+    log "Note: $key is not set locally; skipping .env injection."
+    continue
+  fi
+  log "Injecting $key into backup-snapshot .env"
+  ssh "$SSH_TARGET" "mkdir -p $REMOTE_TMP/backup-snapshot && echo '$key=$(printf '%q' "$value")' >> $REMOTE_TMP/backup-snapshot/.env"
+done
 
 log "All functions deployed. Verify with:"
 log "  curl -i -X OPTIONS https://supamecha.hub4tech.net/functions/v1/admin-users"
