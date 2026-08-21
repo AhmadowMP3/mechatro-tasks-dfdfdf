@@ -88,7 +88,7 @@ function SeedTestUsersSection() {
 
 type Backup = { name: string; size: number; created_at: string; };
 
-function formatBytes(bytes: number | null | undefined, lang: string): string {
+function formatBytes(bytes: number | null | undefined, lang: "ar" | "en"): string {
   if (bytes == null || !Number.isFinite(bytes) || bytes <= 0) return "—";
   if (bytes < 1024) return `${toLocalDigits(String(Math.round(bytes)), lang)} B`;
   if (bytes < 1024 * 1024) return `${toLocalDigits((bytes / 1024).toFixed(1), lang)} KB`;
