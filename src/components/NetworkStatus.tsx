@@ -53,10 +53,9 @@ export function NetworkStatus() {
     };
   }, []);
 
-  if (!visible) return null;
+  if (!visible || status === "online") return null;
 
-  const cfg: Record<Status, { bg: string; label: string; icon: React.ReactNode }> = {
-    online: { bg: "linear-gradient(135deg,#16a34a,#22c55e)", label: t("online"), icon: <Wifi size={14} /> },
+  const cfg: Record<Exclude<Status, "online">, { bg: string; label: string; icon: React.ReactNode }> = {
     reconnecting: { bg: "linear-gradient(135deg,#0284c7,#38bdf8)", label: t("reconnecting"), icon: <Loader2 size={14} className="spin" /> },
     slow: { bg: "linear-gradient(135deg,#b45309,#f59e0b)", label: t("slowConnection"), icon: <Wifi size={14} /> },
     offline: { bg: "linear-gradient(135deg,#991b1b,#ef4444)", label: t("offline"), icon: <WifiOff size={14} /> },
