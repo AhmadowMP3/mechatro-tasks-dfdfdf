@@ -122,6 +122,7 @@ function BackupsSection() {
   const confirm = useConfirm();
   const [running, setRunning] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
+  const progress = useOperationProgress();
   const [listOpen, setListOpen] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<Backup | null>(null);
   const [externalRestore, setExternalRestore] = useState<{ name: string; payload: Record<string, unknown[]> } | null>(null);
