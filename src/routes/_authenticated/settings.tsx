@@ -821,20 +821,6 @@ function DriveConnectSection() {
     }
   };
 
-  const runTest = async () => {
-    setTesting(true);
-    setTestResults(null);
-    const { data, error } = await supabase.functions.invoke("backup-snapshot", { body: { drive_test: true } });
-    setTesting(false);
-    const resp = data as { ok?: boolean; results?: TestResult[]; error?: string; detail?: string } | null;
-    if (error && !resp?.results) { toast.error(error.message); return; }
-    if (resp?.error) { showErr(resp.error, resp.detail); return; }
-    setTestResults(resp?.results ?? []);
-    if (resp?.ok) toast.success(t("driveTestOk"));
-    else toast.error(t("driveTestFailed"));
-    qc.invalidateQueries({ queryKey: ["backup_error_log"] });
-    refresh();
-  };
 
   const addTarget = async (folderRef: string, onDone?: () => void) => {
     if (!folderRef.trim()) { toast.error(t("driveErrBadFolder")); return; }
