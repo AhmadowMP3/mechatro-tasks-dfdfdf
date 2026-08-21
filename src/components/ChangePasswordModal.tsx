@@ -158,11 +158,36 @@ export function ChangePasswordModal({ lang, onClose }: { lang: "ar" | "en"; onCl
           <PasswordField label={l ? "كلمة المرور الحالية" : "Current password"} value={current} onChange={setCurrent} autoFocus />
           <PasswordField label={l ? "كلمة المرور الجديدة" : "New password"} value={next} onChange={setNext} />
           <PasswordField label={l ? "تأكيد كلمة المرور الجديدة" : "Confirm new password"} value={confirmPw} onChange={setConfirmPw} />
+
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700 }}>
+              {l ? "إيميل الاسترجاع (اختياري)" : "Recovery email (optional)"}
+            </span>
+            <input
+              type="email"
+              value={recovery}
+              onChange={(e) => setRecovery(e.target.value)}
+              dir="ltr"
+              placeholder="name@example.com"
+              autoComplete="email"
+              maxLength={200}
+              style={{ ...inputStyle, padding: "12px 14px" }}
+            />
+          </label>
         </div>
 
-        <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 10 }}>
+        <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 10, lineHeight: 1.7 }}>
           {l ? "8 أحرف على الأقل." : "At least 8 characters."}
+          <br />
+          {recovery.trim()
+            ? (l
+              ? "يُستخدم إيميل الاسترجاع فقط لإرسال رابط إعادة تعيين كلمة المرور عند نسيانها."
+              : "The recovery email is only used to send a reset link if you forget your password.")
+            : (l
+              ? "⚠️ بدون إيميل استرجاع لن تتمكّن من استعادة حسابك إذا نسيت كلمة المرور."
+              : "⚠️ Without a recovery email you won't be able to recover your account if you forget your password.")}
         </div>
+
 
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
           <button
