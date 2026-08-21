@@ -118,7 +118,6 @@ function IconBtn({ onClick, title, icon, color, bg, disabled }: { onClick: () =>
 function BackupsSection() {
   const { t, lang, isMasterAdmin, user } = useApp();
   const confirm = useConfirm();
-  const isMobile = useIsMobile();
   const [running, setRunning] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(false);
