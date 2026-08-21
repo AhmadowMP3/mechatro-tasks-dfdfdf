@@ -141,7 +141,19 @@ function BackupsSection() {
     enabled: !!isMasterAdmin,
     queryFn: async () => {
       const { data } = await supabase.storage.from("backups").list("", { limit: 100, sortBy: { column: "created_at", order: "desc" } });
-      return (data ?? []).filter((f) => f.name.endsWith(".json") || f.name.endsWith(".zip")) as unknown as Backup[];
+      return (data ?? [])
+        .filter((f) => f.name.endsWith(".json") || f.name.endsWith(".zip"))
+        .map((f) => {
+          const meta = (f as unknown as { metadata?: Record<string, unknown> | null }).metadata ?? {};
+          const raw = (meta["size"] ?? meta["contentLength"] ?? meta["content_length"]) as unknown;
+          const size = typeof raw === "number" ? raw : Number(raw);
+          const anyF = f as unknown as { created_at?: string | null; updated_at?: string | null; last_accessed_at?: string | null };
+          return {
+            name: f.name,
+            size: Number.isFinite(size) ? size : 0,
+            created_at: anyF.created_at ?? anyF.updated_at ?? anyF.last_accessed_at ?? "",
+          } as Backup;
+        });
     },
   });
 
