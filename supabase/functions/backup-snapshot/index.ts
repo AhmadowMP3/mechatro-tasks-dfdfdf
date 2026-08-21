@@ -976,8 +976,8 @@ Deno.serve(async (req) => {
       const base = {
         linked: true,
         configured: driveConfigured(),
-        auth_mode: DRIVE_CFG?.mode ?? cfgRow?.auth_mode ?? "service_account",
-        client_email: cfgRow?.client_email ?? DRIVE_CFG?.sa?.client_email ?? null,
+        auth_mode: "oauth",
+        client_email: null,
         account_email: cfgRow?.account_email ?? DRIVE_CFG?.accountEmail ?? null,
         folder_id: driveFolderId(),
         folder_name: DRIVE_TARGETS[0]?.folder_name ?? cfgRow?.folder_name ?? null,
