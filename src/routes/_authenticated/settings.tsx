@@ -97,23 +97,24 @@ type BackupRequest = {
   requested_at: string;
 };
 
-function IconBtn({ onClick, title, icon, color, bg, disabled }: { onClick: () => void; title: string; icon: ReactNode; color: string; bg: string; disabled?: boolean }) {
+function IconBtn({ onClick, title, icon, color, bg, disabled, loading }: { onClick: () => void; title: string; icon: ReactNode; color: string; bg: string; disabled?: boolean; loading?: boolean }) {
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || loading}
       title={title}
       className="brand-btn-sm"
       style={{
         width: 30, height: 30, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
         borderRadius: 8, border: "1px solid var(--border)", background: bg, color,
-        opacity: disabled ? 0.45 : 1, cursor: disabled ? "not-allowed" : "pointer",
+        opacity: (disabled || loading) ? 0.45 : 1, cursor: (disabled || loading) ? "not-allowed" : "pointer",
       }}
     >
-      {icon}
+      {loading ? <Spinner size={14} color={color} /> : icon}
     </button>
   );
 }
+
 
 function BackupsSection() {
   const { t, lang, isMasterAdmin, user } = useApp();
