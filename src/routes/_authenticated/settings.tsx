@@ -1065,12 +1065,19 @@ function DriveConnectSection() {
                   <RotateCcw size={15} />
                 </button>
               </div>
+              {!loadingFolders && availableFolders.length > 0 && (
+                <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 8 }}>
+                  {lang === "ar"
+                    ? `${toLocalDigits(String(availableFolders.length), lang)} مجلد${availableFolders.length > 200 ? " — يُعرض أول ٢٠٠، اكتب للبحث لتضييق النتائج" : ""}`
+                    : `${availableFolders.length} folders${availableFolders.length > 200 ? " — showing first 200, type to narrow" : ""}`}
+                </div>
+              )}
               <div style={{ maxHeight: 300, overflowY: "auto", marginTop: 10, display: "grid", gap: 6 }}>
                 {loadingFolders && <span style={{ fontSize: 12, color: "var(--muted)" }}>…</span>}
                 {!loadingFolders && (availableFolders.length === 0) && (
                   <span style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("driveNoFolders")}</span>
                 )}
-                {availableFolders.map((f) => (
+                {availableFolders.slice(0, 200).map((f) => (
                   <button key={f.id} onClick={() => addTarget(f.id, () => setPickerOpen(false))} disabled={busy}
                     style={{
                       textAlign: "start", padding: "10px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer",
