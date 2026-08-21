@@ -79,7 +79,7 @@ const OAUTH_STEPS: Array<{ title: Bi; body: Bi; copy?: { label: Bi; value: strin
   },
 ];
 
-const SA_STEPS: Array<{ title: Bi; body: Bi }> = [];
+
 
 const TROUBLESHOOT: Array<{ symptom: Bi; cause: Bi; fix: Bi }> = [
   {
