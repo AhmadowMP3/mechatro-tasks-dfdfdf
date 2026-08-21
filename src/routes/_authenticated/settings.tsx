@@ -396,7 +396,7 @@ function BackupsSection() {
             </span>
             {last && (
               <span style={{ color: "var(--muted)" }}>
-                · {toLocalDigits((last.size / 1024).toFixed(1), lang)} KB
+                · {formatBytes(last.size || lastDrive?.size_bytes, lang)}
               </span>
             )}
             {last && (
