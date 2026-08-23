@@ -58,7 +58,8 @@ export function PromptHost() {
   const confirmLabel = opts.confirmLabel ?? (lang === "ar" ? (isConfirm ? "تأكيد" : "حفظ") : (isConfirm ? "Confirm" : "Save"));
   const cancelLabel = opts.cancelLabel ?? (lang === "ar" ? "إلغاء" : "Cancel");
 
-  return (
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div onClick={() => finish(null)} style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 200,
       display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
