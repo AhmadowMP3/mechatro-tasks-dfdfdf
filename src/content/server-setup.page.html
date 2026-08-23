@@ -430,6 +430,115 @@
         }
       });
     });
+
+    /* ---------- Encrypted vault (AES-256-GCM + PBKDF2) ---------- */
+
+    function status(msg, color) {
+      const el = document.getElementById("status-hint");
+      el.textContent = msg;
+      el.style.color = color || "var(--gold)";
+      el.style.display = msg ? "block" : "none";
+    }
+
+    function b64(buf) {
+      return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
+    }
+    function unb64(str) {
+      return Uint8Array.from(atob(str), c => c.charCodeAt(0));
+    }
+
+    function getKeyPhrase() {
+      let p = null;
+      try { p = sessionStorage.getItem("mx_setup_key"); } catch (e) {}
+      if (!p) {
+        p = prompt("أدخل كلمة المرور لفك تشفير البيانات:");
+        if (p) { try { sessionStorage.setItem("mx_setup_key", p); } catch (e) {} }
+      }
+      return p;
+    }
+
+    async function deriveKey(phrase, salt) {
+      const base = await crypto.subtle.importKey(
+        "raw", new TextEncoder().encode(phrase), "PBKDF2", false, ["deriveKey"]
+      );
+      return crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt: salt, iterations: 250000, hash: "SHA-256" },
+        base,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    function fill(payload) {
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ""; };
+      set("vps-ip", payload.vps && payload.vps.ipAddress);
+      set("vps-user", payload.vps && payload.vps.username);
+      set("vps-pass", payload.vps && payload.vps.password);
+      set("coolify-link", payload.coolify && payload.coolify.link);
+      set("coolify-email", payload.coolify && payload.coolify.email);
+      set("coolify-pass", payload.coolify && payload.coolify.password);
+      set("dashboard-link", payload.dashboard && payload.dashboard.link);
+      set("supabase-link", payload.supabase && payload.supabase.dashboardLink);
+      set("supabase-user", payload.supabase && payload.supabase.username);
+      set("supabase-pass", payload.supabase && payload.supabase.password);
+    }
+
+    async function api(body) {
+      const res = await fetch(window.location.pathname, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error("request_failed");
+      return res.json();
+    }
+
+    async function saveVault() {
+      const phrase = getKeyPhrase();
+      if (!phrase) return;
+      status("جارٍ التشفير والحفظ…");
+      try {
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await deriveKey(phrase, salt);
+        const data = new TextEncoder().encode(JSON.stringify(buildPayload()));
+        const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, data);
+        await api({ action: "save", ciphertext: b64(ct), iv: b64(iv), salt: b64(salt) });
+        status("تم الحفظ مشفّراً ✔", "#6EE7B7");
+        setTimeout(() => status(""), 2500);
+      } catch (e) {
+        status("تعذّر الحفظ — حدّث الصفحة وأعد المحاولة", "#FCA5A5");
+      }
+    }
+
+    async function loadVault() {
+      let blob;
+      try {
+        blob = (await api({ action: "load" })).blob;
+      } catch (e) {
+        status("تعذّر تحميل البيانات المحفوظة", "#FCA5A5");
+        return;
+      }
+      if (!blob) return;
+      const phrase = getKeyPhrase();
+      if (!phrase) return;
+      try {
+        const key = await deriveKey(phrase, unb64(blob.salt));
+        const plain = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: unb64(blob.iv) }, key, unb64(blob.ciphertext)
+        );
+        fill(JSON.parse(new TextDecoder().decode(plain)));
+        status("تم فك التشفير وتحميل البيانات ✔", "#6EE7B7");
+        setTimeout(() => status(""), 2500);
+      } catch (e) {
+        try { sessionStorage.removeItem("mx_setup_key"); } catch (err) {}
+        status("كلمة المرور غير صحيحة لفك التشفير — حدّث الصفحة", "#FCA5A5");
+      }
+    }
+
+    document.getElementById("btn-save").addEventListener("click", saveVault);
+    loadVault();
   </script>
 </body>
 </html>
