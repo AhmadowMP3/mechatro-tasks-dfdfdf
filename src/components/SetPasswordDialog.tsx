@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { KeyRound, Sparkles, Copy, Check } from "lucide-react";
 
