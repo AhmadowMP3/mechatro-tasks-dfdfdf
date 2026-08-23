@@ -413,7 +413,7 @@ export function KanbanView({
 
 function KanbanColumn({
   col, colRef, tasks, projects, users, assigneesByTask, onOpen, onMove, canMoveTo,
-  dropAllowed, draggingId, currentUserId, isAdmin, lang, t,
+  dropAllowed, draggingId, currentUserId, isAdmin, lang, t, isMobile,
 }: {
   col: ColStatus;
   colRef?: (node: HTMLDivElement | null) => void;
@@ -430,7 +430,9 @@ function KanbanColumn({
   isAdmin: boolean;
   lang: "ar" | "en";
   t: (k: never) => string;
+  isMobile?: boolean;
 }) {
+
   const { setNodeRef, isOver } = useDroppable({ id: col });
   const style = STATUS_STYLES[col];
   const isReview = col === "in_review";
