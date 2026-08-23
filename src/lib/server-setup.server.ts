@@ -68,10 +68,33 @@ export async function unlock(password: string): Promise<boolean> {
 
 export type VaultBlob = { ciphertext: string; iv: string; salt: string };
 
-export async function loadVault(): Promise<VaultBlob | null> {
+// The vault stores ciphertext only, so a publishable-key client is enough when
+// no service-role key is configured (e.g. self-hosted deployments).
+async function vaultClient(): Promise<any> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await (supabaseAdmin as any)
+    if (supabaseAdmin) return supabaseAdmin;
+  } catch {
+    // fall through to publishable client
+  }
+  const url =
+    process.env['SUPABASE_URL'] || process.env['VITE_SUPABASE_URL'];
+  const key =
+    process.env['SUPABASE_PUBLISHABLE_KEY'] ||
+    process.env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
+    process.env['SUPABASE_ANON_KEY'] ||
+    process.env['VITE_SUPABASE_ANON_KEY'];
+  if (!url || !key) throw new Error("supabase_not_configured");
+  const { createClient } = await import("@supabase/supabase-js");
+  return createClient(url, key, {
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+  });
+}
+
+export async function loadVault(): Promise<VaultBlob | null> {
+  try {
+    const client = await vaultClient();
+    const { data } = await client
       .from("server_setup_vault")
       .select("ciphertext, iv, salt")
       .eq("id", true)
@@ -87,12 +110,16 @@ export async function saveVault(blob: VaultBlob): Promise<void> {
   // Write-once: after the first encrypted save the data becomes read-only.
   const existing = await loadVault();
   if (existing) throw new Error("vault_locked");
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { error } = await (supabaseAdmin as any)
+  const client = await vaultClient();
+  const { error } = await client
     .from("server_setup_vault")
     .insert({ id: true, ...blob });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if ((error as any).code === "23505") throw new Error("vault_locked");
+    throw new Error(error.message);
+  }
 }
+
 
 export function lockScreenHtml(error = false): string {
   return `<!DOCTYPE html>
