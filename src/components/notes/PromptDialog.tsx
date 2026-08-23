@@ -101,6 +101,7 @@ export function PromptHost() {
           }}>{confirmLabel}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
