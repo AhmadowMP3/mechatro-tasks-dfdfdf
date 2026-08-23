@@ -84,10 +84,13 @@ export async function loadVault(): Promise<VaultBlob | null> {
 
 
 export async function saveVault(blob: VaultBlob): Promise<void> {
+  // Write-once: after the first encrypted save the data becomes read-only.
+  const existing = await loadVault();
+  if (existing) throw new Error("vault_locked");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { error } = await (supabaseAdmin as any)
     .from("server_setup_vault")
-    .upsert({ id: true, ...blob }, { onConflict: "id" });
+    .insert({ id: true, ...blob });
   if (error) throw new Error(error.message);
 }
 
