@@ -391,3 +391,30 @@ const ThemedItem = React.forwardRef<
   );
 });
 ThemedItem.displayName = "ThemedItem";
+
+function SheetItem({
+  children, selected, disabled, onSelect,
+}: { children: React.ReactNode; selected?: boolean; disabled?: boolean; onSelect: () => void }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onSelect}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+        width: "100%", minHeight: 46, paddingInline: 12, paddingBlock: 8,
+        borderRadius: 10, fontSize: 15, fontWeight: 600, fontFamily: "inherit",
+        textAlign: "start",
+        background: selected ? "var(--surface-2)" : "transparent",
+        color: "var(--foreground)",
+        border: "1px solid " + (selected ? "var(--border)" : "transparent"),
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+      }}
+    >
+      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{children}</span>
+      {selected && <Check size={16} style={{ color: "#189FD1", flexShrink: 0 }} />}
+    </button>
+  );
+}
+
