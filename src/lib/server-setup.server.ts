@@ -39,6 +39,26 @@ export async function unlock(password: string): Promise<boolean> {
   return true;
 }
 
+export type VaultBlob = { ciphertext: string; iv: string; salt: string };
+
+export async function loadVault(): Promise<VaultBlob | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await (supabaseAdmin as any)
+    .from("server_setup_vault")
+    .select("ciphertext, iv, salt")
+    .eq("id", true)
+    .maybeSingle();
+  return (data as VaultBlob | null) ?? null;
+}
+
+export async function saveVault(blob: VaultBlob): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error } = await (supabaseAdmin as any)
+    .from("server_setup_vault")
+    .upsert({ id: true, ...blob }, { onConflict: "id" });
+  if (error) throw new Error(error.message);
+}
+
 export function lockScreenHtml(error = false): string {
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
