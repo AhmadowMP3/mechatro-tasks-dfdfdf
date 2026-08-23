@@ -58,11 +58,19 @@ export const Route = createFileRoute("/server-setup")({
                 headers: jsonHeaders,
               });
             }
-            await mod.saveVault({
-              ciphertext: body.ciphertext,
-              iv: body.iv,
-              salt: body.salt,
-            });
+            try {
+              await mod.saveVault({
+                ciphertext: body.ciphertext,
+                iv: body.iv,
+                salt: body.salt,
+              });
+            } catch (err) {
+              const reason = err instanceof Error ? err.message : "save_failed";
+              return new Response(JSON.stringify({ error: reason }), {
+                status: reason === "vault_locked" ? 409 : 500,
+                headers: jsonHeaders,
+              });
+            }
             return new Response(JSON.stringify({ ok: true }), { headers: jsonHeaders });
           }
 
