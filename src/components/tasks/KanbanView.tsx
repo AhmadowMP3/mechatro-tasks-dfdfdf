@@ -411,15 +411,18 @@ export function KanbanView({
 }
 
 function KanbanColumn({
-  col, tasks, projects, users, assigneesByTask, onOpen,
+  col, colRef, tasks, projects, users, assigneesByTask, onOpen, onMove, canMoveTo,
   dropAllowed, draggingId, currentUserId, isAdmin, lang, t,
 }: {
   col: ColStatus;
+  colRef?: (node: HTMLDivElement | null) => void;
   tasks: TaskRow[];
   projects: Project[];
   users: Profile[];
   assigneesByTask?: Record<string, string[]>;
   onOpen: (id: string) => void;
+  onMove?: (taskId: string, to: ColStatus) => void;
+  canMoveTo: (task: TaskRow, target: ColStatus) => boolean;
   dropAllowed: boolean;
   draggingId: string | null;
   currentUserId: string | undefined;
