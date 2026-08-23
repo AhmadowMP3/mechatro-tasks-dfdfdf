@@ -237,6 +237,34 @@ export function KanbanView({
     setOverride({});
   }
 
+  // Mobile "move to" menu: same rules and patch shape as drag-and-drop.
+  async function moveTaskTo(taskId: string, to: ColStatus) {
+    const original = tasks.find((x) => x.id === taskId);
+    if (!original) return;
+    if (original.status === to) return;
+    if (!canMove(original, to)) { toast.error(t("onlyAdminCanComplete")); return; }
+
+    const list = columns[to].filter((x) => x.id !== taskId);
+    const last = list[list.length - 1];
+    const newOrder = (last?.sort_order ?? 0) + 1000;
+
+    setOverride({ [taskId]: { status: to, sort_order: newOrder } });
+
+    const patch: { sort_order: number; status: ColStatus; completed_at?: string | null } = {
+      sort_order: newOrder,
+      status: to,
+    };
+    if (to === "done") patch.completed_at = new Date().toISOString();
+    if (original.status === "done" && to !== "done") patch.completed_at = null;
+
+    const { error } = await supabase.from("tasks").update(patch).eq("id", taskId);
+    if (error) { toast.error(error.message); setOverride({}); return; }
+    if (to === "in_review") toast.success(t("awaitingReview"));
+    onChanged();
+    setOverride({});
+    goToCol(to);
+  }
+
   const draggingTask = activeId ? tasks.find((x) => x.id === activeId) : undefined;
 
   return (
