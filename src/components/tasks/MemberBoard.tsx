@@ -4,10 +4,11 @@
 // usual task detail modal.
 
 import { useMemo, useState } from "react";
-import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { ChevronDown, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { useApp, type Profile } from "@/lib/app-context";
 import { TaskCard, type TaskRow } from "@/components/TaskCard";
 import { Avatar } from "@/components/Avatar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { STATUS_STYLES, ROLE_STYLES } from "@/lib/ui-tokens";
 import { isOverdue, toLocalDigits } from "@/lib/format";
 import type { DictKey } from "@/i18n/dict";
