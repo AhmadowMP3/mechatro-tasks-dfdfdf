@@ -57,7 +57,8 @@ export function TemplatesPopup({ editor, onClose }: { editor: Editor | null; onC
     onClose();
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div
       onClick={onClose}
       style={{
