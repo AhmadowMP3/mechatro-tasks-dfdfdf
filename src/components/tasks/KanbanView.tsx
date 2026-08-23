@@ -438,7 +438,7 @@ function KanbanColumn({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(n) => { setNodeRef(n); colRef?.(n); }}
       className="brand-card kanban-col"
       style={{
         padding: 12,
