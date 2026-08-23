@@ -999,7 +999,21 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
 }
-.table-scroll table { min-width: max-content; border-collapse: collapse; }
+.table-scroll table { min-width: 100%; border-collapse: collapse; }
+.table-scroll th, .table-scroll td { font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 767px) {
+  .table-scroll thead th:first-child,
+  .table-scroll tbody td:first-child {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 2;
+    background: var(--card);
+    box-shadow: 1px 0 0 var(--border);
+  }
+  [dir="rtl"] .table-scroll thead th:first-child,
+  [dir="rtl"] .table-scroll tbody td:first-child { box-shadow: -1px 0 0 var(--border); }
+  .table-scroll thead th:first-child { background: var(--surface-2); }
+}
 .table-scroll td.num, .table-scroll th.num {
   text-align: end;
   font-variant-numeric: tabular-nums;
