@@ -276,19 +276,63 @@ export function KanbanView({
       onDragEnd={handleDragEnd}
       onDragCancel={() => { setActiveId(null); setOverride({}); }}
     >
+      {isMobile && (
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+            paddingBottom: 8,
+            paddingInline: 2,
+            scrollbarWidth: "none",
+          }}
+        >
+          {COLUMNS.map((c) => {
+            const s = STATUS_STYLES[c];
+            const on = activeCol === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => goToCol(c)}
+                style={{
+                  flex: "0 0 auto",
+                  minHeight: 40,
+                  padding: "8px 12px",
+                  borderRadius: 999,
+                  border: `1px solid ${on ? s.text : "var(--border)"}`,
+                  background: on ? s.bg : "var(--surface-2)",
+                  color: on ? s.text : "var(--muted)",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {t(c as never)}
+                <span style={{ opacity: 0.85 }}>{toLocalDigits(columns[c].length, lang)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div
+        ref={scrollerRef}
         style={{
           display: "grid",
           gridAutoFlow: "column",
-          gridAutoColumns: "minmax(280px, 1fr)",
-          gap: 14,
+          gridAutoColumns: isMobile ? "100%" : "minmax(280px, 1fr)",
+          gap: isMobile ? 10 : 14,
           overflowX: "auto",
           overscrollBehavior: "contain",
           paddingBottom: 12,
-          paddingInline: 4,
+          paddingInline: isMobile ? 0 : 4,
           scrollSnapType: "x mandatory",
-          scrollPaddingInline: 12,
+          scrollPaddingInline: isMobile ? 0 : 12,
           touchAction: "pan-x pan-y",
+          scrollbarWidth: isMobile ? "none" : undefined,
         }}
       >
         {COLUMNS.map((col) => {
@@ -297,11 +341,14 @@ export function KanbanView({
             <KanbanColumn
               key={col}
               col={col}
+              colRef={(n) => { colRefs.current[col] = n; }}
               tasks={columns[col]}
               projects={projects}
               users={users}
               assigneesByTask={assigneesByTask}
               onOpen={onOpen}
+              onMove={isMobile ? moveTaskTo : undefined}
+              canMoveTo={(task, target) => canMove(task, target)}
               dropAllowed={dropAllowed}
               draggingId={activeId}
               currentUserId={user?.id}
@@ -312,6 +359,33 @@ export function KanbanView({
           );
         })}
       </div>
+      {isMobile && (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 4, paddingBottom: 6 }}>
+          {COLUMNS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              aria-label={t(c as never)}
+              onClick={() => goToCol(c)}
+              style={{
+                width: 34, height: 34, display: "grid", placeItems: "center",
+                background: "transparent", border: "none", padding: 0,
+              }}
+            >
+              <span
+                style={{
+                  display: "block",
+                  width: activeCol === c ? 18 : 7,
+                  height: 7,
+                  borderRadius: 999,
+                  background: activeCol === c ? STATUS_STYLES[c].text : "var(--border)",
+                  transition: "width .2s ease, background .2s ease",
+                }}
+              />
+            </button>
+          ))}
+        </div>
+      )}
       <DragOverlay dropAnimation={null}>
         {draggingTask ? (
           <div
