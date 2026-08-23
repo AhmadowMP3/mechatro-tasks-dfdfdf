@@ -174,7 +174,7 @@ function AuthPage() {
         width: "100%", maxWidth: 440, zIndex: 1,
         background: cardBg,
         border: cardBorder,
-        borderRadius: 20, padding: 32,
+        borderRadius: 20, padding: "clamp(18px, 5vw, 32px)",
         boxShadow: cardShadow,
         backdropFilter: isLight ? "none" : "blur(6px)",
         overflow: "hidden",
