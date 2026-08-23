@@ -327,12 +327,13 @@ export function KanbanView({
           gridAutoColumns: isMobile ? "100%" : "minmax(280px, 1fr)",
           gap: isMobile ? 10 : 14,
           overflowX: "auto",
-          overscrollBehavior: "contain",
+          overscrollBehaviorX: "contain",
           paddingBottom: 12,
           paddingInline: isMobile ? 0 : 4,
-          scrollSnapType: "x mandatory",
+          alignItems: "start",
+          scrollSnapType: activeId ? "x proximity" : "x mandatory",
           scrollPaddingInline: isMobile ? 0 : 12,
-          touchAction: "pan-x pan-y",
+          touchAction: isMobile ? "pan-x" : "pan-x pan-y",
           scrollbarWidth: isMobile ? "none" : undefined,
         }}
       >
@@ -356,9 +357,11 @@ export function KanbanView({
               isAdmin={!!isAdmin}
               lang={lang}
               t={t}
+              isMobile={isMobile}
             />
           );
         })}
+
       </div>
       {isMobile && (
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 4, paddingBottom: 6 }}>
