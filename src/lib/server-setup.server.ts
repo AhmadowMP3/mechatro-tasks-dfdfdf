@@ -95,6 +95,14 @@ export function lockScreenHtml(error = false): string {
     <button type="submit">دخول</button>
     ${error ? `<div class="err">كلمة المرور غير صحيحة</div>` : ""}
   </form>
+<script>
+  // Keep the password in memory for this tab only: it is also the key that
+  // decrypts the stored data. Nothing readable is ever persisted anywhere.
+  document.querySelector("form").addEventListener("submit", function (e) {
+    var v = document.querySelector('input[name="password"]').value;
+    try { sessionStorage.setItem("mx_setup_key", v); } catch (err) {}
+  });
+</script>
 </body>
 </html>`;
 }
