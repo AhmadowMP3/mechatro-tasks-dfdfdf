@@ -69,14 +69,19 @@ export async function unlock(password: string): Promise<boolean> {
 export type VaultBlob = { ciphertext: string; iv: string; salt: string };
 
 export async function loadVault(): Promise<VaultBlob | null> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await (supabaseAdmin as any)
-    .from("server_setup_vault")
-    .select("ciphertext, iv, salt")
-    .eq("id", true)
-    .maybeSingle();
-  return (data as VaultBlob | null) ?? null;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await (supabaseAdmin as any)
+      .from("server_setup_vault")
+      .select("ciphertext, iv, salt")
+      .eq("id", true)
+      .maybeSingle();
+    return (data as VaultBlob | null) ?? null;
+  } catch {
+    return null;
+  }
 }
+
 
 export async function saveVault(blob: VaultBlob): Promise<void> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
