@@ -1068,3 +1068,17 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 @media (hover: none) {
   .row-bulk-check, .ref-bulk-check { opacity: 1 !important; }
 }
+
+/* ---- Custom dialogs → bottom sheets below md ---- */
+@media (max-width: 767px) {
+  .sheet-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92dvh !important;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0 !important;
+    margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+    align-self: flex-end;
+  }
+}
