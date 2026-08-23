@@ -107,7 +107,8 @@ export function ShareNoteModal({ noteId, onClose }: { noteId: string; onClose: (
           <button onClick={save} disabled={saving} style={{ ...btnStyle, background: "var(--grad-blue)", color: "#fff", border: "none", fontWeight: 700 }}>{saving ? (lang === "ar" ? "…" : "…") : (lang === "ar" ? "حفظ" : "Save")}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
