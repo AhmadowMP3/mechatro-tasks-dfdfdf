@@ -37,8 +37,13 @@ export function ResponsiveModal({
     };
   }, [onClose]);
 
+  // Always render through a portal on document.body so no transformed ancestor
+  // in the page content can turn `position: fixed` into a page-anchored box.
+  const portal = (node: React.ReactNode) =>
+    typeof document === "undefined" ? <>{node}</> : createPortal(node, document.body);
+
   if (isMobile) {
-    return (
+    return portal(
       <div
         onClick={onClose}
         className="rm-backdrop"
