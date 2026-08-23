@@ -28,11 +28,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const { lang, setLang, theme, setTheme, user } = useApp();
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
+  const isMobile = useIsCompact();
   const [mobileOpen, setMobileOpen] = useState(false);
   const shareMode = isShareMode();
   const shareLink = getShareLink();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // Close the drawer on route change.
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  // Lock body scroll while the drawer is open.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [mobileOpen]);
+
 
   // Notifications bell — mobile top bar only, hidden in share mode
   const { data: unreadCount = 0 } = useQuery({
