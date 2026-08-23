@@ -542,7 +542,7 @@ function FinanceReports() {
         {aging.rows.length === 0 ? (
           <div style={{ color: "var(--muted)", padding: 16, textAlign: "center", fontSize: 13 }}>—</div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div className="table-scroll" style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
@@ -580,7 +580,7 @@ function FinanceReports() {
         {projectPnl.length === 0 ? (
           <div style={{ color: "var(--muted)", padding: 16, textAlign: "center", fontSize: 13 }}>{t("noDataInRange")}</div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div className="table-scroll" style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
@@ -618,7 +618,7 @@ function FinanceReports() {
         {clientBalances.length === 0 ? (
           <div style={{ color: "var(--muted)", padding: 16, textAlign: "center", fontSize: 13 }}>—</div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div className="table-scroll" style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>

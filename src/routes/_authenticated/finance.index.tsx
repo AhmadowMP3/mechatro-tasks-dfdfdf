@@ -210,7 +210,7 @@ function FinanceDashboard() {
       {/* Monthly Chart */}
       <section className="brand-card" style={{ padding: 20 }}>
         <h3 style={{ margin: "0 0 16px", fontSize: 16 }}>{t("incomeVsExpenses")} · 12 {lang === "ar" ? "شهر" : "months"}</h3>
-        <div style={{ overflowX: "auto", margin: "0 -4px" }}>
+        <div className="table-scroll" style={{ overflowX: "auto", margin: "0 -4px" }}>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${monthlySeries.length}, 1fr)`, gap: 6, alignItems: "end", height: 180, minWidth: 480, padding: "0 4px" }}>
             {monthlySeries.map((m) => (
               <div key={m.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>

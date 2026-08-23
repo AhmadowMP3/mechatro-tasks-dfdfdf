@@ -361,7 +361,7 @@ function EntriesTable({ entries, locked, periodId }: { entries: PayrollEntry[]; 
 
   return (
     <>
-      <div style={{ overflowX: "auto", background: "var(--card)", borderRadius: 10, border: "1px solid var(--border)" }}>
+      <div className="table-scroll" style={{ overflowX: "auto", background: "var(--card)", borderRadius: 10, border: "1px solid var(--border)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ color: "var(--muted)", background: "var(--surface-2)" }}>
@@ -959,7 +959,7 @@ function SalarySettingsModal({ onClose }: { onClose: () => void }) {
     <div style={backdrop} onClick={onClose}>
       <div className="brand-card" onClick={(e) => e.stopPropagation()} style={{ background: "var(--card)", padding: 20, borderRadius: 16, maxWidth: 900, width: "100%", maxHeight: "90vh", overflow: "auto" }}>
         <h2 style={{ margin: "0 0 16px", fontSize: 18 }}>{t("memberSalarySettings")}</h2>
-        <div style={{ overflowX: "auto" }}>
+        <div className="table-scroll" style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ color: "var(--muted)", background: "var(--surface-2)" }}>
