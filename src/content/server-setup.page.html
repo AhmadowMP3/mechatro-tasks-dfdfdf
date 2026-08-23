@@ -365,6 +365,7 @@
 
     <p class="copy-hint" id="copy-hint">تم نسخ البيانات إلى الحافظة.</p>
     <p class="copy-hint" id="status-hint"></p>
+    <p class="copy-hint" id="locked-badge" style="display:none;color:#6EE7B7">🔒 البيانات محفوظة ومشفّرة — يمكن النسخ فقط، التعديل غير مسموح.</p>
 
     <footer class="footer">
       Mechatro · البيانات محفوظة مشفّرة AES-256 — لا يمكن قراءتها إلا بكلمة المرور
@@ -494,6 +495,24 @@
       return res.json();
     }
 
+    function lockFields() {
+      Object.values(ids).flat().forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.readOnly = true;
+        el.setAttribute("readonly", "readonly");
+        el.style.opacity = "0.95";
+        el.style.cursor = "text";
+        el.addEventListener("focus", () => el.select());
+      });
+      const save = document.getElementById("btn-save");
+      if (save) save.style.display = "none";
+      const clear = document.getElementById("btn-clear");
+      if (clear) clear.style.display = "none";
+      const badge = document.getElementById("locked-badge");
+      if (badge) badge.style.display = "block";
+    }
+
     async function saveVault() {
       const phrase = getKeyPhrase();
       if (!phrase) return;
@@ -505,10 +524,10 @@
         const data = new TextEncoder().encode(JSON.stringify(buildPayload()));
         const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, data);
         await api({ action: "save", ciphertext: b64(ct), iv: b64(iv), salt: b64(salt) });
-        status("تم الحفظ مشفّراً ✔", "#6EE7B7");
-        setTimeout(() => status(""), 2500);
+        status("تم الحفظ مشفّراً ✔ — البيانات الآن للقراءة والنسخ فقط", "#6EE7B7");
+        lockFields();
       } catch (e) {
-        status("تعذّر الحفظ — حدّث الصفحة وأعد المحاولة", "#FCA5A5");
+        status("تعذّر الحفظ — إمّا أن البيانات محفوظة مسبقاً (غير قابلة للتعديل) أو حدث خطأ", "#FCA5A5");
       }
     }
 
@@ -521,6 +540,7 @@
         return;
       }
       if (!blob) return;
+      lockFields();
       const phrase = getKeyPhrase();
       if (!phrase) return;
       try {
@@ -529,7 +549,8 @@
           { name: "AES-GCM", iv: unb64(blob.iv) }, key, unb64(blob.ciphertext)
         );
         fill(JSON.parse(new TextDecoder().decode(plain)));
-        status("تم فك التشفير وتحميل البيانات ✔", "#6EE7B7");
+        lockFields();
+        status("تم فك التشفير وتحميل البيانات ✔ — للقراءة والنسخ فقط", "#6EE7B7");
         setTimeout(() => status(""), 2500);
       } catch (e) {
         try { sessionStorage.removeItem("mx_setup_key"); } catch (err) {}
