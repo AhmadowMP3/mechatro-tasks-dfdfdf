@@ -63,12 +63,50 @@ export function KanbanView({
   // Local sort/status overlay so drags feel instant while Supabase catches up.
   const [override, setOverride] = useState<Record<string, { status: ColStatus; sort_order: number }>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const colRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [activeCol, setActiveCol] = useState<ColStatus>("todo");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 260, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  // Track which column is centered on mobile.
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = scrollerRef.current;
+    if (!el) return;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const box = el.getBoundingClientRect();
+        const center = box.left + box.width / 2;
+        let best: ColStatus = activeCol;
+        let bestD = Infinity;
+        for (const c of COLUMNS) {
+          const node = colRefs.current[c];
+          if (!node) continue;
+          const r = node.getBoundingClientRect();
+          const d = Math.abs(r.left + r.width / 2 - center);
+          if (d < bestD) { bestD = d; best = c; }
+        }
+        setActiveCol((cur) => (cur === best ? cur : best));
+      });
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => { el.removeEventListener("scroll", onScroll); cancelAnimationFrame(raf); };
+  }, [isMobile, activeCol]);
+
+  const goToCol = useCallback((c: ColStatus) => {
+    const node = colRefs.current[c];
+    node?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    setActiveCol(c);
+  }, []);
 
   function canMove(task: TaskRow | undefined, target: ColStatus): boolean {
     if (!task) return false;
