@@ -163,7 +163,7 @@ export function MemberBoard({
           style={{
             display: "grid",
             gridAutoFlow: "column",
-            gridAutoColumns: "minmax(300px, 320px)",
+            gridAutoColumns: "minmax(min(100%,300px),320px)",
             gap: 14,
             overflowX: "auto",
             paddingBottom: 10,

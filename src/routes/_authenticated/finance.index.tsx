@@ -173,7 +173,7 @@ function FinanceDashboard() {
 
 
       {/* Quick actions — priorities for master admin */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,220px),1fr))", gap: 14 }}>
         <Link to="/finance/income" className="quick-action">
           <span className="qa-icon" style={{ background: "linear-gradient(135deg,#50C878,#3d9c5e)" }}><Plus size={22} /></span>
           <span>
@@ -198,7 +198,7 @@ function FinanceDashboard() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,240px),1fr))", gap: 14 }}>
         <KpiCard icon={TrendingUp} label={t("totalIncome") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdIncome, displayCurrency, lang)} tone="green" />
         <KpiCard icon={TrendingDown} label={t("totalExpenses") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdExpenses, displayCurrency, lang)} tone="red" />
         <KpiCard icon={DollarSign} label={t("netProfit") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdNet, displayCurrency, lang)} tone={kpi.mtdNet >= 0 ? "green" : "red"} />
@@ -210,7 +210,7 @@ function FinanceDashboard() {
       {/* Monthly Chart */}
       <section className="brand-card" style={{ padding: 20 }}>
         <h3 style={{ margin: "0 0 16px", fontSize: 16 }}>{t("incomeVsExpenses")} · 12 {lang === "ar" ? "شهر" : "months"}</h3>
-        <div style={{ overflowX: "auto", margin: "0 -4px" }}>
+        <div className="table-scroll" style={{ overflowX: "auto", margin: "0 -4px" }}>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${monthlySeries.length}, 1fr)`, gap: 6, alignItems: "end", height: 180, minWidth: 480, padding: "0 4px" }}>
             {monthlySeries.map((m) => (
               <div key={m.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>

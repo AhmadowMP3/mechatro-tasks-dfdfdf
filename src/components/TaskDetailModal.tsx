@@ -323,7 +323,7 @@ export function TaskDetailModal({ taskId, onClose, onChanged }: { taskId: string
         {readOnlyForMember && <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>{/* member sees limited fields */}</div>}
 
         {/* Fields grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 12, marginBottom: 16 }}>
           <Field label={t("assignees")}>
             {canEditAll ? (
               <AssigneeMultiSelect

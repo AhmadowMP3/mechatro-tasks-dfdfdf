@@ -271,7 +271,7 @@ function Dashboard() {
       <MomentumCard buckets={dayBuckets} lang={lang} title={t("momentum")} />
 
       {/* Distribution + Overdue */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: 16 }}>
         <TaskFlowCard
           title={t("taskDistribution")}
           segments={dist.map((d) => ({ key: d.key, label: t(d.key as DictKey), value: d.count, color: donutColor(d.key) }))}
@@ -300,7 +300,7 @@ function Dashboard() {
       </div>
 
       {/* Top projects + Workload */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: 16 }}>
         <TopProjectsCard title={t("topProjects")} rows={projectStats} lang={lang} />
         <WorkloadCard title={t("workloadByOwner")} rows={workload} unassigned={unassigned} lang={lang} />
       </div>

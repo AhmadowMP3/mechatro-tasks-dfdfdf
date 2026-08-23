@@ -70,10 +70,122 @@ export function TableView({
   );
 
 
+  const SORT_KEYS: { k: SortKey; label: string }[] = [
+    { k: "title", label: t("title") },
+    { k: "status", label: t("status") },
+    { k: "priority", label: t("priority") },
+    { k: "due_date", label: t("dueDate") },
+    { k: "progress", label: t("progress") },
+  ];
+
   return (
-    <div className="brand-card" style={{ padding: 0, overflow: "hidden" }}>
-      <div style={{ overflowX: "auto" }}>
+    <>
+    {/* Mobile (< md): stacked cards — same data, same sorting & selection */}
+    <div className="hide-from-md">
+      <div className="mobile-hscroll" style={{ marginBottom: 10 }}>
+        {SORT_KEYS.map(({ k, label }) => {
+          const active = sort.key === k;
+          return (
+            <button
+              key={k}
+              type="button"
+              onClick={() => toggle(k)}
+              style={{
+                padding: "8px 12px", minHeight: 40, borderRadius: 999,
+                border: `1px solid ${active ? "transparent" : "var(--border)"}`,
+                background: active ? "var(--grad-blue)" : "var(--surface-2)",
+                color: active ? "#fff" : "var(--muted)",
+                fontSize: 12.5, fontWeight: 800, cursor: "pointer",
+                display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+              }}
+            >
+              {label}
+              {active && (sort.dir === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="stack-cards">
+        {sorted.map((tk) => {
+          const project = projects.find((p) => p.id === tk.project_id);
+          const assignee = users.find((u) => u.id === tk.assignee_id);
+          const taskAssignees = (assigneesByTask?.[tk.id] ?? [])
+            .map((uid) => users.find((u) => u.id === uid))
+            .filter(Boolean) as Profile[];
+          const overdue = isOverdue(tk.due_date, tk.status);
+          const rowSelected = selectable && isSelected?.(tk.id);
+          return (
+            <div
+              key={tk.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onOpen(tk.id)}
+              onKeyDown={(e) => { if (e.key === "Enter") onOpen(tk.id); }}
+              className="brand-card"
+              style={{
+                padding: 14, display: "flex", flexDirection: "column", gap: 10,
+                cursor: "pointer", textAlign: "start",
+                borderColor: rowSelected ? "color-mix(in oklab, #189FD1 55%, var(--border))" : undefined,
+                background: rowSelected ? "color-mix(in oklab, #189FD1 12%, var(--card))" : undefined,
+              }}
+            >
+              <div style={{ display: "grid", gridTemplateColumns: selectable ? "auto minmax(0,1fr)" : "minmax(0,1fr)", gap: 10, alignItems: "start" }}>
+                {selectable && (
+                  <span onClick={(e) => e.stopPropagation()} style={{ paddingTop: 2 }}>
+                    <BulkCheckbox
+                      checked={!!rowSelected}
+                      onChange={() => onToggle?.(tk.id)}
+                      label={lang === "ar" ? "تحديد" : "Select"}
+                    />
+                  </span>
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 15, lineHeight: 1.3, overflowWrap: "break-word" }}>{tk.title}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 3 }}>
+                    {project ? (lang === "ar" ? project.name_ar : project.name_en) : (lang === "ar" ? "بدون مشروع" : "No project")}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <StatusPill status={tk.status} />
+                <PriorityPill priority={tk.priority} />
+                <span style={{ marginInlineStart: "auto", minWidth: 0 }}>
+                  {taskAssignees.length > 0 || assignee ? (
+                    <AssigneeNames
+                      users={taskAssignees.length > 0 ? taskAssignees : (assignee ? [assignee] : [])}
+                      size={22}
+                      maxNames={1}
+                    />
+                  ) : <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{
+                  fontSize: 12, whiteSpace: "nowrap",
+                  color: overdue ? "#F0676A" : "var(--muted)",
+                  fontWeight: overdue ? 800 : 600,
+                }}>
+                  {tk.due_date ? formatDate(tk.due_date, lang) : "—"}
+                </span>
+                <div style={{ flex: 1, height: 6, background: "var(--surface-3)", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ width: `${tk.progress}%`, height: "100%", background: "var(--grad-blue)" }} />
+                </div>
+                <span style={{ fontSize: 11, color: "var(--muted)" }}>{toLocalDigits(tk.progress, lang)}%</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+    {/* Tablet & desktop: full table */}
+    <div className="brand-card hide-below-md" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="table-scroll">
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
+
           <thead style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
             <tr>
               {selectable && (
@@ -188,7 +300,9 @@ export function TableView({
         </table>
       </div>
     </div>
+    </>
   );
+
 }
 
 const td: React.CSSProperties = { padding: "12px 14px", fontSize: 13, verticalAlign: "middle" };

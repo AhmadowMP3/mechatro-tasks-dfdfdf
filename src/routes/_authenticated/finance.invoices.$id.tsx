@@ -315,7 +315,7 @@ function InvoiceEditorPage() {
       </div>
 
       {/* Header form */}
-      <section className="brand-card" style={{ padding: 20, display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+      <section className="brand-card" style={{ padding: 20, display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,240px),1fr))" }}>
         <Field label={t("customer") + " *"}>
           <select disabled={!isEditable} value={customerId} onChange={(e) => setCustomerId(e.target.value)} style={inp}>
             <option value="">—</option>

@@ -293,7 +293,9 @@ function AccessControlPage() {
           return (
           <div
             key={u.id}
+            className="ac-row"
             onClick={() => { if (bulkMode && selectable) toggle(u.id); }}
+
             style={{
               ...rowCard,
               cursor: bulkMode && selectable ? "pointer" : (rowCard as React.CSSProperties).cursor,

@@ -138,7 +138,7 @@ function IncomePage() {
         <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noIncome")}</div>
       ) : (
         <>
-          <div className="brand-card" style={{ padding: 0, overflow: "auto" }}>
+          <div className="brand-card table-scroll" style={{ padding: 0 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ color: "var(--muted)", background: "var(--surface-2)" }}>

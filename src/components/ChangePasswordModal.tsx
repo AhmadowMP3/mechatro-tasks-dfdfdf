@@ -155,6 +155,7 @@ export function ChangePasswordModal({ lang, onClose }: { lang: "ar" | "en"; onCl
       <div
         onClick={(e) => e.stopPropagation()}
         dir={l ? "rtl" : "ltr"}
+        className="sheet-panel"
         style={{
           width: "100%", maxWidth: 420,
           background: "var(--sidebar)", border: "1px solid var(--border)", borderRadius: 16,

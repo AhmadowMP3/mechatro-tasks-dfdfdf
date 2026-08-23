@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, Moon, Sun, Eye, RefreshCw, Bell, Search } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsCompact } from "@/hooks/use-compact";
+
 import { Sidebar } from "./Sidebar";
 import { MobileTabBar } from "./MobileTabBar";
 import logo from "@/assets/mechatro-logo.png";
@@ -27,11 +28,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const { lang, setLang, theme, setTheme, user } = useApp();
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
+  const isMobile = useIsCompact();
   const [mobileOpen, setMobileOpen] = useState(false);
   const shareMode = isShareMode();
   const shareLink = getShareLink();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // Close the drawer on route change.
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  // Lock body scroll while the drawer is open.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [mobileOpen]);
+
 
   // Notifications bell — mobile top bar only, hidden in share mode
   const { data: unreadCount = 0 } = useQuery({
@@ -74,7 +87,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     flexShrink: 0,
   };
 
-  const bottomBarSpace = isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : "0px";
+  // Bottom chrome spacing is handled in CSS (--bottom-space).
   const notifsActive = pathname.startsWith("/notifications");
 
   return (
@@ -282,14 +295,14 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         </header>
 
         <main
+          className="app-main"
           style={{
             flex: 1,
-            padding: isMobile ? "14px" : "28px 32px",
-            paddingBottom: isMobile ? `calc(14px + ${bottomBarSpace})` : "28px",
             overflow: "auto",
             minWidth: 0,
           }}
         >
+
           <BackupIncomingBanner />
           {children}
         </main>

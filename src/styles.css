@@ -532,7 +532,7 @@ img, svg, video { max-width: 100%; }
    ============================================================ */
 .reports-hub-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%,340px), 1fr));
   gap: 16px;
   padding: 4px 20px 24px;
 }
@@ -806,3 +806,279 @@ a:focus-visible,
   transform: scaleX(-1);
 }
 
+
+/* ============================================================
+   RESPONSIVE FOUNDATION (Phase 1a)
+   Mobile-first tokens, container, fluid type & spacing,
+   overflow guards, safe areas, touch targets.
+   Purely additive — no color/font/design changes.
+   ============================================================ */
+
+:root {
+  /* Fluid spacing rhythm */
+  --space-page-x: 16px;
+  --space-page-y: 20px;
+  --space-gap: 12px;
+  --space-section: 28px;
+
+  /* Fluid type scale */
+  --fs-page-title: clamp(20px, 5.2vw, 28px);
+  --fs-section-title: clamp(16px, 3.6vw, 20px);
+  --fs-body: clamp(13px, 2.6vw, 14.5px);
+  --fs-small: clamp(11.5px, 2.2vw, 12.5px);
+
+  /* Chrome metrics */
+  --tabbar-h: 72px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --bottom-space: 0px;
+  --tap: 44px;
+}
+
+@media (max-width: 1023px) {
+  :root { --bottom-space: calc(var(--tabbar-h) + var(--safe-b)); }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --space-page-x: 24px;
+    --space-page-y: 24px;
+    --space-gap: 14px;
+    --space-section: 36px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --space-page-x: 32px;
+    --space-page-y: 28px;
+    --space-gap: 16px;
+    --space-section: 44px;
+  }
+}
+
+/* ---- Overflow guards: zero horizontal page scroll at any width ---- */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+#root, main { max-width: 100%; min-width: 0; }
+img, svg, video, canvas, iframe, table { max-width: 100%; }
+img, video { height: auto; }
+pre, code { overflow-x: auto; max-width: 100%; }
+
+/* ---- Shared page container ---- */
+.page-container {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: max(var(--space-page-x), var(--safe-l), var(--safe-r));
+  padding-block: var(--space-page-y);
+  min-width: 0;
+}
+
+/* ---- Fluid typography helpers ---- */
+.t-page-title { font-size: var(--fs-page-title); line-height: 1.15; }
+.t-section-title { font-size: var(--fs-section-title); line-height: 1.25; }
+.t-body { font-size: var(--fs-body); }
+.t-small { font-size: var(--fs-small); }
+
+/* ---- Responsive grid helpers (base 1 col, up from there) ---- */
+.rgrid { display: grid; grid-template-columns: 1fr; gap: var(--space-gap); }
+@media (min-width: 640px)  { .rgrid-2, .rgrid-3, .rgrid-4 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (min-width: 1024px) { .rgrid-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+                             .rgrid-4 { grid-template-columns: repeat(4, minmax(0,1fr)); } }
+
+/* ---- Touch targets ---- */
+.tap-target {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Safe areas ---- */
+.safe-pb { padding-bottom: var(--safe-b); }
+.safe-pt { padding-top: var(--safe-t); }
+.safe-bottom-space { padding-bottom: var(--bottom-space); }
+
+/* ---- Media default ---- */
+.responsive-img { width: 100%; height: auto; object-fit: cover; display: block; }
+
+/* ---- Drop heavy motion on small screens ---- */
+@media (max-width: 767px) {
+  .empty-halo { animation: none; }
+  .mtab-icon-glow { filter: blur(7px); }
+  * { background-attachment: scroll !important; }
+}
+
+/* ============================================================
+   APP SHELL + NAV (Phase 1b)
+   ============================================================ */
+
+/* Main content padding + bottom chrome space */
+.app-main {
+  padding: 14px max(14px, var(--safe-l), var(--safe-r));
+  padding-bottom: calc(14px + var(--bottom-space));
+}
+@media (min-width: 768px) {
+  .app-main { padding: 20px 24px; padding-bottom: calc(20px + var(--bottom-space)); }
+}
+@media (min-width: 1024px) {
+  .app-main { padding: 28px 32px; padding-bottom: 28px; }
+}
+
+/* Bottom tab bar — phones: edge to edge; tablets: centered pill; lg+: hidden */
+.mobile-tabbar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 60;
+  background: color-mix(in oklab, var(--card) 92%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  padding-bottom: var(--safe-b);
+  padding-inline: max(0px, var(--safe-l), var(--safe-r));
+}
+.mobile-tabbar .mtab {
+  min-height: var(--tap);
+  min-width: var(--tap);
+}
+@media (min-width: 768px) {
+  .mobile-tabbar {
+    inset-inline: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(12px + var(--safe-b));
+    width: min(480px, calc(100vw - 32px));
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+    padding-bottom: 0;
+  }
+}
+@media (min-width: 1024px) {
+  .mobile-tabbar { display: none !important; }
+}
+
+/* Landscape notched phones: keep the bar clear of the home indicator */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mobile-tabbar { padding-bottom: max(var(--safe-b), 4px); }
+  .mobile-tabbar .mtab { min-height: 46px; }
+}
+
+/* The legacy ≤767px main padding override is superseded by .app-main */
+main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
+@media (min-width: 768px) { main.app-main { padding-bottom: calc(20px + var(--bottom-space)) !important; } }
+@media (min-width: 1024px) { main.app-main { padding-bottom: 28px !important; } }
+
+/* ---- Dialogs / modals: bottom sheet below md, centered from md ---- */
+@media (max-width: 767px) {
+  .brand-modal,
+  [role="dialog"].sheet-on-mobile {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: calc(100dvh - 32px) !important;
+    padding-bottom: calc(12px + var(--safe-b));
+  }
+  .modal-overlay-center { align-items: flex-end !important; padding: 0 !important; }
+}
+
+/* ---- Shared table wrappers ---- */
+.table-scroll {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.table-scroll table { min-width: 100%; border-collapse: collapse; }
+.table-scroll th, .table-scroll td { font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 767px) {
+  .table-scroll thead th:first-child,
+  .table-scroll tbody td:first-child {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 2;
+    background: var(--card);
+    box-shadow: 1px 0 0 var(--border);
+  }
+  [dir="rtl"] .table-scroll thead th:first-child,
+  [dir="rtl"] .table-scroll tbody td:first-child { box-shadow: -1px 0 0 var(--border); }
+  .table-scroll thead th:first-child { background: var(--surface-2); }
+}
+.table-scroll td.num, .table-scroll th.num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.table-scroll .sticky-col {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 2;
+  background: var(--card);
+  box-shadow: 1px 0 0 var(--border), 6px 0 12px -10px rgba(0,0,0,.7);
+}
+[dir="rtl"] .table-scroll .sticky-col { box-shadow: -1px 0 0 var(--border), -6px 0 12px -10px rgba(0,0,0,.7); }
+.table-scroll-wrap { position: relative; }
+.table-scroll-wrap::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 28px;
+  pointer-events: none;
+  background: linear-gradient(to left, var(--card), transparent);
+  opacity: 1;
+  transition: opacity .2s ease;
+}
+[dir="rtl"] .table-scroll-wrap::after { background: linear-gradient(to right, var(--card), transparent); }
+.table-scroll-wrap[data-at-end="true"]::after { opacity: 0; }
+@media (min-width: 768px) {
+  .table-scroll-wrap::after { display: none; }
+}
+
+/* Stacked-card list container used where tables convert below md */
+.stack-cards { display: flex; flex-direction: column; gap: 10px; }
+@media (min-width: 768px) { .hide-from-md { display: none !important; } }
+@media (max-width: 767px) { .hide-below-md { display: none !important; } }
+
+/* ---- Access control rows → stacked cards below md ---- */
+@media (max-width: 767px) {
+  .ac-row {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 10px !important;
+  }
+  .ac-row > *:nth-child(n + 3) { grid-column: 1 / -1; }
+  .ac-row > div[style*="minWidth: 140"],
+  .ac-row > div[style*="min-width: 140px"] { width: 100%; }
+  .ac-row button { width: 100%; justify-content: center; }
+  .ac-row [data-user-menu] button { width: auto; }
+  /* Bulk checkboxes are hover-revealed on desktop — always visible on touch */
+  .row-bulk-check, .ref-bulk-check { opacity: 1 !important; }
+}
+@media (hover: none) {
+  .row-bulk-check, .ref-bulk-check { opacity: 1 !important; }
+}
+
+/* ---- Custom dialogs → bottom sheets below md ---- */
+@media (max-width: 767px) {
+  .sheet-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92dvh !important;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0 !important;
+    margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+    align-self: flex-end;
+  }
+}

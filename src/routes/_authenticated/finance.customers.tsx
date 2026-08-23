@@ -127,7 +127,7 @@ function CustomersPage() {
       {filtered.length === 0 ? (
         <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noCustomers")}</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%,280px),1fr))", gap: 12 }}>
           {filtered.map((c) => (
             <div key={c.id} className="brand-card" style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", alignItems: "start", gap: 10 }}>

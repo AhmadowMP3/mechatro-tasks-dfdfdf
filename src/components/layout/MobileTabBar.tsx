@@ -66,21 +66,9 @@ export function MobileTabBar({ onMoreClick }: { onMoreClick: () => void }) {
   const moreLabel = lang === "ar" ? "المزيد" : "More";
 
   return (
-    <nav
-      aria-label="Primary"
-      style={{
-        position: "fixed",
-        insetInline: 0,
-        bottom: 0,
-        zIndex: 60,
-        background: "color-mix(in oklab, var(--card) 92%, transparent)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        borderTop: "1px solid var(--border)",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
-      }}
-    >
+    <nav aria-label="Primary" className="mobile-tabbar">
       <div style={{ display: "flex", alignItems: "stretch" }}>
+
         {primary.map(({ to, icon: Icon, key }) => {
           const active = isActive(to);
           return (

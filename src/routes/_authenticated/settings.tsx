@@ -29,7 +29,7 @@ function SettingsPage() {
 
       <section className="brand-card" style={{ padding: 20 }}>
         <h2 style={{ margin: 0, marginBottom: 12, fontSize: 18 }}>{t("companyInfo")}</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, fontSize: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,220px),1fr))", gap: 10, fontSize: 14 }}>
           <div><b>{t("companyName")}:</b> Mechatro</div>
           <div><b>{t("currentUser")}:</b> {user?.full_name}</div>
         </div>
@@ -951,7 +951,7 @@ function DriveConnectSection() {
 
       {linked && (
         <div style={{
-          display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10,
+          display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,200px),1fr))", gap: 10,
           padding: 12, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-2)",
           fontSize: 13, marginBottom: 14,
         }}>
