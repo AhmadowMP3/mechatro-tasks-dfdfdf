@@ -3,7 +3,7 @@
 الترتيب:
 
 ```bash
-export TARGET_URL=https://supamecha.hub4tech.net
+export TARGET_URL=https://supabase.mechatro-sy.com
 export TARGET_SERVICE_KEY=<service_role key>
 export TARGET_DB_URL=postgresql://postgres:<pass>@<host>:5432/postgres
 

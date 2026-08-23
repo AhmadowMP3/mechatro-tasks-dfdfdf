@@ -2,7 +2,7 @@
  * Tiny SQL runner for the target Supabase, going through its pg-meta endpoint
  * (/pg/query) so no Postgres port has to be exposed publicly.
  */
-export const TARGET_URL = process.env.TARGET_URL || "https://supamecha.hub4tech.net";
+export const TARGET_URL = process.env.TARGET_URL || "https://supabase.mechatro-sy.com";
 export const SERVICE_KEY =
   process.env.TARGET_SERVICE_KEY ||
   (await Bun.file("/tmp/migrate/service.key").text()).trim();
