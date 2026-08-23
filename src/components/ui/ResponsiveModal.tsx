@@ -102,12 +102,12 @@ export function ResponsiveModal({
           @keyframes rm-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
           @keyframes rm-fade { from { opacity: 0; } to { opacity: 1; } }
         `}</style>
-      </div>
+      </div>,
     );
   }
 
   // Desktop: centered card.
-  return (
+  return portal(
     <div
       onClick={onClose}
       style={{
