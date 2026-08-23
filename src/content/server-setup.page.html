@@ -494,6 +494,24 @@
       return res.json();
     }
 
+    function lockFields() {
+      Object.values(ids).flat().forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.readOnly = true;
+        el.setAttribute("readonly", "readonly");
+        el.style.opacity = "0.95";
+        el.style.cursor = "text";
+        el.addEventListener("focus", () => el.select());
+      });
+      const save = document.getElementById("btn-save");
+      if (save) save.style.display = "none";
+      const clear = document.getElementById("btn-clear");
+      if (clear) clear.style.display = "none";
+      const badge = document.getElementById("locked-badge");
+      if (badge) badge.style.display = "block";
+    }
+
     async function saveVault() {
       const phrase = getKeyPhrase();
       if (!phrase) return;
