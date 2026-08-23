@@ -160,17 +160,22 @@ export function MemberBoard({
       ) : (
         <div
           className="member-board-scroll"
-          style={{
-            display: "grid",
-            gridAutoFlow: "column",
-            gridAutoColumns: "minmax(min(100%,300px),320px)",
-            gap: 14,
-            overflowX: "auto",
-            paddingBottom: 10,
-          }}
+          style={
+            isMobile
+              ? { display: "flex", flexDirection: "column", gap: 12 }
+              : {
+                  display: "grid",
+                  gridAutoFlow: "column",
+                  gridAutoColumns: "minmax(min(100%,300px),320px)",
+                  gap: 14,
+                  overflowX: "auto",
+                  paddingBottom: 10,
+                }
+          }
         >
           {shown.map((g) => {
             const roleStyle = g.role ? ROLE_STYLES[g.role] : null;
+            const open = !isMobile || (expanded[g.id] ?? g.id === shown[0]?.id);
             return (
               <section
                 key={g.id}
@@ -182,11 +187,20 @@ export function MemberBoard({
                   display: "flex",
                   flexDirection: "column",
                   gap: 10,
-                  minHeight: 200,
+                  minWidth: 0,
+                  minHeight: isMobile ? 0 : 200,
                 }}
               >
                 {/* Column head */}
-                <header style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <header
+                  onClick={isMobile ? () => setExpanded((p) => ({ ...p, [g.id]: !open })) : undefined}
+                  role={isMobile ? "button" : undefined}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    minHeight: isMobile ? 44 : undefined,
+                    cursor: isMobile ? "pointer" : undefined,
+                  }}
+                >
                   {g.user
                     ? <Avatar name={g.name} id={g.user.id} size={38} />
                     : <div style={{
@@ -210,8 +224,15 @@ export function MemberBoard({
                       </span>
                     </div>
                   </div>
+                  {isMobile && (
+                    <ChevronDown
+                      size={18}
+                      style={{ color: "var(--muted)", flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }}
+                    />
+                  )}
                 </header>
 
+                {open && (<>
                 {/* Status chips */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                   {STATUSES.map((s) => {
@@ -244,7 +265,10 @@ export function MemberBoard({
                 </div>
 
                 {/* Tasks */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 620, overflowY: "auto" }}>
+                <div style={{
+                  display: "flex", flexDirection: "column", gap: 10,
+                  ...(isMobile ? {} : { maxHeight: 620, overflowY: "auto" as const }),
+                }}>
                   {g.tasks.length === 0 ? (
                     <div style={{ padding: 18, textAlign: "center", color: "var(--muted)", fontSize: 12 }}>{t("noTasks")}</div>
                   ) : g.tasks.map((tk) => (
@@ -258,11 +282,13 @@ export function MemberBoard({
                     />
                   ))}
                 </div>
+                </>)}
               </section>
             );
           })}
         </div>
       )}
+
     </div>
   );
 }
