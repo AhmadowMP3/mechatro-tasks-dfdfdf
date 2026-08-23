@@ -17,6 +17,8 @@ import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, Search as SearchIcon } from "lucide-react";
 import { useApp } from "@/lib/app-context";
+import { createPortal } from "react-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const NONE = "__none__";
 const SEARCH_THRESHOLD = 6;
