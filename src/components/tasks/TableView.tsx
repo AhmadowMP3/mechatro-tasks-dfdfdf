@@ -300,7 +300,9 @@ export function TableView({
         </table>
       </div>
     </div>
+    </>
   );
+
 }
 
 const td: React.CSSProperties = { padding: "12px 14px", fontSize: 13, verticalAlign: "middle" };
