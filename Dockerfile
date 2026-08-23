@@ -20,6 +20,7 @@ COPY . .
 # VITE_* values are inlined into the client bundle at build time, so they must
 # be present during `npm run build` (pass with --build-arg or an .env file).
 ARG VITE_SUPABASE_URL="https://supabase.mechatro-sy.com"
+# NOTE: replace with the anon key of https://supabase.mechatro-sy.com (--build-arg or .env)
 ARG VITE_SUPABASE_PUBLISHABLE_KEY="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc4Njk5Mjg0MCwiZXhwIjo0OTQyNjY2NDQwLCJyb2xlIjoiYW5vbiJ9.CI0oY_6wThWOBpkxwhBj80KrvGrI-dnAKADfhSedHOs"
 ARG VITE_SUPABASE_PROJECT_ID="mechatro"
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
@@ -44,6 +45,7 @@ ENV NODE_ENV=production \
 # They can be supplied by the platform env; these build args are a fallback so
 # the image still works when only the VITE_* values were provided at build time.
 ARG VITE_SUPABASE_URL="https://supabase.mechatro-sy.com"
+# NOTE: replace with the anon key of https://supabase.mechatro-sy.com (--build-arg or .env)
 ARG VITE_SUPABASE_PUBLISHABLE_KEY="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc4Njk5Mjg0MCwiZXhwIjo0OTQyNjY2NDQwLCJyb2xlIjoiYW5vbiJ9.CI0oY_6wThWOBpkxwhBj80KrvGrI-dnAKADfhSedHOs"
 ARG VITE_SUPABASE_PROJECT_ID="mechatro"
 ENV SUPABASE_URL=$VITE_SUPABASE_URL \
