@@ -491,7 +491,14 @@
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body)
       });
-      if (!res.ok) throw new Error("request_failed");
+      if (!res.ok) {
+        let reason = "request_failed";
+        try { reason = (await res.json()).error || reason; } catch (e) {}
+        const err = new Error(reason);
+        err.reason = reason;
+        err.statusCode = res.status;
+        throw err;
+      }
       return res.json();
     }
 
@@ -527,7 +534,14 @@
         status("تم الحفظ مشفّراً ✔ — البيانات الآن للقراءة والنسخ فقط", "#6EE7B7");
         lockFields();
       } catch (e) {
-        status("تعذّر الحفظ — إمّا أن البيانات محفوظة مسبقاً (غير قابلة للتعديل) أو حدث خطأ", "#FCA5A5");
+        if (e && e.reason === "vault_locked") {
+          status("البيانات محفوظة مسبقاً ولا يمكن تعديلها", "#FCA5A5");
+          lockFields();
+        } else if (e && e.statusCode === 401) {
+          status("انتهت الجلسة — حدّث الصفحة وأدخل كلمة المرور من جديد", "#FCA5A5");
+        } else {
+          status("تعذّر الحفظ: " + ((e && (e.reason || e.message)) || "خطأ غير معروف"), "#FCA5A5");
+        }
       }
     }
 
