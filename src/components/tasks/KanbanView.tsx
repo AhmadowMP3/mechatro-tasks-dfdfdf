@@ -26,7 +26,7 @@ import { supabase } from "@/lib/security/db";
 import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { AssigneeNames } from "@/components/AssigneeNames";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, GripVertical } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -71,7 +71,7 @@ export function KanbanView({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 260, tolerance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 140, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -327,12 +327,13 @@ export function KanbanView({
           gridAutoColumns: isMobile ? "100%" : "minmax(280px, 1fr)",
           gap: isMobile ? 10 : 14,
           overflowX: "auto",
-          overscrollBehavior: "contain",
+          overscrollBehaviorX: "contain",
           paddingBottom: 12,
           paddingInline: isMobile ? 0 : 4,
-          scrollSnapType: "x mandatory",
+          alignItems: "start",
+          scrollSnapType: activeId ? "x proximity" : "x mandatory",
           scrollPaddingInline: isMobile ? 0 : 12,
-          touchAction: "pan-x pan-y",
+          touchAction: isMobile ? "pan-x" : "pan-x pan-y",
           scrollbarWidth: isMobile ? "none" : undefined,
         }}
       >
@@ -356,9 +357,11 @@ export function KanbanView({
               isAdmin={!!isAdmin}
               lang={lang}
               t={t}
+              isMobile={isMobile}
             />
           );
         })}
+
       </div>
       {isMobile && (
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 4, paddingBottom: 6 }}>
@@ -413,7 +416,7 @@ export function KanbanView({
 
 function KanbanColumn({
   col, colRef, tasks, projects, users, assigneesByTask, onOpen, onMove, canMoveTo,
-  dropAllowed, draggingId, currentUserId, isAdmin, lang, t,
+  dropAllowed, draggingId, currentUserId, isAdmin, lang, t, isMobile,
 }: {
   col: ColStatus;
   colRef?: (node: HTMLDivElement | null) => void;
@@ -430,7 +433,9 @@ function KanbanColumn({
   isAdmin: boolean;
   lang: "ar" | "en";
   t: (k: never) => string;
+  isMobile?: boolean;
 }) {
+
   const { setNodeRef, isOver } = useDroppable({ id: col });
   const style = STATUS_STYLES[col];
   const isReview = col === "in_review";
@@ -474,51 +479,72 @@ function KanbanColumn({
           {lang === "ar" ? "المهام هنا بانتظار اعتماد المدير." : "Tasks here await admin approval."}
         </div>
       )}
-      <SortableContext items={tasks.map((tk) => tk.id)} strategy={verticalListSortingStrategy}>
-        {tasks.length === 0 && (
-          <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "18px 6px" }}>—</div>
-        )}
-        {tasks.map((tk) => {
-          const project = projects.find((p) => p.id === tk.project_id);
-          const assignee = users.find((u) => u.id === tk.assignee_id);
-          const overdue = isOverdue(tk.due_date, tk.status);
-          const taskAssigneeIds = assigneesByTask?.[tk.id] ?? [];
-          const taskAssignees = taskAssigneeIds
-            .map((uid) => users.find((u) => u.id === uid))
-            .filter(Boolean) as Profile[];
-          const dragThis = isAdmin || tk.assignee_id === currentUserId || taskAssigneeIds.includes(currentUserId ?? "");
-          return (
-            <SortableCard
-              key={tk.id}
-              id={tk.id}
-              title={tk.title}
-              due={tk.due_date}
-              priority={tk.priority}
-              overdue={overdue}
-              project={project}
-              assignee={assignee}
-              taskAssignees={taskAssignees}
-              draggable={dragThis}
-              onOpen={() => onOpen(tk.id)}
-              lang={lang}
-              t={t}
-              moveTargets={
-                onMove && dragThis
-                  ? COLUMNS.filter((c) => c !== col && canMoveTo(tk, c))
-                  : undefined
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          minHeight: 0,
+          ...(isMobile
+            ? {
+                overflowY: "auto",
+                WebkitOverflowScrolling: "touch",
+                overscrollBehaviorY: "contain",
+                touchAction: "pan-y",
+                maxHeight: "calc(100dvh - 260px)",
+                paddingInlineEnd: 2,
               }
-              onMove={onMove ? (to) => onMove(tk.id, to) : undefined}
-            />
-          );
-        })}
-      </SortableContext>
+            : null),
+        }}
+      >
+        <SortableContext items={tasks.map((tk) => tk.id)} strategy={verticalListSortingStrategy}>
+          {tasks.length === 0 && (
+            <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "18px 6px" }}>—</div>
+          )}
+          {tasks.map((tk) => {
+            const project = projects.find((p) => p.id === tk.project_id);
+            const assignee = users.find((u) => u.id === tk.assignee_id);
+            const overdue = isOverdue(tk.due_date, tk.status);
+            const taskAssigneeIds = assigneesByTask?.[tk.id] ?? [];
+            const taskAssignees = taskAssigneeIds
+              .map((uid) => users.find((u) => u.id === uid))
+              .filter(Boolean) as Profile[];
+            const dragThis = isAdmin || tk.assignee_id === currentUserId || taskAssigneeIds.includes(currentUserId ?? "");
+            return (
+              <SortableCard
+                key={tk.id}
+                id={tk.id}
+                title={tk.title}
+                due={tk.due_date}
+                priority={tk.priority}
+                overdue={overdue}
+                project={project}
+                assignee={assignee}
+                taskAssignees={taskAssignees}
+                draggable={dragThis}
+                onOpen={() => onOpen(tk.id)}
+                lang={lang}
+                t={t}
+                isMobile={isMobile}
+                moveTargets={
+                  onMove && dragThis
+                    ? COLUMNS.filter((c) => c !== col && canMoveTo(tk, c))
+                    : undefined
+                }
+                onMove={onMove ? (to) => onMove(tk.id, to) : undefined}
+              />
+            );
+          })}
+        </SortableContext>
+      </div>
+
     </div>
   );
 }
 
 function SortableCard({
   id, title, due, priority, overdue, project, assignee, taskAssignees,
-  draggable, onOpen, lang, t, moveTargets, onMove,
+  draggable, onOpen, lang, t, moveTargets, onMove, isMobile,
 }: {
   id: string;
   title: string;
@@ -534,6 +560,7 @@ function SortableCard({
   t: (k: never) => string;
   moveTargets?: readonly ColStatus[];
   onMove?: (to: ColStatus) => void;
+  isMobile?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -543,11 +570,14 @@ function SortableCard({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  // On touch layouts the whole card must stay scrollable: drag lives on a handle.
+  const cardDrag = draggable && !isMobile;
+  const handleDrag = draggable && !!isMobile;
   return (
     <div
       ref={setNodeRef}
-      {...(draggable ? listeners : {})}
-      {...(draggable ? attributes : {})}
+      {...(cardDrag ? listeners : {})}
+      {...(cardDrag ? attributes : {})}
       onClick={() => onOpen()}
       style={{
         ...style,
@@ -556,7 +586,7 @@ function SortableCard({
         borderRadius: 10,
         background: "var(--surface-2)",
         border: `1px solid ${overdue ? "rgba(240,103,106,.5)" : "var(--border)"}`,
-        cursor: draggable ? (isDragging ? "grabbing" : "grab") : "pointer",
+        cursor: cardDrag ? (isDragging ? "grabbing" : "grab") : "pointer",
         opacity: isDragging ? 0.4 : 1,
         borderInlineStart: project ? `3px solid transparent` : undefined,
         backgroundImage: project
@@ -564,10 +594,11 @@ function SortableCard({
           : undefined,
         backgroundOrigin: "border-box",
         backgroundClip: "padding-box, border-box",
-        touchAction: draggable ? "none" : "auto",
+        touchAction: cardDrag ? "none" : "pan-y",
         userSelect: "none",
       }}
     >
+
       <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35, marginBottom: 8, color: "var(--foreground)" }}>
         {title}
       </div>
@@ -577,6 +608,29 @@ function SortableCard({
             <span>{due ? formatDate(due, lang) : "—"}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {handleDrag && (
+              <button
+                type="button"
+                aria-label={lang === "ar" ? "سحب" : "Drag"}
+                {...listeners}
+                {...attributes}
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                style={{
+                  width: 34, height: 34, flexShrink: 0,
+                  display: "grid", placeItems: "center",
+                  borderRadius: 9,
+                  border: "1px solid var(--border)",
+                  background: "var(--card)",
+                  color: "var(--muted)",
+                  padding: 0,
+                  touchAction: "none",
+                  cursor: isDragging ? "grabbing" : "grab",
+                }}
+              >
+                <GripVertical size={14} />
+              </button>
+            )}
+
             <AssigneeNames
               users={taskAssignees.length > 0 ? taskAssignees : (assignee ? [assignee] : [])}
               size={20}
