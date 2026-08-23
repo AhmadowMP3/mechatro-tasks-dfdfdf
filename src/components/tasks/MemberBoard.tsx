@@ -111,7 +111,9 @@ export function MemberBoard({
   onExportXlsx: (groups: MemberGroup[]) => void;
 }) {
   const { t, lang } = useApp();
+  const isMobile = useIsMobile();
   const [hideEmpty, setHideEmpty] = useState(true);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const shown = useMemo(
     () => (hideEmpty ? groups.filter((g) => g.tasks.length > 0) : groups),
