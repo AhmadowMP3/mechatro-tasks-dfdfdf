@@ -443,7 +443,7 @@ function KanbanColumn({
       style={{
         padding: 12,
         minHeight: 200,
-        scrollSnapAlign: "start",
+        scrollSnapAlign: colRef ? "center" : "start",
         background: highlight ? "var(--surface-2)" : "var(--card)",
         border: `1px solid ${highlight ? style.text : (isReview ? "rgba(168,85,247,.35)" : "var(--border)")}`,
         boxShadow: isReview ? `0 0 0 1px rgba(168,85,247,.15) inset, 0 8px 24px -18px ${style.text}` : undefined,
