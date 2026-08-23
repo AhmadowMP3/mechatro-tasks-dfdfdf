@@ -166,12 +166,8 @@ function AuthPage() {
         pointerEvents: "none",
       }} />
 
-      <div style={{ position: "absolute", top: 16, insetInlineEnd: 16, display: "flex", gap: 8, zIndex: 2 }}>
-        <button onClick={() => setLang(l ? "en" : "ar")} style={pillBtnStyle}>{l ? "English" : "عربي"}</button>
-        <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={pillBtnStyle}>
-          {theme === "dark" ? "☀︎" : "☾"}
-        </button>
-      </div>
+
+
 
       <div style={{
         position: "relative",
