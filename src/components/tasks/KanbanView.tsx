@@ -26,6 +26,7 @@ import { supabase } from "@/lib/security/db";
 import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { AssigneeNames } from "@/components/AssigneeNames";
+import { ArrowLeftRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -501,7 +502,6 @@ function KanbanColumn({
               onOpen={() => onOpen(tk.id)}
               lang={lang}
               t={t}
-              currentStatus={col}
               moveTargets={
                 onMove && dragThis
                   ? COLUMNS.filter((c) => c !== col && canMoveTo(tk, c))
@@ -518,7 +518,7 @@ function KanbanColumn({
 
 function SortableCard({
   id, title, due, priority, overdue, project, assignee, taskAssignees,
-  draggable, onOpen, lang, t, currentStatus, moveTargets, onMove,
+  draggable, onOpen, lang, t, moveTargets, onMove,
 }: {
   id: string;
   title: string;
@@ -532,7 +532,6 @@ function SortableCard({
   onOpen: () => void;
   lang: "ar" | "en";
   t: (k: never) => string;
-  currentStatus: ColStatus;
   moveTargets?: readonly ColStatus[];
   onMove?: (to: ColStatus) => void;
 }) {
