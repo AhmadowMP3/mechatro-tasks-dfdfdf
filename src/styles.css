@@ -806,3 +806,110 @@ a:focus-visible,
   transform: scaleX(-1);
 }
 
+
+/* ============================================================
+   RESPONSIVE FOUNDATION (Phase 1a)
+   Mobile-first tokens, container, fluid type & spacing,
+   overflow guards, safe areas, touch targets.
+   Purely additive — no color/font/design changes.
+   ============================================================ */
+
+:root {
+  /* Fluid spacing rhythm */
+  --space-page-x: 16px;
+  --space-page-y: 20px;
+  --space-gap: 12px;
+  --space-section: 28px;
+
+  /* Fluid type scale */
+  --fs-page-title: clamp(20px, 5.2vw, 28px);
+  --fs-section-title: clamp(16px, 3.6vw, 20px);
+  --fs-body: clamp(13px, 2.6vw, 14.5px);
+  --fs-small: clamp(11.5px, 2.2vw, 12.5px);
+
+  /* Chrome metrics */
+  --tabbar-h: 72px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --bottom-space: 0px;
+  --tap: 44px;
+}
+
+@media (max-width: 1023px) {
+  :root { --bottom-space: calc(var(--tabbar-h) + var(--safe-b)); }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --space-page-x: 24px;
+    --space-page-y: 24px;
+    --space-gap: 14px;
+    --space-section: 36px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --space-page-x: 32px;
+    --space-page-y: 28px;
+    --space-gap: 16px;
+    --space-section: 44px;
+  }
+}
+
+/* ---- Overflow guards: zero horizontal page scroll at any width ---- */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+#root, main { max-width: 100%; min-width: 0; }
+img, svg, video, canvas, iframe, table { max-width: 100%; }
+img, video { height: auto; }
+pre, code { overflow-x: auto; max-width: 100%; }
+
+/* ---- Shared page container ---- */
+.page-container {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: max(var(--space-page-x), var(--safe-l), var(--safe-r));
+  padding-block: var(--space-page-y);
+  min-width: 0;
+}
+
+/* ---- Fluid typography helpers ---- */
+.t-page-title { font-size: var(--fs-page-title); line-height: 1.15; }
+.t-section-title { font-size: var(--fs-section-title); line-height: 1.25; }
+.t-body { font-size: var(--fs-body); }
+.t-small { font-size: var(--fs-small); }
+
+/* ---- Responsive grid helpers (base 1 col, up from there) ---- */
+.rgrid { display: grid; grid-template-columns: 1fr; gap: var(--space-gap); }
+@media (min-width: 640px)  { .rgrid-2, .rgrid-3, .rgrid-4 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (min-width: 1024px) { .rgrid-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+                             .rgrid-4 { grid-template-columns: repeat(4, minmax(0,1fr)); } }
+
+/* ---- Touch targets ---- */
+.tap-target {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Safe areas ---- */
+.safe-pb { padding-bottom: var(--safe-b); }
+.safe-pt { padding-top: var(--safe-t); }
+.safe-bottom-space { padding-bottom: var(--bottom-space); }
+
+/* ---- Media default ---- */
+.responsive-img { width: 100%; height: auto; object-fit: cover; display: block; }
+
+/* ---- Drop heavy motion on small screens ---- */
+@media (max-width: 767px) {
+  .empty-halo { animation: none; }
+  .mtab-icon-glow { filter: blur(7px); }
+  * { background-attachment: scroll !important; }
+}
