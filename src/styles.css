@@ -913,3 +913,124 @@ pre, code { overflow-x: auto; max-width: 100%; }
   .mtab-icon-glow { filter: blur(7px); }
   * { background-attachment: scroll !important; }
 }
+
+/* ============================================================
+   APP SHELL + NAV (Phase 1b)
+   ============================================================ */
+
+/* Main content padding + bottom chrome space */
+.app-main {
+  padding: 14px max(14px, var(--safe-l), var(--safe-r));
+  padding-bottom: calc(14px + var(--bottom-space));
+}
+@media (min-width: 768px) {
+  .app-main { padding: 20px 24px; padding-bottom: calc(20px + var(--bottom-space)); }
+}
+@media (min-width: 1024px) {
+  .app-main { padding: 28px 32px; padding-bottom: 28px; }
+}
+
+/* Bottom tab bar — phones: edge to edge; tablets: centered pill; lg+: hidden */
+.mobile-tabbar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 60;
+  background: color-mix(in oklab, var(--card) 92%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  padding-bottom: var(--safe-b);
+  padding-inline: max(0px, var(--safe-l), var(--safe-r));
+}
+.mobile-tabbar .mtab {
+  min-height: var(--tap);
+  min-width: var(--tap);
+}
+@media (min-width: 768px) {
+  .mobile-tabbar {
+    inset-inline: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(12px + var(--safe-b));
+    width: min(480px, calc(100vw - 32px));
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+    padding-bottom: 0;
+  }
+}
+@media (min-width: 1024px) {
+  .mobile-tabbar { display: none !important; }
+}
+
+/* Landscape notched phones: keep the bar clear of the home indicator */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mobile-tabbar { padding-bottom: max(var(--safe-b), 4px); }
+  .mobile-tabbar .mtab { min-height: 46px; }
+}
+
+/* The legacy ≤767px main padding override is superseded by .app-main */
+main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
+@media (min-width: 768px) { main.app-main { padding-bottom: calc(20px + var(--bottom-space)) !important; } }
+@media (min-width: 1024px) { main.app-main { padding-bottom: 28px !important; } }
+
+/* ---- Dialogs / modals: bottom sheet below md, centered from md ---- */
+@media (max-width: 767px) {
+  .brand-modal,
+  [role="dialog"].sheet-on-mobile {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: calc(100dvh - 32px) !important;
+    padding-bottom: calc(12px + var(--safe-b));
+  }
+  .modal-overlay-center { align-items: flex-end !important; padding: 0 !important; }
+}
+
+/* ---- Shared table wrappers ---- */
+.table-scroll {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.table-scroll table { min-width: max-content; border-collapse: collapse; }
+.table-scroll td.num, .table-scroll th.num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.table-scroll .sticky-col {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 2;
+  background: var(--card);
+  box-shadow: 1px 0 0 var(--border), 6px 0 12px -10px rgba(0,0,0,.7);
+}
+[dir="rtl"] .table-scroll .sticky-col { box-shadow: -1px 0 0 var(--border), -6px 0 12px -10px rgba(0,0,0,.7); }
+.table-scroll-wrap { position: relative; }
+.table-scroll-wrap::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 28px;
+  pointer-events: none;
+  background: linear-gradient(to left, var(--card), transparent);
+  opacity: 1;
+  transition: opacity .2s ease;
+}
+[dir="rtl"] .table-scroll-wrap::after { background: linear-gradient(to right, var(--card), transparent); }
+.table-scroll-wrap[data-at-end="true"]::after { opacity: 0; }
+@media (min-width: 768px) {
+  .table-scroll-wrap::after { display: none; }
+}
+
+/* Stacked-card list container used where tables convert below md */
+.stack-cards { display: flex; flex-direction: column; gap: 10px; }
+@media (min-width: 768px) { .hide-from-md { display: none !important; } }
+@media (max-width: 767px) { .hide-below-md { display: none !important; } }
