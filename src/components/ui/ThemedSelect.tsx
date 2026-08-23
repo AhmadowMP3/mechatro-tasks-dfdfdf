@@ -106,6 +106,110 @@ export function ThemedSelect({
   const searchPlaceholder = lang === "ar" ? "بحث…" : "Search…";
   const emptyText = lang === "ar" ? "لا نتائج" : "No results";
 
+  const isMobile = useIsMobile();
+
+  React.useEffect(() => {
+    if (!isMobile || !open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [isMobile, open]);
+
+  // ---- Mobile: bottom sheet instead of an anchored popper ----
+  if (isMobile) {
+    const pick = (v: string) => { onChange(v === NONE ? "" : v); setOpen(false); };
+    return (
+      <>
+        <button
+          type="button"
+          dir={dir}
+          aria-label={ariaLabel}
+          disabled={disabled}
+          onClick={() => !disabled && setOpen(true)}
+          style={triggerStyle}
+        >
+          {selected ? (
+            <span style={{ color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selected.label}</span>
+          ) : (
+            <span style={{ color: "var(--muted)" }}>{placeholder ?? "—"}</span>
+          )}
+          <ChevronDown size={16} style={{ color: "var(--muted)", flexShrink: 0 }} />
+        </button>
+
+        {open && typeof document !== "undefined" && createPortal(
+          <div
+            dir={dir}
+            onClick={() => setOpen(false)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 1200,
+              background: "rgba(0,0,0,.55)",
+              display: "flex", alignItems: "flex-end", justifyContent: "center",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100%",
+                maxHeight: "70dvh",
+                background: "var(--card)",
+                color: "var(--foreground)",
+                borderTop: "1px solid var(--border)",
+                borderRadius: "20px 20px 0 0",
+                boxShadow: "0 -12px 40px rgba(0,0,0,.45)",
+                display: "flex", flexDirection: "column", overflow: "hidden",
+                paddingBottom: "calc(8px + env(safe-area-inset-bottom))",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 4px" }}>
+                <div style={{ width: 40, height: 4, borderRadius: 999, background: "var(--border)" }} />
+              </div>
+
+              {showSearch && (
+                <div style={{ padding: 8, borderBottom: "1px solid var(--border)" }}>
+                  <div style={{ position: "relative" }}>
+                    <SearchIcon size={14} style={{ position: "absolute", top: "50%", insetInlineStart: 10, transform: "translateY(-50%)", color: "var(--muted)", pointerEvents: "none" }} />
+                    <input
+                      ref={searchRef}
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={searchPlaceholder}
+                      style={{
+                        width: "100%", minHeight: 40,
+                        background: "var(--surface-2)", color: "var(--foreground)",
+                        border: "1px solid var(--border)", borderRadius: 8,
+                        paddingInlineStart: 30, paddingInlineEnd: 10,
+                        fontSize: 14, fontFamily: "inherit", outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div style={{ overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 4, WebkitOverflowScrolling: "touch" }}>
+                {placeholder !== undefined && (
+                  <SheetItem selected={value === ""} onSelect={() => pick(NONE)}>
+                    <span style={{ color: "var(--muted)" }}>{placeholder}</span>
+                  </SheetItem>
+                )}
+                {filtered.map((o) => (
+                  <SheetItem key={o.value} selected={o.value === value} disabled={o.disabled} onSelect={() => !o.disabled && pick(o.value)}>
+                    {o.label}
+                  </SheetItem>
+                ))}
+                {filtered.length === 0 && (
+                  <div style={{ padding: "16px 12px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>{emptyText}</div>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+      </>
+    );
+  }
+
+
+
   return (
     <SelectPrimitive.Root
       value={value === "" ? NONE : value}
