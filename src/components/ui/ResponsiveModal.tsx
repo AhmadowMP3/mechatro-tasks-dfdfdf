@@ -129,6 +129,6 @@ export function ResponsiveModal({
         {title != null && <h2 style={{ margin: 0, marginBottom: 16 }}>{title}</h2>}
         {children}
       </div>
-    </div>
+    </div>,
   );
 }
