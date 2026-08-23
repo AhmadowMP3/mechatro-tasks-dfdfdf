@@ -500,6 +500,14 @@ function KanbanColumn({
               draggable={dragThis}
               onOpen={() => onOpen(tk.id)}
               lang={lang}
+              t={t}
+              currentStatus={col}
+              moveTargets={
+                onMove && dragThis
+                  ? COLUMNS.filter((c) => c !== col && canMoveTo(tk, c))
+                  : undefined
+              }
+              onMove={onMove ? (to) => onMove(tk.id, to) : undefined}
             />
           );
         })}
