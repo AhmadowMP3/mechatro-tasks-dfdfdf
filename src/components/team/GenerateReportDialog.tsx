@@ -161,7 +161,8 @@ function PreviewModal({
   useEffect(() => () => URL.revokeObjectURL(previewUrl), [previewUrl]);
   const sizeKb = Math.max(1, Math.round(prepared.blob.size / 1024));
 
-  return (
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div
       onClick={onClose}
       style={{
