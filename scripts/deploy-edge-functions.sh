@@ -73,4 +73,4 @@ echo "[remote] done"
 REMOTE
 
 log "All functions deployed. Verify with:"
-log "  curl -i -X OPTIONS https://supamecha.hub4tech.net/functions/v1/admin-users"
+log "  curl -i -X OPTIONS https://supabase.mechatro-sy.com/functions/v1/admin-users"

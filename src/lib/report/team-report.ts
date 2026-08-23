@@ -209,7 +209,7 @@ function coverPage(data: TeamReportData): string {
     <div style="${CARD_STYLE};padding:16px 22px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${P.muted}">
       <div style="display:flex;align-items:center;gap:8px">
         <img src="${logo}" style="height:16px;object-fit:contain;opacity:.9"/>
-        <span>mechatro @ mechatro.hub4tech.net</span>
+        <span>mechatro @ dashboard.mechatro-sy.com</span>
       </div>
       <div>By ${esc(data.generated_by.full_name)}</div>
     </div>

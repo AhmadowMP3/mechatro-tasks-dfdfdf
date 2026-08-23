@@ -63,7 +63,7 @@ docker restart "$C"
 ## التحقق
 
 ```bash
-curl -i -X OPTIONS https://supamecha.hub4tech.net/functions/v1/admin-users
+curl -i -X OPTIONS https://supabase.mechatro-sy.com/functions/v1/admin-users
 ```
 
 لازم يرجع 200 مع هيدرز CORS.
@@ -71,7 +71,7 @@ curl -i -X OPTIONS https://supamecha.hub4tech.net/functions/v1/admin-users
 للتأكد من أن أسرار Google OAuth وصلت للدالة:
 
 ```bash
-curl -s -X POST https://supamecha.hub4tech.net/functions/v1/backup-snapshot \
+curl -s -X POST https://supabase.mechatro-sy.com/functions/v1/backup-snapshot \
   -H "Authorization: Bearer <service-role-key>" \
   -H "apikey: <service-role-key>" \
   -H "Content-Type: application/json" \

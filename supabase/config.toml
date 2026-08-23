@@ -1,6 +1,6 @@
-# Migrated target: self-hosted Supabase on supamecha.hub4tech.net
+# Self-hosted Supabase: https://supabase.mechatro-sy.com
 # Old Lovable Cloud ref: hxzttehtfnxpnfyeclzj
-project_id = "supamecha"
+project_id = "mechatro"
 
 [functions.backup-snapshot]
 verify_jwt = false
