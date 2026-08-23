@@ -149,6 +149,7 @@ export function SetPasswordDialog({ userName, lang, onSave, onClose }: {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
