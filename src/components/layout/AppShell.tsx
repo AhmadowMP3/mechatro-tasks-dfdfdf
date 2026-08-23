@@ -87,7 +87,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     flexShrink: 0,
   };
 
-  const bottomBarSpace = isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : "0px";
+  // Bottom chrome spacing is handled in CSS (--bottom-space).
   const notifsActive = pathname.startsWith("/notifications");
 
   return (
