@@ -476,44 +476,65 @@ function KanbanColumn({
           {lang === "ar" ? "المهام هنا بانتظار اعتماد المدير." : "Tasks here await admin approval."}
         </div>
       )}
-      <SortableContext items={tasks.map((tk) => tk.id)} strategy={verticalListSortingStrategy}>
-        {tasks.length === 0 && (
-          <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "18px 6px" }}>—</div>
-        )}
-        {tasks.map((tk) => {
-          const project = projects.find((p) => p.id === tk.project_id);
-          const assignee = users.find((u) => u.id === tk.assignee_id);
-          const overdue = isOverdue(tk.due_date, tk.status);
-          const taskAssigneeIds = assigneesByTask?.[tk.id] ?? [];
-          const taskAssignees = taskAssigneeIds
-            .map((uid) => users.find((u) => u.id === uid))
-            .filter(Boolean) as Profile[];
-          const dragThis = isAdmin || tk.assignee_id === currentUserId || taskAssigneeIds.includes(currentUserId ?? "");
-          return (
-            <SortableCard
-              key={tk.id}
-              id={tk.id}
-              title={tk.title}
-              due={tk.due_date}
-              priority={tk.priority}
-              overdue={overdue}
-              project={project}
-              assignee={assignee}
-              taskAssignees={taskAssignees}
-              draggable={dragThis}
-              onOpen={() => onOpen(tk.id)}
-              lang={lang}
-              t={t}
-              moveTargets={
-                onMove && dragThis
-                  ? COLUMNS.filter((c) => c !== col && canMoveTo(tk, c))
-                  : undefined
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          minHeight: 0,
+          ...(isMobile
+            ? {
+                overflowY: "auto",
+                WebkitOverflowScrolling: "touch",
+                overscrollBehaviorY: "contain",
+                touchAction: "pan-y",
+                maxHeight: "calc(100dvh - 260px)",
+                paddingInlineEnd: 2,
               }
-              onMove={onMove ? (to) => onMove(tk.id, to) : undefined}
-            />
-          );
-        })}
-      </SortableContext>
+            : null),
+        }}
+      >
+        <SortableContext items={tasks.map((tk) => tk.id)} strategy={verticalListSortingStrategy}>
+          {tasks.length === 0 && (
+            <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "18px 6px" }}>—</div>
+          )}
+          {tasks.map((tk) => {
+            const project = projects.find((p) => p.id === tk.project_id);
+            const assignee = users.find((u) => u.id === tk.assignee_id);
+            const overdue = isOverdue(tk.due_date, tk.status);
+            const taskAssigneeIds = assigneesByTask?.[tk.id] ?? [];
+            const taskAssignees = taskAssigneeIds
+              .map((uid) => users.find((u) => u.id === uid))
+              .filter(Boolean) as Profile[];
+            const dragThis = isAdmin || tk.assignee_id === currentUserId || taskAssigneeIds.includes(currentUserId ?? "");
+            return (
+              <SortableCard
+                key={tk.id}
+                id={tk.id}
+                title={tk.title}
+                due={tk.due_date}
+                priority={tk.priority}
+                overdue={overdue}
+                project={project}
+                assignee={assignee}
+                taskAssignees={taskAssignees}
+                draggable={dragThis}
+                onOpen={() => onOpen(tk.id)}
+                lang={lang}
+                t={t}
+                isMobile={isMobile}
+                moveTargets={
+                  onMove && dragThis
+                    ? COLUMNS.filter((c) => c !== col && canMoveTo(tk, c))
+                    : undefined
+                }
+                onMove={onMove ? (to) => onMove(tk.id, to) : undefined}
+              />
+            );
+          })}
+        </SortableContext>
+      </div>
+
     </div>
   );
 }
