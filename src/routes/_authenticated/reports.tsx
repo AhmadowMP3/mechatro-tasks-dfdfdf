@@ -302,7 +302,7 @@ function StepScope({ scope, setScope, memberId, setMemberId, users }: { scope: S
       {scope === "member" && (
         <div>
           <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>{t("pickMember")}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 8, maxHeight: 300, overflowY: "auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,200px),1fr))", gap: 8, maxHeight: 300, overflowY: "auto" }}>
             {users.filter((u) => u.active).map((u) => (
               <button key={u.id} onClick={() => setMemberId(u.id)} className="brand-btn" style={{
                 justifyContent: "flex-start", padding: 10, gap: 10,

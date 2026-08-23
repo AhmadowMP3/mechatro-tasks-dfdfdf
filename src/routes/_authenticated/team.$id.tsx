@@ -151,7 +151,7 @@ function MemberProfilePage() {
 
       {/* Contact + meta */}
       <SectionTitle icon={<Mail size={16} />}>{t("contactInfo")}</SectionTitle>
-      <div className="brand-card" style={{ padding: 14, marginBottom: 18, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
+      <div className="brand-card" style={{ padding: 14, marginBottom: 18, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,220px),1fr))", gap: 12 }}>
         <InfoRow icon={<Mail size={14} />} label={t("email")} value={p.email || "—"} ltr />
         <InfoRow icon={<Phone size={14} />} label={t("phone")} value={p.phone || "—"} ltr />
         <InfoRow icon={<Calendar size={14} />} label={t("joinedAt")} value={formatDate((p as { created_at?: string }).created_at, lang) || "—"} />

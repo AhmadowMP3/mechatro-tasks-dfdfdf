@@ -89,7 +89,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 
 function Grid({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%,220px),1fr))", gap: 12 }}>
       {children}
     </div>
   );
