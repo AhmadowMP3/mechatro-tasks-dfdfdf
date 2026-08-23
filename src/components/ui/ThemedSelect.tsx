@@ -236,6 +236,8 @@ export function ThemedSelect({
         <SelectPrimitive.Content
           position="popper"
           sideOffset={6}
+          avoidCollisions
+          collisionPadding={12}
           style={{
             zIndex: 1000,
             minWidth: "var(--radix-select-trigger-width)",
