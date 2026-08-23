@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -26,6 +26,15 @@ import { supabase } from "@/lib/security/db";
 import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { AssigneeNames } from "@/components/AssigneeNames";
+import { ArrowLeftRight } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
 
@@ -55,12 +64,50 @@ export function KanbanView({
   // Local sort/status overlay so drags feel instant while Supabase catches up.
   const [override, setOverride] = useState<Record<string, { status: ColStatus; sort_order: number }>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const colRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [activeCol, setActiveCol] = useState<ColStatus>("todo");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 260, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  // Track which column is centered on mobile.
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = scrollerRef.current;
+    if (!el) return;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const box = el.getBoundingClientRect();
+        const center = box.left + box.width / 2;
+        let best: ColStatus = activeCol;
+        let bestD = Infinity;
+        for (const c of COLUMNS) {
+          const node = colRefs.current[c];
+          if (!node) continue;
+          const r = node.getBoundingClientRect();
+          const d = Math.abs(r.left + r.width / 2 - center);
+          if (d < bestD) { bestD = d; best = c; }
+        }
+        setActiveCol((cur) => (cur === best ? cur : best));
+      });
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => { el.removeEventListener("scroll", onScroll); cancelAnimationFrame(raf); };
+  }, [isMobile, activeCol]);
+
+  const goToCol = useCallback((c: ColStatus) => {
+    const node = colRefs.current[c];
+    node?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    setActiveCol(c);
+  }, []);
 
   function canMove(task: TaskRow | undefined, target: ColStatus): boolean {
     if (!task) return false;
@@ -191,6 +238,34 @@ export function KanbanView({
     setOverride({});
   }
 
+  // Mobile "move to" menu: same rules and patch shape as drag-and-drop.
+  async function moveTaskTo(taskId: string, to: ColStatus) {
+    const original = tasks.find((x) => x.id === taskId);
+    if (!original) return;
+    if (original.status === to) return;
+    if (!canMove(original, to)) { toast.error(t("onlyAdminCanComplete")); return; }
+
+    const list = columns[to].filter((x) => x.id !== taskId);
+    const last = list[list.length - 1];
+    const newOrder = (last?.sort_order ?? 0) + 1000;
+
+    setOverride({ [taskId]: { status: to, sort_order: newOrder } });
+
+    const patch: { sort_order: number; status: ColStatus; completed_at?: string | null } = {
+      sort_order: newOrder,
+      status: to,
+    };
+    if (to === "done") patch.completed_at = new Date().toISOString();
+    if (original.status === "done" && to !== "done") patch.completed_at = null;
+
+    const { error } = await supabase.from("tasks").update(patch).eq("id", taskId);
+    if (error) { toast.error(error.message); setOverride({}); return; }
+    if (to === "in_review") toast.success(t("awaitingReview"));
+    onChanged();
+    setOverride({});
+    goToCol(to);
+  }
+
   const draggingTask = activeId ? tasks.find((x) => x.id === activeId) : undefined;
 
   return (
@@ -202,19 +277,63 @@ export function KanbanView({
       onDragEnd={handleDragEnd}
       onDragCancel={() => { setActiveId(null); setOverride({}); }}
     >
+      {isMobile && (
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+            paddingBottom: 8,
+            paddingInline: 2,
+            scrollbarWidth: "none",
+          }}
+        >
+          {COLUMNS.map((c) => {
+            const s = STATUS_STYLES[c];
+            const on = activeCol === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => goToCol(c)}
+                style={{
+                  flex: "0 0 auto",
+                  minHeight: 40,
+                  padding: "8px 12px",
+                  borderRadius: 999,
+                  border: `1px solid ${on ? s.text : "var(--border)"}`,
+                  background: on ? s.bg : "var(--surface-2)",
+                  color: on ? s.text : "var(--muted)",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {t(c as never)}
+                <span style={{ opacity: 0.85 }}>{toLocalDigits(columns[c].length, lang)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div
+        ref={scrollerRef}
         style={{
           display: "grid",
           gridAutoFlow: "column",
-          gridAutoColumns: "minmax(280px, 1fr)",
-          gap: 14,
+          gridAutoColumns: isMobile ? "100%" : "minmax(280px, 1fr)",
+          gap: isMobile ? 10 : 14,
           overflowX: "auto",
           overscrollBehavior: "contain",
           paddingBottom: 12,
-          paddingInline: 4,
+          paddingInline: isMobile ? 0 : 4,
           scrollSnapType: "x mandatory",
-          scrollPaddingInline: 12,
+          scrollPaddingInline: isMobile ? 0 : 12,
           touchAction: "pan-x pan-y",
+          scrollbarWidth: isMobile ? "none" : undefined,
         }}
       >
         {COLUMNS.map((col) => {
@@ -223,11 +342,14 @@ export function KanbanView({
             <KanbanColumn
               key={col}
               col={col}
+              colRef={(n) => { colRefs.current[col] = n; }}
               tasks={columns[col]}
               projects={projects}
               users={users}
               assigneesByTask={assigneesByTask}
               onOpen={onOpen}
+              onMove={isMobile ? moveTaskTo : undefined}
+              canMoveTo={(task, target) => canMove(task, target)}
               dropAllowed={dropAllowed}
               draggingId={activeId}
               currentUserId={user?.id}
@@ -238,6 +360,33 @@ export function KanbanView({
           );
         })}
       </div>
+      {isMobile && (
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 4, paddingBottom: 6 }}>
+          {COLUMNS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              aria-label={t(c as never)}
+              onClick={() => goToCol(c)}
+              style={{
+                width: 34, height: 34, display: "grid", placeItems: "center",
+                background: "transparent", border: "none", padding: 0,
+              }}
+            >
+              <span
+                style={{
+                  display: "block",
+                  width: activeCol === c ? 18 : 7,
+                  height: 7,
+                  borderRadius: 999,
+                  background: activeCol === c ? STATUS_STYLES[c].text : "var(--border)",
+                  transition: "width .2s ease, background .2s ease",
+                }}
+              />
+            </button>
+          ))}
+        </div>
+      )}
       <DragOverlay dropAnimation={null}>
         {draggingTask ? (
           <div
@@ -263,15 +412,18 @@ export function KanbanView({
 }
 
 function KanbanColumn({
-  col, tasks, projects, users, assigneesByTask, onOpen,
+  col, colRef, tasks, projects, users, assigneesByTask, onOpen, onMove, canMoveTo,
   dropAllowed, draggingId, currentUserId, isAdmin, lang, t,
 }: {
   col: ColStatus;
+  colRef?: (node: HTMLDivElement | null) => void;
   tasks: TaskRow[];
   projects: Project[];
   users: Profile[];
   assigneesByTask?: Record<string, string[]>;
   onOpen: (id: string) => void;
+  onMove?: (taskId: string, to: ColStatus) => void;
+  canMoveTo: (task: TaskRow, target: ColStatus) => boolean;
   dropAllowed: boolean;
   draggingId: string | null;
   currentUserId: string | undefined;
@@ -287,12 +439,12 @@ function KanbanColumn({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(n) => { setNodeRef(n); colRef?.(n); }}
       className="brand-card kanban-col"
       style={{
         padding: 12,
         minHeight: 200,
-        scrollSnapAlign: "start",
+        scrollSnapAlign: colRef ? "center" : "start",
         background: highlight ? "var(--surface-2)" : "var(--card)",
         border: `1px solid ${highlight ? style.text : (isReview ? "rgba(168,85,247,.35)" : "var(--border)")}`,
         boxShadow: isReview ? `0 0 0 1px rgba(168,85,247,.15) inset, 0 8px 24px -18px ${style.text}` : undefined,
@@ -349,6 +501,13 @@ function KanbanColumn({
               draggable={dragThis}
               onOpen={() => onOpen(tk.id)}
               lang={lang}
+              t={t}
+              moveTargets={
+                onMove && dragThis
+                  ? COLUMNS.filter((c) => c !== col && canMoveTo(tk, c))
+                  : undefined
+              }
+              onMove={onMove ? (to) => onMove(tk.id, to) : undefined}
             />
           );
         })}
@@ -359,7 +518,7 @@ function KanbanColumn({
 
 function SortableCard({
   id, title, due, priority, overdue, project, assignee, taskAssignees,
-  draggable, onOpen, lang,
+  draggable, onOpen, lang, t, moveTargets, onMove,
 }: {
   id: string;
   title: string;
@@ -372,6 +531,9 @@ function SortableCard({
   draggable: boolean;
   onOpen: () => void;
   lang: "ar" | "en";
+  t: (k: never) => string;
+  moveTargets?: readonly ColStatus[];
+  onMove?: (to: ColStatus) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -414,11 +576,53 @@ function SortableCard({
             <PriorityDot p={priority} />
             <span>{due ? formatDate(due, lang) : "—"}</span>
           </div>
-          <AssigneeNames
-            users={taskAssignees.length > 0 ? taskAssignees : (assignee ? [assignee] : [])}
-            size={20}
-            maxNames={1}
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <AssigneeNames
+              users={taskAssignees.length > 0 ? taskAssignees : (assignee ? [assignee] : [])}
+              size={20}
+              maxNames={1}
+            />
+            {onMove && moveTargets && moveTargets.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={lang === "ar" ? "نقل إلى" : "Move to"}
+                    onPointerDown={(e) => { e.stopPropagation(); }}
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                    style={{
+                      width: 34, height: 34, flexShrink: 0,
+                      display: "grid", placeItems: "center",
+                      borderRadius: 9,
+                      border: "1px solid var(--border)",
+                      background: "var(--card)",
+                      color: "var(--muted)",
+                      padding: 0,
+                    }}
+                  >
+                    <ArrowLeftRight size={14} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="z-[90]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <DropdownMenuLabel>{lang === "ar" ? "نقل إلى" : "Move to"}</DropdownMenuLabel>
+                  {moveTargets.map((c) => (
+                    <DropdownMenuItem
+                      key={c}
+                      onSelect={(e) => { e.preventDefault(); onMove(c); }}
+                      style={{ minHeight: 40, gap: 8 }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: 3, background: STATUS_STYLES[c].text }} />
+                      {t(c as never)}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
     </div>
   );
