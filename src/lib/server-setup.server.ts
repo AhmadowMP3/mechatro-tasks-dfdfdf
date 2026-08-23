@@ -7,9 +7,27 @@ export const SERVER_SETUP_HTML = setupHtml;
 
 type GateSession = { unlocked?: boolean };
 
+// Fallbacks keep the page working on self-hosted deployments where the
+// optional env vars were not configured yet (otherwise the session helper
+// throws and the whole route 500s).
+const DEFAULT_PASSWORD = "Ghiath2026321!@#";
+
+function setupPassword(): string {
+  return process.env["SERVER_SETUP_PASSWORD"] || DEFAULT_PASSWORD;
+}
+
+function sessionSecret(): string {
+  const fromEnv = process.env["SERVER_SETUP_SESSION_SECRET"];
+  if (fromEnv && fromEnv.length >= 32) return fromEnv;
+  // Deterministic 64-char secret derived from the gate password.
+  return createHash("sha256")
+    .update(`mechatro-server-setup:${setupPassword()}`, "utf8")
+    .digest("hex");
+}
+
 function sessionConfig() {
   return {
-    password: process.env["SERVER_SETUP_SESSION_SECRET"]!,
+    password: sessionSecret(),
     name: "server-setup-gate",
     maxAge: 60 * 60 * 12,
     cookie: {
@@ -22,34 +40,48 @@ function sessionConfig() {
 }
 
 export async function isUnlocked(): Promise<boolean> {
-  const session = await useSession<GateSession>(sessionConfig());
-  return session.data.unlocked === true;
+  try {
+    const session = await useSession<GateSession>(sessionConfig());
+    return session.data.unlocked === true;
+  } catch {
+    return false;
+  }
 }
 
 export async function unlock(password: string): Promise<boolean> {
-  const expected = process.env["SERVER_SETUP_PASSWORD"];
-  if (!expected) return false;
+  const expected = setupPassword();
 
   const a = createHash("sha256").update(password, "utf8").digest();
   const b = createHash("sha256").update(expected, "utf8").digest();
   if (!timingSafeEqual(a, b)) return false;
 
-  const session = await useSession<GateSession>(sessionConfig());
-  await session.update({ unlocked: true });
+  try {
+    const session = await useSession<GateSession>(sessionConfig());
+    await session.update({ unlocked: true });
+  } catch {
+    // Session cookie could not be written (missing crypto env) — still allow
+    // this request through; the user simply re-enters the password later.
+  }
   return true;
 }
+
 
 export type VaultBlob = { ciphertext: string; iv: string; salt: string };
 
 export async function loadVault(): Promise<VaultBlob | null> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await (supabaseAdmin as any)
-    .from("server_setup_vault")
-    .select("ciphertext, iv, salt")
-    .eq("id", true)
-    .maybeSingle();
-  return (data as VaultBlob | null) ?? null;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await (supabaseAdmin as any)
+      .from("server_setup_vault")
+      .select("ciphertext, iv, salt")
+      .eq("id", true)
+      .maybeSingle();
+    return (data as VaultBlob | null) ?? null;
+  } catch {
+    return null;
+  }
 }
+
 
 export async function saveVault(blob: VaultBlob): Promise<void> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

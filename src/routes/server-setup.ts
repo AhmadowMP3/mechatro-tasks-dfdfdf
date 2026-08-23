@@ -15,12 +15,18 @@ export const Route = createFileRoute("/server-setup")({
   server: {
     handlers: {
       GET: async () => {
-        const { isUnlocked, lockScreenHtml, SERVER_SETUP_HTML } = await import(
-          "@/lib/server-setup.server"
-        );
-        const body = (await isUnlocked()) ? SERVER_SETUP_HTML : lockScreenHtml();
-        return new Response(body, { headers: htmlHeaders });
+        try {
+          const { isUnlocked, lockScreenHtml, SERVER_SETUP_HTML } = await import(
+            "@/lib/server-setup.server"
+          );
+          const body = (await isUnlocked()) ? SERVER_SETUP_HTML : lockScreenHtml();
+          return new Response(body, { headers: htmlHeaders });
+        } catch {
+          const { lockScreenHtml } = await import("@/lib/server-setup.server");
+          return new Response(lockScreenHtml(), { headers: htmlHeaders });
+        }
       },
+
       POST: async ({ request }) => {
         const mod = await import("@/lib/server-setup.server");
         const contentType = request.headers.get("content-type") ?? "";
