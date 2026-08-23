@@ -766,14 +766,18 @@ a:focus-visible,
     min-width: min(85vw, 320px);
   }
 
-  /* Route transition — subtle fade-in on the main content */
+  /* Route transition — fade only.
+     A lingering `transform` (animation-fill-mode: both) would turn the page
+     content into a containing block for `position: fixed`, pushing modals and
+     sheets to the bottom of the document instead of the viewport. */
   main > * {
     animation: pageIn .22s var(--ease-out) both;
   }
   @keyframes pageIn {
-    from { opacity: 0; transform: translateY(3px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
+
 
   /* Ensure the mobile tab bar never overlaps floating action content */
   main {
