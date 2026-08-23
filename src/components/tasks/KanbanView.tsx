@@ -577,11 +577,53 @@ function SortableCard({
             <PriorityDot p={priority} />
             <span>{due ? formatDate(due, lang) : "—"}</span>
           </div>
-          <AssigneeNames
-            users={taskAssignees.length > 0 ? taskAssignees : (assignee ? [assignee] : [])}
-            size={20}
-            maxNames={1}
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <AssigneeNames
+              users={taskAssignees.length > 0 ? taskAssignees : (assignee ? [assignee] : [])}
+              size={20}
+              maxNames={1}
+            />
+            {onMove && moveTargets && moveTargets.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={lang === "ar" ? "نقل إلى" : "Move to"}
+                    onPointerDown={(e) => { e.stopPropagation(); }}
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                    style={{
+                      width: 34, height: 34, flexShrink: 0,
+                      display: "grid", placeItems: "center",
+                      borderRadius: 9,
+                      border: "1px solid var(--border)",
+                      background: "var(--card)",
+                      color: "var(--muted)",
+                      padding: 0,
+                    }}
+                  >
+                    <ArrowLeftRight size={14} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="z-[90]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <DropdownMenuLabel>{lang === "ar" ? "نقل إلى" : "Move to"}</DropdownMenuLabel>
+                  {moveTargets.map((c) => (
+                    <DropdownMenuItem
+                      key={c}
+                      onSelect={(e) => { e.preventDefault(); onMove(c); }}
+                      style={{ minHeight: 40, gap: 8 }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: 3, background: STATUS_STYLES[c].text }} />
+                      {t(c as never)}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
     </div>
   );
