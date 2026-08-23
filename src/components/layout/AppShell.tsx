@@ -295,14 +295,14 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         </header>
 
         <main
+          className="app-main"
           style={{
             flex: 1,
-            padding: isMobile ? "14px" : "28px 32px",
-            paddingBottom: isMobile ? `calc(14px + ${bottomBarSpace})` : "28px",
             overflow: "auto",
             minWidth: 0,
           }}
         >
+
           <BackupIncomingBanner />
           {children}
         </main>
