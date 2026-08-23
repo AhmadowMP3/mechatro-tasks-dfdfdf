@@ -1,4 +1,5 @@
 import type { Editor } from "@tiptap/react";
+import { createPortal } from "react-dom";
 import { useApp } from "@/lib/app-context";
 import { FileText, CalendarCheck2, Flag, Briefcase, Table2 } from "lucide-react";
 
