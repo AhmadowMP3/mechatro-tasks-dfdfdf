@@ -582,6 +582,29 @@ function SortableCard({
             <span>{due ? formatDate(due, lang) : "—"}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {handleDrag && (
+              <button
+                type="button"
+                aria-label={lang === "ar" ? "سحب" : "Drag"}
+                {...listeners}
+                {...attributes}
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                style={{
+                  width: 34, height: 34, flexShrink: 0,
+                  display: "grid", placeItems: "center",
+                  borderRadius: 9,
+                  border: "1px solid var(--border)",
+                  background: "var(--card)",
+                  color: "var(--muted)",
+                  padding: 0,
+                  touchAction: "none",
+                  cursor: isDragging ? "grabbing" : "grab",
+                }}
+              >
+                <GripVertical size={14} />
+              </button>
+            )}
+
             <AssigneeNames
               users={taskAssignees.length > 0 ? taskAssignees : (assignee ? [assignee] : [])}
               size={20}
