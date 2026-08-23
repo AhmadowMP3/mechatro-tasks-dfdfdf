@@ -4,10 +4,11 @@
 // usual task detail modal.
 
 import { useMemo, useState } from "react";
-import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { ChevronDown, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { useApp, type Profile } from "@/lib/app-context";
 import { TaskCard, type TaskRow } from "@/components/TaskCard";
 import { Avatar } from "@/components/Avatar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { STATUS_STYLES, ROLE_STYLES } from "@/lib/ui-tokens";
 import { isOverdue, toLocalDigits } from "@/lib/format";
 import type { DictKey } from "@/i18n/dict";
@@ -110,7 +111,9 @@ export function MemberBoard({
   onExportXlsx: (groups: MemberGroup[]) => void;
 }) {
   const { t, lang } = useApp();
+  const isMobile = useIsMobile();
   const [hideEmpty, setHideEmpty] = useState(true);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const shown = useMemo(
     () => (hideEmpty ? groups.filter((g) => g.tasks.length > 0) : groups),
@@ -160,17 +163,22 @@ export function MemberBoard({
       ) : (
         <div
           className="member-board-scroll"
-          style={{
-            display: "grid",
-            gridAutoFlow: "column",
-            gridAutoColumns: "minmax(min(100%,300px),320px)",
-            gap: 14,
-            overflowX: "auto",
-            paddingBottom: 10,
-          }}
+          style={
+            isMobile
+              ? { display: "flex", flexDirection: "column", gap: 12 }
+              : {
+                  display: "grid",
+                  gridAutoFlow: "column",
+                  gridAutoColumns: "minmax(min(100%,300px),320px)",
+                  gap: 14,
+                  overflowX: "auto",
+                  paddingBottom: 10,
+                }
+          }
         >
           {shown.map((g) => {
             const roleStyle = g.role ? ROLE_STYLES[g.role] : null;
+            const open = !isMobile || (expanded[g.id] ?? g.id === shown[0]?.id);
             return (
               <section
                 key={g.id}
@@ -182,11 +190,20 @@ export function MemberBoard({
                   display: "flex",
                   flexDirection: "column",
                   gap: 10,
-                  minHeight: 200,
+                  minWidth: 0,
+                  minHeight: isMobile ? 0 : 200,
                 }}
               >
                 {/* Column head */}
-                <header style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <header
+                  onClick={isMobile ? () => setExpanded((p) => ({ ...p, [g.id]: !open })) : undefined}
+                  role={isMobile ? "button" : undefined}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    minHeight: isMobile ? 44 : undefined,
+                    cursor: isMobile ? "pointer" : undefined,
+                  }}
+                >
                   {g.user
                     ? <Avatar name={g.name} id={g.user.id} size={38} />
                     : <div style={{
@@ -210,8 +227,15 @@ export function MemberBoard({
                       </span>
                     </div>
                   </div>
+                  {isMobile && (
+                    <ChevronDown
+                      size={18}
+                      style={{ color: "var(--muted)", flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }}
+                    />
+                  )}
                 </header>
 
+                {open && (<>
                 {/* Status chips */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                   {STATUSES.map((s) => {
@@ -244,7 +268,10 @@ export function MemberBoard({
                 </div>
 
                 {/* Tasks */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 620, overflowY: "auto" }}>
+                <div style={{
+                  display: "flex", flexDirection: "column", gap: 10,
+                  ...(isMobile ? {} : { maxHeight: 620, overflowY: "auto" as const }),
+                }}>
                   {g.tasks.length === 0 ? (
                     <div style={{ padding: 18, textAlign: "center", color: "var(--muted)", fontSize: 12 }}>{t("noTasks")}</div>
                   ) : g.tasks.map((tk) => (
@@ -258,11 +285,13 @@ export function MemberBoard({
                     />
                   ))}
                 </div>
+                </>)}
               </section>
             );
           })}
         </div>
       )}
+
     </div>
   );
 }
