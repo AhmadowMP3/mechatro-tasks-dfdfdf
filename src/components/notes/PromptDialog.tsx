@@ -63,7 +63,7 @@ export function PromptHost() {
       position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 200,
       display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
     }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
+      <div onClick={(e) => e.stopPropagation()} className="sheet-panel" style={{
         background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14,
         width: "min(440px, 100%)", boxShadow: "0 20px 60px rgba(0,0,0,.5)",
       }}>

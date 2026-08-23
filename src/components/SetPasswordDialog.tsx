@@ -56,7 +56,7 @@ export function SetPasswordDialog({ userName, lang, onSave, onClose }: {
       position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 320,
       display: "grid", placeItems: "center", padding: 20,
     }}>
-      <div onClick={(e) => e.stopPropagation()} dir={l ? "rtl" : "ltr"} style={{
+      <div onClick={(e) => e.stopPropagation()} dir={l ? "rtl" : "ltr"} className="sheet-panel" style={{
         width: "100%", maxWidth: 460, background: "var(--card)",
         border: "1px solid var(--border)", borderRadius: 18,
         padding: 22, color: "var(--foreground)",

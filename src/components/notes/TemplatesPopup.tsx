@@ -67,6 +67,7 @@ export function TemplatesPopup({ editor, onClose }: { editor: Editor | null; onC
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="sheet-panel"
         style={{
           width: "100%", maxWidth: 640, background: "var(--card)",
           border: "1px solid var(--border)", borderRadius: 16, padding: 20,

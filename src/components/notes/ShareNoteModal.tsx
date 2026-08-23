@@ -56,7 +56,7 @@ export function ShareNoteModal({ noteId, onClose }: { noteId: string; onClose: (
       position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 100,
       display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
     }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
+      <div onClick={(e) => e.stopPropagation()} className="sheet-panel" style={{
         background: "var(--card, #0f172a)", backdropFilter: "none", border: "1px solid var(--border)", borderRadius: 14,
         width: "min(520px, 100%)", maxHeight: "80vh", display: "flex", flexDirection: "column",
         boxShadow: "0 20px 60px rgba(0,0,0,.5)",
