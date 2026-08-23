@@ -96,6 +96,7 @@ export function TemplatesPopup({ editor, onClose }: { editor: Editor | null; onC
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
