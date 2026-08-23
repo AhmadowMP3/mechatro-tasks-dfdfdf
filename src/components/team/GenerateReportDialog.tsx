@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Download, Eye, FileText, Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { ModalShell } from "@/routes/_authenticated/projects.index";
@@ -161,7 +162,8 @@ function PreviewModal({
   useEffect(() => () => URL.revokeObjectURL(previewUrl), [previewUrl]);
   const sizeKb = Math.max(1, Math.round(prepared.blob.size / 1024));
 
-  return (
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div
       onClick={onClose}
       style={{
@@ -228,7 +230,8 @@ function PreviewModal({
         </div>
         <style>{`.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

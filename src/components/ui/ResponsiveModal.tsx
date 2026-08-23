@@ -1,4 +1,5 @@
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -37,8 +38,13 @@ export function ResponsiveModal({
     };
   }, [onClose]);
 
+  // Always render through a portal on document.body so no transformed ancestor
+  // in the page content can turn `position: fixed` into a page-anchored box.
+  const portal = (node: React.ReactNode) =>
+    typeof document === "undefined" ? <>{node}</> : createPortal(node, document.body);
+
   if (isMobile) {
-    return (
+    return portal(
       <div
         onClick={onClose}
         className="rm-backdrop"
@@ -97,12 +103,12 @@ export function ResponsiveModal({
           @keyframes rm-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
           @keyframes rm-fade { from { opacity: 0; } to { opacity: 1; } }
         `}</style>
-      </div>
+      </div>,
     );
   }
 
   // Desktop: centered card.
-  return (
+  return portal(
     <div
       onClick={onClose}
       style={{
@@ -124,6 +130,6 @@ export function ResponsiveModal({
         {title != null && <h2 style={{ margin: 0, marginBottom: 16 }}>{title}</h2>}
         {children}
       </div>
-    </div>
+    </div>,
   );
 }

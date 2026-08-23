@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Check } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,7 +52,8 @@ export function ShareNoteModal({ noteId, onClose }: { noteId: string; onClose: (
     }
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 100,
       display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
@@ -106,7 +108,8 @@ export function ShareNoteModal({ noteId, onClose }: { noteId: string; onClose: (
           <button onClick={save} disabled={saving} style={{ ...btnStyle, background: "var(--grad-blue)", color: "#fff", border: "none", fontWeight: 700 }}>{saving ? (lang === "ar" ? "…" : "…") : (lang === "ar" ? "حفظ" : "Save")}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

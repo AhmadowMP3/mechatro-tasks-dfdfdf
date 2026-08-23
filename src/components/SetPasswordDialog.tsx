@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { KeyRound, Sparkles, Copy, Check } from "lucide-react";
 
@@ -51,7 +52,8 @@ export function SetPasswordDialog({ userName, lang, onSave, onClose }: {
     setConfirmPw(g);
   }
 
-  return (
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 320,
       display: "grid", placeItems: "center", padding: 20,
@@ -148,6 +150,7 @@ export function SetPasswordDialog({ userName, lang, onSave, onClose }: {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
