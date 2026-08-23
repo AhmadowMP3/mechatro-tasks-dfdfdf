@@ -187,10 +187,28 @@ function AuthPage() {
           pointerEvents: "none",
         }} />
 
+        {/* Language + theme, docked inside the card header */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 4 }}>
+          <button
+            onClick={() => setLang(l ? "en" : "ar")}
+            style={{ ...pillBtnStyle, padding: "6px 12px", fontSize: 12.5, minHeight: 34, borderRadius: 999 }}
+          >
+            {l ? "English" : "عربي"}
+          </button>
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            aria-label={l ? "تبديل المظهر" : "Toggle theme"}
+            style={{ ...pillBtnStyle, width: 34, height: 34, minHeight: 34, padding: 0, borderRadius: 999, display: "grid", placeItems: "center", fontSize: 13 }}
+          >
+            {theme === "dark" ? "☀︎" : "☾"}
+          </button>
+        </div>
+
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 22 }}>
-          <img src={logo} alt="Mechatro" style={{ width: 200, marginBottom: 10 }} />
+          <img src={logo} alt="Mechatro" style={{ width: "min(200px, 62%)", height: "auto", marginBottom: 10 }} />
           <div style={{ fontSize: 13, color: subtitleColor, fontWeight: 700 }}>{t("appName")}</div>
         </div>
+
 
         <div style={{
           padding: "10px 14px", marginBottom: 18,
