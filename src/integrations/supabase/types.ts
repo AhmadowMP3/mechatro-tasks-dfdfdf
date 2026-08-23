@@ -1901,30 +1901,6 @@ export type Database = {
           },
         ]
       }
-      server_setup_vault: {
-        Row: {
-          ciphertext: string
-          id: boolean
-          iv: string
-          salt: string
-          updated_at: string
-        }
-        Insert: {
-          ciphertext: string
-          id?: boolean
-          iv: string
-          salt: string
-          updated_at?: string
-        }
-        Update: {
-          ciphertext?: string
-          id?: boolean
-          iv?: string
-          salt?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       share_links: {
         Row: {
           allowed_pages: string[]

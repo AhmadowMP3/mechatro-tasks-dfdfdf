@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ServerSetupRouteImport } from './routes/server-setup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
@@ -49,11 +48,6 @@ import { Route as ApiPublicHooksBackupAutoApproveRouteImport } from './routes/ap
 import { Route as ApiPublicGoogleDriveCallbackRouteImport } from './routes/api/public/google/drive-callback'
 import { Route as AuthenticatedFinanceInvoicesIdRouteImport } from './routes/_authenticated/finance.invoices.$id'
 
-const ServerSetupRoute = ServerSetupRouteImport.update({
-  id: '/server-setup',
-  path: '/server-setup',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -266,7 +260,6 @@ export interface FileRoutesByFullPath {
   '/accept-invite': typeof AcceptInviteRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/server-setup': typeof ServerSetupRoute
   '/access-control': typeof AuthenticatedAccessControlRoute
   '/activity': typeof AuthenticatedActivityRoute
   '/finance': typeof AuthenticatedFinanceRouteWithChildren
@@ -305,7 +298,6 @@ export interface FileRoutesByTo {
   '/accept-invite': typeof AcceptInviteRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/server-setup': typeof ServerSetupRoute
   '/access-control': typeof AuthenticatedAccessControlRoute
   '/activity': typeof AuthenticatedActivityRoute
   '/league': typeof AuthenticatedLeagueRoute
@@ -344,7 +336,6 @@ export interface FileRoutesById {
   '/accept-invite': typeof AcceptInviteRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/server-setup': typeof ServerSetupRoute
   '/_authenticated/access-control': typeof AuthenticatedAccessControlRoute
   '/_authenticated/activity': typeof AuthenticatedActivityRoute
   '/_authenticated/finance': typeof AuthenticatedFinanceRouteWithChildren
@@ -387,7 +378,6 @@ export interface FileRouteTypes {
     | '/accept-invite'
     | '/auth'
     | '/reset-password'
-    | '/server-setup'
     | '/access-control'
     | '/activity'
     | '/finance'
@@ -426,7 +416,6 @@ export interface FileRouteTypes {
     | '/accept-invite'
     | '/auth'
     | '/reset-password'
-    | '/server-setup'
     | '/access-control'
     | '/activity'
     | '/league'
@@ -464,7 +453,6 @@ export interface FileRouteTypes {
     | '/accept-invite'
     | '/auth'
     | '/reset-password'
-    | '/server-setup'
     | '/_authenticated/access-control'
     | '/_authenticated/activity'
     | '/_authenticated/finance'
@@ -506,7 +494,6 @@ export interface RootRouteChildren {
   AcceptInviteRoute: typeof AcceptInviteRoute
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  ServerSetupRoute: typeof ServerSetupRoute
   ShareTokenRoute: typeof ShareTokenRouteWithChildren
   ApiPublicGoogleDriveCallbackRoute: typeof ApiPublicGoogleDriveCallbackRoute
   ApiPublicHooksBackupAutoApproveRoute: typeof ApiPublicHooksBackupAutoApproveRoute
@@ -514,13 +501,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/server-setup': {
-      id: '/server-setup'
-      path: '/server-setup'
-      fullPath: '/server-setup'
-      preLoaderRoute: typeof ServerSetupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -899,7 +879,6 @@ const rootRouteChildren: RootRouteChildren = {
   AcceptInviteRoute: AcceptInviteRoute,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  ServerSetupRoute: ServerSetupRoute,
   ShareTokenRoute: ShareTokenRouteWithChildren,
   ApiPublicGoogleDriveCallbackRoute: ApiPublicGoogleDriveCallbackRoute,
   ApiPublicHooksBackupAutoApproveRoute: ApiPublicHooksBackupAutoApproveRoute,
