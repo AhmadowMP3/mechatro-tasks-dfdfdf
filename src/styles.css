@@ -1048,3 +1048,23 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 .stack-cards { display: flex; flex-direction: column; gap: 10px; }
 @media (min-width: 768px) { .hide-from-md { display: none !important; } }
 @media (max-width: 767px) { .hide-below-md { display: none !important; } }
+
+/* ---- Access control rows → stacked cards below md ---- */
+@media (max-width: 767px) {
+  .ac-row {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 10px !important;
+  }
+  .ac-row > *:nth-child(n + 3) { grid-column: 1 / -1; }
+  .ac-row > div[style*="minWidth: 140"],
+  .ac-row > div[style*="min-width: 140px"] { width: 100%; }
+  .ac-row button { width: 100%; justify-content: center; }
+  .ac-row [data-user-menu] button { width: auto; }
+  /* Bulk checkboxes are hover-revealed on desktop — always visible on touch */
+  .row-bulk-check, .ref-bulk-check { opacity: 1 !important; }
+}
+@media (hover: none) {
+  .row-bulk-check, .ref-bulk-check { opacity: 1 !important; }
+}
