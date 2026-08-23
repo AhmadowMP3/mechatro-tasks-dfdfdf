@@ -23,9 +23,16 @@ services:
       HOST: 0.0.0.0
     expose:
       - "3000"
+    # Coolify/Traefik routes to this container on port 3000 via the domain set
+    # in the resource settings. Do not add host `ports:` here.
     restart: unless-stopped
 
+  # Only used for standalone `docker compose --profile standalone up -d --build`
+  # deployments. Coolify (or any external reverse proxy) must NOT start this
+  # service: it binds host ports 80/443 and collides with the proxy, which makes
+  # the container fail to start.
   nginx:
+    profiles: ["standalone"]
     image: nginx:alpine
     depends_on:
       - app

@@ -55,7 +55,7 @@ domain.
 ### 4. Run
 
 ```bash
-docker compose up -d --build
+docker compose --profile standalone up -d --build
 docker compose logs -f app
 ```
 
@@ -153,3 +153,29 @@ values (they are the same values shown in your Lovable project's `.env`).
 On a PaaS (Coolify/Dokploy/etc.) add the same six variables in the app's
 Environment Variables screen — the three `VITE_*` ones must also be marked as
 **build** variables.
+
+
+---
+
+## Coolify deployment
+
+Coolify supplies its own reverse proxy (Traefik), so the bundled `nginx` service is
+behind the `standalone` profile and is **not** started by a plain
+`docker compose up -d --build`. Only the `app` service runs; Traefik routes the
+domain to it on port `3000`.
+
+Checklist when a Coolify deploy fails to start the container:
+
+1. **No host ports.** Nothing in the compose file may bind `80`/`443` — the proxy
+   already owns them. (`nginx` is profile-gated for exactly this reason.)
+2. **Domain + port.** In the resource settings set the domain to
+   `https://dashboard.mechatro-sy.com` and the exposed port to `3000`.
+3. **Memory swappiness warning.** `Your kernel does not support memory swappiness
+   capabilities` is harmless — the value is discarded. If the resource has memory
+   limits configured under *Advanced → Resource Limits*, clear the swap fields so
+   Docker stops emitting them.
+4. **Build/runtime env.** `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
+   `VITE_SUPABASE_PROJECT_ID` must be **build** variables; the non-prefixed
+   `SUPABASE_*` copies are runtime variables.
+5. Read the real cause with `docker logs <container-id>` on the server — the
+   Coolify summary truncates the container's own startup error.
