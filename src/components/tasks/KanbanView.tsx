@@ -518,7 +518,7 @@ function KanbanColumn({
 
 function SortableCard({
   id, title, due, priority, overdue, project, assignee, taskAssignees,
-  draggable, onOpen, lang, t, moveTargets, onMove,
+  draggable, onOpen, lang, t, moveTargets, onMove, isMobile,
 }: {
   id: string;
   title: string;
@@ -534,6 +534,7 @@ function SortableCard({
   t: (k: never) => string;
   moveTargets?: readonly ColStatus[];
   onMove?: (to: ColStatus) => void;
+  isMobile?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -543,11 +544,14 @@ function SortableCard({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  // On touch layouts the whole card must stay scrollable: drag lives on a handle.
+  const cardDrag = draggable && !isMobile;
+  const handleDrag = draggable && !!isMobile;
   return (
     <div
       ref={setNodeRef}
-      {...(draggable ? listeners : {})}
-      {...(draggable ? attributes : {})}
+      {...(cardDrag ? listeners : {})}
+      {...(cardDrag ? attributes : {})}
       onClick={() => onOpen()}
       style={{
         ...style,
@@ -556,7 +560,7 @@ function SortableCard({
         borderRadius: 10,
         background: "var(--surface-2)",
         border: `1px solid ${overdue ? "rgba(240,103,106,.5)" : "var(--border)"}`,
-        cursor: draggable ? (isDragging ? "grabbing" : "grab") : "pointer",
+        cursor: cardDrag ? (isDragging ? "grabbing" : "grab") : "pointer",
         opacity: isDragging ? 0.4 : 1,
         borderInlineStart: project ? `3px solid transparent` : undefined,
         backgroundImage: project
@@ -564,10 +568,11 @@ function SortableCard({
           : undefined,
         backgroundOrigin: "border-box",
         backgroundClip: "padding-box, border-box",
-        touchAction: draggable ? "none" : "auto",
+        touchAction: cardDrag ? "none" : "pan-y",
         userSelect: "none",
       }}
     >
+
       <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35, marginBottom: 8, color: "var(--foreground)" }}>
         {title}
       </div>
