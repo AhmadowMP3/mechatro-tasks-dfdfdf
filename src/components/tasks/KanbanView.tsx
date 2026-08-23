@@ -518,7 +518,7 @@ function KanbanColumn({
 
 function SortableCard({
   id, title, due, priority, overdue, project, assignee, taskAssignees,
-  draggable, onOpen, lang,
+  draggable, onOpen, lang, t, currentStatus, moveTargets, onMove,
 }: {
   id: string;
   title: string;
@@ -531,6 +531,10 @@ function SortableCard({
   draggable: boolean;
   onOpen: () => void;
   lang: "ar" | "en";
+  t: (k: never) => string;
+  currentStatus: ColStatus;
+  moveTargets?: readonly ColStatus[];
+  onMove?: (to: ColStatus) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
