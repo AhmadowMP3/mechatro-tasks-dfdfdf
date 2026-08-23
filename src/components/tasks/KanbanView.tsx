@@ -26,7 +26,7 @@ import { supabase } from "@/lib/security/db";
 import { useApp, type Profile } from "@/lib/app-context";
 import { STATUS_STYLES, PROJECT_COLORS } from "@/lib/ui-tokens";
 import { AssigneeNames } from "@/components/AssigneeNames";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, GripVertical } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
