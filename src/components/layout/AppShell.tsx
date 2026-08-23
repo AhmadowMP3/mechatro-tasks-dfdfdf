@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, Moon, Sun, Eye, RefreshCw, Bell, Search } from "lucide-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsCompact } from "@/hooks/use-compact";
+
 import { Sidebar } from "./Sidebar";
 import { MobileTabBar } from "./MobileTabBar";
 import logo from "@/assets/mechatro-logo.png";
