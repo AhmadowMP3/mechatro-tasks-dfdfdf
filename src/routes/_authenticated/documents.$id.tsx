@@ -37,6 +37,8 @@ function DocumentEditorPage() {
   const { id } = useParams({ from: "/_authenticated/documents/$id" });
   const { lang, isMasterAdmin } = useApp();
   const ar = lang === "ar";
+  const isMobile = useIsMobile();
+  const [tab, setTab] = useState<"edit" | "preview">("edit");
 
   const [doc, setDoc] = useState<BusinessDoc | null>(null);
   const [tpl, setTpl] = useState<DocTemplate | null>(null);
