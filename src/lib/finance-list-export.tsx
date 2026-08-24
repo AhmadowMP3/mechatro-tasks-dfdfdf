@@ -52,7 +52,11 @@ export async function exportFinanceListPdf<T extends Record<string, unknown>>(
       settings={input.settings}
       lang={input.lang}
     />,
-    { title: filename, lang: input.lang },
+    {
+      title: filename,
+      lang: input.lang,
+      share: { kind: "finance_report", refId: filename, title: input.title },
+    },
   );
 }
 

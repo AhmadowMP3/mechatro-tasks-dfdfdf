@@ -275,6 +275,7 @@ function InvoiceEditorPage() {
         {
           title: stampFilename("invoice", existing.invoice.number ?? "draft").replace(/\.pdf$/, ""),
           lang,
+          share: { kind: "finance_invoice", refId: existing.invoice.id, title: `Invoice ${existing.invoice.number ?? ""}` },
         },
       );
     } catch (e) {
@@ -531,6 +532,7 @@ function PaymentReceiptModal({
         {
           title: stampFilename("receipt", (payment.id ?? "").slice(0, 8)).replace(/\.pdf$/, ""),
           lang,
+          share: { kind: "finance_invoice", refId: `receipt:${payment.id}`, title: `Receipt ${payment.id?.slice(0, 8) ?? ""}` },
         },
       );
     } catch (e) {
