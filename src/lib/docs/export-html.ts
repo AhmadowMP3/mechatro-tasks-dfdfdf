@@ -158,6 +158,11 @@ body { font-family: 'Montserrat Arabic','Almarai','Montserrat','Segoe UI',sans-s
 table { mso-table-lspace:0pt; mso-table-rspace:0pt; }
 td, th { vertical-align: top; word-wrap: break-word; overflow-wrap: anywhere; }
 .pb { page-break-before: always; }
+img { max-width:100%; height:auto; page-break-inside: avoid; }
+img[data-align="center"] { display:block; margin-left:auto; margin-right:auto; }
+img[data-align="right"] { display:block; margin-left:auto; margin-right:0; }
+img[data-align="left"] { display:block; margin-left:0; margin-right:auto; }
+
 
 </style>
 </head>
