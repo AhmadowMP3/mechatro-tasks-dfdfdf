@@ -395,7 +395,7 @@ export async function buildMemberReportPdf(
   const rangeText = data.range.from
     ? `${data.range.from.toISOString().slice(0, 10)} — ${(data.range.to ?? new Date()).toISOString().slice(0, 10)}`
     : "All time";
-  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, data.member.full_name, rangeText, "member");
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, data.member.full_name, rangeText, "member", { kind: "member_report", refId: `${data.member.id}:${data.range.label}:${choice}`, title: `${data.member.full_name} — ${data.range.label}` });
   return { blob, filename, pageCount, data, choice };
 }
 
@@ -464,7 +464,7 @@ export async function buildTeamReportPdf(
   filename: string,
   rangeText?: string,
 ): Promise<{ blob: Blob; filename: string; pageCount: number }> {
-  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, "Mechatro Team", rangeText ?? "", "team");
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, "Mechatro Team", rangeText ?? "", "team", { kind: "team_report", refId: filename, title: filename });
   return { blob, filename, pageCount };
 }
 
@@ -483,7 +483,7 @@ export async function persistComparisonPdf(opts: {
   language: ReportLangChoice;
   snapshot: unknown;
 }): Promise<{ id: string | null; path: string | null }> {
-  const { blob, pageCount } = await renderHtmlToPdfBlob(opts.html, opts.filename, `${opts.memberALabel} ⇄ ${opts.memberBLabel}`, "Head-to-head", "comparison");
+  const { blob, pageCount } = await renderHtmlToPdfBlob(opts.html, opts.filename, `${opts.memberALabel} ⇄ ${opts.memberBLabel}`, "Head-to-head", "comparison", { kind: "comparison_report", refId: `${opts.reportAId}:${opts.reportBId}`, title: `${opts.memberALabel} vs ${opts.memberBLabel}` });
   triggerDownload(blob, opts.filename);
 
   try {
