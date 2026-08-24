@@ -97,9 +97,11 @@ export const businessDocs = {
       currency: tpl.defaults.currency,
       model: {
         ...defaultModel(),
-        blocks: defaultModel().blocks.map((b) =>
-          b.kind === "terms" ? { ...b, ar: tpl.defaults.termsAr, en: tpl.defaults.termsEn } : b,
-        ),
+        html: starterBodyHtml({
+          lang: tpl.defaults.lang,
+          termsAr: tpl.defaults.termsAr,
+          termsEn: tpl.defaults.termsEn,
+        }),
       } as unknown as Json,
       status: "draft" as DocStatus,
       issue_date: today(),
