@@ -1,23 +1,34 @@
 // Default header / footer / defaults per document type. Used to seed a
 // template row the first time a type is opened, and as a fallback whenever a
 // stored template is missing fields (forward-compatible merge).
+//
+// The header/footer below is the OFFICIAL Mechatro letterhead chrome and is
+// identical for every document type — only the title changes.
 
-import { DOC_TYPES, type DocDefaults, type DocFooter, type DocHeader, type DocType } from "./types";
+import { DOC_TYPES, type DocDefaults, type DocFooter, type DocFooterRow, type DocHeader, type DocType } from "./types";
 
 const BLUE = "#42C2EE";
 
+/** Official bilingual contact block (EN left / AR right) on every template. */
+export const OFFICIAL_CONTACT_ROWS: DocFooterRow[] = [
+  { en: "Mobile KSA:  +966 56 56 99 437", ar: "جوال سعودي: 00966565699437" },
+  { en: "Mobile SY:  +963 933 945 346", ar: "جوال سوري: 00963933945346" },
+  { en: "E-Mail:  info@mechatro-sy.com", ar: "البريد الإلكتروني: info@mechatro-sy.com" },
+  { en: "Address:  Al-Mashhad, Aleppo, Syria", ar: "العنوان: المشهد، حلب، سوريا" },
+];
+
 export const BASE_HEADER: DocHeader = {
   showLogo: true,
-  logoHeight: 46,
+  logoHeight: 52,
   logoAlign: "start",
   titleAr: "",
   titleEn: "",
   companyAr: "ميكاترو للحلول الهندسية",
   companyEn: "Mechatro Engineering Solutions",
-  addressAr: "دمشق — سوريا",
-  addressEn: "Damascus — Syria",
-  phone: "",
-  email: "",
+  addressAr: "المشهد، حلب — سوريا",
+  addressEn: "Al-Mashhad, Aleppo — Syria",
+  phone: "+963 933 945 346",
+  email: "info@mechatro-sy.com",
   website: "mechatro-sy.com",
   taxNumber: "",
   accent: BLUE,
@@ -30,8 +41,8 @@ export const BASE_HEADER: DocHeader = {
 export const BASE_FOOTER: DocFooter = {
   showRule: true,
   accent: BLUE,
-  noteAr: "هذا المستند صادر إلكترونياً من نظام ميكاترو.",
-  noteEn: "This document was issued electronically by the Mechatro system.",
+  noteAr: "",
+  noteEn: "",
   bankAr: "",
   bankEn: "",
   signatureAr: "التوقيع المعتمد",
@@ -39,6 +50,7 @@ export const BASE_FOOTER: DocFooter = {
   showPageNumbers: true,
   showGeneratedAt: true,
   contactLine: "mechatro-sy.com",
+  contactRows: OFFICIAL_CONTACT_ROWS,
 };
 
 export const BASE_DEFAULTS: DocDefaults = {
@@ -56,8 +68,9 @@ export function defaultHeader(type: DocType): DocHeader {
 }
 
 export function defaultFooter(_type: DocType): DocFooter {
-  return { ...BASE_FOOTER };
+  return { ...BASE_FOOTER, contactRows: OFFICIAL_CONTACT_ROWS.map((r) => ({ ...r })) };
 }
+
 
 export function defaultDefaults(type: DocType): DocDefaults {
   // Purchase orders and invoices carry no "validity" concept by default.
