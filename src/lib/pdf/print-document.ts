@@ -101,6 +101,13 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
 </html>`;
 }
 
+/** The exact CSS used by the print iframe — reused by the public viewer so the
+ *  stored snapshot renders identically. */
+export function printDocCss(lang: "ar" | "en", background = "#081320", color = "#E6EEF7"): string {
+  const html = buildIframeHtml(lang, "", background, color);
+  return html.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? "";
+}
+
 async function waitForAssets(doc: Document): Promise<void> {
   // Wait one microtask for React to mount.
   await new Promise((r) => setTimeout(r, 60));
