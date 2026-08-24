@@ -233,8 +233,27 @@ function DocTemplatesPage() {
               </Row>
               <Row>
                 <Color label={ar ? "لون التمييز" : "Accent"} value={tpl.footer.accent} onChange={(v) => setFooter({ accent: v })} />
-                <Text label={ar ? "سطر التواصل" : "Contact line"} value={tpl.footer.contactLine} onChange={(v) => setFooter({ contactLine: v })} />
               </Row>
+              <div style={{ display: "grid", gap: 8 }}>
+                <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+                  {ar ? "أسطر التواصل الرسمية (إنجليزي يسار / عربي يمين)" : "Official contact rows (EN left / AR right)"}
+                </span>
+                {tpl.footer.contactRows.map((row, i) => (
+                  <Row key={i}>
+                    <Text
+                      label={`EN ${i + 1}`}
+                      value={row.en}
+                      onChange={(v) => setFooter({ contactRows: tpl.footer.contactRows.map((r, j) => (j === i ? { ...r, en: v } : r)) })}
+                    />
+                    <Text
+                      label={`AR ${i + 1}`}
+                      value={row.ar}
+                      onChange={(v) => setFooter({ contactRows: tpl.footer.contactRows.map((r, j) => (j === i ? { ...r, ar: v } : r)) })}
+                    />
+                  </Row>
+                ))}
+              </div>
+
               <Row>
                 <Text label={ar ? "ملاحظة (عربي)" : "Note (AR)"} value={tpl.footer.noteAr} onChange={(v) => setFooter({ noteAr: v })} />
                 <Text label={ar ? "ملاحظة (إنجليزي)" : "Note (EN)"} value={tpl.footer.noteEn} onChange={(v) => setFooter({ noteEn: v })} />
