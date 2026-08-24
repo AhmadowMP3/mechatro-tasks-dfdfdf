@@ -95,7 +95,7 @@ export async function paginateDocument(input: PaginatedDocInput): Promise<DocPag
   const bodyHeight = await measureBodyHeight(input);
 
   // Word-style body: one HTML string, split by the DOM paginator.
-  if (input.model.version === 2) {
+  {
     const html = resolveDocHtml(input.model.html ?? "", {
       lang: input.lang,
       theme: input.theme,
@@ -109,20 +109,8 @@ export async function paginateDocument(input: PaginatedDocInput): Promise<DocPag
       bodyHeight,
       clientBoxHeight,
       showClientBox: input.model.showClientBox,
-    }).map((p) => ({ showClientBox: p.showClientBox, blocks: [], html: p.html }));
+    }).map((p) => ({ showClientBox: p.showClientBox, html: p.html }));
   }
-
-  return paginateModel({
-    model: input.model,
-    lang: input.lang,
-    theme: input.theme,
-    currency: input.currency,
-    bodyHeight,
-    renderBlock: (block: DocBlock) => (
-      <DocUnit block={block} lang={input.lang} theme={input.theme} currency={input.currency} />
-    ),
-    renderClientBox: () => <DocClientCard client={input.client} lang={input.lang} theme={input.theme} />,
-  });
 }
 
 /** Render already-computed pages (pure — safe for the print iframe). */
@@ -157,24 +145,14 @@ export function DocPages({
             sizing="fixed"
             bare={bare}
           >
-            {input.model.version === 2 ? (
-              <DocRichBody
-                html={p.html ?? ""}
-                resolved
-                showClientBox={p.showClientBox}
-                client={input.client}
-                lang={input.lang}
-                theme={input.theme}
-              />
-            ) : (
-              <DocBody
-                model={{ ...input.model, showClientBox: p.showClientBox, blocks: p.blocks }}
-                client={input.client}
-                lang={input.lang}
-                theme={input.theme}
-                currency={input.currency}
-              />
-            )}
+            <DocRichBody
+              html={p.html ?? ""}
+              resolved
+              showClientBox={p.showClientBox}
+              client={input.client}
+              lang={input.lang}
+              theme={input.theme}
+            />
           </DocPaper>
         </div>
       ))}
@@ -218,18 +196,14 @@ export function PaginatedDoc({
         page={{ current: 1, total: 1 }}
         bare={bare}
       >
-        {input.model.version === 2 ? (
-          <DocRichBody
-            html={input.model.html ?? ""}
-            ctx={{ lang: input.lang, theme: input.theme, currency: input.currency, meta: input.meta ?? {} }}
-            showClientBox={input.model.showClientBox}
-            client={input.client}
-            lang={input.lang}
-            theme={input.theme}
-          />
-        ) : (
-          <DocBody model={input.model} client={input.client} lang={input.lang} theme={input.theme} currency={input.currency} />
-        )}
+        <DocRichBody
+          html={input.model.html ?? ""}
+          ctx={{ lang: input.lang, theme: input.theme, currency: input.currency, meta: input.meta ?? {} }}
+          showClientBox={input.model.showClientBox}
+          client={input.client}
+          lang={input.lang}
+          theme={input.theme}
+        />
       </DocPaper>
     );
   }
