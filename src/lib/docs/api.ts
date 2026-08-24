@@ -2,6 +2,7 @@
 // database level (RLS), so every call here assumes an authenticated master.
 
 import { supabase } from "@/lib/security/db";
+import type { Json } from "@/integrations/supabase/types";
 import { mergeDefaults, mergeFooter, mergeHeader, defaultDefaults, defaultFooter, defaultHeader } from "./defaults";
 import type { DocTemplate, DocType } from "./types";
 
@@ -47,9 +48,9 @@ export const docTemplates = {
       doc_type: type,
       name: "default",
       is_default: true,
-      header: defaultHeader(type) as unknown as Record<string, unknown>,
-      footer: defaultFooter(type) as unknown as Record<string, unknown>,
-      defaults: defaultDefaults(type) as unknown as Record<string, unknown>,
+      header: defaultHeader(type) as unknown as Json,
+      footer: defaultFooter(type) as unknown as Json,
+      defaults: defaultDefaults(type) as unknown as Json,
     };
     const { data: created, error: insErr } = await supabase
       .from("doc_templates")
@@ -65,9 +66,9 @@ export const docTemplates = {
       .from("doc_templates")
       .update({
         name: tpl.name,
-        header: tpl.header as unknown as Record<string, unknown>,
-        footer: tpl.footer as unknown as Record<string, unknown>,
-        defaults: tpl.defaults as unknown as Record<string, unknown>,
+        header: tpl.header as unknown as Json,
+        footer: tpl.footer as unknown as Json,
+        defaults: tpl.defaults as unknown as Json,
       })
       .eq("id", tpl.id)
       .select("*")
@@ -92,8 +93,8 @@ export const docTemplates = {
       const { error: upErr } = await supabase
         .from("doc_templates")
         .update({
-          header: header as unknown as Record<string, unknown>,
-          footer: source.footer as unknown as Record<string, unknown>,
+          header: header as unknown as Json,
+          footer: source.footer as unknown as Json,
         })
         .eq("id", row.id);
       if (upErr) throw upErr;
