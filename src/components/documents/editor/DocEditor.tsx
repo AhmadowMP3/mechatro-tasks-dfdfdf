@@ -9,7 +9,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle, Color, FontSize, FontFamily } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
+import { ResizableImage, IMAGE_MAX_WIDTH } from "./ResizableImage";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
