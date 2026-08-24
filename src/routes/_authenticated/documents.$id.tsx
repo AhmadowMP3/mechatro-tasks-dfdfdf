@@ -40,6 +40,7 @@ function DocumentEditorPage() {
   const ar = lang === "ar";
   const isMobile = useIsMobile();
   const [tab, setTab] = useState<"edit" | "preview">("edit");
+  const [pageCount, setPageCount] = useState(1);
 
   const [doc, setDoc] = useState<BusinessDoc | null>(null);
   const [tpl, setTpl] = useState<DocTemplate | null>(null);
