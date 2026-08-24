@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { FileText, Plus, Search, Copy, Trash2, Loader2 } from "lucide-react";
+import { FileText, Plus, Search, Copy, Trash2, Loader2, FileDown, FileType2 } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { requireMaster } from "@/lib/route-guards";
+import { docTemplates } from "@/lib/docs/api";
+import { exportDocPdf, exportDocWord } from "@/lib/docs/export-doc";
 import { businessDocs, DOC_STATUS_LABELS, type BusinessDoc } from "@/lib/docs/docs-api";
 import { DOC_TYPES, docTypeLabel, type DocType } from "@/lib/docs/types";
 
@@ -77,6 +79,34 @@ function DocumentsListPage() {
       const copy = await businessDocs.duplicate(doc);
       toast.success(ar ? `نسخة جديدة: ${copy.number}` : `Duplicated as ${copy.number}`);
       reload();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const exportDoc = async (doc: BusinessDoc, kind: "pdf" | "word") => {
+    try {
+      setBusy(true);
+      const tpl = await docTemplates.ensure(doc.doc_type);
+      const fmt = (v?: string | null) => (v ? new Date(v).toLocaleDateString("en-GB") : undefined);
+      const clientName = doc.lang === "ar" ? doc.client.nameAr || doc.client.nameEn : doc.client.nameEn || doc.client.nameAr;
+      const input = {
+        docType: doc.doc_type,
+        number: doc.number,
+        header: doc.header_override ?? tpl.header,
+        footer: doc.footer_override ?? tpl.footer,
+        model: doc.model,
+        client: doc.client,
+        lang: doc.lang,
+        theme: doc.theme,
+        currency: doc.currency,
+        meta: { number: doc.number, date: fmt(doc.issue_date) ?? "—", validUntil: fmt(doc.valid_until), client: clientName || undefined },
+        title: `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`,
+      };
+      if (kind === "pdf") await exportDocPdf(input);
+      else await exportDocWord(input);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -191,6 +221,12 @@ function DocumentsListPage() {
                   </Link>
                   <button className="btn-ghost" disabled={busy} onClick={() => duplicate(d)} style={{ minHeight: 38 }}>
                     <Copy size={14} /> {ar ? "تكرار" : "Duplicate"}
+                  </button>
+                  <button className="btn-ghost" disabled={busy} onClick={() => exportDoc(d, "pdf")} style={{ minHeight: 38 }} title="PDF">
+                    <FileDown size={14} /> PDF
+                  </button>
+                  <button className="btn-ghost" disabled={busy} onClick={() => exportDoc(d, "word")} style={{ minHeight: 38 }} title="Word">
+                    <FileType2 size={14} /> Word
                   </button>
                   <button className="btn-ghost" disabled={busy} onClick={() => remove(d)} style={{ minHeight: 38, color: "#EF4444" }}>
                     <Trash2 size={14} />

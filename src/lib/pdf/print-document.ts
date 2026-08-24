@@ -15,11 +15,15 @@ export type PrintOptions = {
   title: string;
   /** Document language — sets html[lang] and html[dir]. */
   lang: "ar" | "en";
+  /** Page background (defaults to the app's dark navy). */
+  background?: string;
+  /** Page text color (defaults to the app's light ink). */
+  color?: string;
 };
 
 const A4_WIDTH_PX = 794;
 
-function buildIframeHtml(lang: "ar" | "en", title: string): string {
+function buildIframeHtml(lang: "ar" | "en", title: string, background: string, color: string): string {
   const dir = lang === "ar" ? "rtl" : "ltr";
   // Escape title for safe embedding in HTML.
   const safeTitle = title.replace(/[&<>"']/g, (c) =>
@@ -45,8 +49,8 @@ function buildIframeHtml(lang: "ar" | "en", title: string): string {
   html, body {
     margin: 0;
     padding: 0;
-    background: #081320;
-    color: #E6EEF7;
+    background: ${background};
+    color: ${color};
     font-family: ${lang === "ar"
       ? "'Montserrat Arabic', 'Almarai', 'Segoe UI', sans-serif"
       : "'Montserrat', 'Montserrat Arabic', system-ui, sans-serif"};
@@ -112,7 +116,7 @@ export async function printReactDocument(
   iframe.style.pointerEvents = "none";
   document.body.appendChild(iframe);
 
-  const html = buildIframeHtml(options.lang, options.title);
+  const html = buildIframeHtml(options.lang, options.title, options.background ?? "#081320", options.color ?? "#E6EEF7");
 
   // Prefer document.open/write — srcdoc's load event can fire for the
   // initial about:blank before the actual HTML parses, leaving us with an

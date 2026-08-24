@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2, Plus, Trash2, ChevronUp, ChevronDown, Sun, Moon, GitBranch } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Plus, Trash2, ChevronUp, ChevronDown, Sun, Moon, GitBranch, FileDown, FileType2 } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -15,6 +15,7 @@ import {
 } from "@/lib/docs/model";
 import { DocPaper } from "@/components/documents/DocPaper";
 import { DocBody } from "@/components/documents/DocBody";
+import { exportDocPdf, exportDocWord } from "@/lib/docs/export-doc";
 
 export const Route = createFileRoute("/_authenticated/documents/$id")({
   ssr: false,
@@ -108,12 +109,42 @@ function DocumentEditorPage() {
     finally { setSaving(false); }
   };
 
+  const [exporting, setExporting] = useState<null | "pdf" | "word">(null);
+
   const meta = useMemo(() => {
     if (!doc) return undefined;
     const fmt = (s?: string | null) => (s ? new Date(s).toLocaleDateString("en-GB") : undefined);
     const client = doc.lang === "ar" ? doc.client.nameAr || doc.client.nameEn : doc.client.nameEn || doc.client.nameAr;
     return { number: doc.number, date: fmt(doc.issue_date) ?? "—", validUntil: fmt(doc.valid_until), client: client || undefined };
   }, [doc]);
+
+  const exportAs = async (kind: "pdf" | "word") => {
+    if (!doc || !tpl) return;
+    try {
+      setExporting(kind);
+      const input = {
+        docType: doc.doc_type,
+        number: doc.number,
+        header: doc.header_override ?? tpl.header,
+        footer: doc.footer_override ?? tpl.footer,
+        model: doc.model,
+        client: doc.client,
+        lang: doc.lang,
+        theme: doc.theme,
+        currency: doc.currency,
+        meta: {
+          number: doc.number,
+          date: meta?.date ?? "—",
+          validUntil: meta?.validUntil,
+          client: meta?.client,
+        },
+        title: `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`,
+      };
+      if (kind === "pdf") await exportDocPdf(input);
+      else await exportDocWord(input);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setExporting(null); }
+  };
 
   if (!isMasterAdmin) {
     return <div style={{ padding: 40, textAlign: "center", color: "var(--muted-foreground)" }}>{ar ? "متاح فقط لمدير النظام الرئيسي" : "Master admin only"}</div>;
@@ -142,6 +173,12 @@ function DocumentEditorPage() {
             <Link to="/documents" className="btn-ghost" style={{ textDecoration: "none" }}>
               <ArrowLeft size={15} /> {ar ? "القائمة" : "All documents"}
             </Link>
+            <button className="btn-ghost" onClick={() => exportAs("pdf")} disabled={!!exporting}>
+              {exporting === "pdf" ? <Loader2 size={15} className="spin" /> : <FileDown size={15} />} PDF
+            </button>
+            <button className="btn-ghost" onClick={() => exportAs("word")} disabled={!!exporting}>
+              {exporting === "word" ? <Loader2 size={15} className="spin" /> : <FileType2 size={15} />} Word
+            </button>
             <button className="btn-ghost" onClick={bumpRevision} disabled={saving}>
               <GitBranch size={15} /> {ar ? "نسخة جديدة" : "New revision"}
             </button>
