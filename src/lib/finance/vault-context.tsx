@@ -125,6 +125,45 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
     setMeta((m) => (m ? { ...m, encrypted_at: stamp } : m));
   }, []);
 
+  const recover = useCallback(
+    async (passphrase: string) => {
+      const m = meta ?? (await loadMeta());
+      if (!m) return null;
+      const hit = (await findWorkingVariant(m, passphrase)) ?? (await findVariantByData(m, passphrase));
+      if (!hit) return null;
+      keyRef.current = hit.key;
+      setVaultKey(hit.key);
+      setStatus("unlocked");
+      return hit.variant.label;
+    },
+    [meta, loadMeta],
+  );
+
+  const rekey = useCallback(
+    async (newPassphrase: string, onProgress?: (p: RekeyProgress) => void) => {
+      const current = keyRef.current;
+      if (!current) throw new Error("Unlock the vault first");
+      const res = await rekeyVault(current, newPassphrase, onProgress);
+      keyRef.current = res.key;
+      setVaultKey(res.key);
+      await loadMeta();
+      return res.rows;
+    },
+    [loadMeta],
+  );
+
+  const reset = useCallback(
+    async (opts: { wipeEncrypted: boolean }) => {
+      const res = await resetVault(opts);
+      keyRef.current = null;
+      setVaultKey(null);
+      setMeta(null);
+      setStatus("not_set");
+      return res.removed;
+    },
+    [],
+  );
+
   const value = useMemo<VaultContextValue>(
     () => ({
       status,
@@ -133,14 +172,18 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
       error,
       setup,
       unlock,
+      recover,
+      rekey,
+      reset,
       lock,
       markMigrated,
       refresh: async () => {
         await loadMeta();
       },
     }),
-    [status, meta, error, setup, unlock, lock, markMigrated, loadMeta],
+    [status, meta, error, setup, unlock, recover, rekey, reset, lock, markMigrated, loadMeta],
   );
+
 
   return <VaultContext.Provider value={value}>{children}</VaultContext.Provider>;
 }
