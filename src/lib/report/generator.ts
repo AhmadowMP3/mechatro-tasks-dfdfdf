@@ -250,6 +250,7 @@ async function renderHtmlToPdfBlob(
 
   const inlined = await inlineLogo(html);
   const logoDataUrl = (await getLogoDataUrl()) ?? "";
+  const prepared = share ? await prepareShare(share) : null;
 
   const parser = new DOMParser();
   const parsed = parser.parseFromString(`<!doctype html><html><body>${inlined}</body></html>`, "text/html");
