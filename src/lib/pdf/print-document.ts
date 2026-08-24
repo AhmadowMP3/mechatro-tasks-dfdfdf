@@ -49,8 +49,8 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
   html, body {
     margin: 0;
     padding: 0;
-    background: #081320;
-    color: #E6EEF7;
+    background: ${background};
+    color: ${color};
     font-family: ${lang === "ar"
       ? "'Montserrat Arabic', 'Almarai', 'Segoe UI', sans-serif"
       : "'Montserrat', 'Montserrat Arabic', system-ui, sans-serif"};
@@ -116,7 +116,7 @@ export async function printReactDocument(
   iframe.style.pointerEvents = "none";
   document.body.appendChild(iframe);
 
-  const html = buildIframeHtml(options.lang, options.title);
+  const html = buildIframeHtml(options.lang, options.title, options.background ?? "#081320", options.color ?? "#E6EEF7");
 
   // Prefer document.open/write — srcdoc's load event can fire for the
   // initial about:blank before the actual HTML parses, leaving us with an
