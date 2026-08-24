@@ -340,13 +340,33 @@ async function renderHtmlToPdfBlob(
     void idx;
   });
 
-  // 3. QR stamp — bottom-left of the LAST page only, just above the footer.
+  // 3. QR stamp — bottom-left of the LAST page, in the free band ABOVE the
+  //    footer. If the content reaches down into that band, start a fresh page
+  //    so the stamp never writes over a block or the footer.
   if (prepared) {
-    pdf.setPage(pdfPageCount);
     const qrPt = 62;
     const footerPt = FOOTER_H * pxToPt;
     const x = SIDE_PAD * pxToPt;
-    const y = pageH - footerPt - 8 - qrPt;
+    let y = pageH - footerPt - 10 - qrPt;
+
+    if (lastContentBottomPt > y - 10) {
+      pdf.addPage();
+      pdfPageCount++;
+      pdf.setFillColor(8, 19, 32);
+      pdf.rect(0, 0, pageW, pageH, "F");
+      if (headerCanvas) {
+        const hPt = (headerCanvas.height / 2) * pxToPt;
+        pdf.addImage(headerCanvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, pageW, hPt, undefined, "FAST");
+      }
+      if (footerCanvas) {
+        const fPt = (footerCanvas.height / 2) * pxToPt;
+        pdf.addImage(footerCanvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, pageH - fPt, pageW, fPt, undefined, "FAST");
+      }
+      y = pageH - footerPt - 10 - qrPt;
+    } else {
+      pdf.setPage(pdfPageCount);
+    }
+
     pdf.setFillColor(255, 255, 255);
     pdf.roundedRect(x - 3, y - 3, qrPt + 6, qrPt + 6, 4, 4, "F");
     pdf.addImage(prepared.qrDataUrl, "PNG", x, y, qrPt, qrPt, undefined, "FAST");
@@ -355,7 +375,7 @@ async function renderHtmlToPdfBlob(
     pdf.text("Scan for a read-only copy", x + qrPt + 8, y + qrPt / 2, { align: "left" });
 
     void saveSharePayload(prepared.token, {
-      html: inlined + qrStampHtml(prepared.qrDataUrl, "en").replace("position:absolute;left:34px;bottom:16px;", "position:relative;margin:18px 0 0 34px;"),
+      html: `${inlined}<div style="padding:0 34px 6px">${qrStampHtml(prepared.qrDataUrl, "en")}</div>`,
       css: PDF_STYLE,
       width: A4_W,
       background: "#081320",
