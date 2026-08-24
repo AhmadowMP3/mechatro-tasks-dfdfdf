@@ -4,7 +4,7 @@ import { useApp } from "@/lib/app-context";
 import { useFinanceVault } from "@/lib/finance/vault-context";
 import { passphraseStrength } from "@/lib/finance/crypto";
 import { runVaultMigration, type MigrationProgress } from "@/lib/finance/migrate";
-import { VaultDiagnostics } from "./VaultDiagnostics";
+import { VaultAdminPanel } from "./VaultAdminPanel";
 
 
 const T = {
@@ -258,7 +258,7 @@ export function FinanceLockGate({ children }: { children: React.ReactNode }) {
             <LifeBuoy size={15} />
             {ar ? "العبارة لا تُقبل؟" : "Passphrase not accepted?"}
           </button>
-          {showHelp && <VaultDiagnostics compact />}
+          {showHelp && <VaultAdminPanel />}
         </>
       )}
     </form>
