@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { vaultDb as supabase } from "@/lib/finance/vault-db";
+import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import {

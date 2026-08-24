@@ -1,0 +1,16 @@
+ALTER TABLE public.customers DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.invoices DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.invoice_items DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.invoice_payments DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.expenses DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.expense_categories DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.income_entries DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.subscriptions_income DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.subscriptions_expense DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.payroll_periods DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.payroll_entries DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.member_salary_settings DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.fx_rates DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.financial_settings DROP COLUMN IF EXISTS enc;
+ALTER TABLE public.finance_vault_meta ALTER COLUMN encrypted_at DROP NOT NULL;
+COMMENT ON TABLE public.finance_vault_meta IS 'Finance access password: PBKDF2 salt/iterations/verifier. No encryption keys.';
