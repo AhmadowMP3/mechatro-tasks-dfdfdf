@@ -189,9 +189,16 @@ function DocumentEditorPage() {
         }
       />
 
+      {isMobile && (
+        <div style={{ display: "flex", gap: 8 }}>
+          <MiniToggle active={tab === "edit"} onClick={() => setTab("edit")} label={<span>{ar ? "تحرير" : "Edit"}</span>} />
+          <MiniToggle active={tab === "preview"} onClick={() => setTab("preview")} label={<span>{ar ? "معاينة" : "Preview"}</span>} />
+        </div>
+      )}
+
       <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))", alignItems: "start" }}>
         {/* ── Editor column ─────────────────────────────────────── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+        <div style={{ display: isMobile && tab !== "edit" ? "none" : "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
           <Section title={ar ? "بيانات المستند" : "Document settings"}>
             <Row>
               <Text label={ar ? "عنوان داخلي" : "Internal title"} value={doc.title} onChange={(v) => patch({ title: v })} />
