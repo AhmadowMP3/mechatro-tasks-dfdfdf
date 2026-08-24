@@ -16,10 +16,12 @@ type Props = {
   meta?: { number?: string; date?: string; validUntil?: string; client?: string };
   page?: { current: number; total: number };
   scale?: number;
+  /** Drop the on-screen shadow / rounded corners (used by the exporters). */
+  bare?: boolean;
   children?: React.ReactNode;
 };
 
-export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, children }: Props) {
+export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, children }: Props) {
   const ar = lang === "ar";
   const c = PAPER[theme];
   const dir = ar ? "rtl" : "ltr";
@@ -50,9 +52,9 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, c
         display: "flex",
         flexDirection: "column",
         fontFamily: "'Montserrat Arabic', 'Almarai', 'Montserrat', system-ui, sans-serif",
-        boxShadow: "0 18px 50px rgba(0,0,0,.35)",
-        borderRadius: 4,
-        overflow: "hidden",
+        boxShadow: bare ? undefined : "0 18px 50px rgba(0,0,0,.35)",
+        borderRadius: bare ? 0 : 4,
+        overflow: bare ? undefined : "hidden",
       }}
     >
       {/* ── Header band ─────────────────────────────────────────── */}

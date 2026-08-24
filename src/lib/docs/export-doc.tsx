@@ -25,6 +25,7 @@ export async function exportDocPdf(input: ExportDocInput): Promise<void> {
       theme={input.theme}
       meta={input.meta}
       page={{ current: 1, total: 1 }}
+      bare
     >
       <DocBody
         model={input.model}

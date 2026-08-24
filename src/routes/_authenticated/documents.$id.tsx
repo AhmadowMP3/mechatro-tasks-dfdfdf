@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2, Plus, Trash2, ChevronUp, ChevronDown, Sun, Moon, GitBranch, FileDown, FileType2 } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { requireMaster } from "@/lib/route-guards";
 import { docTemplates } from "@/lib/docs/api";
@@ -16,6 +17,7 @@ import {
 import { DocPaper } from "@/components/documents/DocPaper";
 import { DocBody } from "@/components/documents/DocBody";
 import { exportDocPdf, exportDocWord } from "@/lib/docs/export-doc";
+import { logActivity } from "@/lib/activity";
 
 export const Route = createFileRoute("/_authenticated/documents/$id")({
   ssr: false,
@@ -35,8 +37,10 @@ export const Route = createFileRoute("/_authenticated/documents/$id")({
 
 function DocumentEditorPage() {
   const { id } = useParams({ from: "/_authenticated/documents/$id" });
-  const { lang, isMasterAdmin } = useApp();
+  const { lang, isMasterAdmin, user } = useApp();
   const ar = lang === "ar";
+  const isMobile = useIsMobile();
+  const [tab, setTab] = useState<"edit" | "preview">("edit");
 
   const [doc, setDoc] = useState<BusinessDoc | null>(null);
   const [tpl, setTpl] = useState<DocTemplate | null>(null);
@@ -91,6 +95,7 @@ function DocumentEditorPage() {
       const saved = await businessDocs.save(doc);
       setDoc(saved);
       setDirty(false);
+      void logActivity(user?.id ?? null, "updated", "business_doc", saved.id, { number: saved.number, doc_type: saved.doc_type });
       toast.success(ar ? "تم الحفظ" : "Saved");
     } catch (e) { toast.error((e as Error).message); }
     finally { setSaving(false); }
@@ -142,6 +147,9 @@ function DocumentEditorPage() {
       };
       if (kind === "pdf") await exportDocPdf(input);
       else await exportDocWord(input);
+      void logActivity(user?.id ?? null, "file_added", "business_doc", doc.id, {
+        number: doc.number, doc_type: doc.doc_type, format: kind, theme: doc.theme, lang: doc.lang,
+      });
     } catch (e) { toast.error((e as Error).message); }
     finally { setExporting(null); }
   };
@@ -189,9 +197,16 @@ function DocumentEditorPage() {
         }
       />
 
+      {isMobile && (
+        <div style={{ display: "flex", gap: 8 }}>
+          <MiniToggle active={tab === "edit"} onClick={() => setTab("edit")} label={<span>{ar ? "تحرير" : "Edit"}</span>} />
+          <MiniToggle active={tab === "preview"} onClick={() => setTab("preview")} label={<span>{ar ? "معاينة" : "Preview"}</span>} />
+        </div>
+      )}
+
       <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))", alignItems: "start" }}>
         {/* ── Editor column ─────────────────────────────────────── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+        <div style={{ display: isMobile && tab !== "edit" ? "none" : "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
           <Section title={ar ? "بيانات المستند" : "Document settings"}>
             <Row>
               <Text label={ar ? "عنوان داخلي" : "Internal title"} value={doc.title} onChange={(v) => patch({ title: v })} />
@@ -270,7 +285,16 @@ function DocumentEditorPage() {
         </div>
 
         {/* ── Preview column ───────────────────────────────────── */}
-        <div style={{ position: "sticky", top: 12, display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+        <div
+          style={{
+            position: isMobile ? "static" : "sticky",
+            top: 12,
+            display: isMobile && tab !== "preview" ? "none" : "flex",
+            flexDirection: "column",
+            gap: 10,
+            minWidth: 0,
+          }}
+        >
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{ fontSize: 12.5, color: "var(--muted-foreground)" }}>{ar ? "معاينة A4" : "A4 preview"}</span>
             <div style={{ marginInlineStart: "auto", display: "flex", gap: 6 }}>
@@ -530,7 +554,10 @@ function ItemsEditor({
 
 function PaperPreview({ children }: { children: React.ReactNode }) {
   const [width, setWidth] = useState(0);
+  const [paperHeight, setPaperHeight] = useState(1123);
   const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const [inner, setInner] = useState<HTMLDivElement | null>(null);
+
   useEffect(() => {
     if (!el) return;
     const ro = new ResizeObserver(() => setWidth(el.clientWidth));
@@ -538,11 +565,25 @@ function PaperPreview({ children }: { children: React.ReactNode }) {
     setWidth(el.clientWidth);
     return () => ro.disconnect();
   }, [el]);
+
+  // The paper grows past one A4 page as content is added — track its real
+  // height so the scaled wrapper never clips the bottom of the document.
+  useEffect(() => {
+    if (!inner) return;
+    const ro = new ResizeObserver(() => setPaperHeight(Math.max(1123, inner.scrollHeight)));
+    ro.observe(inner);
+    setPaperHeight(Math.max(1123, inner.scrollHeight));
+    return () => ro.disconnect();
+  }, [inner]);
+
   const scale = width > 0 ? Math.min(1, width / 794) : 1;
   return (
     <div ref={setEl} style={{ width: "100%", overflow: "hidden" }}>
-      <div style={{ height: 1123 * scale, position: "relative" }}>
-        <div style={{ position: "absolute", inset: 0, transform: `scale(${scale})`, transformOrigin: "top left", width: 794 }}>
+      <div style={{ height: paperHeight * scale, position: "relative" }}>
+        <div
+          ref={setInner}
+          style={{ position: "absolute", top: 0, left: 0, transform: `scale(${scale})`, transformOrigin: "top left", width: 794 }}
+        >
           {children}
         </div>
       </div>
