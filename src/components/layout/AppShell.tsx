@@ -92,7 +92,14 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ display: "flex", minHeight: "100dvh", width: "100%" }}>
-      {!isMobile && <Sidebar />}
+      {!isMobile && (
+        <>
+          <Sidebar />
+          {/* Spacer reserving room for the fixed sidebar */}
+          <div aria-hidden style={{ width: 260, flexShrink: 0 }} />
+        </>
+      )}
+
 
       {isMobile && mobileOpen && (
         <div

@@ -174,13 +174,20 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         borderInlineEnd: "1px solid var(--border)",
         height: "100dvh",
         maxHeight: "100dvh",
-        position: onClose ? "relative" : "sticky",
-        top: 0,
-        alignSelf: "flex-start",
+        ...(onClose
+          ? { position: "relative" as const }
+          : {
+              position: "fixed" as const,
+              top: 0,
+              bottom: 0,
+              insetInlineStart: 0,
+              zIndex: 60,
+            }),
         flexShrink: 0,
         overflow: "hidden",
       }}
     >
+
 
       <div style={{ padding: "22px 18px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative", flexShrink: 0 }}>
         {onClose && (
@@ -441,7 +448,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       </nav>
 
 
-      <div style={{ padding: 12, borderTop: "1px solid var(--border)", flexShrink: 0, background: "var(--sidebar)" }}>
+      <div style={{ padding: 12, paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid var(--border)", flexShrink: 0, background: "var(--sidebar)" }}>
         {shareMode ? (
           <div style={{
             width: "100%", minHeight: 48, borderRadius: 12, padding: "8px 12px",
