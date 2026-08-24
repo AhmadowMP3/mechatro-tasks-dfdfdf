@@ -141,9 +141,10 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
 div.WordSection1 { page: WordSection1; }
 body { font-family: 'Montserrat Arabic','Almarai','Montserrat','Segoe UI',sans-serif; font-size:10pt;
        color:${c.ink}; background:${c.bg}; direction:${dir}; text-align:${align}; }
-table { mso-table-lspace:0pt; mso-table-rspace:0pt; }
-td, th { vertical-align: top; }
+table { mso-table-lspace:0pt; mso-table-rspace:0pt; table-layout:fixed; width:100%; }
+td, th { vertical-align: top; word-wrap: break-word; overflow-wrap: anywhere; }
 .pb { page-break-before: always; }
+
 </style>
 </head>
 <body>
