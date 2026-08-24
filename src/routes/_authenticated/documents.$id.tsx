@@ -558,7 +558,7 @@ function PaperPreview({ children }: { children: React.ReactNode }) {
       <div style={{ height: paperHeight * scale, position: "relative" }}>
         <div
           ref={setInner}
-          style={{ position: "absolute", top: 0, insetInlineStart: 0, transform: `scale(${scale})`, transformOrigin: "top left", width: 794 }}
+          style={{ position: "absolute", top: 0, left: 0, transform: `scale(${scale})`, transformOrigin: "top left", width: 794 }}
         >
           {children}
         </div>
