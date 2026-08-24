@@ -209,7 +209,11 @@ function DocumentEditorPage() {
         <div style={{ display: isMobile && tab !== "edit" ? "none" : "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
           <Section title={ar ? "بيانات المستند" : "Document settings"}>
             <Row>
-              <Text label={ar ? "عنوان داخلي" : "Internal title"} value={doc.title} onChange={(v) => patch({ title: v })} />
+              <Text
+                label={ar ? "عنوان داخلي (للقائمة فقط)" : "Internal title (list only)"}
+                value={doc.title}
+                onChange={(v) => patch({ title: v })}
+              />
               <Pick
                 label={ar ? "الحالة" : "Status"}
                 value={doc.status}
