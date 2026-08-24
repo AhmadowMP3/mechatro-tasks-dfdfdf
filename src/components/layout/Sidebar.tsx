@@ -173,15 +173,16 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         display: "flex", flexDirection: "column",
         borderInlineEnd: "1px solid var(--border)",
         height: "100dvh",
+        maxHeight: "100dvh",
         position: onClose ? "relative" : "sticky",
         top: 0,
         alignSelf: "flex-start",
         flexShrink: 0,
-        overflowY: "auto",
+        overflow: "hidden",
       }}
     >
 
-      <div style={{ padding: "22px 18px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
+      <div style={{ padding: "22px 18px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative", flexShrink: 0 }}>
         {onClose && (
           <button onClick={onClose} aria-label="close" style={{
             position: "absolute", insetInlineEnd: 8, top: 8, width: 44, height: 44,
@@ -194,6 +195,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </div>
       </div>
 
+
       {user && (
         <div style={{
           margin: "8px 14px 10px", padding: "12px",
@@ -201,7 +203,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           borderRadius: 12,
           display: "flex", alignItems: "center", gap: 10,
           position: "relative",
+          flexShrink: 0,
         }}>
+
           <Avatar id={user.id} name={user.full_name} size={40} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -273,7 +277,17 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       <nav
         aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"}
-        style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}
+        className="sidebar-scroll"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          overscrollBehavior: "contain",
+          WebkitOverflowScrolling: "touch",
+          padding: "8px 10px 20px",
+          scrollbarWidth: "thin",
+        }}
+
         onKeyDown={(e) => {
           const key = e.key;
           if (key !== "ArrowDown" && key !== "ArrowUp" && key !== "Home" && key !== "End") return;
@@ -427,7 +441,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       </nav>
 
 
-      <div style={{ padding: 12, borderTop: "1px solid var(--border)" }}>
+      <div style={{ padding: 12, borderTop: "1px solid var(--border)", flexShrink: 0, background: "var(--sidebar)" }}>
         {shareMode ? (
           <div style={{
             width: "100%", minHeight: 48, borderRadius: 12, padding: "8px 12px",
