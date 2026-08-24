@@ -69,7 +69,7 @@ const HTML_CONFIG: Record<string, unknown> = {
     "h1", "h2", "h3", "h4", "h5", "h6",
     "strong", "b", "em", "i", "u", "s", "strike", "sub", "sup", "mark", "small",
     "ul", "ol", "li", "blockquote", "pre", "code",
-    "table", "thead", "tbody", "tfoot", "tr", "th", "td", "colgroup", "col",
+    "table", "thead", "tbody", "tfoot", "tr", "th", "td", "colgroup", "col", "caption",
     "a", "img", "figure", "figcaption", "label", "input",
   ],
   ALLOWED_ATTR: [
@@ -77,6 +77,9 @@ const HTML_CONFIG: Record<string, unknown> = {
     "colspan", "rowspan", "align", "dir", "lang", "class", "style",
     "data-type", "data-checked", "type", "checked", "disabled",
     "start", "colwidth",
+    // Business-document rich body markers (smart items table, auto fields,
+    // manual page breaks, sliced table continuations).
+    "data-items", "data-doc-field", "data-page-break", "data-continued",
   ],
   ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|data:image\/(?:png|jpe?g|gif|webp|svg\+xml);base64,|#|\/)/i,
   FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "link", "meta", "base"],
