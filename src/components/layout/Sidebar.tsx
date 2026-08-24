@@ -136,10 +136,11 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     .map((section) => {
       let items = section.items;
 
-      // "share-links" is master-only within the admin section
+      // "share-links" and "doc-templates" are master-only within the admin section
       if (section.titleKey === "adminSection") {
-        items = items.filter((i) => i.to !== "/share-links" || isMasterAdmin);
+        items = items.filter((i) => (i.to !== "/share-links" && i.to !== "/doc-templates") || isMasterAdmin);
       }
+
 
       if (shareMode) {
         if (!shareLink) return { ...section, items: [] };
