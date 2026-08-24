@@ -8,6 +8,8 @@ import { Save, Plus, Trash2, TrendingUp } from "lucide-react";
 import type { FinancialSettings, FxRate } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-dialog";
+import { VaultAdminPanel } from "@/components/finance/VaultAdminPanel";
+
 
 export const Route = createFileRoute("/_authenticated/finance/settings")({
   component: FinanceSettingsPage,
@@ -135,7 +137,14 @@ function FinanceSettingsPage() {
           </div>
         )}
       </section>
+
+      {/* Encrypted vault */}
+      <section className="brand-card" style={{ padding: 20, display: "grid", gap: 12 }}>
+        <h3 style={{ margin: 0, fontSize: 15 }}>{lang === "ar" ? "الخزنة المشفّرة" : "Encrypted vault"}</h3>
+        <VaultAdminPanel />
+      </section>
     </div>
+
   );
 }
 

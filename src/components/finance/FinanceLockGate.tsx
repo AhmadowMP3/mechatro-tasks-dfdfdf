@@ -4,7 +4,7 @@ import { useApp } from "@/lib/app-context";
 import { useFinanceVault } from "@/lib/finance/vault-context";
 import { passphraseStrength } from "@/lib/finance/crypto";
 import { runVaultMigration, type MigrationProgress } from "@/lib/finance/migrate";
-import { VaultDiagnostics } from "./VaultDiagnostics";
+import { VaultAdminPanel } from "./VaultAdminPanel";
 
 
 const T = {
@@ -84,6 +84,8 @@ export function FinanceLockGate({ children }: { children: React.ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [progress, setProgress] = useState<MigrationProgress | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
+
 
   if (status === "loading") {
     return (
@@ -234,8 +236,34 @@ export function FinanceLockGate({ children }: { children: React.ReactNode }) {
         {busy ? <Loader2 size={17} className="spin" /> : <KeyRound size={17} />}
         {isSetup ? t("create") : t("unlock")}
       </button>
+
+      {!isSetup && (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowHelp((v) => !v)}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--muted-foreground)",
+              cursor: "pointer",
+              fontSize: 13,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              justifySelf: "start",
+              padding: 0,
+            }}
+          >
+            <LifeBuoy size={15} />
+            {ar ? "العبارة لا تُقبل؟" : "Passphrase not accepted?"}
+          </button>
+          {showHelp && <VaultAdminPanel />}
+        </>
+      )}
     </form>
   );
 }
+
 
 export default FinanceLockGate;
