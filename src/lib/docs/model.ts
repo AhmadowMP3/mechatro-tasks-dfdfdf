@@ -25,12 +25,17 @@ export type ItemRow = {
   discount: number; // absolute amount on the line
 };
 
+/** Which rendering of the brand logo the letterhead uses. */
+export type LogoVariant = "auto" | "light" | "dark";
+
 export type DocModel = {
   /** Always 2 — Word-style rich HTML body. */
   version: 2;
   showClientBox: boolean;
   /** Rich body HTML. */
   html: string;
+  /** Letterhead logo rendering: auto follows the paper theme. */
+  logoVariant?: LogoVariant;
   /** Legacy blocks of pre-Word documents, kept only as a backup. */
   blocks?: unknown[];
 };
