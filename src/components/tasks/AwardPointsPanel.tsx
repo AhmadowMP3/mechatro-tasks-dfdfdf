@@ -81,15 +81,29 @@ export function AwardPointsPanel({
       const { error: upErr } = await supabase.from("task_point_awards").upsert(payload, { onConflict: "task_id,user_id" });
       if (upErr) { toast.error(upErr.message); return; }
 
-      // Move task to done — trigger awards each user
+      // Move task to done — the DB settles points for every split row
       const { error: tErr } = await supabase.from("tasks").update({ status: "done", completed_at: new Date().toISOString() }).eq("id", taskId);
       if (tErr) { toast.error(tErr.message); return; }
+
+      // Verify every positive split actually got settled
+      const { data: after } = await supabase.from("task_point_awards").select("*").eq("task_id", taskId);
+      const list = (after ?? []) as Award[];
+      setExisting(list);
+      const pending = list.filter((r) => (r.points ?? 0) > 0 && !r.awarded_at);
+      if (pending.length > 0) {
+        toast.error(lang === "ar"
+          ? `لم تُحتسب نقاط ${pending.length} عضو — حاول مرة أخرى`
+          : `${pending.length} member(s) were not credited — please retry`);
+        return;
+      }
 
       try {
         confetti({ particleCount: 140, spread: 80, origin: { y: 0.6 }, colors: ["#FFD700", "#42C2EE", "#3ECF8E", "#F0676A"] });
       } catch { /* noop */ }
-      toast.success(`⭐ +${total} ${t("points")}`);
+      const credited = list.reduce((s, r) => s + (r.awarded_amount ?? 0), 0);
+      toast.success(`⭐ +${credited || total} ${t("points")}`);
       onApproved();
+
     } finally {
       setSaving(false);
     }
