@@ -80,10 +80,13 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
         ${(ar ? header.addressAr : header.addressEn) ? `<span style="font-size:9pt;color:${c.muted}">${nl2br(ar ? header.addressAr : header.addressEn)}</span><br/>` : ""}
         ${contactBits.length ? `<span style="font-size:8.5pt;color:${c.muted};direction:ltr">${esc(contactBits.join("  ·  "))}</span>` : ""}
       </td>
-      <td style="vertical-align:top;text-align:${opp};width:38%">
-        ${(ar ? header.titleAr : header.titleEn) ? `<div style="font-size:18pt;font-weight:bold;color:${header.accent}">${esc(ar ? header.titleAr : header.titleEn)}</div>` : ""}
+      <td style="vertical-align:top;text-align:center;width:26%">
+        ${(ar ? header.titleAr : header.titleEn) ? `<div style="font-size:17pt;font-weight:bold;color:${header.accent};${ar ? "" : "text-transform:uppercase;letter-spacing:1px;"}">${esc(ar ? header.titleAr : header.titleEn)}</div>` : ""}
+      </td>
+      <td style="vertical-align:top;text-align:${opp};width:32%">
         ${metaBox}
       </td>
+
     </tr>
   </table>
   ${(ar ? header.extraAr : header.extraEn) ? `<div style="font-size:9pt;color:${c.muted};margin-top:8px">${nl2br(ar ? header.extraAr : header.extraEn)}</div>` : ""}
