@@ -448,7 +448,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       </nav>
 
 
-      <div style={{ padding: 12, borderTop: "1px solid var(--border)", flexShrink: 0, background: "var(--sidebar)" }}>
+      <div style={{ padding: 12, paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid var(--border)", flexShrink: 0, background: "var(--sidebar)" }}>
         {shareMode ? (
           <div style={{
             width: "100%", minHeight: 48, borderRadius: 12, padding: "8px 12px",
