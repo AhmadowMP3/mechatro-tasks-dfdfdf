@@ -398,9 +398,9 @@ function StatusPill({ status, lang, label }: { status: string; lang: "ar" | "en"
   return (
     <span
       style={{
-        position: "absolute",
-        top: 14,
-        insetInlineEnd: 14,
+        display: "inline-block",
+        flexShrink: 0,
+        alignSelf: "flex-start",
         padding: "3px 12px",
         borderRadius: 999,
         fontSize: 11,
@@ -411,7 +411,6 @@ function StatusPill({ status, lang, label }: { status: string; lang: "ar" | "en"
         border: s.border ?? "none",
         boxShadow: "0 4px 12px -6px rgba(0,0,0,.5)",
         whiteSpace: "nowrap",
-        zIndex: 2,
       }}
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
