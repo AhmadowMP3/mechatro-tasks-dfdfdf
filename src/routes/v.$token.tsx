@@ -191,7 +191,7 @@ function PublicDocView() {
     frameRef.current?.addEventListener("load", onLoad);
 
     // Only viewport changes trigger a re-fit; the height never grows on its own.
-    const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit); });
+    const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => fit()); });
     if (shellRef.current) ro.observe(shellRef.current);
     const refit = () => fit();
     window.addEventListener("resize", refit);
