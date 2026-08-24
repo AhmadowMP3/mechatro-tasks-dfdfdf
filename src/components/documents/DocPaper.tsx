@@ -67,9 +67,9 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
     >
       {/* ── Header band (identical on every template) ───────────── */}
       <div style={{ padding: "24px 40px 12px", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 18, flexWrap: "nowrap" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "232px minmax(0, 1fr) 232px", alignItems: "start", justifyItems: "stretch", gap: 18 }}>
           {/* Brand block */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: "1 1 0", overflowWrap: "anywhere", alignItems: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, overflowWrap: "anywhere", alignItems: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>
             {header.showLogo && (
               <img src={logo} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", maxWidth: "100%", objectFit: "contain" }} />
             )}
@@ -83,8 +83,8 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
           </div>
 
           {/* Centered document title */}
-          {title && (
-            <div style={{ flex: "0 1 auto", maxWidth: 240, textAlign: "center", paddingTop: 6, minWidth: 0 }}>
+          <div style={{ textAlign: "center", paddingTop: 6, minWidth: 0 }}>
+            {title && (
               <div
                 style={{
                   fontSize: 21,
@@ -98,11 +98,11 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
               >
                 {title}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Meta box */}
-          <div style={{ textAlign: ar ? "left" : "right", flex: "0 0 auto", width: 232, minWidth: 0, overflowWrap: "anywhere" }}>
+          <div style={{ textAlign: ar ? "left" : "right", minWidth: 0, overflowWrap: "anywhere" }}>
             {header.showMetaBox && (
               <div
                 style={{
