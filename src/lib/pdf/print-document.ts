@@ -19,6 +19,12 @@ export type PrintOptions = {
   background?: string;
   /** Page text color (defaults to the app's light ink). */
   color?: string;
+  /**
+   * When set, a QR code linking to a public read-only copy of this document
+   * is stamped on the bottom-left of the last page, and the rendered A4
+   * snapshot is stored so /v/{token} shows the very same document.
+   */
+  share?: ShareTarget;
 };
 
 const A4_WIDTH_PX = 794;
