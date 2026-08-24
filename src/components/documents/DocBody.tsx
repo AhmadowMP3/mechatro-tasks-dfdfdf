@@ -67,14 +67,15 @@ function ClientBox({ client, ar, c }: { client: DocClient; ar: boolean; c: Palet
       <div style={{ fontSize: 10.5, color: c.muted, letterSpacing: 0.4 }}>{ar ? "إلى" : "To"}</div>
       {name && <div style={{ fontSize: 13.5, fontWeight: 700 }}>{name}</div>}
       {bits.length > 0 && (
-        <div style={{ display: "grid", gap: 3, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", fontSize: 11 }}>
+        <div style={{ display: "grid", gap: 4, gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", fontSize: 11 }}>
           {bits.map((b, i) => (
-            <div key={i} style={{ display: "flex", gap: 6 }}>
-              <span style={{ color: c.muted }}>{b.l}:</span>
-              <span style={{ fontWeight: 600, minWidth: 0, wordBreak: "break-word" }}>{b.v}</span>
+            <div key={i} style={{ display: "flex", gap: 6, minWidth: 0, alignItems: "baseline" }}>
+              <span style={{ color: c.muted, whiteSpace: "nowrap", flexShrink: 0 }}>{b.l}:</span>
+              <span style={{ fontWeight: 600, minWidth: 0, overflowWrap: "anywhere" }}>{b.v}</span>
             </div>
           ))}
         </div>
+
       )}
     </div>
   );
