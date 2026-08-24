@@ -165,7 +165,7 @@ function BlockView({ block, ar, c, currency }: { block: DocBlock; ar: boolean; c
           {(ar ? block.titleAr : block.titleEn) && (
             <div style={{ fontSize: 12.5, fontWeight: 700 }}>{ar ? block.titleAr : block.titleEn}</div>
           )}
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5, tableLayout: "fixed" }}>
             <thead>
               <tr style={{ background: c.surface }}>
                 <Th c={c} width={32}>#</Th>
