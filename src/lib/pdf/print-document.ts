@@ -63,6 +63,19 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
     width: ${A4_WIDTH_PX}px;
     margin: 0 auto;
   }
+  /* Pre-paginated documents: one .doc-page element == exactly one sheet. */
+  .doc-page {
+    width: ${A4_WIDTH_PX}px;
+    overflow: hidden;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    break-after: page;
+    page-break-after: always;
+  }
+  .doc-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
   /* On screen (only briefly visible during load), keep layout stable. */
   @media print {
     body { width: auto; }
