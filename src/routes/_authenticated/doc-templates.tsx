@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Save, RotateCcw, Sun, Moon, Copy, Loader2 } from "lucide-react";
+import { Save, RotateCcw, Sun, Moon, Copy, Loader2, ChevronDown } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
