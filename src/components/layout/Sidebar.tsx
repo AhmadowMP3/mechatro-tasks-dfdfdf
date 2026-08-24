@@ -86,8 +86,10 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: "/team",           icon: Users,    key: "team" },
       { to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } },
+      { to: "/doc-templates",  icon: FileText, key: null, label: { ar: "قوالب المستندات", en: "Document Templates" } },
       { to: "/share-links",    icon: Share2,   key: null, label: { ar: "روابط المشاركة", en: "Share Links" } },
     ],
+
   },
   {
     titleKey: "personalSection",
