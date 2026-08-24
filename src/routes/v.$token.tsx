@@ -77,7 +77,9 @@ function PublicDocView() {
   const shellRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const settledRef = useRef(false);
+  const renderWidthRef = useRef(A4_W);
   const [frameHeight, setFrameHeight] = useState(A4_H);
+  const [renderWidth, setRenderWidth] = useState(A4_W);
   const [fitScale, setFitScale] = useState(1);
   const [zoom, setZoom] = useState<number | null>(null); // null = fit to width
 
@@ -114,10 +116,17 @@ function PublicDocView() {
     if (!doc?.payload?.html) return null;
     const dir = lang === "ar" ? "rtl" : "ltr";
     return `<!doctype html><html lang="${lang}" dir="${dir}"><head><meta charset="utf-8"/>
-<meta name="viewport" content="width=${pageW}, initial-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <style>${doc.payload.css ?? ""}</style><style>${sheetCss(lang, pageW)}</style></head>
 <body><div id="print-root">${doc.payload.html}</div></body></html>`;
   }, [doc, lang, pageW]);
+
+  useEffect(() => {
+    renderWidthRef.current = pageW;
+    setRenderWidth(pageW);
+    setFrameHeight(pageH);
+    setZoom(null);
+  }, [pageW, pageH, srcDoc]);
 
   // Fit-to-width scale + one decisive content-height measurement.
   useEffect(() => {
@@ -125,21 +134,33 @@ function PublicDocView() {
     settledRef.current = false;
     let raf = 0;
 
-    const fit = () => {
-      const avail = Math.max(240, (shellRef.current?.clientWidth ?? window.innerWidth) - 8);
-      setFitScale(Math.min(1, Math.max(MIN_ZOOM, avail / pageW)));
+    const fit = (measuredWidth = renderWidthRef.current) => {
+      const screenWidth = Math.min(window.innerWidth, document.documentElement.clientWidth);
+      const pagePadding = Math.max(4, Math.min(16, screenWidth * 0.02));
+      const available = Math.max(1, Math.min(measuredWidth, screenWidth - (pagePadding * 2) - 2));
+      setFitScale(Math.min(1, Math.max(0.05, available / Math.max(1, measuredWidth))));
     };
 
     const measureHeight = () => {
       const d = frameRef.current?.contentDocument;
       if (!d) return false;
-      const pages = d.querySelectorAll(".doc-page").length;
+      const pageElements = Array.from(d.querySelectorAll<HTMLElement>(".doc-page"));
+      const root = d.getElementById("print-root");
+      const measuredWidth = Math.max(
+        pageW,
+        root?.scrollWidth ?? 0,
+        Math.ceil(root?.getBoundingClientRect().width ?? 0),
+        ...pageElements.map((page) => Math.ceil(Math.max(page.scrollWidth, page.getBoundingClientRect().width))),
+      );
+      renderWidthRef.current = measuredWidth;
+      setRenderWidth(measuredWidth);
+      fit(measuredWidth);
+      const pages = pageElements.length;
       if (pages > 0) {
         setFrameHeight(pages * (pageH + PAGE_GAP));
         settledRef.current = true;
         return true;
       }
-      const root = d.getElementById("print-root");
       const h = root?.scrollHeight ?? 0;
       if (h > 200) {
         setFrameHeight(Math.min(MAX_HEIGHT, h + PAGE_GAP));
@@ -170,17 +191,18 @@ function PublicDocView() {
     frameRef.current?.addEventListener("load", onLoad);
 
     // Only viewport changes trigger a re-fit; the height never grows on its own.
-    const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit); });
+    const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => fit()); });
     if (shellRef.current) ro.observe(shellRef.current);
-    window.addEventListener("resize", fit);
-    window.addEventListener("orientationchange", fit);
+    const refit = () => fit();
+    window.addEventListener("resize", refit);
+    window.addEventListener("orientationchange", refit);
 
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
       frameRef.current?.removeEventListener("load", onLoad);
-      window.removeEventListener("resize", fit);
-      window.removeEventListener("orientationchange", fit);
+      window.removeEventListener("resize", refit);
+      window.removeEventListener("orientationchange", refit);
     };
   }, [srcDoc, pageW, pageH]);
 
@@ -266,7 +288,7 @@ function PublicDocView() {
         </div>
 
         {srcDoc && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0 }}>
             <button type="button" style={{ ...btn, padding: "0 9px" }} aria-label="zoom out" onClick={() => bump(1 / 1.2)}>
               <Minus size={14} />
             </button>
@@ -295,7 +317,7 @@ function PublicDocView() {
       <main style={{ padding: "16px clamp(4px, 2vw, 16px) 44px", display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div
           ref={shellRef}
-          style={{ width: "100%", maxWidth: pageW, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}
+          style={{ width: "100%", maxWidth: renderWidth, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}
         >
           {row === "loading" && <div style={{ color: "#94A3B8", fontSize: 13, padding: 40 }}>{ar ? "جارٍ التحميل…" : "Loading…"}</div>}
 
@@ -320,9 +342,9 @@ function PublicDocView() {
           {srcDoc && (
             <div
               ref={viewportRef}
-              style={{ width: "100%", maxWidth: "100%", overflowX: "auto", direction: "ltr", WebkitOverflowScrolling: "touch" }}
+              style={{ width: "100%", maxWidth: "100%", overflowX: zoom === null ? "hidden" : "auto", direction: "ltr", WebkitOverflowScrolling: "touch" }}
             >
-              <div style={{ width: pageW * scale, height: frameHeight * scale, overflow: "hidden", margin: "0 auto" }}>
+              <div style={{ width: renderWidth * scale, height: frameHeight * scale, overflow: "hidden", margin: "0 auto", maxWidth: zoom === null ? "100%" : undefined }}>
                 <iframe
                   ref={frameRef}
                   title={doc?.title ?? "document"}
@@ -330,7 +352,7 @@ function PublicDocView() {
                   srcDoc={srcDoc}
                   scrolling="no"
                   style={{
-                    width: pageW, height: frameHeight, border: 0,
+                    width: renderWidth, minWidth: renderWidth, maxWidth: "none", height: frameHeight, border: 0,
                     background: doc?.payload?.background ?? "#081320",
                     transform: `scale(${scale})`, transformOrigin: "top left", pointerEvents: "none",
                     display: "block",
