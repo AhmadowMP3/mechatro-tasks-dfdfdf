@@ -72,20 +72,21 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
     : "";
 
   const headerBand = `
-  <table style="width:100%;border-collapse:collapse" cellpadding="0">
+  <table style="width:100%;border-collapse:collapse;table-layout:fixed" cellpadding="0">
     <tr>
-      <td style="vertical-align:top;text-align:${align}">
+      <td style="vertical-align:top;text-align:${align};width:31%">
         ${logo ? `<img src="${logo.dataUrl}" alt="Mechatro" height="${Math.round(header.logoHeight)}" style="height:${Math.round(header.logoHeight)}px" /><br/>` : ""}
         ${header.companyAr || header.companyEn ? `<span style="font-size:12pt;font-weight:bold">${esc(ar ? header.companyAr : header.companyEn)}</span><br/>` : ""}
         ${(ar ? header.addressAr : header.addressEn) ? `<span style="font-size:9pt;color:${c.muted}">${nl2br(ar ? header.addressAr : header.addressEn)}</span><br/>` : ""}
         ${contactBits.length ? `<span style="font-size:8.5pt;color:${c.muted};direction:ltr">${esc(contactBits.join("  ·  "))}</span>` : ""}
       </td>
-      <td style="vertical-align:top;text-align:center;width:26%">
+      <td style="vertical-align:top;text-align:center;width:38%">
         ${(ar ? header.titleAr : header.titleEn) ? `<div style="font-size:17pt;font-weight:bold;color:${header.accent};${ar ? "" : "text-transform:uppercase;letter-spacing:1px;"}">${esc(ar ? header.titleAr : header.titleEn)}</div>` : ""}
       </td>
-      <td style="vertical-align:top;text-align:${opp};width:32%">
+      <td style="vertical-align:top;text-align:${opp};width:31%">
         ${metaBox}
       </td>
+
 
     </tr>
   </table>
