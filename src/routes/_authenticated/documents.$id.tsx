@@ -277,7 +277,16 @@ function DocumentEditorPage() {
         </div>
 
         {/* ── Preview column ───────────────────────────────────── */}
-        <div style={{ position: "sticky", top: 12, display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+        <div
+          style={{
+            position: isMobile ? "static" : "sticky",
+            top: 12,
+            display: isMobile && tab !== "preview" ? "none" : "flex",
+            flexDirection: "column",
+            gap: 10,
+            minWidth: 0,
+          }}
+        >
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{ fontSize: 12.5, color: "var(--muted-foreground)" }}>{ar ? "معاينة A4" : "A4 preview"}</span>
             <div style={{ marginInlineStart: "auto", display: "flex", gap: 6 }}>
