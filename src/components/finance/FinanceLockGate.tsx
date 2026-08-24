@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Lock, ShieldCheck, KeyRound, Loader2, AlertTriangle } from "lucide-react";
+import { Lock, ShieldCheck, KeyRound, Loader2, AlertTriangle, LifeBuoy } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { useFinanceVault } from "@/lib/finance/vault-context";
 import { passphraseStrength } from "@/lib/finance/crypto";
 import { runVaultMigration, type MigrationProgress } from "@/lib/finance/migrate";
+import { VaultDiagnostics } from "./VaultDiagnostics";
+
 
 const T = {
   setupTitle: { ar: "تفعيل خزنة المالية المشفّرة", en: "Set up the encrypted finance vault" },
