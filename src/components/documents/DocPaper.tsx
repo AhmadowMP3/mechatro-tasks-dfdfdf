@@ -4,6 +4,7 @@
 
 import logo from "@/assets/mechatro-logo.png";
 import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
+import { QR_ROW_H } from "@/lib/share/qr-stamp";
 
 export const A4 = { width: 794, height: 1123 } as const;
 
