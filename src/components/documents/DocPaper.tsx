@@ -65,37 +65,52 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
         overflow: sizing === "fixed" || !bare ? "hidden" : undefined,
       }}
     >
-      {/* ── Header band ─────────────────────────────────────────── */}
-      <div style={{ padding: "26px 40px 14px", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0, flex: "1 1 300px", overflowWrap: "anywhere", alignItems: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>
+      {/* ── Header band (identical on every template) ───────────── */}
+      <div style={{ padding: "24px 40px 12px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 18, flexWrap: "nowrap" }}>
+          {/* Brand block */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: "1 1 0", overflowWrap: "anywhere", alignItems: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>
             {header.showLogo && (
               <img src={logo} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", maxWidth: "100%", objectFit: "contain" }} />
             )}
-            {company && <div style={{ fontSize: 14, fontWeight: 700, overflowWrap: "anywhere" }}>{company}</div>}
-            {address && <div style={{ fontSize: 11, color: c.muted, overflowWrap: "anywhere" }}>{address}</div>}
+            {company && <div style={{ fontSize: 12.5, fontWeight: 700, overflowWrap: "anywhere" }}>{company}</div>}
+            {address && <div style={{ fontSize: 10.5, color: c.muted, overflowWrap: "anywhere" }}>{address}</div>}
             {contactBits.length > 0 && (
-              <div style={{ fontSize: 10.5, color: c.muted, direction: "ltr", textAlign: align, overflowWrap: "anywhere" }}>
+              <div style={{ fontSize: 10, color: c.muted, direction: "ltr", textAlign: align, overflowWrap: "anywhere" }}>
                 {contactBits.join("  ·  ")}
               </div>
             )}
           </div>
 
-          <div style={{ textAlign: ar ? "left" : "right", flex: "0 1 auto", minWidth: 200, maxWidth: 300, overflowWrap: "anywhere" }}>
-            {title && (
-              <div style={{ fontSize: 22, fontWeight: 800, color: header.accent, letterSpacing: ar ? 0 : 0.5, lineHeight: 1.25, overflowWrap: "anywhere" }}>
+          {/* Centered document title */}
+          {title && (
+            <div style={{ flex: "0 1 auto", maxWidth: 240, textAlign: "center", paddingTop: 6, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 21,
+                  fontWeight: 800,
+                  color: header.accent,
+                  letterSpacing: ar ? 0 : 1.2,
+                  textTransform: ar ? "none" : "uppercase",
+                  lineHeight: 1.25,
+                  overflowWrap: "anywhere",
+                }}
+              >
                 {title}
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Meta box */}
+          <div style={{ textAlign: ar ? "left" : "right", flex: "0 0 auto", width: 232, minWidth: 0, overflowWrap: "anywhere" }}>
             {header.showMetaBox && (
               <div
                 style={{
-                  marginTop: 10,
                   background: c.surface,
                   border: `1px solid ${c.border}`,
                   borderRadius: 8,
                   padding: "8px 12px",
-                  fontSize: 11,
+                  fontSize: 10.5,
                   display: "grid",
                   gap: 4,
                   textAlign: ar ? "left" : "right",
@@ -113,13 +128,13 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
         {extra && <div style={{ marginTop: 10, fontSize: 11, color: c.muted, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{extra}</div>}
 
         {header.showRule && (
-          <div style={{ marginTop: 14, height: 2, borderRadius: 2, background: `linear-gradient(90deg, ${header.accent}, ${header.accent}00)` }} />
+          <div style={{ marginTop: 12, height: 2, borderRadius: 2, background: `linear-gradient(90deg, ${header.accent}, ${header.accent}00)` }} />
         )}
       </div>
 
 
       {/* ── Body ────────────────────────────────────────────────── */}
-      <div className="pdf-flow" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: "6px 40px 22px", fontSize: 12.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>
+      <div className="pdf-flow" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: "6px 40px 18px", fontSize: 12.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>
         {children}
       </div>
 
@@ -129,13 +144,10 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
         style={{ height: QR_ROW_H, padding: "0 40px", display: "flex", alignItems: "flex-end", flexShrink: 0, overflow: "hidden" }}
       />
 
-      {/* ── Footer band ─────────────────────────────────────────── */}
-      <div data-doc-footer style={{ padding: "12px 40px 22px", flexShrink: 0 }}>
-        {footer.showRule && (
-          <div style={{ height: 1.5, borderRadius: 2, background: `linear-gradient(90deg, ${footer.accent}00, ${footer.accent}, ${footer.accent}00)`, marginBottom: 10 }} />
-        )}
+      {/* ── Footer band (identical on every template) ───────────── */}
+      <div data-doc-footer style={{ padding: "10px 40px 20px", flexShrink: 0 }}>
         {(bank || signature) && (
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 24, marginBottom: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 24, marginBottom: 8, flexWrap: "wrap" }}>
             {bank ? <div style={{ fontSize: 10.5, color: c.muted, whiteSpace: "pre-wrap", flex: "1 1 240px", minWidth: 0, maxWidth: "60%", overflowWrap: "anywhere" }}>{bank}</div> : <span />}
             {signature && (
               <div style={{ textAlign: "center", width: 180, flexShrink: 0 }}>
@@ -145,16 +157,42 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
             )}
           </div>
         )}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 14, flexWrap: "wrap", fontSize: 10, color: c.muted }}>
-          <span style={{ flex: "1 1 auto", minWidth: 0, overflowWrap: "anywhere" }}>{footer.contactLine}</span>
-          {note && (
-            <span style={{ flex: "2 1 200px", textAlign: "center", minWidth: 0, overflowWrap: "anywhere" }}>{note}</span>
-          )}
+
+        {footer.showRule && (
+          <div style={{ height: 1.5, borderRadius: 2, background: `linear-gradient(90deg, ${footer.accent}00, ${footer.accent}, ${footer.accent}00)`, marginBottom: 8 }} />
+        )}
+
+        {/* Official bilingual contact block: EN left · AR right */}
+        {footer.contactRows.length > 0 && (
+          <div style={{ display: "grid", gap: 2.5, marginBottom: 6 }}>
+            {footer.contactRows.map((row, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 16,
+                  fontSize: 9.5,
+                  color: c.muted,
+                  direction: "ltr",
+                  alignItems: "baseline",
+                }}
+              >
+                <span style={{ textAlign: "left", direction: "ltr", minWidth: 0, overflowWrap: "anywhere", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.en}</span>
+                <span style={{ textAlign: "right", direction: "rtl", minWidth: 0, overflowWrap: "anywhere", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.ar}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 14, flexWrap: "nowrap", fontSize: 9.5, color: c.muted }}>
+          <span style={{ flex: "1 1 auto", minWidth: 0, overflowWrap: "anywhere" }}>{note}</span>
           <span style={{ direction: "ltr", flexShrink: 0, whiteSpace: "nowrap" }}>
             {footer.showPageNumbers ? (ar ? `الصفحة ${page?.current ?? 1} / ${page?.total ?? 1}` : `Page ${page?.current ?? 1} / ${page?.total ?? 1}`) : ""}
           </span>
         </div>
       </div>
+
 
     </div>
   );
