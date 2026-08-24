@@ -46,6 +46,9 @@ export function TaskCard({ task, project, assignee, assignees, onClick }: {
   onClick: () => void;
 }) {
   const { lang, t } = useApp();
+  const myAwards = useMyAwards();
+  const myShare = task.points_awarded_at ? myAwards[task.id] : undefined;
+  const hasShare = typeof myShare === "number";
   const overdue = isOverdue(task.due_date, task.status);
   const projectName = project ? (lang === "ar" ? project.name_ar : project.name_en) : "";
 
