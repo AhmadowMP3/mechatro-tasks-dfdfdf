@@ -2811,6 +2811,7 @@ export type Database = {
       next_invoice_seq: { Args: never; Returns: number }
       resolve_login_email: { Args: { p_name: string }; Returns: string }
       restore_full_snapshot: { Args: { payload: Json }; Returns: Json }
+      settle_task_points: { Args: { p_task_id: string }; Returns: number }
       sync_master_admin: { Args: never; Returns: undefined }
       team_pulse: { Args: never; Returns: Json }
     }
