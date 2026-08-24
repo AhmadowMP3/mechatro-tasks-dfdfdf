@@ -105,6 +105,7 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
       .from("finance_vault_meta")
       .upsert({ id: true, kdf_salt: salt, kdf_iterations: KDF_ITERATIONS, verifier }, { onConflict: "id" });
     if (err) throw new Error(err.message);
+    keyRef.current = key;
     setVaultKey(key);
     setMeta({ kdf_salt: salt, kdf_iterations: KDF_ITERATIONS, verifier, encrypted_at: null });
     setStatus("unlocked");
@@ -116,7 +117,9 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
       if (!m) return false;
       const key = await deriveVaultKey(passphrase, m.kdf_salt, m.kdf_iterations ?? KDF_ITERATIONS);
       if (!(await checkVerifier(key, m.verifier))) return false;
+      keyRef.current = key;
       setVaultKey(key);
+
       setStatus("unlocked");
       return true;
     },
