@@ -55,7 +55,8 @@ function createMeasurer(lang: DocLang): Measurer {
   return {
     measure(node) {
       flushSync(() => root.render(node as React.ReactElement));
-      return Math.ceil(host.getBoundingClientRect().height);
+      const rect = host.getBoundingClientRect().height;
+      return Math.ceil(Math.max(rect, host.scrollHeight));
     },
     destroy() {
       // Unmount asynchronously — React forbids unmounting while rendering.
