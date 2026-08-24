@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Save, RotateCcw, Sun, Moon, Copy, Loader2 } from "lucide-react";
+import { Save, RotateCcw, Sun, Moon, Copy, Loader2, ChevronDown } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -419,14 +419,31 @@ function Td({ c, children, colSpan, bold }: { c: { border: string }; children: R
 
 /* ── Small form primitives (match the app's inline-style approach) ───── */
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+/** Collapsible settings strip — same look as the document editor accordions. */
+function Section({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ fontSize: 14, fontWeight: 700 }}>{title}</div>
-      {children}
+    <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, minWidth: 0 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
+          background: "transparent", border: 0, color: "var(--foreground)", cursor: "pointer",
+          fontSize: 14, fontWeight: 700, textAlign: "start",
+        }}
+      >
+        <ChevronDown size={16} style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform .15s" }} />
+        {title}
+      </button>
+      {open && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 16px 16px" }}>{children}</div>
+      )}
     </div>
   );
 }
+
 function Row({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 170px), 1fr))" }}>
