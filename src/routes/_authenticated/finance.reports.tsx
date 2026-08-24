@@ -392,7 +392,15 @@ function FinanceReports() {
             lang={lang}
           />
         </>,
-        { title: `finance-report_${range.from}_${range.to}`, lang },
+        {
+          title: `finance-report_${range.from}_${range.to}`,
+          lang,
+          share: {
+            kind: "finance_report",
+            refId: `finance-report_${range.from}_${range.to}`,
+            title: t("financeReports"),
+          },
+        },
       );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));

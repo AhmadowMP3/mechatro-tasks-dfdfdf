@@ -6,7 +6,7 @@ import { printReactDocument } from "@/lib/pdf/print-document";
 import { PAPER, docTypeLabel, type DocType } from "./types";
 import { downloadDocWord, type DocRenderInput } from "./export-html";
 
-export type ExportDocInput = DocRenderInput & { docType: DocType; number: string };
+export type ExportDocInput = DocRenderInput & { docType: DocType; number: string; docId?: string };
 
 function filenameFor(input: ExportDocInput): string {
   const label = docTypeLabel(input.docType, "en").replace(/[^A-Za-z0-9]+/g, "-");
@@ -39,6 +39,11 @@ export async function exportDocPdf(input: ExportDocInput): Promise<void> {
       lang: input.lang,
       background: palette.bg,
       color: palette.ink,
+      share: {
+        kind: "business_doc",
+        refId: input.docId ?? `${input.docType}:${input.number}`,
+        title: `${docTypeLabel(input.docType, input.lang)} ${input.number}`,
+      },
     },
   );
 }

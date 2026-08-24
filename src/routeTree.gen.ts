@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as VTokenRouteImport } from './routes/v.$token'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedReportsHistoryRouteImport } from './routes/_authenticated/reports-history'
@@ -70,6 +71,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const VTokenRoute = VTokenRouteImport.update({
+  id: '/v/$token',
+  path: '/v/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   id: '/tasks',
@@ -270,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/reports-history': typeof AuthenticatedReportsHistoryRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/v/$token': typeof VTokenRoute
   '/documents/$id': typeof AuthenticatedDocumentsIdRoute
   '/finance/customers': typeof AuthenticatedFinanceCustomersRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
@@ -305,6 +312,7 @@ export interface FileRoutesByTo {
   '/reports-history': typeof AuthenticatedReportsHistoryRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/v/$token': typeof VTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/documents/$id': typeof AuthenticatedDocumentsIdRoute
   '/finance/customers': typeof AuthenticatedFinanceCustomersRoute
@@ -345,6 +353,7 @@ export interface FileRoutesById {
   '/_authenticated/reports-history': typeof AuthenticatedReportsHistoryRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
+  '/v/$token': typeof VTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/documents/$id': typeof AuthenticatedDocumentsIdRoute
   '/_authenticated/finance/customers': typeof AuthenticatedFinanceCustomersRoute
@@ -386,6 +395,7 @@ export interface FileRouteTypes {
     | '/reports-history'
     | '/settings'
     | '/tasks'
+    | '/v/$token'
     | '/documents/$id'
     | '/finance/customers'
     | '/finance/expenses'
@@ -421,6 +431,7 @@ export interface FileRouteTypes {
     | '/reports-history'
     | '/settings'
     | '/tasks'
+    | '/v/$token'
     | '/'
     | '/documents/$id'
     | '/finance/customers'
@@ -460,6 +471,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports-history'
     | '/_authenticated/settings'
     | '/_authenticated/tasks'
+    | '/v/$token'
     | '/_authenticated/'
     | '/_authenticated/documents/$id'
     | '/_authenticated/finance/customers'
@@ -487,6 +499,7 @@ export interface RootRouteChildren {
   AcceptInviteRoute: typeof AcceptInviteRoute
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  VTokenRoute: typeof VTokenRoute
   ApiPublicGoogleDriveCallbackRoute: typeof ApiPublicGoogleDriveCallbackRoute
   ApiPublicHooksBackupAutoApproveRoute: typeof ApiPublicHooksBackupAutoApproveRoute
 }
@@ -527,6 +540,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/v/$token': {
+      id: '/v/$token'
+      path: '/v/$token'
+      fullPath: '/v/$token'
+      preLoaderRoute: typeof VTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/tasks': {
       id: '/_authenticated/tasks'
@@ -854,6 +874,7 @@ const rootRouteChildren: RootRouteChildren = {
   AcceptInviteRoute: AcceptInviteRoute,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  VTokenRoute: VTokenRoute,
   ApiPublicGoogleDriveCallbackRoute: ApiPublicGoogleDriveCallbackRoute,
   ApiPublicHooksBackupAutoApproveRoute: ApiPublicHooksBackupAutoApproveRoute,
 }

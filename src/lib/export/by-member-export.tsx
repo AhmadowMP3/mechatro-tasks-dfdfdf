@@ -170,9 +170,11 @@ function ByMemberDocument({ groups, projects, lang, title, subtitle, filtersSumm
 }
 
 export async function exportByMemberPdf(input: ByMemberExportInput): Promise<void> {
+  const title = `tasks-by-member_${stamp()}`;
   await printReactDocument(<ByMemberDocument {...input} />, {
-    title: `tasks-by-member_${stamp()}`,
+    title,
     lang: input.lang,
+    share: { kind: "by_member_report", refId: title, title },
   });
 }
 

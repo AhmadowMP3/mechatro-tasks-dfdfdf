@@ -7,6 +7,8 @@ import logoBundledUrl from "@/assets/mechatro-logo.png";
 
 
 import { buildKpiSnapshot } from "./snapshot";
+import { prepareShare, saveSharePayload, type ShareTarget } from "@/lib/share/public-share";
+import { qrStampHtml } from "@/lib/share/qr-stamp";
 
 
 export type ReportLangChoice = "ar" | "en" | "bilingual";
@@ -240,6 +242,7 @@ async function renderHtmlToPdfBlob(
   memberName: string,
   rangeText: string,
   kind: ReportKind = "member",
+  share: ShareTarget | null = null,
 ): Promise<{ blob: Blob; pageCount: number }> {
   const [{ default: html2canvas }, jspdfMod] = await Promise.all([
     import("html2canvas"),
@@ -249,6 +252,7 @@ async function renderHtmlToPdfBlob(
 
   const inlined = await inlineLogo(html);
   const logoDataUrl = (await getLogoDataUrl()) ?? "";
+  const prepared = share ? await prepareShare(share) : null;
 
   const parser = new DOMParser();
   const parsed = parser.parseFromString(`<!doctype html><html><body>${inlined}</body></html>`, "text/html");
@@ -333,6 +337,30 @@ async function renderHtmlToPdfBlob(
     void idx;
   });
 
+  // 3. QR stamp — bottom-left of the LAST page only, just above the footer.
+  if (prepared) {
+    pdf.setPage(pdfPageCount);
+    const qrPt = 62;
+    const footerPt = FOOTER_H * pxToPt;
+    const x = SIDE_PAD * pxToPt;
+    const y = pageH - footerPt - 8 - qrPt;
+    pdf.setFillColor(255, 255, 255);
+    pdf.roundedRect(x - 3, y - 3, qrPt + 6, qrPt + 6, 4, 4, "F");
+    pdf.addImage(prepared.qrDataUrl, "PNG", x, y, qrPt, qrPt, undefined, "FAST");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(148, 163, 184);
+    pdf.text("Scan for a read-only copy", x + qrPt + 8, y + qrPt / 2, { align: "left" });
+
+    void saveSharePayload(prepared.token, {
+      html: inlined + qrStampHtml(prepared.qrDataUrl, "en").replace("position:absolute;left:34px;bottom:16px;", "position:relative;margin:18px 0 0 34px;"),
+      css: PDF_STYLE,
+      width: A4_W,
+      background: "#081320",
+      color: "#E6EEF7",
+      title: filename,
+    });
+  }
+
   const blob = pdf.output("blob");
   void filename;
   return { blob, pageCount: pdfPageCount };
@@ -367,7 +395,7 @@ export async function buildMemberReportPdf(
   const rangeText = data.range.from
     ? `${data.range.from.toISOString().slice(0, 10)} — ${(data.range.to ?? new Date()).toISOString().slice(0, 10)}`
     : "All time";
-  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, data.member.full_name, rangeText, "member");
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, data.member.full_name, rangeText, "member", { kind: "member_report", refId: `${data.member.id}:${data.range.label}:${choice}`, title: `${data.member.full_name} — ${data.range.label}` });
   return { blob, filename, pageCount, data, choice };
 }
 
@@ -436,7 +464,7 @@ export async function buildTeamReportPdf(
   filename: string,
   rangeText?: string,
 ): Promise<{ blob: Blob; filename: string; pageCount: number }> {
-  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, "Mechatro Team", rangeText ?? "", "team");
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, "Mechatro Team", rangeText ?? "", "team", { kind: "team_report", refId: filename, title: filename });
   return { blob, filename, pageCount };
 }
 
@@ -455,7 +483,7 @@ export async function persistComparisonPdf(opts: {
   language: ReportLangChoice;
   snapshot: unknown;
 }): Promise<{ id: string | null; path: string | null }> {
-  const { blob, pageCount } = await renderHtmlToPdfBlob(opts.html, opts.filename, `${opts.memberALabel} ⇄ ${opts.memberBLabel}`, "Head-to-head", "comparison");
+  const { blob, pageCount } = await renderHtmlToPdfBlob(opts.html, opts.filename, `${opts.memberALabel} ⇄ ${opts.memberBLabel}`, "Head-to-head", "comparison", { kind: "comparison_report", refId: `${opts.reportAId}:${opts.reportBId}`, title: `${opts.memberALabel} vs ${opts.memberBLabel}` });
   triggerDownload(blob, opts.filename);
 
   try {
