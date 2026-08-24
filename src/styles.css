@@ -216,6 +216,59 @@
 .brand-btn-sm:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
 .brand-btn-sm:active:not(:disabled) { transform: translateY(0); filter: brightness(.96); }
 
+/* Document-system buttons — clear bordered surfaces with real padding */
+@utility btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding-block: 10px;
+  padding-inline: 14px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--card) 85%, transparent);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, transform .12s ease, box-shadow .2s ease;
+}
+@utility btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding-block: 10px;
+  padding-inline: 18px;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  background: var(--grad-blue, var(--primary));
+  color: var(--primary-foreground);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 4px 14px -6px color-mix(in oklab, var(--primary) 60%, transparent);
+  transition: filter .18s ease, transform .12s ease, box-shadow .2s ease;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--primary) 10%, var(--card));
+  border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
+  transform: translateY(-1px);
+}
+.btn-ghost:active:not(:disabled) { transform: translateY(0); }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+.btn-primary:active:not(:disabled) { transform: translateY(0); filter: brightness(.96); }
+.btn-ghost:disabled,
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-ghost > svg,
+.btn-primary > svg { flex-shrink: 0; }
+
+
+
 /* Card hover lift */
 .brand-card { transition: transform .2s ease, box-shadow .25s ease, border-color .25s ease, background-color .3s ease; }
 .brand-card.is-interactive:hover,
