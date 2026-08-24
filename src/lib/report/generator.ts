@@ -7,6 +7,8 @@ import logoBundledUrl from "@/assets/mechatro-logo.png";
 
 
 import { buildKpiSnapshot } from "./snapshot";
+import { prepareShare, saveSharePayload, type ShareTarget } from "@/lib/share/public-share";
+import { qrStampHtml } from "@/lib/share/qr-stamp";
 
 
 export type ReportLangChoice = "ar" | "en" | "bilingual";
