@@ -140,6 +140,9 @@ function DocTemplatesPage() {
               key={d.type}
               onClick={() => setType(d.type)}
               style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
                 whiteSpace: "nowrap",
                 padding: "8px 14px",
                 borderRadius: 10,
@@ -150,11 +153,13 @@ function DocTemplatesPage() {
                 fontWeight: 600,
                 cursor: "pointer",
                 minHeight: 40,
+                flexShrink: 0,
               }}
             >
-              {docTypeLabel(d.type, ar ? "ar" : "en")}
-              <span style={{ opacity: 0.6, marginInlineStart: 6, fontSize: 11 }}>{d.prefix}</span>
+              <span>{docTypeLabel(d.type, ar ? "ar" : "en")}</span>
+              <span style={{ opacity: 0.6, fontSize: 11, direction: "ltr", flexShrink: 0 }}>{d.prefix}</span>
             </button>
+
           );
         })}
       </div>
