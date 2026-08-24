@@ -4,6 +4,7 @@
 import { supabase } from "@/lib/security/db";
 import type { Json } from "@/integrations/supabase/types";
 import { mergeClient, mergeModel, defaultModel, emptyClient, type DocClient, type DocModel } from "./model";
+import { starterBodyHtml } from "./rich";
 import { mergeFooter, mergeHeader } from "./defaults";
 import { docTemplates } from "./api";
 import type { DocFooter, DocHeader, DocLang, DocStatus, DocTheme, DocType } from "./types";
