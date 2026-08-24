@@ -93,6 +93,7 @@ function DocumentsListPage() {
       const fmt = (v?: string | null) => (v ? new Date(v).toLocaleDateString("en-GB") : undefined);
       const clientName = doc.lang === "ar" ? doc.client.nameAr || doc.client.nameEn : doc.client.nameEn || doc.client.nameAr;
       const input = {
+        docId: doc.id,
         docType: doc.doc_type,
         number: doc.number,
         header: doc.header_override ?? tpl.header,

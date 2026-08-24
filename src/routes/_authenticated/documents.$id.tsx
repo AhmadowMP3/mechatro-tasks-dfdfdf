@@ -128,6 +128,7 @@ function DocumentEditorPage() {
     try {
       setExporting(kind);
       const input = {
+        docId: doc.id,
         docType: doc.doc_type,
         number: doc.number,
         header: doc.header_override ?? tpl.header,
