@@ -38,6 +38,8 @@ const VaultContext = createContext<VaultContextValue | null>(null);
 export function FinanceVaultProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<VaultStatus>("loading");
   const [meta, setMeta] = useState<LockMeta | null>(null);
+  const [metaLoaded, setMetaLoaded] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
