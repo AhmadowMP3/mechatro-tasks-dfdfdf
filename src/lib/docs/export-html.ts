@@ -21,6 +21,8 @@ export type DocRenderInput = {
   currency: string;
   meta: { number: string; date: string; validUntil?: string; client?: string };
   title: string;
+  /** Optional pre-computed page split (same one the PDF uses). */
+  pages?: { showClientBox: boolean; blocks: DocBlock[] }[];
 };
 
 type Palette = { bg: string; surface: string; ink: string; muted: string; border: string; zebra: string };
