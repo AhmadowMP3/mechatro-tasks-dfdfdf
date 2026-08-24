@@ -55,7 +55,10 @@ export async function measureBodyHeight(input: PaginatedDocInput): Promise<numbe
       host.remove();
     }, 0);
   }
-  return Math.max(200, A4_SIZE.height - chrome);
+  // Small safety reserve: fonts settling a fraction later or Arabic line
+  // height rounding must never push the last row past the sheet edge.
+  return Math.max(200, A4_SIZE.height - chrome - 16);
+
 }
 
 /** Compute the page split for a document (browser-only). */
