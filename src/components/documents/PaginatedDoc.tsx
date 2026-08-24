@@ -103,7 +103,7 @@ export function DocPages({
             lang={input.lang}
             theme={input.theme}
             meta={input.meta}
-            page={{ current: i + 1, total: pages.length }}
+            page={{ current: pageIndexOffset + i + 1, total }}
             sizing="fixed"
             bare={bare}
           >
