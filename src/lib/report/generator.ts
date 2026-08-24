@@ -240,6 +240,7 @@ async function renderHtmlToPdfBlob(
   memberName: string,
   rangeText: string,
   kind: ReportKind = "member",
+  share: ShareTarget | null = null,
 ): Promise<{ blob: Blob; pageCount: number }> {
   const [{ default: html2canvas }, jspdfMod] = await Promise.all([
     import("html2canvas"),
