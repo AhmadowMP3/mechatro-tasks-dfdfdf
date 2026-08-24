@@ -39,7 +39,10 @@ function createMeasurer(lang: DocLang): Measurer {
     `width:${BODY_WIDTH}px`,
     "visibility:hidden",
     "pointer-events:none",
-    "contain:layout size style",
+    // NOTE: never use `contain: size` here — it makes the host height 0 and
+    // every measurement comes back empty.
+    "contain:layout style",
+    "height:auto",
     "font-size:12.5px",
     "line-height:1.7",
     `direction:${lang === "ar" ? "rtl" : "ltr"}`,
