@@ -23,6 +23,8 @@ export type DocRenderInput = {
   title: string;
 };
 
+type Palette = { bg: string; surface: string; ink: string; muted: string; border: string; zebra: string };
+
 const esc = (s: unknown): string =>
   String(s ?? "").replace(/[&<>"']/g, (ch) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!),
@@ -139,7 +141,7 @@ ${footerBand}
 </html>`;
 }
 
-function renderClientBox(client: DocClient, ar: boolean, c: (typeof PAPER)["light"]): string {
+function renderClientBox(client: DocClient, ar: boolean, c: Palette): string {
   const name = ar ? client.nameAr || client.nameEn : client.nameEn || client.nameAr;
   const ref = ar ? client.refAr : client.refEn;
   const bits = [
@@ -169,7 +171,7 @@ function renderClientBox(client: DocClient, ar: boolean, c: (typeof PAPER)["ligh
   </table>`;
 }
 
-function renderBlock(block: DocBlock, ar: boolean, c: (typeof PAPER)["light"], currency: string): string {
+function renderBlock(block: DocBlock, ar: boolean, c: Palette, currency: string): string {
   const cellBase = `border:1px solid ${c.border};padding:5px 7px;font-size:9.5pt`;
   const th = (t: string, w?: number) =>
     `<th style="${cellBase};background:${c.surface};font-weight:bold;text-align:inherit${w ? `;width:${w}px` : ""}">${esc(t)}</th>`;
