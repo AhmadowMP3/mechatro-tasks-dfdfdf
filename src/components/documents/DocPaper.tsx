@@ -122,8 +122,14 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
         {children}
       </div>
 
+      {/* ── QR row (reserved on every page, filled on the last one) ─ */}
+      <div
+        data-qr-slot
+        style={{ height: QR_ROW_H, padding: "0 40px", display: "flex", alignItems: "flex-end", flexShrink: 0, overflow: "hidden" }}
+      />
+
       {/* ── Footer band ─────────────────────────────────────────── */}
-      <div style={{ padding: "12px 40px 22px", flexShrink: 0 }}>
+      <div data-doc-footer style={{ padding: "12px 40px 22px", flexShrink: 0 }}>
         {footer.showRule && (
           <div style={{ height: 1.5, borderRadius: 2, background: `linear-gradient(90deg, ${footer.accent}00, ${footer.accent}, ${footer.accent}00)`, marginBottom: 10 }} />
         )}
