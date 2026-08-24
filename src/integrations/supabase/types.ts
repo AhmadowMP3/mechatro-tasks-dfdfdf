@@ -327,7 +327,6 @@ export type Database = {
           created_by: string | null
           default_currency: Database["public"]["Enums"]["currency_code"] | null
           email: string | null
-          enc: string | null
           id: string
           name_ar: string | null
           name_en: string | null
@@ -344,7 +343,6 @@ export type Database = {
           created_by?: string | null
           default_currency?: Database["public"]["Enums"]["currency_code"] | null
           email?: string | null
-          enc?: string | null
           id?: string
           name_ar?: string | null
           name_en?: string | null
@@ -361,7 +359,6 @@ export type Database = {
           created_by?: string | null
           default_currency?: Database["public"]["Enums"]["currency_code"] | null
           email?: string | null
-          enc?: string | null
           id?: string
           name_ar?: string | null
           name_en?: string | null
@@ -515,7 +512,6 @@ export type Database = {
           active: boolean | null
           color: string | null
           created_at: string
-          enc: string | null
           icon: string | null
           id: string
           name_ar: string | null
@@ -526,7 +522,6 @@ export type Database = {
           active?: boolean | null
           color?: string | null
           created_at?: string
-          enc?: string | null
           icon?: string | null
           id?: string
           name_ar?: string | null
@@ -537,7 +532,6 @@ export type Database = {
           active?: boolean | null
           color?: string | null
           created_at?: string
-          enc?: string | null
           icon?: string | null
           id?: string
           name_ar?: string | null
@@ -555,7 +549,6 @@ export type Database = {
           currency: Database["public"]["Enums"]["currency_code"] | null
           description_ar: string | null
           description_en: string | null
-          enc: string | null
           exchange_rate_to_usd: number | null
           expense_date: string | null
           id: string
@@ -576,7 +569,6 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency_code"] | null
           description_ar?: string | null
           description_en?: string | null
-          enc?: string | null
           exchange_rate_to_usd?: number | null
           expense_date?: string | null
           id?: string
@@ -597,7 +589,6 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency_code"] | null
           description_ar?: string | null
           description_en?: string | null
-          enc?: string | null
           exchange_rate_to_usd?: number | null
           expense_date?: string | null
           id?: string
@@ -696,7 +687,6 @@ export type Database = {
           company_phone: string | null
           default_currency: Database["public"]["Enums"]["currency_code"] | null
           default_tax_rate: number | null
-          enc: string | null
           id: boolean
           invoice_next_number: number
           invoice_number_prefix: string | null
@@ -718,7 +708,6 @@ export type Database = {
           company_phone?: string | null
           default_currency?: Database["public"]["Enums"]["currency_code"] | null
           default_tax_rate?: number | null
-          enc?: string | null
           id?: boolean
           invoice_next_number?: number
           invoice_number_prefix?: string | null
@@ -740,7 +729,6 @@ export type Database = {
           company_phone?: string | null
           default_currency?: Database["public"]["Enums"]["currency_code"] | null
           default_tax_rate?: number | null
-          enc?: string | null
           id?: boolean
           invoice_next_number?: number
           invoice_number_prefix?: string | null
@@ -758,7 +746,6 @@ export type Database = {
           created_at: string
           created_by: string | null
           effective_date: string | null
-          enc: string | null
           id: string
           note: string | null
           syp_per_usd: number | null
@@ -767,7 +754,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           effective_date?: string | null
-          enc?: string | null
           id?: string
           note?: string | null
           syp_per_usd?: number | null
@@ -776,7 +762,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           effective_date?: string | null
-          enc?: string | null
           id?: string
           note?: string | null
           syp_per_usd?: number | null
@@ -792,7 +777,6 @@ export type Database = {
           currency: Database["public"]["Enums"]["currency_code"] | null
           description_ar: string | null
           description_en: string | null
-          enc: string | null
           exchange_rate_to_usd: number | null
           id: string
           income_date: string | null
@@ -810,7 +794,6 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency_code"] | null
           description_ar?: string | null
           description_en?: string | null
-          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
           income_date?: string | null
@@ -828,7 +811,6 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency_code"] | null
           description_ar?: string | null
           description_en?: string | null
-          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
           income_date?: string | null
@@ -928,7 +910,6 @@ export type Database = {
           description_ar: string | null
           description_en: string | null
           discount_amount: number | null
-          enc: string | null
           id: string
           invoice_id: string
           line_total: number | null
@@ -940,7 +921,6 @@ export type Database = {
           description_ar?: string | null
           description_en?: string | null
           discount_amount?: number | null
-          enc?: string | null
           id?: string
           invoice_id: string
           line_total?: number | null
@@ -952,7 +932,6 @@ export type Database = {
           description_ar?: string | null
           description_en?: string | null
           discount_amount?: number | null
-          enc?: string | null
           id?: string
           invoice_id?: string
           line_total?: number | null
@@ -975,7 +954,6 @@ export type Database = {
           amount: number | null
           created_at: string
           currency: Database["public"]["Enums"]["currency_code"] | null
-          enc: string | null
           exchange_rate_to_usd: number | null
           id: string
           invoice_id: string
@@ -990,7 +968,6 @@ export type Database = {
           amount?: number | null
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"] | null
-          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
           invoice_id: string
@@ -1005,7 +982,6 @@ export type Database = {
           amount?: number | null
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"] | null
-          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
           invoice_id?: string
@@ -1035,7 +1011,6 @@ export type Database = {
           customer_id: string | null
           discount_amount: number | null
           due_date: string | null
-          enc: string | null
           exchange_rate_to_usd: number | null
           id: string
           issue_date: string | null
@@ -1061,7 +1036,6 @@ export type Database = {
           customer_id?: string | null
           discount_amount?: number | null
           due_date?: string | null
-          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
           issue_date?: string | null
@@ -1087,7 +1061,6 @@ export type Database = {
           customer_id?: string | null
           discount_amount?: number | null
           due_date?: string | null
-          enc?: string | null
           exchange_rate_to_usd?: number | null
           id?: string
           issue_date?: string | null
@@ -1320,7 +1293,6 @@ export type Database = {
           base_salary: number | null
           created_at: string
           currency: Database["public"]["Enums"]["currency_code"] | null
-          enc: string | null
           notes: string | null
           other_fixed_allowance: number | null
           points_bonus_rate: number | null
@@ -1332,7 +1304,6 @@ export type Database = {
           base_salary?: number | null
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"] | null
-          enc?: string | null
           notes?: string | null
           other_fixed_allowance?: number | null
           points_bonus_rate?: number | null
@@ -1344,7 +1315,6 @@ export type Database = {
           base_salary?: number | null
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"] | null
-          enc?: string | null
           notes?: string | null
           other_fixed_allowance?: number | null
           points_bonus_rate?: number | null
@@ -1682,7 +1652,6 @@ export type Database = {
           created_at: string
           currency: Database["public"]["Enums"]["currency_code"] | null
           deductions: number | null
-          enc: string | null
           id: string
           manual_bonus: number | null
           net_amount: number | null
@@ -1704,7 +1673,6 @@ export type Database = {
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"] | null
           deductions?: number | null
-          enc?: string | null
           id?: string
           manual_bonus?: number | null
           net_amount?: number | null
@@ -1726,7 +1694,6 @@ export type Database = {
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"] | null
           deductions?: number | null
-          enc?: string | null
           id?: string
           manual_bonus?: number | null
           net_amount?: number | null
@@ -1771,7 +1738,6 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
-          enc: string | null
           finalized_at: string | null
           id: string
           month: number | null
@@ -1784,7 +1750,6 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
-          enc?: string | null
           finalized_at?: string | null
           id?: string
           month?: number | null
@@ -1797,7 +1762,6 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
-          enc?: string | null
           finalized_at?: string | null
           id?: string
           month?: number | null
@@ -2166,7 +2130,6 @@ export type Database = {
           created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"] | null
           cycle: Database["public"]["Enums"]["subscription_cycle"] | null
-          enc: string | null
           id: string
           name: string | null
           next_renewal_date: string | null
@@ -2185,7 +2148,6 @@ export type Database = {
           created_by?: string | null
           currency?: Database["public"]["Enums"]["currency_code"] | null
           cycle?: Database["public"]["Enums"]["subscription_cycle"] | null
-          enc?: string | null
           id?: string
           name?: string | null
           next_renewal_date?: string | null
@@ -2204,7 +2166,6 @@ export type Database = {
           created_by?: string | null
           currency?: Database["public"]["Enums"]["currency_code"] | null
           cycle?: Database["public"]["Enums"]["subscription_cycle"] | null
-          enc?: string | null
           id?: string
           name?: string | null
           next_renewal_date?: string | null
@@ -2242,7 +2203,6 @@ export type Database = {
           customer_id: string | null
           cycle: Database["public"]["Enums"]["subscription_cycle"] | null
           description: string | null
-          enc: string | null
           id: string
           next_invoice_date: string | null
           notes: string | null
@@ -2261,7 +2221,6 @@ export type Database = {
           customer_id?: string | null
           cycle?: Database["public"]["Enums"]["subscription_cycle"] | null
           description?: string | null
-          enc?: string | null
           id?: string
           next_invoice_date?: string | null
           notes?: string | null
@@ -2280,7 +2239,6 @@ export type Database = {
           customer_id?: string | null
           cycle?: Database["public"]["Enums"]["subscription_cycle"] | null
           description?: string | null
-          enc?: string | null
           id?: string
           next_invoice_date?: string | null
           notes?: string | null
