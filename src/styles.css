@@ -1157,3 +1157,296 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   background: color-mix(in srgb, var(--muted) 60%, transparent);
   background-clip: padding-box;
 }
+
+/* ── Word-style document editor ───────────────────────────────── */
+.doc-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.doc-ribbon {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: blur(10px);
+  direction: ltr;
+}
+.doc-ribbon-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-inline-end: 6px;
+  border-inline-end: 1px solid var(--border);
+}
+.doc-ribbon-group:last-child {
+  border-inline-end: 0;
+  padding-inline-end: 0;
+}
+.doc-ribbon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.doc-ribbon-btn:hover {
+  background: color-mix(in srgb, var(--muted) 45%, transparent);
+}
+.doc-ribbon-btn.is-active {
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+}
+.doc-ribbon-select {
+  height: 30px;
+  max-width: 150px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 12px;
+}
+.doc-ribbon-select-sm {
+  max-width: 90px;
+}
+.doc-ribbon-palette {
+  position: relative;
+}
+.doc-ribbon-swatches {
+  position: absolute;
+  top: 34px;
+  inset-inline-start: 0;
+  z-index: 10;
+  display: none;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.28);
+}
+.doc-ribbon-palette:hover .doc-ribbon-swatches,
+.doc-ribbon-palette:focus-within .doc-ribbon-swatches {
+  display: flex;
+}
+.doc-ribbon-swatches button {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.doc-ribbon-clear {
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.doc-editor-canvas {
+  overflow-x: auto;
+  padding: 4px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--muted) 22%, transparent);
+}
+.doc-editor-sheet {
+  width: 794px;
+  max-width: 100%;
+  min-height: 620px;
+  margin: 0 auto;
+  padding: 40px;
+  border-radius: 6px;
+  box-shadow: 0 18px 44px rgb(0 0 0 / 0.3);
+}
+.doc-editor-sheet .ProseMirror {
+  outline: none;
+  min-height: 480px;
+}
+.doc-editor-sheet .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: inline-start;
+  height: 0;
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+/* Shared body typography — identical in the editor, preview, PDF and Word. */
+.doc-rich {
+  font-family: "Montserrat Arabic", "Almarai", "Montserrat", system-ui, sans-serif;
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.doc-rich > * + * {
+  margin-top: 8px;
+}
+.doc-rich h1 { font-size: 21px; font-weight: 800; }
+.doc-rich h2 { font-size: 17px; font-weight: 750; }
+.doc-rich h3 { font-size: 14.5px; font-weight: 700; }
+.doc-rich ul,
+.doc-rich ol {
+  padding-inline-start: 22px;
+}
+.doc-rich li { margin: 2px 0; }
+.doc-rich table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 11.5px;
+}
+.doc-rich th,
+.doc-rich td {
+  border: 1px solid currentColor;
+  border-color: color-mix(in srgb, currentColor 22%, transparent);
+  padding: 6px 8px;
+  vertical-align: top;
+  word-break: break-word;
+}
+.doc-rich img {
+  max-width: 100%;
+  height: auto;
+}
+.doc-rich hr {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+}
+.doc-rich blockquote {
+  padding-inline-start: 12px;
+  border-inline-start: 3px solid color-mix(in srgb, currentColor 30%, transparent);
+  opacity: 0.9;
+}
+.doc-rich [data-page-break] {
+  break-after: page;
+}
+.doc-rich .doc-field-chip,
+.doc-field-chip {
+  padding: 0 4px;
+  border-radius: 5px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.doc-page-break-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0;
+  color: color-mix(in srgb, currentColor 45%, transparent);
+  font-size: 10px;
+  letter-spacing: 2px;
+  user-select: none;
+}
+
+/* Smart items table node inside the editor */
+.doc-items-node {
+  border: 1px dashed color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: 10px;
+  padding: 10px;
+}
+.doc-items-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.doc-items-title {
+  flex: 1 1 160px;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+.doc-items-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+}
+.doc-items-flags label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.doc-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  table-layout: fixed;
+}
+.doc-items-table th,
+.doc-items-table td {
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  padding: 4px 6px;
+  text-align: inherit;
+}
+.doc-items-table input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.doc-items-num {
+  direction: ltr;
+  text-align: end;
+}
+.doc-items-del {
+  background: transparent;
+  color: #ef4444;
+  cursor: pointer;
+}
+.doc-items-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 11.5px;
+}
+.doc-items-tools input {
+  width: 74px;
+  padding: 3px 6px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.doc-items-tools label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.doc-items-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+  font-size: 12px;
+  direction: ltr;
+}
