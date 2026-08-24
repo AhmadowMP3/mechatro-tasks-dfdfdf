@@ -30,6 +30,9 @@ export type DocHeader = {
   extraEn: string;
 };
 
+/** One bilingual footer line: English on the left, Arabic on the right. */
+export type DocFooterRow = { en: string; ar: string };
+
 /** Fully editable footer model, stored as JSON on doc_templates.footer. */
 export type DocFooter = {
   showRule: boolean;
@@ -42,8 +45,11 @@ export type DocFooter = {
   signatureEn: string;
   showPageNumbers: boolean;
   showGeneratedAt: boolean;
-  contactLine: string;         // single line, usually phone · email · site
+  contactLine: string;         // legacy single line (kept for compatibility)
+  /** Official letterhead contact block — same on every template. */
+  contactRows: DocFooterRow[];
 };
+
 
 /** Per-type defaults applied to every new document. */
 export type DocDefaults = {

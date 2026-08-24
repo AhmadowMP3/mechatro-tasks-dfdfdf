@@ -80,10 +80,13 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
         ${(ar ? header.addressAr : header.addressEn) ? `<span style="font-size:9pt;color:${c.muted}">${nl2br(ar ? header.addressAr : header.addressEn)}</span><br/>` : ""}
         ${contactBits.length ? `<span style="font-size:8.5pt;color:${c.muted};direction:ltr">${esc(contactBits.join("  ·  "))}</span>` : ""}
       </td>
-      <td style="vertical-align:top;text-align:${opp};width:38%">
-        ${(ar ? header.titleAr : header.titleEn) ? `<div style="font-size:18pt;font-weight:bold;color:${header.accent}">${esc(ar ? header.titleAr : header.titleEn)}</div>` : ""}
+      <td style="vertical-align:top;text-align:center;width:26%">
+        ${(ar ? header.titleAr : header.titleEn) ? `<div style="font-size:17pt;font-weight:bold;color:${header.accent};${ar ? "" : "text-transform:uppercase;letter-spacing:1px;"}">${esc(ar ? header.titleAr : header.titleEn)}</div>` : ""}
+      </td>
+      <td style="vertical-align:top;text-align:${opp};width:32%">
         ${metaBox}
       </td>
+
     </tr>
   </table>
   ${(ar ? header.extraAr : header.extraEn) ? `<div style="font-size:9pt;color:${c.muted};margin-top:8px">${nl2br(ar ? header.extraAr : header.extraEn)}</div>` : ""}
@@ -122,11 +125,21 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
         </tr></table>`
       : ""
   }
-  <table style="width:100%;border-collapse:collapse;font-size:8pt;color:${c.muted}"><tr>
-    <td style="text-align:${align}">${esc(footer.contactLine)}</td>
-    <td style="text-align:center">${esc(note)}</td>
+  <table style="width:100%;border-collapse:collapse;font-size:8pt;color:${c.muted}">
+    ${footer.contactRows
+      .map(
+        (row) => `<tr>
+      <td style="text-align:left;direction:ltr;width:50%">${esc(row.en)}</td>
+      <td style="text-align:right;direction:rtl;width:50%">${esc(row.ar)}</td>
+    </tr>`,
+      )
+      .join("")}
+  </table>
+  <table style="width:100%;border-collapse:collapse;font-size:8pt;color:${c.muted};margin-top:4px"><tr>
+    <td style="text-align:${align}">${esc(note)}</td>
     <td style="text-align:${opp};direction:ltr">${footer.showGeneratedAt ? esc(new Date().toLocaleString("en-GB")) : ""}</td>
   </tr></table>`;
+
 
   return `<!doctype html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" lang="${lang}" dir="${dir}">
