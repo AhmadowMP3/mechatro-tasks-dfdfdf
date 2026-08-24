@@ -1,10 +1,9 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2, Sun, Moon, GitBranch, FileDown, FileType2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sun, Moon, GitBranch, FileDown, FileType2, Eye, X, ChevronDown } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { requireMaster } from "@/lib/route-guards";
 import { docTemplates } from "@/lib/docs/api";
@@ -37,8 +36,7 @@ function DocumentEditorPage() {
   const { id } = useParams({ from: "/_authenticated/documents/$id" });
   const { lang, isMasterAdmin, user } = useApp();
   const ar = lang === "ar";
-  const isMobile = useIsMobile();
-  const [tab, setTab] = useState<"edit" | "preview">("edit");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [pageCount, setPageCount] = useState(1);
 
   const [doc, setDoc] = useState<BusinessDoc | null>(null);
