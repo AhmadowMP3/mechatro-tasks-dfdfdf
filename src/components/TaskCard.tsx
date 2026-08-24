@@ -1,9 +1,32 @@
+import { useQuery } from "@tanstack/react-query";
 import { StatusPill, PriorityPill, OverduePill } from "@/components/Pills";
 import { AssigneeNames } from "@/components/AssigneeNames";
 import { PROJECT_COLORS } from "@/lib/ui-tokens";
 import { formatDate, isOverdue, toLocalDigits } from "@/lib/format";
+import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import type { Profile } from "@/lib/app-context";
+
+/** Awarded share of the signed-in member, per task. */
+function useMyAwards() {
+  const { user } = useApp();
+  const { data } = useQuery({
+    queryKey: ["my-point-awards", user?.id],
+    enabled: !!user?.id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("task_point_awards")
+        .select("task_id,awarded_amount")
+        .eq("user_id", user!.id)
+        .not("awarded_at", "is", null);
+      const map: Record<string, number> = {};
+      for (const r of data ?? []) map[r.task_id] = r.awarded_amount ?? 0;
+      return map;
+    },
+  });
+  return data ?? {};
+}
 
 export type TaskRow = {
   id: string; title: string; project_id: string | null; status: string; priority: string;
