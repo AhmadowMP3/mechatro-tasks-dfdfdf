@@ -119,11 +119,12 @@ function DocTemplatesPage() {
         actions={
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="btn-ghost" onClick={reset} disabled={!tpl || saving}>
-              <RotateCcw size={15} /> {ar ? "استعادة الافتراضي" : "Reset"}
+              <RotateCcw size={15} /> {ar ? "استرجاع القالب الرسمي" : "Restore official chrome"}
             </button>
             <button className="btn-ghost" onClick={applyToAll} disabled={!tpl || saving}>
-              <Copy size={15} /> {ar ? "طبّق على كل الأنواع" : "Apply to all types"}
+              <Copy size={15} /> {ar ? "طبّق على كل القوالب" : "Apply to all templates"}
             </button>
+
             <button className="btn-primary" onClick={save} disabled={!tpl || saving || !dirty}>
               {saving ? <Loader2 size={15} className="spin" /> : <Save size={15} />} {ar ? "حفظ" : "Save"}
             </button>
