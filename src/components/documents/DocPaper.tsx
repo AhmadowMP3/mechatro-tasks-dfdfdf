@@ -48,7 +48,8 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
     <div
       style={{
         width: A4.width,
-        minHeight: A4.height,
+        minHeight: sizing === "auto" ? undefined : A4.height,
+        height: sizing === "fixed" ? A4.height : undefined,
         transform: scale === 1 ? undefined : `scale(${scale})`,
         transformOrigin: ar ? "top right" : "top left",
         background: c.bg,
