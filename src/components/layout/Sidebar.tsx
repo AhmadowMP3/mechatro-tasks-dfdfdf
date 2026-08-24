@@ -88,7 +88,7 @@ const NAV_SECTIONS: NavSection[] = [
       { to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } },
       { to: "/documents",      icon: FileText, key: null, label: { ar: "المستندات التجارية", en: "Business Documents" } },
       { to: "/doc-templates",  icon: FileText, key: null, label: { ar: "قوالب المستندات", en: "Document Templates" } },
-      { to: "/share-links",    icon: Share2,   key: null, label: { ar: "روابط المشاركة", en: "Share Links" } },
+      
     ],
 
   },
