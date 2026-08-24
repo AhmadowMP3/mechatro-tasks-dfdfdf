@@ -83,8 +83,13 @@ export function mergeHeader(type: DocType, raw: unknown): DocHeader {
   return { ...defaultHeader(type), ...(raw && typeof raw === "object" ? raw as Partial<DocHeader> : {}) };
 }
 export function mergeFooter(type: DocType, raw: unknown): DocFooter {
-  return { ...defaultFooter(type), ...(raw && typeof raw === "object" ? raw as Partial<DocFooter> : {}) };
+  const merged = { ...defaultFooter(type), ...(raw && typeof raw === "object" ? raw as Partial<DocFooter> : {}) };
+  // Older stored templates have no contactRows — fall back to the official block.
+  const rows = Array.isArray(merged.contactRows) ? merged.contactRows.filter((r) => r && (r.en || r.ar)) : [];
+  merged.contactRows = rows.length ? rows.map((r) => ({ en: r.en ?? "", ar: r.ar ?? "" })) : OFFICIAL_CONTACT_ROWS.map((r) => ({ ...r }));
+  return merged;
 }
+
 export function mergeDefaults(type: DocType, raw: unknown): DocDefaults {
   return { ...defaultDefaults(type), ...(raw && typeof raw === "object" ? raw as Partial<DocDefaults> : {}) };
 }
