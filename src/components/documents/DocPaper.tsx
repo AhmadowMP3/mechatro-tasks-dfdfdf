@@ -118,34 +118,37 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
 
 
       {/* ── Body ────────────────────────────────────────────────── */}
-      <div className="pdf-flow" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: "6px 40px 18px", fontSize: 12.5, lineHeight: 1.7 }}>
+      <div className="pdf-flow" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: "6px 40px 22px", fontSize: 12.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>
         {children}
       </div>
 
       {/* ── Footer band ─────────────────────────────────────────── */}
-      <div style={{ padding: "12px 40px 22px" }}>
+      <div style={{ padding: "12px 40px 22px", flexShrink: 0 }}>
         {footer.showRule && (
           <div style={{ height: 1.5, borderRadius: 2, background: `linear-gradient(90deg, ${footer.accent}00, ${footer.accent}, ${footer.accent}00)`, marginBottom: 10 }} />
         )}
         {(bank || signature) && (
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 24, marginBottom: 10 }}>
-            {bank ? <div style={{ fontSize: 10.5, color: c.muted, whiteSpace: "pre-wrap", maxWidth: "60%" }}>{bank}</div> : <span />}
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 24, marginBottom: 10, flexWrap: "wrap" }}>
+            {bank ? <div style={{ fontSize: 10.5, color: c.muted, whiteSpace: "pre-wrap", flex: "1 1 240px", minWidth: 0, maxWidth: "60%", overflowWrap: "anywhere" }}>{bank}</div> : <span />}
             {signature && (
-              <div style={{ textAlign: "center", minWidth: 160 }}>
+              <div style={{ textAlign: "center", width: 180, flexShrink: 0 }}>
                 <div style={{ borderTop: `1px solid ${c.border}`, marginBottom: 4 }} />
-                <div style={{ fontSize: 10.5, color: c.muted }}>{signature}</div>
+                <div style={{ fontSize: 10.5, color: c.muted, overflowWrap: "anywhere" }}>{signature}</div>
               </div>
             )}
           </div>
         )}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, fontSize: 10, color: c.muted }}>
-          <span>{footer.contactLine}</span>
-          <span style={{ textAlign: "center", flex: 1 }}>{note}</span>
-          <span style={{ direction: "ltr" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 14, flexWrap: "wrap", fontSize: 10, color: c.muted }}>
+          <span style={{ flex: "1 1 auto", minWidth: 0, overflowWrap: "anywhere" }}>{footer.contactLine}</span>
+          {note && (
+            <span style={{ flex: "2 1 200px", textAlign: "center", minWidth: 0, overflowWrap: "anywhere" }}>{note}</span>
+          )}
+          <span style={{ direction: "ltr", flexShrink: 0, whiteSpace: "nowrap" }}>
             {footer.showPageNumbers ? (ar ? `الصفحة ${page?.current ?? 1} / ${page?.total ?? 1}` : `Page ${page?.current ?? 1} / ${page?.total ?? 1}`) : ""}
           </span>
         </div>
       </div>
+
     </div>
   );
 }
