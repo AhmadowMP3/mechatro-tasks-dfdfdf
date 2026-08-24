@@ -67,9 +67,13 @@ export type DocBlock =
   | { id: string; kind: "pagebreak" };
 
 export type DocModel = {
-  version: 1;
+  /** 1 = legacy blocks · 2 = Word-style rich HTML body. */
+  version: 1 | 2;
   showClientBox: boolean;
+  /** Legacy blocks — kept as a backup after the v2 conversion. */
   blocks: DocBlock[];
+  /** Rich body HTML (v2). */
+  html?: string;
 };
 
 export type BlockKind = DocBlock["kind"];
@@ -147,19 +151,21 @@ export function newBlock(kind: BlockKind): DocBlock {
 
 export function defaultModel(): DocModel {
   return {
-    version: 1,
+    version: 2,
     showClientBox: true,
     blocks: [newBlock("items"), newBlock("terms")],
+    html: "",
   };
 }
 
 /** Merge a stored blob over the default so older documents keep working. */
 export function mergeModel(raw: unknown): DocModel {
-  const base = { version: 1 as const, showClientBox: true, blocks: [] as DocBlock[] };
+  const base = { showClientBox: true, blocks: [] as DocBlock[] };
   if (!raw || typeof raw !== "object") return defaultModel();
   const r = raw as Partial<DocModel>;
   const blocks = Array.isArray(r.blocks) ? (r.blocks.filter(Boolean) as DocBlock[]) : [];
-  return { ...base, ...r, version: 1, blocks };
+  const html = typeof r.html === "string" ? r.html : "";
+  return { ...base, ...r, version: html.trim() ? 2 : (r.version === 2 ? 2 : 1), blocks, html };
 }
 
 export function mergeClient(raw: unknown): DocClient {

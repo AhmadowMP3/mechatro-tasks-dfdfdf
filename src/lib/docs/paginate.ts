@@ -15,6 +15,8 @@ import type { DocLang, DocTheme } from "./types";
 export type DocPage = {
   showClientBox: boolean;
   blocks: DocBlock[];
+  /** Word-style (v2) documents carry resolved body HTML instead of blocks. */
+  html?: string;
 };
 
 /** Full A4 at 96dpi, matching DocPaper. */

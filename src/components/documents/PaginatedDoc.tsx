@@ -6,6 +6,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { DocPaper } from "./DocPaper";
 import { DocBody, DocClientCard, DocUnit } from "./DocBody";
+import { DocRichBody } from "./DocRichBody";
+import { paginateHtmlBody } from "@/lib/docs/paginate-html";
+import { resolveDocHtml } from "@/lib/docs/rich";
 import { A4_SIZE, paginateModel, waitForPaperAssets, type DocPage } from "@/lib/docs/paginate";
 import type { DocClient, DocModel, DocBlock } from "@/lib/docs/model";
 import type { DocFooter, DocHeader, DocLang, DocTheme } from "@/lib/docs/types";
@@ -61,10 +64,53 @@ export async function measureBodyHeight(input: PaginatedDocInput): Promise<numbe
 
 }
 
+/** Measure the client card so the first page reserves the right space. */
+async function measureClientBox(input: PaginatedDocInput): Promise<number> {
+  const { createRoot } = await import("react-dom/client");
+  const { flushSync } = await import("react-dom");
+  const host = document.createElement("div");
+  host.setAttribute("aria-hidden", "true");
+  host.style.cssText = `position:fixed;top:0;left:-10000px;visibility:hidden;pointer-events:none;width:${A4_SIZE.width - 80}px`;
+  document.body.appendChild(host);
+  const root = createRoot(host);
+  let h = 0;
+  try {
+    flushSync(() => {
+      root.render(<DocClientCard client={input.client} lang={input.lang} theme={input.theme} />);
+    });
+    h = Math.ceil(host.firstElementChild?.getBoundingClientRect().height ?? 0);
+  } finally {
+    setTimeout(() => {
+      try { root.unmount(); } catch { /* ignore */ }
+      host.remove();
+    }, 0);
+  }
+  return h;
+}
+
 /** Compute the page split for a document (browser-only). */
 export async function paginateDocument(input: PaginatedDocInput): Promise<DocPage[]> {
   await waitForPaperAssets();
   const bodyHeight = await measureBodyHeight(input);
+
+  // Word-style body: one HTML string, split by the DOM paginator.
+  if (input.model.version === 2) {
+    const html = resolveDocHtml(input.model.html ?? "", {
+      lang: input.lang,
+      theme: input.theme,
+      currency: input.currency,
+      meta: input.meta ?? {},
+    });
+    const clientBoxHeight = input.model.showClientBox ? await measureClientBox(input) : 0;
+    return paginateHtmlBody({
+      html,
+      lang: input.lang,
+      bodyHeight,
+      clientBoxHeight,
+      showClientBox: input.model.showClientBox,
+    }).map((p) => ({ showClientBox: p.showClientBox, blocks: [], html: p.html }));
+  }
+
   return paginateModel({
     model: input.model,
     lang: input.lang,
@@ -110,13 +156,24 @@ export function DocPages({
             sizing="fixed"
             bare={bare}
           >
-            <DocBody
-              model={{ ...input.model, showClientBox: p.showClientBox, blocks: p.blocks }}
-              client={input.client}
-              lang={input.lang}
-              theme={input.theme}
-              currency={input.currency}
-            />
+            {input.model.version === 2 ? (
+              <DocRichBody
+                html={p.html ?? ""}
+                resolved
+                showClientBox={p.showClientBox}
+                client={input.client}
+                lang={input.lang}
+                theme={input.theme}
+              />
+            ) : (
+              <DocBody
+                model={{ ...input.model, showClientBox: p.showClientBox, blocks: p.blocks }}
+                client={input.client}
+                lang={input.lang}
+                theme={input.theme}
+                currency={input.currency}
+              />
+            )}
           </DocPaper>
         </div>
       ))}
@@ -160,7 +217,18 @@ export function PaginatedDoc({
         page={{ current: 1, total: 1 }}
         bare={bare}
       >
-        <DocBody model={input.model} client={input.client} lang={input.lang} theme={input.theme} currency={input.currency} />
+        {input.model.version === 2 ? (
+          <DocRichBody
+            html={input.model.html ?? ""}
+            ctx={{ lang: input.lang, theme: input.theme, currency: input.currency, meta: input.meta ?? {} }}
+            showClientBox={input.model.showClientBox}
+            client={input.client}
+            lang={input.lang}
+            theme={input.theme}
+          />
+        ) : (
+          <DocBody model={input.model} client={input.client} lang={input.lang} theme={input.theme} currency={input.currency} />
+        )}
       </DocPaper>
     );
   }

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2, Plus, Trash2, ChevronUp, ChevronDown, Sun, Moon, GitBranch, FileDown, FileType2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sun, Moon, GitBranch, FileDown, FileType2 } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -10,11 +10,10 @@ import { requireMaster } from "@/lib/route-guards";
 import { docTemplates } from "@/lib/docs/api";
 import { businessDocs, DOC_STATUS_LABELS, type BusinessDoc } from "@/lib/docs/docs-api";
 import { docTypeLabel, type DocLang, type DocStatus, type DocTemplate, type DocTheme } from "@/lib/docs/types";
-import {
-  BLOCK_LABELS, emptyItemRow, newBlock, uid,
-  type BlockKind, type DocBlock, type DocClient, type DocModel, type ItemsBlock,
-} from "@/lib/docs/model";
+import type { DocClient, DocModel } from "@/lib/docs/model";
 import { PaginatedDoc } from "@/components/documents/PaginatedDoc";
+import { DocEditor } from "@/components/documents/editor/DocEditor";
+import { blocksToHtml, needsConversion } from "@/lib/docs/convert-legacy";
 import { exportDocPdf, exportDocWord } from "@/lib/docs/export-doc";
 import { logActivity } from "@/lib/activity";
 
@@ -57,9 +56,22 @@ function DocumentEditorPage() {
       .then(async (d) => {
         const t = await docTemplates.ensure(d.doc_type);
         if (!alive) return;
-        setDoc(d);
+        // Old block documents are converted once, on open, into the
+        // Word-style body. The original blocks stay on the row as a backup.
+        if (needsConversion(d.model)) {
+          const html = blocksToHtml(d.model, {
+            lang: d.lang,
+            theme: d.theme,
+            currency: d.currency,
+            meta: { number: d.number },
+          });
+          setDoc({ ...d, model: { ...d.model, version: 2, html } });
+          setDirty(true);
+        } else {
+          setDoc(d);
+          setDirty(false);
+        }
         setTpl(t);
-        setDirty(false);
       })
       .catch((e) => toast.error((e as Error).message))
       .finally(() => { if (alive) setLoading(false); });
@@ -69,24 +81,6 @@ function DocumentEditorPage() {
   const patch = (p: Partial<BusinessDoc>) => { setDoc((d) => (d ? { ...d, ...p } : d)); setDirty(true); };
   const patchClient = (p: Partial<DocClient>) => { setDoc((d) => (d ? { ...d, client: { ...d.client, ...p } } : d)); setDirty(true); };
   const patchModel = (p: Partial<DocModel>) => { setDoc((d) => (d ? { ...d, model: { ...d.model, ...p } } : d)); setDirty(true); };
-
-  const setBlocks = (fn: (blocks: DocBlock[]) => DocBlock[]) => {
-    setDoc((d) => (d ? { ...d, model: { ...d.model, blocks: fn(d.model.blocks) } } : d));
-    setDirty(true);
-  };
-  const updateBlock = (blockId: string, p: Partial<DocBlock>) =>
-    setBlocks((bs) => bs.map((b) => (b.id === blockId ? ({ ...b, ...p } as DocBlock) : b)));
-  const addBlock = (kind: BlockKind) => setBlocks((bs) => [...bs, newBlock(kind)]);
-  const removeBlock = (blockId: string) => setBlocks((bs) => bs.filter((b) => b.id !== blockId));
-  const moveBlock = (blockId: string, dir: -1 | 1) =>
-    setBlocks((bs) => {
-      const i = bs.findIndex((b) => b.id === blockId);
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= bs.length) return bs;
-      const copy = [...bs];
-      [copy[i], copy[j]] = [copy[j], copy[i]];
-      return copy;
-    });
 
   const save = async () => {
     if (!doc) return;
@@ -289,29 +283,16 @@ function DocumentEditorPage() {
             </Row>
           </Section>
 
-          {doc.model.blocks.map((block, i) => (
-            <BlockEditor
-              key={block.id}
-              ar={ar}
-              block={block}
-              index={i}
-              count={doc.model.blocks.length}
-              currency={doc.currency}
-              onChange={(p) => updateBlock(block.id, p)}
-              onRemove={() => removeBlock(block.id)}
-              onMove={(dir) => moveBlock(block.id, dir)}
-            />
-          ))}
-
-          <Section title={ar ? "إضافة بلوك" : "Add a block"}>
-            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))" }}>
-              {BLOCK_LABELS.map((b) => (
-                <button key={b.kind} className="btn-ghost" onClick={() => addBlock(b.kind)} style={{ justifyContent: "flex-start", minHeight: 42 }}>
-                  <Plus size={14} /> {ar ? b.ar : b.en}
-                </button>
-              ))}
-            </div>
-          </Section>
+          <DocEditor
+            html={doc.model.html ?? ""}
+            onChange={(html) => patchModel({ html, version: 2 })}
+            lang={doc.lang}
+            theme={doc.theme}
+            currency={doc.currency}
+            meta={meta ?? {}}
+            showClientBox={doc.model.showClientBox}
+            client={doc.client}
+          />
         </div>
 
         {/* ── Preview column ───────────────────────────────────── */}
@@ -355,241 +336,6 @@ function DocumentEditorPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-/* ── Block editors ─────────────────────────────────────────────── */
-
-function BlockEditor({
-  ar, block, index, count, currency, onChange, onRemove, onMove,
-}: {
-  ar: boolean;
-  block: DocBlock;
-  index: number;
-  count: number;
-  currency: string;
-  onChange: (p: Partial<DocBlock>) => void;
-  onRemove: () => void;
-  onMove: (dir: -1 | 1) => void;
-}) {
-  const label = BLOCK_LABELS.find((b) => b.kind === block.kind);
-  return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{ar ? label?.ar : label?.en}</div>
-        <div style={{ marginInlineStart: "auto", display: "flex", gap: 6 }}>
-          <IconBtn onClick={() => onMove(-1)} disabled={index === 0}><ChevronUp size={15} /></IconBtn>
-          <IconBtn onClick={() => onMove(1)} disabled={index === count - 1}><ChevronDown size={15} /></IconBtn>
-          <IconBtn onClick={onRemove} danger><Trash2 size={15} /></IconBtn>
-        </div>
-      </div>
-
-      {block.kind === "heading" && (
-        <Row>
-          <Text label={ar ? "عربي" : "Arabic"} value={block.ar} onChange={(v) => onChange({ ar: v } as Partial<DocBlock>)} />
-          <Text label={ar ? "إنجليزي" : "English"} value={block.en} onChange={(v) => onChange({ en: v } as Partial<DocBlock>)} />
-        </Row>
-      )}
-
-      {block.kind === "text" && (
-        <Row>
-          <Area label={ar ? "النص (عربي)" : "Text (AR)"} value={block.ar} onChange={(v) => onChange({ ar: v } as Partial<DocBlock>)} />
-          <Area label={ar ? "النص (إنجليزي)" : "Text (EN)"} value={block.en} onChange={(v) => onChange({ en: v } as Partial<DocBlock>)} />
-        </Row>
-      )}
-
-      {block.kind === "terms" && (
-        <>
-          <Row>
-            <Text label={ar ? "العنوان (عربي)" : "Title (AR)"} value={block.titleAr} onChange={(v) => onChange({ titleAr: v } as Partial<DocBlock>)} />
-            <Text label={ar ? "العنوان (إنجليزي)" : "Title (EN)"} value={block.titleEn} onChange={(v) => onChange({ titleEn: v } as Partial<DocBlock>)} />
-          </Row>
-          <Row>
-            <Area label={ar ? "الشروط (عربي)" : "Terms (AR)"} value={block.ar} onChange={(v) => onChange({ ar: v } as Partial<DocBlock>)} />
-            <Area label={ar ? "الشروط (إنجليزي)" : "Terms (EN)"} value={block.en} onChange={(v) => onChange({ en: v } as Partial<DocBlock>)} />
-          </Row>
-        </>
-      )}
-
-      {block.kind === "spacer" && (
-        <Row>
-          <Num label={ar ? "الارتفاع (px)" : "Height (px)"} value={block.size} min={4} max={200} onChange={(v) => onChange({ size: v } as Partial<DocBlock>)} />
-        </Row>
-      )}
-
-      {block.kind === "pagebreak" && (
-        <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
-          {ar ? "يبدأ ما بعده في صفحة جديدة عند التصدير." : "Everything after this starts on a new page when exported."}
-        </div>
-      )}
-
-      {block.kind === "keyvalue" && (
-        <>
-          <Row>
-            <Text label={ar ? "العنوان (عربي)" : "Title (AR)"} value={block.titleAr} onChange={(v) => onChange({ titleAr: v } as Partial<DocBlock>)} />
-            <Text label={ar ? "العنوان (إنجليزي)" : "Title (EN)"} value={block.titleEn} onChange={(v) => onChange({ titleEn: v } as Partial<DocBlock>)} />
-          </Row>
-          {block.rows.map((r, i) => (
-            <div key={r.id} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
-              <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 130px), 1fr))", flex: 1, minWidth: 0 }}>
-                <Text label={ar ? `المفتاح ${i + 1} (ع)` : `Key ${i + 1} (AR)`} value={r.kAr} onChange={(v) => onChange({ rows: block.rows.map((x) => (x.id === r.id ? { ...x, kAr: v } : x)) } as Partial<DocBlock>)} />
-                <Text label={ar ? "القيمة (ع)" : "Value (AR)"} value={r.vAr} onChange={(v) => onChange({ rows: block.rows.map((x) => (x.id === r.id ? { ...x, vAr: v } : x)) } as Partial<DocBlock>)} />
-                <Text label={ar ? "المفتاح (EN)" : "Key (EN)"} value={r.kEn} onChange={(v) => onChange({ rows: block.rows.map((x) => (x.id === r.id ? { ...x, kEn: v } : x)) } as Partial<DocBlock>)} />
-                <Text label={ar ? "القيمة (EN)" : "Value (EN)"} value={r.vEn} onChange={(v) => onChange({ rows: block.rows.map((x) => (x.id === r.id ? { ...x, vEn: v } : x)) } as Partial<DocBlock>)} />
-              </div>
-              <IconBtn onClick={() => onChange({ rows: block.rows.filter((x) => x.id !== r.id) } as Partial<DocBlock>)} danger><Trash2 size={15} /></IconBtn>
-            </div>
-          ))}
-          <button className="btn-ghost" onClick={() => onChange({ rows: [...block.rows, { id: uid(), kAr: "", kEn: "", vAr: "", vEn: "" }] } as Partial<DocBlock>)} style={{ alignSelf: "flex-start" }}>
-            <Plus size={14} /> {ar ? "صف جديد" : "Add row"}
-          </button>
-        </>
-      )}
-
-      {block.kind === "table" && (
-        <>
-          <Row>
-            <Text label={ar ? "العنوان (عربي)" : "Title (AR)"} value={block.titleAr} onChange={(v) => onChange({ titleAr: v } as Partial<DocBlock>)} />
-            <Text label={ar ? "العنوان (إنجليزي)" : "Title (EN)"} value={block.titleEn} onChange={(v) => onChange({ titleEn: v } as Partial<DocBlock>)} />
-          </Row>
-          <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 130px), 1fr))" }}>
-            {block.headAr.map((h, ci) => (
-              <Text
-                key={`h-${ci}`}
-                label={ar ? `ترويسة ${ci + 1}` : `Header ${ci + 1}`}
-                value={ar ? h : block.headEn[ci] ?? ""}
-                onChange={(v) =>
-                  onChange(
-                    (ar
-                      ? { headAr: block.headAr.map((x, i2) => (i2 === ci ? v : x)) }
-                      : { headEn: block.headEn.map((x, i2) => (i2 === ci ? v : x)) }) as Partial<DocBlock>,
-                  )
-                }
-              />
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button
-              className="btn-ghost"
-              onClick={() =>
-                onChange({
-                  headAr: [...block.headAr, `عمود ${block.headAr.length + 1}`],
-                  headEn: [...block.headEn, `Column ${block.headEn.length + 1}`],
-                  rows: block.rows.map((r) => ({ ...r, cellsAr: [...r.cellsAr, ""], cellsEn: [...r.cellsEn, ""] })),
-                } as Partial<DocBlock>)
-              }
-            >
-              <Plus size={14} /> {ar ? "عمود" : "Column"}
-            </button>
-            <button
-              className="btn-ghost"
-              disabled={block.headAr.length <= 1}
-              onClick={() =>
-                onChange({
-                  headAr: block.headAr.slice(0, -1),
-                  headEn: block.headEn.slice(0, -1),
-                  rows: block.rows.map((r) => ({ ...r, cellsAr: r.cellsAr.slice(0, -1), cellsEn: r.cellsEn.slice(0, -1) })),
-                } as Partial<DocBlock>)
-              }
-            >
-              <Trash2 size={14} /> {ar ? "آخر عمود" : "Last column"}
-            </button>
-          </div>
-          {block.rows.map((r, ri) => (
-            <div key={r.id} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
-              <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 130px), 1fr))", flex: 1, minWidth: 0 }}>
-                {block.headAr.map((_, ci) => (
-                  <Text
-                    key={ci}
-                    label={`${ri + 1}·${ci + 1}`}
-                    value={(ar ? r.cellsAr[ci] : r.cellsEn[ci]) ?? ""}
-                    onChange={(v) =>
-                      onChange({
-                        rows: block.rows.map((x) =>
-                          x.id !== r.id
-                            ? x
-                            : ar
-                              ? { ...x, cellsAr: x.cellsAr.map((cv, i2) => (i2 === ci ? v : cv)) }
-                              : { ...x, cellsEn: x.cellsEn.map((cv, i2) => (i2 === ci ? v : cv)) },
-                        ),
-                      } as Partial<DocBlock>)
-                    }
-                  />
-                ))}
-              </div>
-              <IconBtn onClick={() => onChange({ rows: block.rows.filter((x) => x.id !== r.id) } as Partial<DocBlock>)} danger><Trash2 size={15} /></IconBtn>
-            </div>
-          ))}
-          <button
-            className="btn-ghost"
-            style={{ alignSelf: "flex-start" }}
-            onClick={() =>
-              onChange({
-                rows: [...block.rows, { id: uid(), cellsAr: block.headAr.map(() => ""), cellsEn: block.headEn.map(() => "") }],
-              } as Partial<DocBlock>)
-            }
-          >
-            <Plus size={14} /> {ar ? "صف جديد" : "Add row"}
-          </button>
-        </>
-      )}
-
-      {block.kind === "items" && <ItemsEditor ar={ar} block={block} currency={currency} onChange={onChange} />}
-    </div>
-  );
-}
-
-function ItemsEditor({
-  ar, block, currency, onChange,
-}: { ar: boolean; block: ItemsBlock; currency: string; onChange: (p: Partial<DocBlock>) => void }) {
-  const set = (p: Partial<ItemsBlock>) => onChange(p as Partial<DocBlock>);
-  const setRow = (rowId: string, p: Partial<ItemsBlock["rows"][number]>) =>
-    set({ rows: block.rows.map((r) => (r.id === rowId ? { ...r, ...p } : r)) });
-
-  return (
-    <>
-      <Row>
-        <Text label={ar ? "العنوان (عربي)" : "Title (AR)"} value={block.titleAr} onChange={(v) => set({ titleAr: v })} />
-        <Text label={ar ? "العنوان (إنجليزي)" : "Title (EN)"} value={block.titleEn} onChange={(v) => set({ titleEn: v })} />
-      </Row>
-      <Row>
-        <Toggle label={ar ? "عمود الوحدة" : "Unit column"} value={block.showUnit} onChange={(v) => set({ showUnit: v })} />
-        <Toggle label={ar ? "عمود الكمية" : "Qty column"} value={block.showQty} onChange={(v) => set({ showQty: v })} />
-        <Toggle label={ar ? "عمود السعر" : "Price column"} value={block.showPrice} onChange={(v) => set({ showPrice: v })} />
-        <Toggle label={ar ? "صفوف الإجماليات" : "Totals rows"} value={block.showTotals} onChange={(v) => set({ showTotals: v })} />
-      </Row>
-      <Row>
-        <Num label={ar ? "الضريبة %" : "Tax %"} value={block.taxRate} min={0} max={100} onChange={(v) => set({ taxRate: v })} />
-        <Num label={ar ? "خصم عام" : "Global discount"} value={block.discount} min={0} max={100000000} onChange={(v) => set({ discount: v })} />
-        <Num label={ar ? "الشحن" : "Shipping"} value={block.shipping} min={0} max={100000000} onChange={(v) => set({ shipping: v })} />
-      </Row>
-
-      {block.rows.map((r, i) => (
-        <div key={r.id} style={{ border: "1px dashed var(--border)", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>{ar ? `البند ${i + 1}` : `Item ${i + 1}`}</span>
-            <span style={{ marginInlineStart: "auto", fontSize: 12, fontWeight: 700, direction: "ltr" }}>
-              {((Number(r.qty) || 0) * (Number(r.price) || 0) - (Number(r.discount) || 0)).toLocaleString("en-US")} {currency}
-            </span>
-            <IconBtn onClick={() => set({ rows: block.rows.filter((x) => x.id !== r.id) })} danger><Trash2 size={15} /></IconBtn>
-          </div>
-          <Row>
-            <Area label={ar ? "البيان (عربي)" : "Description (AR)"} value={r.descAr} onChange={(v) => setRow(r.id, { descAr: v })} />
-            <Area label={ar ? "البيان (إنجليزي)" : "Description (EN)"} value={r.descEn} onChange={(v) => setRow(r.id, { descEn: v })} />
-          </Row>
-          <Row>
-            <Text label={ar ? "الوحدة (ع)" : "Unit (AR)"} value={r.unitAr} onChange={(v) => setRow(r.id, { unitAr: v })} />
-            <Text label={ar ? "الوحدة (EN)" : "Unit (EN)"} value={r.unitEn} onChange={(v) => setRow(r.id, { unitEn: v })} />
-            <Num label={ar ? "الكمية" : "Qty"} value={r.qty} min={0} max={1000000} onChange={(v) => setRow(r.id, { qty: v })} />
-            <Num label={ar ? "سعر الوحدة" : "Unit price"} value={r.price} min={0} max={100000000} onChange={(v) => setRow(r.id, { price: v })} />
-            <Num label={ar ? "خصم السطر" : "Line discount"} value={r.discount} min={0} max={100000000} onChange={(v) => setRow(r.id, { discount: v })} />
-          </Row>
-        </div>
-      ))}
-      <button className="btn-ghost" onClick={() => set({ rows: [...block.rows, emptyItemRow()] })} style={{ alignSelf: "flex-start" }}>
-        <Plus size={14} /> {ar ? "بند جديد" : "Add item"}
-      </button>
-    </>
   );
 }
 
