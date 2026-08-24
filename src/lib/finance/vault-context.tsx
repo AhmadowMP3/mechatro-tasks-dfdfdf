@@ -65,9 +65,11 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
   }, [loadMeta]);
 
   const lock = useCallback(() => {
+    keyRef.current = null;
     setVaultKey(null);
     setStatus((prev) => (prev === "unlocked" ? "locked" : prev));
   }, []);
+
 
   // Auto-lock on idle, on tab close and when the tab is hidden for a long time.
   useEffect(() => {
