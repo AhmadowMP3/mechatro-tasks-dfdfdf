@@ -9,7 +9,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle, Color, FontSize, FontFamily } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
+import { ResizableImage, IMAGE_MAX_WIDTH } from "./ResizableImage";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
@@ -68,7 +68,7 @@ export function DocEditor({ html, onChange, lang, theme, currency, meta, showCli
         Highlight.configure({ multicolor: true }),
         TextAlign.configure({ types: ["heading", "paragraph"] }),
         Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer nofollow" } }),
-        Image.configure({ inline: false, allowBase64: true }),
+        ResizableImage.configure({ inline: false, allowBase64: true }),
         Table.configure({ resizable: true }),
         TableRow,
         TableHeader,
@@ -121,7 +121,13 @@ export function DocEditor({ html, onChange, lang, theme, currency, meta, showCli
     const reader = new FileReader();
     reader.onload = () => {
       const src = String(reader.result ?? "");
-      if (src.startsWith("data:image/")) editor?.chain().focus().setImage({ src }).run();
+      if (src.startsWith("data:image/")) {
+        editor
+          ?.chain()
+          .focus()
+          .setImage({ src, width: Math.round(IMAGE_MAX_WIDTH * 0.6), align: "center" } as { src: string })
+          .run();
+      }
     };
     reader.readAsDataURL(file);
   };
