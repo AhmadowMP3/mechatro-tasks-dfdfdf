@@ -23,7 +23,7 @@ const COLORS = ["#0B1A2A", "#1E3A57", "#42C2EE", "#C9A227", "#22C55E", "#EF4444"
 const HIGHLIGHTS = ["#FEF08A", "#BBF7D0", "#BFDBFE", "#FBCFE8", "#E2E8F0"];
 const LINE_HEIGHTS = ["1.2", "1.4", "1.6", "1.8", "2"];
 
-export function Ribbon({ editor, lang, onImage }: { editor: Editor | null; lang: DocLang; onImage: (file: File) => void }) {
+export function Ribbon({ editor, lang, onImage, onInsertTerms }: { editor: Editor | null; lang: DocLang; onImage: (file: File) => void; onInsertTerms?: () => void }) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const ar = lang === "ar";
   if (!editor) return null;
@@ -153,6 +153,11 @@ export function Ribbon({ editor, lang, onImage }: { editor: Editor | null; lang:
         <RBtn onClick={() => chain().insertContent({ type: "itemsTable" }).run()} title={ar ? "جدول بنود بحساب تلقائي" : "Items table"}>
           <Type size={15} /> <span style={{ fontSize: 11.5 }}>{ar ? "بنود" : "Items"}</span>
         </RBtn>
+        {onInsertTerms && (
+          <RBtn onClick={onInsertTerms} title={ar ? "إدراج الشروط والأحكام من القالب" : "Insert terms from template"}>
+            <Braces size={15} /> <span style={{ fontSize: 11.5 }}>{ar ? "الشروط" : "Terms"}</span>
+          </RBtn>
+        )}
         <select
           className="doc-ribbon-select"
           value=""
