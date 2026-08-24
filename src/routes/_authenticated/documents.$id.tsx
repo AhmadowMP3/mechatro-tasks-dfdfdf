@@ -17,6 +17,7 @@ import {
 import { DocPaper } from "@/components/documents/DocPaper";
 import { DocBody } from "@/components/documents/DocBody";
 import { exportDocPdf, exportDocWord } from "@/lib/docs/export-doc";
+import { logActivity } from "@/lib/activity";
 
 export const Route = createFileRoute("/_authenticated/documents/$id")({
   ssr: false,
@@ -36,7 +37,7 @@ export const Route = createFileRoute("/_authenticated/documents/$id")({
 
 function DocumentEditorPage() {
   const { id } = useParams({ from: "/_authenticated/documents/$id" });
-  const { lang, isMasterAdmin } = useApp();
+  const { lang, isMasterAdmin, user } = useApp();
   const ar = lang === "ar";
   const isMobile = useIsMobile();
   const [tab, setTab] = useState<"edit" | "preview">("edit");
@@ -94,6 +95,7 @@ function DocumentEditorPage() {
       const saved = await businessDocs.save(doc);
       setDoc(saved);
       setDirty(false);
+      void logActivity(user?.id ?? null, "updated", "business_doc", saved.id, { number: saved.number, doc_type: saved.doc_type });
       toast.success(ar ? "تم الحفظ" : "Saved");
     } catch (e) { toast.error((e as Error).message); }
     finally { setSaving(false); }
@@ -145,6 +147,9 @@ function DocumentEditorPage() {
       };
       if (kind === "pdf") await exportDocPdf(input);
       else await exportDocWord(input);
+      void logActivity(user?.id ?? null, "file_added", "business_doc", doc.id, {
+        number: doc.number, doc_type: doc.doc_type, format: kind, theme: doc.theme, lang: doc.lang,
+      });
     } catch (e) { toast.error((e as Error).message); }
     finally { setExporting(null); }
   };
