@@ -203,46 +203,78 @@ function LeaguePage() {
           {/* Podium */}
           {podium.length > 0 && (
             <div className="brand-card animate-fade-in" style={{
-              padding: 24, marginBottom: 20, display: "flex", justifyContent: "center", gap: 16,
-              flexWrap: "wrap", alignItems: "flex-end",
+              padding: 24, marginBottom: 20, overflow: "hidden",
               background: "linear-gradient(135deg, rgba(255,215,0,.06), rgba(66,194,238,.04))",
             }}>
-              {[1, 0, 2].map((pos) => {
-                const r = podium[pos]; if (!r) return null;
-                const h = pos === 0 ? 140 : pos === 1 ? 105 : 80;
-                const medalIcon = pos === 0 ? <Trophy size={22} /> : pos === 1 ? <Medal size={20} /> : <Award size={18} />;
-                return (
-                  <div key={r.id} className="animate-fade-in" style={{ textAlign: "center", animationDelay: `${pos * 100}ms` }}>
-                    <div style={{ position: "relative", display: "inline-block" }}>
-                      <Avatar id={r.id} name={r.user!.full_name} size={pos === 0 ? 80 : 60} />
-                      <div style={{
-                        position: "absolute", top: -6, right: -6, width: 28, height: 28, borderRadius: "50%",
-                        background: medals[pos], display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 4px 12px rgba(0,0,0,.3)", color: "#fff",
-                      }}>{medalIcon}</div>
+              <div style={{
+                direction: "ltr",
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gridTemplateRows: "auto auto",
+                alignItems: "end",
+                justifyItems: "center",
+                gap: 12,
+                maxWidth: 520,
+                margin: "0 auto",
+              }}>
+                {[1, 0, 2].map((pos) => {
+                  const r = podium[pos];
+                  const medalIcon = pos === 0 ? <Trophy size={22} /> : pos === 1 ? <Medal size={20} /> : <Award size={18} />;
+                  return (
+                    <div key={pos} style={{
+                      gridRow: 1, gridColumn: pos === 1 ? 1 : pos === 0 ? 2 : 3,
+                      width: "100%", minWidth: 0, textAlign: "center",
+                      display: "flex", flexDirection: "column", alignItems: "center",
+                      justifyContent: "flex-end", minHeight: 150,
+                    }}>
+                      {r && (
+                        <>
+                          <div style={{ position: "relative", display: "inline-block" }}>
+                            <Avatar id={r.id} name={r.user!.full_name} size={pos === 0 ? 80 : 60} />
+                            <div style={{
+                              position: "absolute", top: -6, right: -6, width: 28, height: 28, borderRadius: "50%",
+                              background: medals[pos], display: "flex", alignItems: "center", justifyContent: "center",
+                              boxShadow: "0 4px 12px rgba(0,0,0,.3)", color: "#fff",
+                            }}>{medalIcon}</div>
+                          </div>
+                          <div dir="auto" style={{
+                            fontWeight: 800, marginTop: 10, fontSize: 14, lineHeight: 1.3,
+                            width: "100%", overflowWrap: "anywhere",
+                          }}>{r.user!.full_name}</div>
+                          <div dir="auto" style={{ fontSize: 22, fontWeight: 900, color: medals[pos], whiteSpace: "nowrap" }}>
+                            {toLocalDigits(r.points, lang)} <span style={{ fontSize: 12, opacity: .8 }}>{t("points")}</span>
+                          </div>
+                          {r.streak >= 3 && (
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, marginTop: 2, color: "#F0676A", fontWeight: 700 }}>
+                              <Flame size={12} /> {toLocalDigits(r.streak, lang)}
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
-                    <div style={{ fontWeight: 800, marginTop: 10, fontSize: 14 }}>{r.user!.full_name}</div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: medals[pos] }}>
-                      {toLocalDigits(r.points, lang)} <span style={{ fontSize: 12, opacity: .8 }}>{t("points")}</span>
-                    </div>
-                    {r.streak >= 3 && (
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, marginTop: 2, color: "#F0676A", fontWeight: 700 }}>
-                        <Flame size={12} /> {toLocalDigits(r.streak, lang)}
-                      </div>
-                    )}
-                    <div style={{
-                      width: 100, height: h, marginTop: 8,
-                      background: `linear-gradient(180deg, ${medals[pos]}, transparent)`,
+                  );
+                })}
+                {[1, 0, 2].map((pos) => {
+                  const r = podium[pos];
+                  const h = pos === 0 ? 140 : pos === 1 ? 105 : 80;
+                  return (
+                    <div key={`bar-${pos}`} style={{
+                      gridRow: 2, gridColumn: pos === 1 ? 1 : pos === 0 ? 2 : 3,
+                      width: "100%", maxWidth: 110, height: h, marginTop: 8,
+                      background: r
+                        ? `linear-gradient(180deg, ${medals[pos]}, transparent)`
+                        : "linear-gradient(180deg, rgba(255,255,255,.06), transparent)",
                       borderRadius: "12px 12px 0 0",
                       display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 10,
                     }}>
-                      <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", opacity: .9 }}>#{pos + 1}</div>
+                      <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", opacity: r ? .9 : .25 }}>#{pos + 1}</div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
+
 
           {/* Your rank card */}
           {myRank >= 0 && (
