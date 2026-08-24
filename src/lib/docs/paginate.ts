@@ -191,7 +191,7 @@ export function paginateModel(input: PaginateInput): DocPage[] {
         continue;
       }
 
-      const total = rowsOf(block);
+      const total = rowsOf(block, lang);
       if (total <= 1) {
         // Cannot split — move to a fresh page (and let it overflow only if
         // a single unit is taller than a whole page).
@@ -213,7 +213,7 @@ export function paginateModel(input: PaginateInput): DocPage[] {
           while (lo <= hi) {
             const mid = Math.floor((lo + hi) / 2);
             const isLast = from + mid >= total;
-            const h = m.measure(renderBlock(sliceBlock(block, from, from + mid, isLast)));
+            const h = m.measure(renderBlock(sliceBlock(block, from, from + mid, isLast, lang)));
             if (h <= room) { fit = mid; lo = mid + 1; } else { hi = mid - 1; }
           }
         }
@@ -223,14 +223,19 @@ export function paginateModel(input: PaginateInput): DocPage[] {
           fit = 1; // single row taller than a page — keep it anyway
         }
 
+        // Never leave a one-row orphan whose totals block would land alone on
+        // the next page — pull the row over with the totals instead.
+        if (block.kind === "items" && block.showTotals && total - (from + fit) === 1 && fit > 1) fit -= 1;
+
         const isLast = from + fit >= total;
-        const slice = sliceBlock(block, from, from + fit, isLast);
+        const slice = sliceBlock(block, from, from + fit, isLast, lang);
         const h = m.measure(renderBlock(slice));
         cur.blocks.push(slice);
         curH += gap() + h;
         from += fit;
         if (from < total) pushPage();
       }
+
     }
   } finally {
     m.destroy();
