@@ -336,6 +336,8 @@ function DocumentEditorPage() {
           </div>
           <PaperPreview>
             <PaginatedDoc
+              labels
+              onPages={setPageCount}
               input={{
                 header,
                 footer,
