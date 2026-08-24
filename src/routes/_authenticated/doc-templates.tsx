@@ -325,14 +325,17 @@ function PaperPreview({ children }: { children: React.ReactNode }) {
   }, [el]);
   const scale = width > 0 ? Math.min(1, width / 794) : 1;
   return (
-    <div ref={setEl} style={{ width: "100%", overflow: "hidden" }}>
+    // direction: ltr — the transform origin is the left edge, so the wrapper
+    // must resolve from the left too or the sheet gets clipped in RTL.
+    <div ref={setEl} style={{ width: "100%", overflow: "hidden", direction: "ltr" }}>
       <div style={{ height: 1123 * scale, position: "relative" }}>
-        <div style={{ position: "absolute", inset: 0, transform: `scale(${scale})`, transformOrigin: "top left", width: 794 }}>
+        <div style={{ position: "absolute", top: 0, left: 0, transform: `scale(${scale})`, transformOrigin: "top left", width: 794 }}>
           {children}
         </div>
       </div>
     </div>
   );
+
 }
 
 function SampleBody({ lang, theme, terms, currency }: { lang: DocLang; theme: DocTheme; terms: string; currency: string }) {
