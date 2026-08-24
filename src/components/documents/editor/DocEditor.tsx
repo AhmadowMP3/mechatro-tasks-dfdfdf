@@ -20,7 +20,7 @@ import { Ribbon } from "./Ribbon";
 import { PageBreak, DocField, ItemsTable } from "./extensions";
 import { BlockFormat } from "./text-attrs";
 import { DocClientCard } from "../DocBody";
-import { fieldValue, type RichCtx } from "@/lib/docs/rich";
+import { fieldValue, termsBlockHtml, type RichCtx } from "@/lib/docs/rich";
 import type { DocClient } from "@/lib/docs/model";
 import { PAPER, type DocLang, type DocTheme } from "@/lib/docs/types";
 import { toast } from "sonner";

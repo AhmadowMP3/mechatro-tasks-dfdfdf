@@ -292,6 +292,7 @@ function DocumentEditorPage() {
             meta={meta ?? {}}
             showClientBox={doc.model.showClientBox}
             client={doc.client}
+            terms={{ ar: tpl.defaults.termsAr ?? "", en: tpl.defaults.termsEn ?? "" }}
           />
         </div>
 
