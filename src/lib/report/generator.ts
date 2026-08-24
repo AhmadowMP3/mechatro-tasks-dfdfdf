@@ -323,6 +323,7 @@ async function renderHtmlToPdfBlob(
         xPt, yPt, wPt, hPt,
         undefined, "FAST",
       );
+      if (isLastContentPage) lastContentBottomPt = Math.max(lastContentBottomPt, yPt + hPt);
     }
 
     // Footer strip
