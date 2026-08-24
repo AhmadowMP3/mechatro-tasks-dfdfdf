@@ -149,6 +149,7 @@ export function paginateModel(input: PaginateInput): DocPage[] {
       }
 
       const full = m.measure(renderBlock(block));
+      console.log("[pag] block", block.kind, full, avail);
       if (full === 0) continue;
 
       if (curH + gap() + full <= avail) {
