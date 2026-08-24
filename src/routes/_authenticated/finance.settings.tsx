@@ -135,7 +135,14 @@ function FinanceSettingsPage() {
           </div>
         )}
       </section>
+
+      {/* Encrypted vault */}
+      <section className="brand-card" style={{ padding: 20, display: "grid", gap: 12 }}>
+        <h3 style={{ margin: 0, fontSize: 15 }}>{lang === "ar" ? "الخزنة المشفّرة" : "Encrypted vault"}</h3>
+        <VaultAdminPanel />
+      </section>
     </div>
+
   );
 }
 
