@@ -77,8 +77,18 @@ export async function paginateDocument(input: PaginatedDocInput): Promise<DocPag
 
 /** Render already-computed pages (pure — safe for the print iframe). */
 export function DocPages({
-  input, pages, bare = false, pageStyle,
-}: { input: PaginatedDocInput; pages: DocPage[]; bare?: boolean; pageStyle?: React.CSSProperties }) {
+  input, pages, bare = false, pageStyle, pageIndexOffset = 0, totalPages,
+}: {
+  input: PaginatedDocInput;
+  pages: DocPage[];
+  bare?: boolean;
+  pageStyle?: React.CSSProperties;
+  /** Number of pages rendered before this batch (for correct numbering). */
+  pageIndexOffset?: number;
+  /** Total page count of the whole document (defaults to this batch's length). */
+  totalPages?: number;
+}) {
+  const total = totalPages ?? pages.length;
   return (
     <>
       {pages.map((p, i) => (
