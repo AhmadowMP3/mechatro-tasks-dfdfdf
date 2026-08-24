@@ -35,7 +35,7 @@ const esc = (s: unknown): string =>
 const nl2br = (s: unknown): string => esc(s).replace(/\r?\n/g, "<br/>");
 
 export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
-  const { header, footer, model, client, lang, theme, currency, meta, title } = input;
+  const { header, footer, model, client, lang, theme, meta, title } = input;
   const ar = lang === "ar";
   const c = PAPER[theme];
   const dir = ar ? "rtl" : "ltr";
