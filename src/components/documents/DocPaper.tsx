@@ -5,6 +5,13 @@
 import logo from "@/assets/mechatro-logo.png";
 import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
+import type { LogoVariant } from "@/lib/docs/model";
+
+/** CSS filter that renders the brand logo light or dark on any paper. */
+export function logoFilter(variant: LogoVariant | undefined, theme: DocTheme): string | undefined {
+  const v = variant && variant !== "auto" ? variant : theme === "dark" ? "light" : "dark";
+  return v === "light" ? "brightness(0) invert(1)" : undefined;
+}
 
 export const A4 = { width: 794, height: 1123 } as const;
 
@@ -25,10 +32,12 @@ type Props = {
    * auto  — hug the content (used to measure the header + footer chrome).
    */
   sizing?: "grow" | "fixed" | "auto";
+  /** Letterhead logo rendering (auto follows the theme). */
+  logoVariant?: LogoVariant;
   children?: React.ReactNode;
 };
 
-export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", children }: Props) {
+export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", logoVariant, children }: Props) {
   const ar = lang === "ar";
   const c = PAPER[theme];
   const dir = ar ? "rtl" : "ltr";
@@ -71,7 +80,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
           {/* Brand block */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, overflowWrap: "anywhere", alignItems: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>
             {header.showLogo && (
-              <img src={logo} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", maxWidth: "100%", objectFit: "contain" }} />
+              <img src={logo} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", maxWidth: "100%", objectFit: "contain", filter: logoFilter(logoVariant, theme) }} />
             )}
             {company && <div style={{ fontSize: 12.5, fontWeight: 700, overflowWrap: "anywhere" }}>{company}</div>}
             {address && <div style={{ fontSize: 10.5, color: c.muted, overflowWrap: "anywhere" }}>{address}</div>}

@@ -10,6 +10,7 @@
 import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "./types";
 import { type DocClient, type DocModel } from "./model";
 import { loadBrandLogo } from "@/lib/pdf/assets";
+import { logoFilter } from "@/components/documents/DocPaper";
 
 export type DocRenderInput = {
   header: DocHeader;
@@ -42,6 +43,7 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
   const align = ar ? "right" : "left";
   const opp = ar ? "left" : "right";
   const logo = header.showLogo ? await loadBrandLogo() : null;
+  const logoCss = logoFilter(model.logoVariant, theme) ? `;filter:${logoFilter(model.logoVariant, theme)}` : "";
 
   const contactBits = [
     header.phone,
@@ -75,7 +77,7 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
   <table style="width:100%;border-collapse:collapse;table-layout:fixed" cellpadding="0">
     <tr>
       <td style="vertical-align:top;text-align:${align};width:31%">
-        ${logo ? `<img src="${logo.dataUrl}" alt="Mechatro" height="${Math.round(header.logoHeight)}" style="height:${Math.round(header.logoHeight)}px" /><br/>` : ""}
+        ${logo ? `<img src="${logo.dataUrl}" alt="Mechatro" height="${Math.round(header.logoHeight)}" style="height:${Math.round(header.logoHeight)}px${logoCss}" /><br/>` : ""}
         ${header.companyAr || header.companyEn ? `<span style="font-size:12pt;font-weight:bold">${esc(ar ? header.companyAr : header.companyEn)}</span><br/>` : ""}
         ${(ar ? header.addressAr : header.addressEn) ? `<span style="font-size:9pt;color:${c.muted}">${nl2br(ar ? header.addressAr : header.addressEn)}</span><br/>` : ""}
         ${contactBits.length ? `<span style="font-size:8.5pt;color:${c.muted};direction:ltr">${esc(contactBits.join("  ·  "))}</span>` : ""}

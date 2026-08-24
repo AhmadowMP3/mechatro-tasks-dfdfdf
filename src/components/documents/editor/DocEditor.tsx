@@ -1,5 +1,6 @@
-// Word-style document editor: a ribbon over a real A4 sheet with the branded
-// header/footer chrome around a freely editable body.
+// Word-style document editor: a sticky ribbon over a real A4 sheet that shows
+// the branded letterhead (header + footer from the template) around a freely
+// editable body — what you type is exactly what the PDF prints.
 
 import { useEffect, useMemo, useRef } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -20,9 +21,11 @@ import { Ribbon } from "./Ribbon";
 import { PageBreak, DocField, ItemsTable } from "./extensions";
 import { BlockFormat } from "./text-attrs";
 import { DocClientCard } from "../DocBody";
+import { DocPaper } from "../DocPaper";
 import { fieldValue, termsBlockHtml, type RichCtx } from "@/lib/docs/rich";
-import type { DocClient } from "@/lib/docs/model";
-import { PAPER, type DocLang, type DocTheme } from "@/lib/docs/types";
+import { snippetHtml, type SnippetId } from "@/lib/docs/snippets";
+import type { DocClient, LogoVariant } from "@/lib/docs/model";
+import type { DocFooter, DocHeader, DocLang, DocTheme } from "@/lib/docs/types";
 import { toast } from "sonner";
 
 type Props = {
@@ -34,15 +37,24 @@ type Props = {
   meta: RichCtx["meta"];
   showClientBox: boolean;
   client: DocClient;
+  /** Letterhead chrome drawn around the editable body. */
+  header: DocHeader;
+  footer: DocFooter;
+  logoVariant?: LogoVariant;
+  onLogoVariant?: (v: LogoVariant) => void;
   /** Terms & conditions from the type template, inserted on demand. */
   terms?: { ar: string; en: string };
+  /** Save / export / preview buttons pinned to the ribbon. */
+  actions?: React.ReactNode;
 };
 
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
-export function DocEditor({ html, onChange, lang, theme, currency, meta, showClientBox, client, terms }: Props) {
+export function DocEditor({
+  html, onChange, lang, theme, currency, meta, showClientBox, client,
+  header, footer, logoVariant, onLogoVariant, terms, actions,
+}: Props) {
   const ar = lang === "ar";
-  const palette = PAPER[theme];
   const lastEmitted = useRef(html);
 
   const ctx = useMemo<RichCtx>(() => ({ lang, theme, currency, meta }), [lang, theme, currency, meta]);
@@ -132,33 +144,50 @@ export function DocEditor({ html, onChange, lang, theme, currency, meta, showCli
     reader.readAsDataURL(file);
   };
 
+  const templateTerms = (lang === "ar" ? terms?.ar : terms?.en) ?? "";
+
+  const insertSnippet = (id: SnippetId) => {
+    const block = snippetHtml(id, lang, templateTerms);
+    if (block) editor?.chain().focus().insertContent(block).run();
+  };
+
   return (
     <div className="doc-editor">
       <Ribbon
         editor={editor}
         lang={lang}
         onImage={insertImage}
+        onSnippet={insertSnippet}
+        logoVariant={logoVariant}
+        onLogoVariant={onLogoVariant}
+        actions={actions}
         onInsertTerms={
-          terms && (lang === "ar" ? terms.ar : terms.en).trim()
+          templateTerms.trim()
             ? () => {
-                const block = termsBlockHtml(lang, lang === "ar" ? terms.ar : terms.en);
+                const block = termsBlockHtml(lang, templateTerms);
                 if (block) editor?.chain().focus().insertContent(block).run();
               }
             : undefined
         }
       />
       <div className="doc-editor-canvas">
-        <div
-          className="doc-editor-sheet"
-          dir={ar ? "rtl" : "ltr"}
-          style={{ background: palette.bg, color: palette.ink }}
-        >
-          {showClientBox && (
-            <div style={{ marginBottom: 14 }}>
-              <DocClientCard client={client} lang={lang} theme={theme} />
-            </div>
-          )}
-          <EditorContent editor={editor} />
+        <div className="doc-editor-paper">
+          <DocPaper
+            header={header}
+            footer={footer}
+            lang={lang}
+            theme={theme}
+            meta={meta}
+            logoVariant={logoVariant}
+            page={{ current: 1, total: 1 }}
+          >
+            {showClientBox && (
+              <div style={{ marginBottom: 14 }}>
+                <DocClientCard client={client} lang={lang} theme={theme} />
+              </div>
+            )}
+            <EditorContent editor={editor} />
+          </DocPaper>
         </div>
       </div>
     </div>

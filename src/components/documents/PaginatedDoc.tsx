@@ -45,6 +45,7 @@ export async function measureBodyHeight(input: PaginatedDocInput): Promise<numbe
           lang={input.lang}
           theme={input.theme}
           meta={input.meta}
+          logoVariant={input.model.logoVariant}
           page={{ current: 1, total: 1 }}
           sizing="auto"
           bare
@@ -141,6 +142,7 @@ export function DocPages({
             lang={input.lang}
             theme={input.theme}
             meta={input.meta}
+            logoVariant={input.model.logoVariant}
             page={{ current: pageIndexOffset + i + 1, total }}
             sizing="fixed"
             bare={bare}
@@ -193,6 +195,7 @@ export function PaginatedDoc({
         lang={input.lang}
         theme={input.theme}
         meta={input.meta}
+        logoVariant={input.model.logoVariant}
         page={{ current: 1, total: 1 }}
         bare={bare}
       >
