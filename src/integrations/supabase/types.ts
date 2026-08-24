@@ -1964,6 +1964,54 @@ export type Database = {
           },
         ]
       }
+      public_shares: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          lang: string
+          payload: Json
+          ref_id: string | null
+          revoked_at: string | null
+          theme: string
+          title: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kind: string
+          lang?: string
+          payload?: Json
+          ref_id?: string | null
+          revoked_at?: string | null
+          theme?: string
+          title?: string | null
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          lang?: string
+          payload?: Json
+          ref_id?: string | null
+          revoked_at?: string | null
+          theme?: string
+          title?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       references: {
         Row: {
           category: string | null
@@ -2757,10 +2805,23 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_public_share: {
+        Args: { p_token: string }
+        Returns: {
+          created_at: string
+          kind: string
+          lang: string
+          payload: Json
+          theme: string
+          title: string
+          token: string
+        }[]
+      }
       is_note_owner: {
         Args: { _note_id: string; _user_id: string }
         Returns: boolean
       }
+      is_share_admin: { Args: { _uid: string }; Returns: boolean }
       next_doc_number: {
         Args: { _type: Database["public"]["Enums"]["business_doc_type"] }
         Returns: string
