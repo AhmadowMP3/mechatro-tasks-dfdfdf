@@ -241,7 +241,32 @@ function DocumentEditorPage() {
               />
               <Toggle label={ar ? "إظهار صندوق العميل" : "Show client box"} value={doc.model.showClientBox} onChange={(v) => patchModel({ showClientBox: v })} />
             </Row>
+            <Row>
+              <Text
+                label={ar ? "عنوان الورقة (عربي)" : "Paper title (AR)"}
+                value={header.titleAr}
+                onChange={(v) => patch({ header_override: { ...header, titleAr: v } })}
+              />
+              <Text
+                label={ar ? "عنوان الورقة (إنجليزي)" : "Paper title (EN)"}
+                value={header.titleEn}
+                onChange={(v) => patch({ header_override: { ...header, titleEn: v } })}
+              />
+            </Row>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11.5, color: "var(--muted-foreground)" }}>
+                {ar
+                  ? "عنوان الورقة هو الظاهر أعلى المستند. العنوان الداخلي يُستخدم في قائمة المستندات فقط."
+                  : "The paper title shows on the document. The internal title is only used in the documents list."}
+              </span>
+              {doc.header_override && (
+                <button type="button" className="btn-ghost" onClick={() => patch({ header_override: null })}>
+                  {ar ? "إرجاع عنوان القالب" : "Reset to template"}
+                </button>
+              )}
+            </div>
           </Section>
+
 
           <Section title={ar ? "العميل / الجهة" : "Client / party"}>
             <Row>
