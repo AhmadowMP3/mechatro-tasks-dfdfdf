@@ -122,11 +122,21 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
         </tr></table>`
       : ""
   }
-  <table style="width:100%;border-collapse:collapse;font-size:8pt;color:${c.muted}"><tr>
-    <td style="text-align:${align}">${esc(footer.contactLine)}</td>
-    <td style="text-align:center">${esc(note)}</td>
+  <table style="width:100%;border-collapse:collapse;font-size:8pt;color:${c.muted}">
+    ${footer.contactRows
+      .map(
+        (row) => `<tr>
+      <td style="text-align:left;direction:ltr;width:50%">${esc(row.en)}</td>
+      <td style="text-align:right;direction:rtl;width:50%">${esc(row.ar)}</td>
+    </tr>`,
+      )
+      .join("")}
+  </table>
+  <table style="width:100%;border-collapse:collapse;font-size:8pt;color:${c.muted};margin-top:4px"><tr>
+    <td style="text-align:${align}">${esc(note)}</td>
     <td style="text-align:${opp};direction:ltr">${footer.showGeneratedAt ? esc(new Date().toLocaleString("en-GB")) : ""}</td>
   </tr></table>`;
+
 
   return `<!doctype html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" lang="${lang}" dir="${dir}">
