@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { supabase } from "@/integrations/supabase/client";
 import { checkVerifier, deriveVaultKey, KDF_ITERATIONS, makeVerifier, randomSaltB64 } from "./crypto";
 import { setVaultKey } from "./vault-db";
+import { findVariantByData, findWorkingVariant, rekeyVault, resetVault, type RekeyProgress } from "./vault-admin";
 
 export type VaultStatus = "loading" | "not_set" | "locked" | "unlocked" | "error";
 
@@ -10,6 +11,8 @@ type VaultMeta = {
   kdf_iterations: number;
   verifier: string;
   encrypted_at: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 type VaultContextValue = {
@@ -20,6 +23,12 @@ type VaultContextValue = {
   error: string | null;
   setup: (passphrase: string) => Promise<void>;
   unlock: (passphrase: string) => Promise<boolean>;
+  /** Tries common variants of the typed passphrase; returns the one that worked. */
+  recover: (passphrase: string) => Promise<{ ar: string; en: string } | null>;
+  /** Change the passphrase, re-encrypting every record. Vault must be unlocked. */
+  rekey: (newPassphrase: string, onProgress?: (p: RekeyProgress) => void) => Promise<number>;
+  /** Destructive: forget the passphrase (and optionally the encrypted rows). */
+  reset: (opts: { wipeEncrypted: boolean }) => Promise<number>;
   lock: () => void;
   markMigrated: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -28,6 +37,7 @@ type VaultContextValue = {
 const VaultContext = createContext<VaultContextValue | null>(null);
 
 const IDLE_LOCK_MS = 15 * 60 * 1000;
+
 
 export function FinanceVaultProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<VaultStatus>("loading");
