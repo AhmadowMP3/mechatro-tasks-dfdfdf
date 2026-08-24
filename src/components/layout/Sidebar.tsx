@@ -173,15 +173,16 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         display: "flex", flexDirection: "column",
         borderInlineEnd: "1px solid var(--border)",
         height: "100dvh",
+        maxHeight: "100dvh",
         position: onClose ? "relative" : "sticky",
         top: 0,
         alignSelf: "flex-start",
         flexShrink: 0,
-        overflowY: "auto",
+        overflow: "hidden",
       }}
     >
 
-      <div style={{ padding: "22px 18px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
+      <div style={{ padding: "22px 18px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative", flexShrink: 0 }}>
         {onClose && (
           <button onClick={onClose} aria-label="close" style={{
             position: "absolute", insetInlineEnd: 8, top: 8, width: 44, height: 44,
@@ -193,6 +194,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           {t("appName")}
         </div>
       </div>
+
 
       {user && (
         <div style={{
