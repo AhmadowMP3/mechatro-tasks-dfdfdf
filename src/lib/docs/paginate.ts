@@ -68,14 +68,51 @@ function createMeasurer(lang: DocLang): Measurer {
   };
 }
 
-function rowsOf(block: DocBlock): number {
+type TextChunk = { t: string; br: boolean };
+
+/** Break a long text body into splittable chunks (paragraphs, then ~180-char
+ *  word-safe pieces) so a huge paragraph can flow onto the next page instead
+ *  of being clipped. `br` marks a real newline in the source, so rejoining a
+ *  slice never invents line breaks inside a sentence. */
+function textChunks(text: string): TextChunk[] {
+  const out: TextChunk[] = [];
+  const paras = (text ?? "").split(/\n/);
+  paras.forEach((para, pi) => {
+    if (para.length <= 180) { out.push({ t: para, br: pi > 0 }); return; }
+    const words = para.split(/(\s+)/);
+    let buf = "";
+    let firstOfPara = true;
+    for (const w of words) {
+      if (buf.length + w.length > 180 && buf.trim()) {
+        out.push({ t: buf, br: firstOfPara && pi > 0 });
+        firstOfPara = false;
+        buf = w.trimStart();
+      } else buf += w;
+    }
+    if (buf.trim()) out.push({ t: buf, br: firstOfPara && pi > 0 });
+  });
+  return out.length > 0 ? out : [{ t: "", br: false }];
+}
+
+function joinChunks(chunks: TextChunk[]): string {
+  return chunks.map((ch, i) => (i > 0 && ch.br ? `\n${ch.t}` : ch.t)).join("");
+}
+
+function langText(block: DocBlock, lang: DocLang): string {
+  if (block.kind === "text" || block.kind === "terms") return (lang === "ar" ? block.ar : block.en) ?? "";
+  return "";
+}
+
+function rowsOf(block: DocBlock, lang: DocLang): number {
   if (block.kind === "items" || block.kind === "table") return block.rows.length;
+  if (block.kind === "text" || block.kind === "terms") return textChunks(langText(block, lang)).length;
   return 0;
 }
 
-/** A row-slice of a table/items block; keeps the title only on the first
+
+/** A row-slice of a table/items/text block; keeps the title only on the first
  *  slice and the totals only on the last one. */
-function sliceBlock(block: DocBlock, from: number, to: number, isLast: boolean): DocBlock {
+function sliceBlock(block: DocBlock, from: number, to: number, isLast: boolean, lang: DocLang): DocBlock {
   if (block.kind === "items") {
     return {
       ...block,
@@ -94,8 +131,17 @@ function sliceBlock(block: DocBlock, from: number, to: number, isLast: boolean):
       titleEn: from === 0 ? block.titleEn : "",
     };
   }
+  if (block.kind === "text" || block.kind === "terms") {
+    const part = joinChunks(textChunks(langText(block, lang)).slice(from, to));
+    const base = lang === "ar" ? { ar: part, en: "" } : { ar: "", en: part };
+    if (block.kind === "terms") {
+      return { ...block, ...base, titleAr: from === 0 ? block.titleAr : "", titleEn: from === 0 ? block.titleEn : "" };
+    }
+    return { ...block, ...base };
+  }
   return block;
 }
+
 
 export type PaginateInput = {
   model: DocModel;
@@ -158,7 +204,7 @@ export function paginateModel(input: PaginateInput): DocPage[] {
         continue;
       }
 
-      const total = rowsOf(block);
+      const total = rowsOf(block, lang);
       if (total <= 1) {
         // Cannot split — move to a fresh page (and let it overflow only if
         // a single unit is taller than a whole page).
@@ -180,7 +226,7 @@ export function paginateModel(input: PaginateInput): DocPage[] {
           while (lo <= hi) {
             const mid = Math.floor((lo + hi) / 2);
             const isLast = from + mid >= total;
-            const h = m.measure(renderBlock(sliceBlock(block, from, from + mid, isLast)));
+            const h = m.measure(renderBlock(sliceBlock(block, from, from + mid, isLast, lang)));
             if (h <= room) { fit = mid; lo = mid + 1; } else { hi = mid - 1; }
           }
         }
@@ -190,14 +236,19 @@ export function paginateModel(input: PaginateInput): DocPage[] {
           fit = 1; // single row taller than a page — keep it anyway
         }
 
+        // Never leave a one-row orphan whose totals block would land alone on
+        // the next page — pull the row over with the totals instead.
+        if (block.kind === "items" && block.showTotals && total - (from + fit) === 1 && fit > 1) fit -= 1;
+
         const isLast = from + fit >= total;
-        const slice = sliceBlock(block, from, from + fit, isLast);
+        const slice = sliceBlock(block, from, from + fit, isLast, lang);
         const h = m.measure(renderBlock(slice));
         cur.blocks.push(slice);
         curH += gap() + h;
         from += fit;
         if (from < total) pushPage();
       }
+
     }
   } finally {
     m.destroy();

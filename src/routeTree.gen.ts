@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PaginationCheckRouteImport } from './routes/pagination-check'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -54,6 +55,11 @@ import { Route as AuthenticatedFinanceInvoicesIdRouteImport } from './routes/_au
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaginationCheckRoute = PaginationCheckRouteImport.update({
+  id: '/pagination-check',
+  path: '/pagination-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -280,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/accept-invite': typeof AcceptInviteRoute
   '/auth': typeof AuthRoute
+  '/pagination-check': typeof PaginationCheckRoute
   '/reset-password': typeof ResetPasswordRoute
   '/access-control': typeof AuthenticatedAccessControlRoute
   '/activity': typeof AuthenticatedActivityRoute
@@ -321,6 +328,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/accept-invite': typeof AcceptInviteRoute
   '/auth': typeof AuthRoute
+  '/pagination-check': typeof PaginationCheckRoute
   '/reset-password': typeof ResetPasswordRoute
   '/access-control': typeof AuthenticatedAccessControlRoute
   '/activity': typeof AuthenticatedActivityRoute
@@ -362,6 +370,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/accept-invite': typeof AcceptInviteRoute
   '/auth': typeof AuthRoute
+  '/pagination-check': typeof PaginationCheckRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/access-control': typeof AuthenticatedAccessControlRoute
   '/_authenticated/activity': typeof AuthenticatedActivityRoute
@@ -407,6 +416,7 @@ export interface FileRouteTypes {
     | '/'
     | '/accept-invite'
     | '/auth'
+    | '/pagination-check'
     | '/reset-password'
     | '/access-control'
     | '/activity'
@@ -448,6 +458,7 @@ export interface FileRouteTypes {
   to:
     | '/accept-invite'
     | '/auth'
+    | '/pagination-check'
     | '/reset-password'
     | '/access-control'
     | '/activity'
@@ -488,6 +499,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/accept-invite'
     | '/auth'
+    | '/pagination-check'
     | '/reset-password'
     | '/_authenticated/access-control'
     | '/_authenticated/activity'
@@ -532,6 +544,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AcceptInviteRoute: typeof AcceptInviteRoute
   AuthRoute: typeof AuthRoute
+  PaginationCheckRoute: typeof PaginationCheckRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShareTokenRoute: typeof ShareTokenRouteWithChildren
   ApiPublicGoogleDriveCallbackRoute: typeof ApiPublicGoogleDriveCallbackRoute
@@ -545,6 +558,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagination-check': {
+      id: '/pagination-check'
+      path: '/pagination-check'
+      fullPath: '/pagination-check'
+      preLoaderRoute: typeof PaginationCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -944,6 +964,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AcceptInviteRoute: AcceptInviteRoute,
   AuthRoute: AuthRoute,
+  PaginationCheckRoute: PaginationCheckRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ShareTokenRoute: ShareTokenRouteWithChildren,
   ApiPublicGoogleDriveCallbackRoute: ApiPublicGoogleDriveCallbackRoute,

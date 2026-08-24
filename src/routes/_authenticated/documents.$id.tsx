@@ -620,7 +620,10 @@ function PaperPreview({ children }: { children: React.ReactNode }) {
 
   const scale = width > 0 ? Math.min(1, width / 794) : 1;
   return (
-    <div ref={setEl} style={{ width: "100%", overflow: "hidden" }}>
+    // direction: ltr keeps the scaled sheet anchored to the same edge as the
+    // transform origin — in RTL the absolute box otherwise resolves from the
+    // right and the paper gets clipped.
+    <div ref={setEl} style={{ width: "100%", overflow: "hidden", direction: "ltr" }}>
       <div style={{ height: paperHeight * scale, position: "relative" }}>
         <div
           ref={setInner}
@@ -631,6 +634,7 @@ function PaperPreview({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   );
+
 }
 
 /* ── Form primitives ──────────────────────────────────────────── */

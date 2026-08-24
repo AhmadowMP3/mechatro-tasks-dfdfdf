@@ -140,6 +140,9 @@ function DocTemplatesPage() {
               key={d.type}
               onClick={() => setType(d.type)}
               style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
                 whiteSpace: "nowrap",
                 padding: "8px 14px",
                 borderRadius: 10,
@@ -150,11 +153,13 @@ function DocTemplatesPage() {
                 fontWeight: 600,
                 cursor: "pointer",
                 minHeight: 40,
+                flexShrink: 0,
               }}
             >
-              {docTypeLabel(d.type, ar ? "ar" : "en")}
-              <span style={{ opacity: 0.6, marginInlineStart: 6, fontSize: 11 }}>{d.prefix}</span>
+              <span>{docTypeLabel(d.type, ar ? "ar" : "en")}</span>
+              <span style={{ opacity: 0.6, fontSize: 11, direction: "ltr", flexShrink: 0 }}>{d.prefix}</span>
             </button>
+
           );
         })}
       </div>
@@ -325,14 +330,17 @@ function PaperPreview({ children }: { children: React.ReactNode }) {
   }, [el]);
   const scale = width > 0 ? Math.min(1, width / 794) : 1;
   return (
-    <div ref={setEl} style={{ width: "100%", overflow: "hidden" }}>
+    // direction: ltr — the transform origin is the left edge, so the wrapper
+    // must resolve from the left too or the sheet gets clipped in RTL.
+    <div ref={setEl} style={{ width: "100%", overflow: "hidden", direction: "ltr" }}>
       <div style={{ height: 1123 * scale, position: "relative" }}>
-        <div style={{ position: "absolute", inset: 0, transform: `scale(${scale})`, transformOrigin: "top left", width: 794 }}>
+        <div style={{ position: "absolute", top: 0, left: 0, transform: `scale(${scale})`, transformOrigin: "top left", width: 794 }}>
           {children}
         </div>
       </div>
     </div>
   );
+
 }
 
 function SampleBody({ lang, theme, terms, currency }: { lang: DocLang; theme: DocTheme; terms: string; currency: string }) {

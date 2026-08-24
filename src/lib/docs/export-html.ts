@@ -142,8 +142,9 @@ div.WordSection1 { page: WordSection1; }
 body { font-family: 'Montserrat Arabic','Almarai','Montserrat','Segoe UI',sans-serif; font-size:10pt;
        color:${c.ink}; background:${c.bg}; direction:${dir}; text-align:${align}; }
 table { mso-table-lspace:0pt; mso-table-rspace:0pt; }
-td, th { vertical-align: top; }
+td, th { vertical-align: top; word-wrap: break-word; overflow-wrap: anywhere; }
 .pb { page-break-before: always; }
+
 </style>
 </head>
 <body>
@@ -260,7 +261,7 @@ function renderBlock(block: DocBlock, ar: boolean, c: Palette, currency: string)
         ${t.lines
           .map(
             (l, i) =>
-              `<tr${i % 2 ? ` style="background:${c.zebra}"` : ""}>${td(String(i + 1))}${td((ar ? l.row.descAr : l.row.descEn) || "—")}` +
+              `<tr${i % 2 ? ` style="background:${c.zebra}"` : ""}>${td(String((block.startIndex ?? 0) + i + 1))}${td((ar ? l.row.descAr : l.row.descEn) || "—")}` +
               `${block.showUnit ? td(ar ? l.row.unitAr : l.row.unitEn) : ""}` +
               `${block.showQty ? td(String(l.row.qty), { ltr: true }) : ""}` +
               `${block.showPrice ? td(money(l.row.price, ""), { ltr: true }) : ""}` +

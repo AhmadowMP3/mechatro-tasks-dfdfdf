@@ -215,23 +215,43 @@ function DocumentsListPage() {
                 <div style={{ fontSize: 11.5, color: "var(--muted-foreground)", direction: "ltr" }}>
                   {d.issue_date}{d.valid_until ? ` → ${d.valid_until}` : ""} · {d.currency}
                 </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
-                  <Link to="/documents/$id" params={{ id: d.id }} className="btn-primary" style={{ textDecoration: "none", minHeight: 38 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 8,
+                    marginTop: 6,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(112px, 1fr))",
+                    alignItems: "stretch",
+                  }}
+                >
+                  <Link
+                    to="/documents/$id"
+                    params={{ id: d.id }}
+                    className="btn-primary"
+                    style={{ textDecoration: "none", minHeight: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0 }}
+                  >
                     {ar ? "تحرير" : "Edit"}
                   </Link>
-                  <button className="btn-ghost" disabled={busy} onClick={() => duplicate(d)} style={{ minHeight: 38 }}>
-                    <Copy size={14} /> {ar ? "تكرار" : "Duplicate"}
+                  <button className="btn-ghost" disabled={busy} onClick={() => duplicate(d)} style={{ minHeight: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0 }}>
+                    <Copy size={14} style={{ flexShrink: 0 }} /> <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{ar ? "تكرار" : "Duplicate"}</span>
                   </button>
-                  <button className="btn-ghost" disabled={busy} onClick={() => exportDoc(d, "pdf")} style={{ minHeight: 38 }} title="PDF">
-                    <FileDown size={14} /> PDF
+                  <button className="btn-ghost" disabled={busy} onClick={() => exportDoc(d, "pdf")} style={{ minHeight: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0 }} title="PDF">
+                    <FileDown size={14} style={{ flexShrink: 0 }} /> PDF
                   </button>
-                  <button className="btn-ghost" disabled={busy} onClick={() => exportDoc(d, "word")} style={{ minHeight: 38 }} title="Word">
-                    <FileType2 size={14} /> Word
+                  <button className="btn-ghost" disabled={busy} onClick={() => exportDoc(d, "word")} style={{ minHeight: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0 }} title="Word">
+                    <FileType2 size={14} style={{ flexShrink: 0 }} /> Word
                   </button>
-                  <button className="btn-ghost" disabled={busy} onClick={() => remove(d)} style={{ minHeight: 38, color: "#EF4444" }}>
-                    <Trash2 size={14} />
+                  <button
+                    className="btn-ghost"
+                    disabled={busy}
+                    onClick={() => remove(d)}
+                    style={{ minHeight: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, whiteSpace: "nowrap", color: "#EF4444", minWidth: 0 }}
+                    title={ar ? "حذف" : "Delete"}
+                  >
+                    <Trash2 size={14} style={{ flexShrink: 0 }} /> <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{ar ? "حذف" : "Delete"}</span>
                   </button>
                 </div>
+
               </div>
             );
           })}

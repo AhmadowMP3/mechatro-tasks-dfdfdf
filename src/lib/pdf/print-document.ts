@@ -66,12 +66,14 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
   /* Pre-paginated documents: one .doc-page element == exactly one sheet. */
   .doc-page {
     width: ${A4_WIDTH_PX}px;
+    height: 1123px;
     overflow: hidden;
     break-inside: avoid;
     page-break-inside: avoid;
     break-after: page;
     page-break-after: always;
   }
+
   .doc-page:last-child {
     break-after: auto;
     page-break-after: auto;
