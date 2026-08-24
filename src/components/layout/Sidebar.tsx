@@ -139,7 +139,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       // "share-links" and "doc-templates" are master-only within the admin section
       if (section.titleKey === "adminSection") {
-        items = items.filter((i) => (i.to !== "/share-links" && i.to !== "/doc-templates") || isMasterAdmin);
+        items = items.filter(
+          (i) => (i.to !== "/share-links" && i.to !== "/doc-templates" && i.to !== "/documents") || isMasterAdmin,
+        );
       }
 
 
