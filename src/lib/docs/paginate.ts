@@ -68,22 +68,34 @@ function createMeasurer(lang: DocLang): Measurer {
   };
 }
 
+type TextChunk = { t: string; br: boolean };
+
 /** Break a long text body into splittable chunks (paragraphs, then ~180-char
  *  word-safe pieces) so a huge paragraph can flow onto the next page instead
- *  of being clipped. */
-function textChunks(text: string): string[] {
-  const out: string[] = [];
-  for (const para of (text ?? "").split(/\n/)) {
-    if (para.length <= 180) { out.push(para); continue; }
+ *  of being clipped. `br` marks a real newline in the source, so rejoining a
+ *  slice never invents line breaks inside a sentence. */
+function textChunks(text: string): TextChunk[] {
+  const out: TextChunk[] = [];
+  const paras = (text ?? "").split(/\n/);
+  paras.forEach((para, pi) => {
+    if (para.length <= 180) { out.push({ t: para, br: pi > 0 }); return; }
     const words = para.split(/(\s+)/);
     let buf = "";
+    let firstOfPara = true;
     for (const w of words) {
-      if (buf.length + w.length > 180 && buf.trim()) { out.push(buf); buf = w.trimStart(); }
-      else buf += w;
+      if (buf.length + w.length > 180 && buf.trim()) {
+        out.push({ t: buf, br: firstOfPara && pi > 0 });
+        firstOfPara = false;
+        buf = w.trimStart();
+      } else buf += w;
     }
-    if (buf.trim()) out.push(buf);
-  }
-  return out.length > 0 ? out : [""];
+    if (buf.trim()) out.push({ t: buf, br: firstOfPara && pi > 0 });
+  });
+  return out.length > 0 ? out : [{ t: "", br: false }];
+}
+
+function joinChunks(chunks: TextChunk[]): string {
+  return chunks.map((ch, i) => (i > 0 && ch.br ? `\n${ch.t}` : ch.t)).join("");
 }
 
 function langText(block: DocBlock, lang: DocLang): string {
@@ -96,6 +108,7 @@ function rowsOf(block: DocBlock, lang: DocLang): number {
   if (block.kind === "text" || block.kind === "terms") return textChunks(langText(block, lang)).length;
   return 0;
 }
+
 
 /** A row-slice of a table/items/text block; keeps the title only on the first
  *  slice and the totals only on the last one. */
