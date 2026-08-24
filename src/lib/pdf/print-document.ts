@@ -176,14 +176,35 @@ export async function printReactDocument(
     throw new Error("Print root missing");
   }
 
+  // Reserve the public read-only link + QR before rendering, so the QR can be
+  // stamped on the last page of this very export.
+  const share = options.share ? await prepareShare({ lang: options.lang, title: options.title, ...options.share }) : null;
+
   let root: Root | null = null;
   try {
     root = createRoot(mount);
     root.render(node as unknown as React.ReactElement);
     await waitForAssets(doc);
+
+    if (share) {
+      stampQrOnLastPage(doc, share.qrDataUrl, options.lang);
+      await waitForAssets(doc);
+      // Store the rendered A4 snapshot for /v/{token}.
+      const snapshotHtml = mount.innerHTML;
+      void saveSharePayload(share.token, {
+        html: snapshotHtml,
+        css: printDocCss(options.lang, options.background ?? "#081320", options.color ?? "#E6EEF7"),
+        width: A4_WIDTH_PX,
+        background: options.background ?? "#081320",
+        color: options.color ?? "#E6EEF7",
+        title: options.title,
+      });
+    }
+
     // Set the title again after mount — some browsers seed the suggested
     // filename from document.title at print() time.
     doc.title = options.title;
+
 
     // Focus so the print dialog attaches to the iframe (not the parent),
     // which lets the browser use our document.title.
