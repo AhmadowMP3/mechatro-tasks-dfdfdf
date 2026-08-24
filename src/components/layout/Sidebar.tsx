@@ -86,6 +86,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: "/team",           icon: Users,    key: "team" },
       { to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } },
+      { to: "/documents",      icon: FileText, key: null, label: { ar: "المستندات التجارية", en: "Business Documents" } },
       { to: "/doc-templates",  icon: FileText, key: null, label: { ar: "قوالب المستندات", en: "Document Templates" } },
       { to: "/share-links",    icon: Share2,   key: null, label: { ar: "روابط المشاركة", en: "Share Links" } },
     ],
@@ -138,7 +139,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       // "share-links" and "doc-templates" are master-only within the admin section
       if (section.titleKey === "adminSection") {
-        items = items.filter((i) => (i.to !== "/share-links" && i.to !== "/doc-templates") || isMasterAdmin);
+        items = items.filter(
+          (i) => (i.to !== "/share-links" && i.to !== "/doc-templates" && i.to !== "/documents") || isMasterAdmin,
+        );
       }
 
 

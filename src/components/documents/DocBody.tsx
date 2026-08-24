@@ -25,7 +25,7 @@ export function DocBody({ model, client, lang, theme, currency }: Props) {
   );
 }
 
-type Palette = typeof PAPER["light"];
+type Palette = { bg: string; surface: string; ink: string; muted: string; border: string; zebra: string };
 
 function ClientBox({ client, ar, c }: { client: DocClient; ar: boolean; c: Palette }) {
   const name = ar ? client.nameAr || client.nameEn : client.nameEn || client.nameAr;
