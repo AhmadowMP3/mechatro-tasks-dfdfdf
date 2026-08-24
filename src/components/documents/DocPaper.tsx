@@ -52,9 +52,9 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
         display: "flex",
         flexDirection: "column",
         fontFamily: "'Montserrat Arabic', 'Almarai', 'Montserrat', system-ui, sans-serif",
-        boxShadow: "0 18px 50px rgba(0,0,0,.35)",
-        borderRadius: 4,
-        overflow: "hidden",
+        boxShadow: bare ? undefined : "0 18px 50px rgba(0,0,0,.35)",
+        borderRadius: bare ? 0 : 4,
+        overflow: bare ? undefined : "hidden",
       }}
     >
       {/* ── Header band ─────────────────────────────────────────── */}
