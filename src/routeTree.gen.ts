@@ -15,9 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
-import { Route as AuthenticatedShareLinksRouteImport } from './routes/_authenticated/share-links'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedReportsHistoryRouteImport } from './routes/_authenticated/reports-history'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
@@ -30,12 +28,10 @@ import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDocTemplatesRouteImport } from './routes/_authenticated/doc-templates'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
-import { Route as ShareTokenIndexRouteImport } from './routes/share.$token.index'
 import { Route as AuthenticatedTeamIndexRouteImport } from './routes/_authenticated/team.index'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedFinanceIndexRouteImport } from './routes/_authenticated/finance.index'
 import { Route as AuthenticatedDocumentsIndexRouteImport } from './routes/_authenticated/documents.index'
-import { Route as ShareTokenPageRouteImport } from './routes/share.$token.$page'
 import { Route as AuthenticatedTeamIdRouteImport } from './routes/_authenticated/team.$id'
 import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history_.compare'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
@@ -81,19 +77,9 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ShareTokenRoute = ShareTokenRouteImport.update({
-  id: '/share/$token',
-  path: '/share/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedShareLinksRoute = AuthenticatedShareLinksRouteImport.update({
-  id: '/share-links',
-  path: '/share-links',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -160,11 +146,6 @@ const AuthenticatedAccessControlRoute =
     path: '/access-control',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ShareTokenIndexRoute = ShareTokenIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ShareTokenRoute,
-} as any)
 const AuthenticatedTeamIndexRoute = AuthenticatedTeamIndexRouteImport.update({
   id: '/team/',
   path: '/team/',
@@ -188,11 +169,6 @@ const AuthenticatedDocumentsIndexRoute =
     path: '/documents/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ShareTokenPageRoute = ShareTokenPageRouteImport.update({
-  id: '/$page',
-  path: '/$page',
-  getParentRoute: () => ShareTokenRoute,
-} as any)
 const AuthenticatedTeamIdRoute = AuthenticatedTeamIdRouteImport.update({
   id: '/team/$id',
   path: '/team/$id',
@@ -300,9 +276,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/reports-history': typeof AuthenticatedReportsHistoryRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
-  '/share/$token': typeof ShareTokenRouteWithChildren
   '/documents/$id': typeof AuthenticatedDocumentsIdRoute
   '/finance/customers': typeof AuthenticatedFinanceCustomersRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
@@ -314,12 +288,10 @@ export interface FileRoutesByFullPath {
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/team/$id': typeof AuthenticatedTeamIdRoute
-  '/share/$token/$page': typeof ShareTokenPageRoute
   '/documents/': typeof AuthenticatedDocumentsIndexRoute
   '/finance/': typeof AuthenticatedFinanceIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/team/': typeof AuthenticatedTeamIndexRoute
-  '/share/$token/': typeof ShareTokenIndexRoute
   '/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
   '/api/public/google/drive-callback': typeof ApiPublicGoogleDriveCallbackRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
@@ -340,7 +312,6 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsRoute
   '/reports-history': typeof AuthenticatedReportsHistoryRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/': typeof AuthenticatedIndexRoute
   '/documents/$id': typeof AuthenticatedDocumentsIdRoute
@@ -354,12 +325,10 @@ export interface FileRoutesByTo {
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/team/$id': typeof AuthenticatedTeamIdRoute
-  '/share/$token/$page': typeof ShareTokenPageRoute
   '/documents': typeof AuthenticatedDocumentsIndexRoute
   '/finance': typeof AuthenticatedFinanceIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/team': typeof AuthenticatedTeamIndexRoute
-  '/share/$token': typeof ShareTokenIndexRoute
   '/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
   '/api/public/google/drive-callback': typeof ApiPublicGoogleDriveCallbackRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
@@ -384,9 +353,7 @@ export interface FileRoutesById {
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/reports-history': typeof AuthenticatedReportsHistoryRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
-  '/_authenticated/share-links': typeof AuthenticatedShareLinksRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
-  '/share/$token': typeof ShareTokenRouteWithChildren
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/documents/$id': typeof AuthenticatedDocumentsIdRoute
   '/_authenticated/finance/customers': typeof AuthenticatedFinanceCustomersRoute
@@ -399,12 +366,10 @@ export interface FileRoutesById {
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/reports-history_/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/_authenticated/team/$id': typeof AuthenticatedTeamIdRoute
-  '/share/$token/$page': typeof ShareTokenPageRoute
   '/_authenticated/documents/': typeof AuthenticatedDocumentsIndexRoute
   '/_authenticated/finance/': typeof AuthenticatedFinanceIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/team/': typeof AuthenticatedTeamIndexRoute
-  '/share/$token/': typeof ShareTokenIndexRoute
   '/_authenticated/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
   '/api/public/google/drive-callback': typeof ApiPublicGoogleDriveCallbackRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
@@ -430,9 +395,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reports-history'
     | '/settings'
-    | '/share-links'
     | '/tasks'
-    | '/share/$token'
     | '/documents/$id'
     | '/finance/customers'
     | '/finance/expenses'
@@ -444,12 +407,10 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/reports-history/compare'
     | '/team/$id'
-    | '/share/$token/$page'
     | '/documents/'
     | '/finance/'
     | '/projects/'
     | '/team/'
-    | '/share/$token/'
     | '/finance/invoices/$id'
     | '/api/public/google/drive-callback'
     | '/api/public/hooks/backup-auto-approve'
@@ -470,7 +431,6 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reports-history'
     | '/settings'
-    | '/share-links'
     | '/tasks'
     | '/'
     | '/documents/$id'
@@ -484,12 +444,10 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/reports-history/compare'
     | '/team/$id'
-    | '/share/$token/$page'
     | '/documents'
     | '/finance'
     | '/projects'
     | '/team'
-    | '/share/$token'
     | '/finance/invoices/$id'
     | '/api/public/google/drive-callback'
     | '/api/public/hooks/backup-auto-approve'
@@ -513,9 +471,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports'
     | '/_authenticated/reports-history'
     | '/_authenticated/settings'
-    | '/_authenticated/share-links'
     | '/_authenticated/tasks'
-    | '/share/$token'
     | '/_authenticated/'
     | '/_authenticated/documents/$id'
     | '/_authenticated/finance/customers'
@@ -528,12 +484,10 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$id'
     | '/_authenticated/reports-history_/compare'
     | '/_authenticated/team/$id'
-    | '/share/$token/$page'
     | '/_authenticated/documents/'
     | '/_authenticated/finance/'
     | '/_authenticated/projects/'
     | '/_authenticated/team/'
-    | '/share/$token/'
     | '/_authenticated/finance/invoices/$id'
     | '/api/public/google/drive-callback'
     | '/api/public/hooks/backup-auto-approve'
@@ -546,7 +500,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   PaginationCheckRoute: typeof PaginationCheckRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  ShareTokenRoute: typeof ShareTokenRouteWithChildren
   ApiPublicGoogleDriveCallbackRoute: typeof ApiPublicGoogleDriveCallbackRoute
   ApiPublicHooksBackupAutoApproveRoute: typeof ApiPublicHooksBackupAutoApproveRoute
 }
@@ -595,25 +548,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/share/$token': {
-      id: '/share/$token'
-      path: '/share/$token'
-      fullPath: '/share/$token'
-      preLoaderRoute: typeof ShareTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/tasks': {
       id: '/_authenticated/tasks'
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof AuthenticatedTasksRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/share-links': {
-      id: '/_authenticated/share-links'
-      path: '/share-links'
-      fullPath: '/share-links'
-      preLoaderRoute: typeof AuthenticatedShareLinksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings': {
@@ -700,13 +639,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccessControlRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/share/$token/': {
-      id: '/share/$token/'
-      path: '/'
-      fullPath: '/share/$token/'
-      preLoaderRoute: typeof ShareTokenIndexRouteImport
-      parentRoute: typeof ShareTokenRoute
-    }
     '/_authenticated/team/': {
       id: '/_authenticated/team/'
       path: '/team'
@@ -734,13 +666,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/documents/'
       preLoaderRoute: typeof AuthenticatedDocumentsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/share/$token/$page': {
-      id: '/share/$token/$page'
-      path: '/$page'
-      fullPath: '/share/$token/$page'
-      preLoaderRoute: typeof ShareTokenPageRouteImport
-      parentRoute: typeof ShareTokenRoute
     }
     '/_authenticated/team/$id': {
       id: '/_authenticated/team/$id'
@@ -909,7 +834,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedReportsHistoryRoute: typeof AuthenticatedReportsHistoryRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
-  AuthenticatedShareLinksRoute: typeof AuthenticatedShareLinksRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedDocumentsIdRoute: typeof AuthenticatedDocumentsIdRoute
@@ -932,7 +856,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedReportsHistoryRoute: AuthenticatedReportsHistoryRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
-  AuthenticatedShareLinksRoute: AuthenticatedShareLinksRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedDocumentsIdRoute: AuthenticatedDocumentsIdRoute,
@@ -946,27 +869,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-interface ShareTokenRouteChildren {
-  ShareTokenPageRoute: typeof ShareTokenPageRoute
-  ShareTokenIndexRoute: typeof ShareTokenIndexRoute
-}
-
-const ShareTokenRouteChildren: ShareTokenRouteChildren = {
-  ShareTokenPageRoute: ShareTokenPageRoute,
-  ShareTokenIndexRoute: ShareTokenIndexRoute,
-}
-
-const ShareTokenRouteWithChildren = ShareTokenRoute._addFileChildren(
-  ShareTokenRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AcceptInviteRoute: AcceptInviteRoute,
   AuthRoute: AuthRoute,
   PaginationCheckRoute: PaginationCheckRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  ShareTokenRoute: ShareTokenRouteWithChildren,
   ApiPublicGoogleDriveCallbackRoute: ApiPublicGoogleDriveCallbackRoute,
   ApiPublicHooksBackupAutoApproveRoute: ApiPublicHooksBackupAutoApproveRoute,
 }
