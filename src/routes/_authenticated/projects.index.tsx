@@ -322,10 +322,14 @@ function ProjectsPage() {
           {filtered.map(({ p, progress, memberIds }) => (
             <div key={p.id} className="brand-card" style={{ overflow: "hidden", position: "relative" }}>
               <div style={{ height: 6, background: PROJECT_COLORS[p.color] ?? PROJECT_COLORS.blue }} />
-              <StatusPill status={p.status} lang={lang} label={t(p.status as never)} />
               <div style={{ padding: 18 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 6 }}>
+                  <Link to="/projects/$id" params={{ id: p.id }} style={{ color: "var(--foreground)", textDecoration: "none", flex: 1, minWidth: 0 }}>
+                    <h3 style={{ fontSize: 17, margin: 0, overflowWrap: "anywhere" }}>{lang === "ar" ? p.name_ar : p.name_en}</h3>
+                  </Link>
+                  <StatusPill status={p.status} lang={lang} label={t(p.status as never)} />
+                </div>
                 <Link to="/projects/$id" params={{ id: p.id }} style={{ color: "var(--foreground)", textDecoration: "none" }}>
-                  <h3 style={{ fontSize: 17, margin: 0, marginBottom: 6 }}>{lang === "ar" ? p.name_ar : p.name_en}</h3>
                   <p style={{ fontSize: 13, color: "var(--muted)", margin: 0, minHeight: 34, overflow: "hidden" }}>{p.description || "—"}</p>
                 </Link>
                 <div style={{ marginTop: 12 }}>
