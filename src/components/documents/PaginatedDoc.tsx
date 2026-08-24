@@ -5,13 +5,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DocPaper } from "./DocPaper";
-import { DocBody, DocClientCard, DocUnit } from "./DocBody";
+import { DocClientCard } from "./DocBody";
 import { DocRichBody } from "./DocRichBody";
 import { paginateHtmlBody } from "@/lib/docs/paginate-html";
 import { resolveDocHtml } from "@/lib/docs/rich";
-import { A4_SIZE, paginateModel, waitForPaperAssets, type DocPage } from "@/lib/docs/paginate";
-import type { DocClient, DocModel, DocBlock } from "@/lib/docs/model";
+import { A4_SIZE, waitForPaperAssets, type DocPage } from "@/lib/docs/paginate";
+import type { DocClient, DocModel } from "@/lib/docs/model";
 import type { DocFooter, DocHeader, DocLang, DocTheme } from "@/lib/docs/types";
+
 
 export type PaginatedDocInput = {
   header: DocHeader;
