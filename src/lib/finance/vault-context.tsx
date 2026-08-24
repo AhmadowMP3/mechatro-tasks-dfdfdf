@@ -44,6 +44,8 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
   const [meta, setMeta] = useState<VaultMeta | null>(null);
   const [error, setError] = useState<string | null>(null);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keyRef = useRef<CryptoKey | null>(null);
+
 
   const loadMeta = useCallback(async () => {
     const { data, error: err } = await supabase.from("finance_vault_meta").select("*").eq("id", true).maybeSingle();
