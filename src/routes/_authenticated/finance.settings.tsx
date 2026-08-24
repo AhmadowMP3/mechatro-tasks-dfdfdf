@@ -8,6 +8,8 @@ import { Save, Plus, Trash2, TrendingUp } from "lucide-react";
 import type { FinancialSettings, FxRate } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-dialog";
+import { VaultAdminPanel } from "@/components/finance/VaultAdminPanel";
+
 
 export const Route = createFileRoute("/_authenticated/finance/settings")({
   component: FinanceSettingsPage,
