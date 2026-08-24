@@ -121,7 +121,13 @@ export function DocEditor({ html, onChange, lang, theme, currency, meta, showCli
     const reader = new FileReader();
     reader.onload = () => {
       const src = String(reader.result ?? "");
-      if (src.startsWith("data:image/")) editor?.chain().focus().setImage({ src }).run();
+      if (src.startsWith("data:image/")) {
+        editor
+          ?.chain()
+          .focus()
+          .setImage({ src, width: Math.round(IMAGE_MAX_WIDTH * 0.6), align: "center" } as { src: string })
+          .run();
+      }
     };
     reader.readAsDataURL(file);
   };
