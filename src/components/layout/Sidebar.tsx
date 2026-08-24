@@ -203,7 +203,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           borderRadius: 12,
           display: "flex", alignItems: "center", gap: 10,
           position: "relative",
+          flexShrink: 0,
         }}>
+
           <Avatar id={user.id} name={user.full_name} size={40} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
