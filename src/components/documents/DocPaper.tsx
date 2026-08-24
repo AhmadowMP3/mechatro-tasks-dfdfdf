@@ -83,8 +83,8 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
           </div>
 
           {/* Centered document title */}
-          {title && (
-            <div style={{ flex: "0 1 auto", maxWidth: 240, textAlign: "center", paddingTop: 6, minWidth: 0 }}>
+          <div style={{ textAlign: "center", paddingTop: 6, minWidth: 0 }}>
+            {title && (
               <div
                 style={{
                   fontSize: 21,
@@ -98,11 +98,11 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
               >
                 {title}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Meta box */}
-          <div style={{ textAlign: ar ? "left" : "right", flex: "0 0 auto", width: 232, minWidth: 0, overflowWrap: "anywhere" }}>
+          <div style={{ textAlign: ar ? "left" : "right", minWidth: 0, overflowWrap: "anywhere" }}>
             {header.showMetaBox && (
               <div
                 style={{
