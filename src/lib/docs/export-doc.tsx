@@ -1,8 +1,7 @@
 // Exporters for business documents: PDF (browser print engine → perfect
 // Arabic shaping) and Word (.doc, same layout, fully editable).
 
-import { DocPaper } from "@/components/documents/DocPaper";
-import { DocBody } from "@/components/documents/DocBody";
+import { DocPages, paginateDocument, type PaginatedDocInput } from "@/components/documents/PaginatedDoc";
 import { printReactDocument } from "@/lib/pdf/print-document";
 import { PAPER, docTypeLabel, type DocType } from "./types";
 import { downloadDocWord, type DocRenderInput } from "./export-html";
@@ -15,26 +14,26 @@ function filenameFor(input: ExportDocInput): string {
   return `${label}-${num}`;
 }
 
+function paginatedInput(input: ExportDocInput): PaginatedDocInput {
+  return {
+    header: input.header,
+    footer: input.footer,
+    model: input.model,
+    client: input.client,
+    lang: input.lang,
+    theme: input.theme,
+    currency: input.currency,
+    meta: input.meta,
+  };
+}
+
 export async function exportDocPdf(input: ExportDocInput): Promise<void> {
   const palette = PAPER[input.theme];
+  const paged = paginatedInput(input);
+  const pages = await paginateDocument(paged);
+
   await printReactDocument(
-    <DocPaper
-      header={input.header}
-      footer={input.footer}
-      lang={input.lang}
-      theme={input.theme}
-      meta={input.meta}
-      page={{ current: 1, total: 1 }}
-      bare
-    >
-      <DocBody
-        model={input.model}
-        client={input.client}
-        lang={input.lang}
-        theme={input.theme}
-        currency={input.currency}
-      />
-    </DocPaper>,
+    <DocPages input={paged} pages={pages} bare />,
     {
       title: filenameFor(input),
       lang: input.lang,
@@ -45,5 +44,6 @@ export async function exportDocPdf(input: ExportDocInput): Promise<void> {
 }
 
 export async function exportDocWord(input: ExportDocInput): Promise<void> {
-  await downloadDocWord(input, filenameFor(input));
+  const pages = await paginateDocument(paginatedInput(input));
+  await downloadDocWord({ ...input, pages }, filenameFor(input));
 }
