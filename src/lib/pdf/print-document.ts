@@ -9,6 +9,8 @@
 import { createRoot, type Root } from "react-dom/client";
 import type { ReactNode } from "react";
 import { arabicFontUrl } from "./assets";
+import { prepareShare, saveSharePayload, type ShareTarget } from "@/lib/share/public-share";
+import { stampQrOnLastPage } from "@/lib/share/qr-stamp";
 
 export type PrintOptions = {
   /** Suggested filename shown in the browser's print dialog. */
