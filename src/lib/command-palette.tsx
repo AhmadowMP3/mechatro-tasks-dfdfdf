@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/command";
 import {
   ArrowUpRight, ListTodo, FolderKanban, Users, BookOpen, Bell, Settings,
-  ShieldCheck, Trophy, ClipboardList, FileClock, Home, Share2, Search,
+  ShieldCheck, Trophy, ClipboardList, FileClock, Home, Search,
   Keyboard, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +64,6 @@ const NAV: NavEntry[] = [
   { to: "/reports",             label: ["التقارير", "Reports"],             icon: <FileClock size={16} />, adminOnly: true },
   { to: "/reports-history",     label: ["أرشيف التقارير", "Report History"], icon: <FileClock size={16} />, adminOnly: true },
   { to: "/access-control",      label: ["المستخدمين والدعوات", "People & Invites"], icon: <ShieldCheck size={16} />, adminOnly: true },
-  { to: "/share-links",         label: ["روابط المشاركة", "Share Links"],    icon: <Share2 size={16} />, adminOnly: true },
 ];
 
 export function CommandPalette() {

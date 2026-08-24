@@ -121,7 +121,7 @@ export function GlobalShortcuts() {
         clearG();
         if (target) {
           // Respect share-mode allowed paths and admin gating.
-          const adminOnly = ["/activity", "/access-control", "/reports", "/reports-history", "/share-links"];
+          const adminOnly = ["/activity", "/access-control", "/reports", "/reports-history"];
           if (adminOnly.includes(target) && !isAdmin) return;
           if (isShareMode() && !isPathAllowed(target)) return;
           e.preventDefault();
