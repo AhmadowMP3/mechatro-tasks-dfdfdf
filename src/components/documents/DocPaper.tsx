@@ -65,24 +65,24 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
       }}
     >
       {/* ── Header band ─────────────────────────────────────────── */}
-      <div style={{ padding: "26px 40px 14px" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0, flex: 1, alignItems: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>
+      <div style={{ padding: "26px 40px 14px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0, flex: "1 1 300px", overflowWrap: "anywhere", alignItems: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>
             {header.showLogo && (
-              <img src={logo} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", objectFit: "contain" }} />
+              <img src={logo} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", maxWidth: "100%", objectFit: "contain" }} />
             )}
-            {company && <div style={{ fontSize: 14, fontWeight: 700 }}>{company}</div>}
-            {address && <div style={{ fontSize: 11, color: c.muted }}>{address}</div>}
+            {company && <div style={{ fontSize: 14, fontWeight: 700, overflowWrap: "anywhere" }}>{company}</div>}
+            {address && <div style={{ fontSize: 11, color: c.muted, overflowWrap: "anywhere" }}>{address}</div>}
             {contactBits.length > 0 && (
-              <div style={{ fontSize: 10.5, color: c.muted, direction: "ltr", textAlign: align }}>
+              <div style={{ fontSize: 10.5, color: c.muted, direction: "ltr", textAlign: align, overflowWrap: "anywhere" }}>
                 {contactBits.join("  ·  ")}
               </div>
             )}
           </div>
 
-          <div style={{ textAlign: ar ? "left" : "right", minWidth: 220 }}>
+          <div style={{ textAlign: ar ? "left" : "right", flex: "0 1 auto", minWidth: 200, maxWidth: 300, overflowWrap: "anywhere" }}>
             {title && (
-              <div style={{ fontSize: 22, fontWeight: 800, color: header.accent, letterSpacing: ar ? 0 : 0.5 }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: header.accent, letterSpacing: ar ? 0 : 0.5, lineHeight: 1.25, overflowWrap: "anywhere" }}>
                 {title}
               </div>
             )}
@@ -109,12 +109,13 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
           </div>
         </div>
 
-        {extra && <div style={{ marginTop: 10, fontSize: 11, color: c.muted, whiteSpace: "pre-wrap" }}>{extra}</div>}
+        {extra && <div style={{ marginTop: 10, fontSize: 11, color: c.muted, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{extra}</div>}
 
         {header.showRule && (
           <div style={{ marginTop: 14, height: 2, borderRadius: 2, background: `linear-gradient(90deg, ${header.accent}, ${header.accent}00)` }} />
         )}
       </div>
+
 
       {/* ── Body ────────────────────────────────────────────────── */}
       <div className="pdf-flow" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: "6px 40px 18px", fontSize: 12.5, lineHeight: 1.7 }}>
