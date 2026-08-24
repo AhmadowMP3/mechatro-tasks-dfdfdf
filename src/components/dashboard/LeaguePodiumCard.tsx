@@ -68,41 +68,62 @@ export function LeaguePodiumCard() {
         {podium.length === 0 ? (
           <div style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>—</div>
         ) : (
-          <div style={{ position: "relative", display: "flex", justifyContent: "space-around", alignItems: "flex-end", gap: 12, minHeight: 130 }}>
+          <div style={{
+            direction: "ltr", display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gridTemplateRows: "auto auto",
+            alignItems: "end", justifyItems: "center", gap: 8,
+          }}>
             {[1, 0, 2].map((pos) => {
-              const r = podium[pos]; if (!r) return <div key={pos} style={{ flex: 1 }} />;
-              const h = pos === 0 ? 80 : pos === 1 ? 60 : 44;
+              const r = podium[pos];
               const icon = pos === 0 ? <Trophy size={14} /> : pos === 1 ? <Medal size={12} /> : <Award size={12} />;
               return (
-                <div key={r.id} style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
-                  <div style={{ position: "relative", display: "inline-block" }}>
-                    <Avatar id={r.id} name={r.profile!.full_name} size={pos === 0 ? 52 : 40} />
-                    <div style={{
-                      position: "absolute", top: -4, right: -4, width: 20, height: 20, borderRadius: "50%",
-                      background: medals[pos], display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,.3)",
-                    }}>{icon}</div>
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, marginTop: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {r.profile!.full_name.split(" ")[0]}
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: medals[pos] }}>
-                    {toLocalDigits(r.points, lang)}
-                  </div>
-                  {r.streak >= 3 && (
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 10, color: "#F0676A", fontWeight: 700 }}>
-                      <Flame size={10} /> {toLocalDigits(r.streak, lang)}
-                    </div>
+                <div key={`p-${pos}`} style={{
+                  gridRow: 1, gridColumn: pos === 1 ? 1 : pos === 0 ? 2 : 3,
+                  width: "100%", minWidth: 0, textAlign: "center", minHeight: 96,
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end",
+                }}>
+                  {r && (
+                    <>
+                      <div style={{ position: "relative", display: "inline-block" }}>
+                        <Avatar id={r.id} name={r.profile!.full_name} size={pos === 0 ? 52 : 40} />
+                        <div style={{
+                          position: "absolute", top: -4, right: -4, width: 20, height: 20, borderRadius: "50%",
+                          background: medals[pos], display: "flex", alignItems: "center", justifyContent: "center",
+                          color: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,.3)",
+                        }}>{icon}</div>
+                      </div>
+                      <div dir="auto" style={{ fontSize: 11, fontWeight: 700, marginTop: 6, maxWidth: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {r.profile!.full_name.split(" ")[0]}
+                      </div>
+                      <div dir="auto" style={{ fontSize: 16, fontWeight: 900, color: medals[pos], whiteSpace: "nowrap" }}>
+                        {toLocalDigits(r.points, lang)}
+                      </div>
+                      {r.streak >= 3 && (
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: 10, color: "#F0676A", fontWeight: 700 }}>
+                          <Flame size={10} /> {toLocalDigits(r.streak, lang)}
+                        </div>
+                      )}
+                    </>
                   )}
-                  <div style={{
-                    width: "100%", height: h, marginTop: 4,
-                    background: `linear-gradient(180deg, ${medals[pos]}66, transparent)`,
-                    borderRadius: "8px 8px 0 0",
-                  }} />
                 </div>
               );
             })}
+            {[1, 0, 2].map((pos) => {
+              const r = podium[pos];
+              const h = pos === 0 ? 80 : pos === 1 ? 60 : 44;
+              return (
+                <div key={`b-${pos}`} style={{
+                  gridRow: 2, gridColumn: pos === 1 ? 1 : pos === 0 ? 2 : 3,
+                  width: "100%", height: h, marginTop: 4,
+                  background: r
+                    ? `linear-gradient(180deg, ${medals[pos]}66, transparent)`
+                    : "linear-gradient(180deg, rgba(255,255,255,.05), transparent)",
+                  borderRadius: "8px 8px 0 0",
+                }} />
+              );
+            })}
           </div>
+
         )}
 
         {myIdx >= 0 && (
