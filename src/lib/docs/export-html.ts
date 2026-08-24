@@ -10,6 +10,7 @@
 import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "./types";
 import { type DocClient, type DocModel } from "./model";
 import { loadBrandLogo } from "@/lib/pdf/assets";
+import { logoFilter } from "@/components/documents/DocPaper";
 
 export type DocRenderInput = {
   header: DocHeader;
