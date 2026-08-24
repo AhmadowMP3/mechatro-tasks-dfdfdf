@@ -34,8 +34,6 @@ const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 3;
 const MAX_HEIGHT = 60000; // hard stop so a runaway measurement can never scroll forever
 
-type Mode = never;
-
 /** Repeated diagonal "not for printing" watermark, drawn as an inline SVG tile
  *  so it works inside the sandboxed iframe with no external fonts. */
 function watermarkTile(lang: "ar" | "en"): string {
