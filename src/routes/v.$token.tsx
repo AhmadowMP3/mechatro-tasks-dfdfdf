@@ -2,15 +2,12 @@
 // No sign-in required; the token is the capability. Printing and downloading
 // are intentionally disabled — this copy is for reading only.
 //
-// Two viewing modes:
-//  - "reflow": mobile-friendly reading mode; the document content is re-laid out
-//    to the screen width instead of being shrunk down to an unreadable A4 sheet.
-//  - "paper": the exact A4 sheet, fitted to width, with zoom (buttons, wheel and
-//    two-finger pinch) and pan by scrolling.
+// The viewer always renders the exact same A4 sheet as the PDF (no reflow),
+// fitted to the screen width, with zoom (buttons, ctrl+wheel, two-finger pinch).
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Maximize2, Minus, Plus, ScanLine } from "lucide-react";
+import { Maximize2, Minus, Plus } from "lucide-react";
 import { fetchPublicShare, type PublicShareRow } from "@/lib/share/public-share";
 import logo from "@/assets/mechatro-logo.png";
 
@@ -33,11 +30,9 @@ export const Route = createFileRoute("/v/$token")({
 const A4_W = 794;
 const A4_H = 1123;
 const PAGE_GAP = 18;
-const MIN_ZOOM = 0.25;
+const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 3;
-const MODE_KEY = "mechatro:viewer-mode";
-
-type Mode = "reflow" | "paper";
+const MAX_HEIGHT = 60000; // hard stop so a runaway measurement can never scroll forever
 
 /** Repeated diagonal "not for printing" watermark, drawn as an inline SVG tile
  *  so it works inside the sandboxed iframe with no external fonts. */
@@ -55,13 +50,15 @@ function watermarkTile(lang: "ar" | "en"): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
-function baseCss(lang: "ar" | "en"): string {
+function sheetCss(lang: "ar" | "en", width: number): string {
   const tile = watermarkTile(lang);
   return `
   html, body {
     user-select: none !important; -webkit-user-select: none !important;
-    overflow-x: hidden !important; margin: 0; padding: 0;
+    overflow: hidden !important; margin: 0; padding: 0;
   }
+  #print-root { width: ${width}px; margin: 0 auto; }
+  #print-root, .doc-page { box-shadow: 0 10px 40px rgba(0,0,0,.45); margin: 0 auto ${PAGE_GAP}px; }
   .doc-page { position: relative; break-after: auto !important; page-break-after: auto !important; }
   .doc-page::after,
   #print-root:not(:has(.doc-page))::after {
@@ -73,85 +70,22 @@ function baseCss(lang: "ar" | "en"): string {
 `;
 }
 
-/** Exact A4 sheets, centered. */
-function paperCss(): string {
-  return `
-  #print-root { width: ${A4_W}px; margin: 0 auto; }
-  #print-root, .doc-page { box-shadow: 0 10px 40px rgba(0,0,0,.45); margin: 0 auto ${PAGE_GAP}px; }
-`;
-}
-
-/** Mobile reading mode: let the document flow to the viewport width instead of
- *  keeping the rigid 794px A4 geometry (which pushed text off-screen). */
-function reflowCss(): string {
-  return `
-  html, body { width: 100% !important; }
-  #print-root {
-    width: 100% !important; max-width: 100% !important; margin: 0 !important;
-    box-shadow: none !important;
-  }
-  .doc-page {
-    width: 100% !important; max-width: 100% !important;
-    height: auto !important; min-height: 0 !important;
-    margin: 0 0 14px !important; padding: 14px !important;
-    box-sizing: border-box !important; box-shadow: none !important;
-    transform: none !important; overflow: visible !important;
-  }
-  /* Absolutely-positioned letterhead chrome (headers / footers / QR rows) must
-     join the normal flow, otherwise it stacks on top of the body text. */
-  .doc-page [style*="position:absolute"],
-  .doc-page [style*="position: absolute"],
-  .doc-page [style*="position:fixed"],
-  .doc-page [style*="position: fixed"] {
-    position: static !important; inset: auto !important;
-    left: auto !important; right: auto !important; top: auto !important; bottom: auto !important;
-    width: auto !important; max-width: 100% !important;
-  }
-  .doc-page * { max-width: 100% !important; }
-  img, svg, canvas { max-width: 100% !important; height: auto !important; }
-  /* Wide tables scroll inside their own box, never the page. */
-  table { width: 100% !important; max-width: 100% !important; table-layout: auto !important; }
-  table, thead, tbody, tr, td, th { word-break: break-word !important; }
-  td, th { padding: 6px !important; font-size: 12px !important; }
-  /* Grid letterheads collapse to a single column on narrow screens. */
-  @media (max-width: 700px) {
-    .doc-page [style*="display:grid"],
-    .doc-page [style*="display: grid"] {
-      display: block !important;
-    }
-    body { font-size: 14px !important; }
-  }
-`;
-}
-
 function PublicDocView() {
   const { token } = Route.useParams();
   const [row, setRow] = useState<PublicShareRow | null | "loading">("loading");
   const frameRef = useRef<HTMLIFrameElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const settledRef = useRef(false);
   const [frameHeight, setFrameHeight] = useState(A4_H);
-  const [shellWidth, setShellWidth] = useState(A4_W);
   const [fitScale, setFitScale] = useState(1);
   const [zoom, setZoom] = useState<number | null>(null); // null = fit to width
-  const [mode, setMode] = useState<Mode>(() => {
-    if (typeof window === "undefined") return "paper";
-    const saved = window.sessionStorage.getItem(MODE_KEY);
-    if (saved === "paper" || saved === "reflow") return saved;
-    return window.innerWidth < 820 ? "reflow" : "paper";
-  });
 
   useEffect(() => {
     let alive = true;
     void fetchPublicShare(token).then((r) => { if (alive) setRow(r); });
     return () => { alive = false; };
   }, [token]);
-
-  const setModePersist = useCallback((m: Mode) => {
-    setMode(m);
-    setZoom(null);
-    try { window.sessionStorage.setItem(MODE_KEY, m); } catch { /* ignore */ }
-  }, []);
 
   // Block the browser print shortcut / context menu on this page.
   useEffect(() => {
@@ -173,83 +107,91 @@ function PublicDocView() {
   const lang = (doc?.lang === "en" ? "en" : "ar") as "ar" | "en";
   const ar = lang === "ar";
 
+  const pageW = doc?.payload?.width && doc.payload.width > 200 ? doc.payload.width : A4_W;
+  const pageH = doc?.payload?.pageHeight && doc.payload.pageHeight > 200 ? doc.payload.pageHeight : A4_H;
+
   const srcDoc = useMemo(() => {
     if (!doc?.payload?.html) return null;
     const dir = lang === "ar" ? "rtl" : "ltr";
-    const modeCss = mode === "paper" ? paperCss() : reflowCss();
     return `<!doctype html><html lang="${lang}" dir="${dir}"><head><meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<style>${doc.payload.css ?? ""}</style><style>${baseCss(lang)}</style><style>${modeCss}</style></head>
+<meta name="viewport" content="width=${pageW}, initial-scale=1"/>
+<style>${doc.payload.css ?? ""}</style><style>${sheetCss(lang, pageW)}</style></head>
 <body><div id="print-root">${doc.payload.html}</div></body></html>`;
-  }, [doc, lang, mode]);
+  }, [doc, lang, pageW]);
 
-  // Measure available width, the fit-to-width scale and the real content height.
+  // Fit-to-width scale + one decisive content-height measurement.
   useEffect(() => {
     if (!srcDoc) return;
+    settledRef.current = false;
     let raf = 0;
 
-    const contentHeight = (avail: number): number => {
-      const d = frameRef.current?.contentDocument;
-      if (!d) return A4_H;
-      if (mode === "paper") {
-        const pages = d.querySelectorAll(".doc-page").length;
-        // Pre-paginated documents have an exact height — trust it over scrollHeight,
-        // which overshoots inside a fixed-height iframe.
-        if (pages > 0) return pages * A4_H + pages * PAGE_GAP;
-      }
-      const root = d.getElementById("print-root");
-      const h = Math.max(root?.scrollHeight ?? 0, d.body?.scrollHeight ?? 0, d.documentElement?.scrollHeight ?? 0);
-      return h > 200 ? h + PAGE_GAP : (mode === "paper" ? A4_H : Math.max(400, avail));
+    const fit = () => {
+      const avail = Math.max(240, (shellRef.current?.clientWidth ?? window.innerWidth) - 8);
+      setFitScale(Math.min(1, Math.max(MIN_ZOOM, avail / pageW)));
     };
 
-    const measure = () => {
-      const avail = Math.max(240, (shellRef.current?.clientWidth ?? window.innerWidth) - 8);
-      setShellWidth(avail);
-      setFitScale(Math.min(1, Math.max(MIN_ZOOM, avail / A4_W)));
-      setFrameHeight(contentHeight(avail));
+    const measureHeight = () => {
+      const d = frameRef.current?.contentDocument;
+      if (!d) return false;
+      const pages = d.querySelectorAll(".doc-page").length;
+      if (pages > 0) {
+        setFrameHeight(pages * (pageH + PAGE_GAP));
+        settledRef.current = true;
+        return true;
+      }
+      const root = d.getElementById("print-root");
+      const h = root?.scrollHeight ?? 0;
+      if (h > 200) {
+        setFrameHeight(Math.min(MAX_HEIGHT, h + PAGE_GAP));
+        settledRef.current = true;
+        return true;
+      }
+      return false;
     };
+
     const schedule = () => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(measure);
+      raf = requestAnimationFrame(() => {
+        fit();
+        if (!settledRef.current) measureHeight();
+      });
     };
 
     schedule();
-    const ro = new ResizeObserver(schedule);
-    if (shellRef.current) ro.observe(shellRef.current);
-
-    // Watch the iframe document (fonts/images settle after load).
-    let innerRo: ResizeObserver | null = null;
-    const attach = () => {
-      const body = frameRef.current?.contentDocument?.body;
-      if (!body) return false;
-      innerRo = new ResizeObserver(schedule);
-      innerRo.observe(body);
-      return true;
+    const onLoad = () => {
+      const d = frameRef.current?.contentDocument;
+      const done = () => { settledRef.current = false; measureHeight(); };
+      // Wait for fonts/images so the un-paginated case measures once, correctly.
+      const fonts = (d as Document & { fonts?: FontFaceSet })?.fonts;
+      if (fonts?.ready) void fonts.ready.then(done);
+      else done();
+      window.setTimeout(done, 600);
     };
-    if (!attach()) frameRef.current?.addEventListener("load", attach, { once: true });
-    const timers = [150, 400, 900, 1800, 3000].map((ms) => window.setTimeout(schedule, ms));
-    window.addEventListener("resize", schedule);
-    window.addEventListener("orientationchange", schedule);
-    const mq = window.matchMedia("(orientation: portrait)");
-    mq.addEventListener?.("change", schedule);
+    frameRef.current?.addEventListener("load", onLoad);
+
+    // Only viewport changes trigger a re-fit; the height never grows on its own.
+    const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit); });
+    if (shellRef.current) ro.observe(shellRef.current);
+    window.addEventListener("resize", fit);
+    window.addEventListener("orientationchange", fit);
 
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      innerRo?.disconnect();
-      timers.forEach((t) => window.clearTimeout(t));
-      window.removeEventListener("resize", schedule);
-      window.removeEventListener("orientationchange", schedule);
-      mq.removeEventListener?.("change", schedule);
+      frameRef.current?.removeEventListener("load", onLoad);
+      window.removeEventListener("resize", fit);
+      window.removeEventListener("orientationchange", fit);
     };
-  }, [srcDoc, mode]);
+  }, [srcDoc, pageW, pageH]);
 
-  const scale = mode === "paper" ? (zoom ?? fitScale) : 1;
-  const iframeWidth = mode === "paper" ? A4_W : shellWidth;
+  const scale = zoom ?? fitScale;
 
-  // Wheel / trackpad-pinch zoom in paper mode (non-passive so the page never scrolls behind).
+  const bump = useCallback((k: number) => {
+    setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, (z ?? fitScale) * k)));
+  }, [fitScale]);
+
+  // Ctrl/⌘ + wheel (and trackpad pinch) zoom — non-passive so the page never scrolls behind.
   useEffect(() => {
-    if (mode !== "paper") return;
     const el = viewportRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
@@ -263,11 +205,10 @@ function PublicDocView() {
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [mode, fitScale]);
+  }, [fitScale, srcDoc]);
 
   // Two-finger pinch zoom on touch screens.
   useEffect(() => {
-    if (mode !== "paper") return;
     const el = viewportRef.current;
     if (!el) return;
     let startDist = 0;
@@ -293,16 +234,13 @@ function PublicDocView() {
       el.removeEventListener("touchmove", onMove);
       el.removeEventListener("touchend", onEnd);
     };
-  }, [mode, zoom, fitScale]);
+  }, [zoom, fitScale, srcDoc]);
 
   const btn: React.CSSProperties = {
     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
     height: 34, padding: "0 12px", borderRadius: 10, fontSize: 12, fontWeight: 700,
     background: "rgba(30,58,87,.5)", color: "#E6EEF7", border: "1px solid #1E3A57",
     cursor: "pointer", whiteSpace: "nowrap",
-  };
-  const btnActive: React.CSSProperties = {
-    ...btn, background: "rgba(212,160,23,.16)", color: "#F0C24B", borderColor: "rgba(212,160,23,.45)",
   };
 
   return (
@@ -329,28 +267,16 @@ function PublicDocView() {
 
         {srcDoc && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <button type="button" style={mode === "reflow" ? btnActive : btn} onClick={() => setModePersist("reflow")}>
-              <FileText size={14} /> {ar ? "قراءة" : "Read"}
+            <button type="button" style={{ ...btn, padding: "0 9px" }} aria-label="zoom out" onClick={() => bump(1 / 1.2)}>
+              <Minus size={14} />
             </button>
-            <button type="button" style={mode === "paper" ? btnActive : btn} onClick={() => setModePersist("paper")}>
-              <ScanLine size={14} /> {ar ? "الورقة" : "Paper"}
+            <button type="button" style={{ ...btn, padding: "0 9px" }} aria-label="zoom in" onClick={() => bump(1.2)}>
+              <Plus size={14} />
             </button>
-            {mode === "paper" && (
-              <>
-                <button type="button" style={{ ...btn, padding: "0 9px" }} aria-label="zoom out"
-                  onClick={() => setZoom((z) => Math.max(MIN_ZOOM, (z ?? fitScale) / 1.2))}>
-                  <Minus size={14} />
-                </button>
-                <button type="button" style={{ ...btn, padding: "0 9px" }} aria-label="zoom in"
-                  onClick={() => setZoom((z) => Math.min(MAX_ZOOM, (z ?? fitScale) * 1.2))}>
-                  <Plus size={14} />
-                </button>
-                <button type="button" style={btn} onClick={() => setZoom(null)}>
-                  <Maximize2 size={14} /> {ar ? "ملء العرض" : "Fit"}
-                </button>
-                <button type="button" style={btn} onClick={() => setZoom(1)}>100%</button>
-              </>
-            )}
+            <button type="button" style={btn} onClick={() => setZoom(null)}>
+              <Maximize2 size={14} /> {ar ? "ملء العرض" : "Fit"}
+            </button>
+            <button type="button" style={btn} onClick={() => setZoom(1)}>100%</button>
           </div>
         )}
 
@@ -369,7 +295,7 @@ function PublicDocView() {
       <main style={{ padding: "16px clamp(4px, 2vw, 16px) 44px", display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div
           ref={shellRef}
-          style={{ width: "100%", maxWidth: mode === "paper" ? A4_W : 900, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}
+          style={{ width: "100%", maxWidth: pageW, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}
         >
           {row === "loading" && <div style={{ color: "#94A3B8", fontSize: 13, padding: 40 }}>{ar ? "جارٍ التحميل…" : "Loading…"}</div>}
 
@@ -394,12 +320,9 @@ function PublicDocView() {
           {srcDoc && (
             <div
               ref={viewportRef}
-              style={{
-                width: "100%", maxWidth: "100%", overflowX: mode === "paper" ? "auto" : "hidden",
-                direction: "ltr", WebkitOverflowScrolling: "touch",
-              }}
+              style={{ width: "100%", maxWidth: "100%", overflowX: "auto", direction: "ltr", WebkitOverflowScrolling: "touch" }}
             >
-              <div style={{ width: iframeWidth * scale, height: frameHeight * scale, overflow: "hidden", margin: "0 auto" }}>
+              <div style={{ width: pageW * scale, height: frameHeight * scale, overflow: "hidden", margin: "0 auto" }}>
                 <iframe
                   ref={frameRef}
                   title={doc?.title ?? "document"}
@@ -407,7 +330,7 @@ function PublicDocView() {
                   srcDoc={srcDoc}
                   scrolling="no"
                   style={{
-                    width: iframeWidth, height: frameHeight, border: 0,
+                    width: pageW, height: frameHeight, border: 0,
                     background: doc?.payload?.background ?? "#081320",
                     transform: `scale(${scale})`, transformOrigin: "top left", pointerEvents: "none",
                     display: "block",
