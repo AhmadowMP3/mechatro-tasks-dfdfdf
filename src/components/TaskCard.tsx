@@ -89,14 +89,28 @@ export function TaskCard({ task, project, assignee, assignees, onClick }: {
         <PriorityPill priority={task.priority} />
         <StatusPill status={task.status} />
         {overdue && <OverduePill />}
-        {(task.points ?? 0) > 0 ? (
-          <span title={task.points_awarded_at ? "awarded" : "pending"} style={{
-            marginInlineStart: "auto",
-            display: "inline-flex", alignItems: "center", gap: 3,
-            padding: "3px 9px", borderRadius: 999, fontSize: 11, fontWeight: 800, color: "#fff",
-            background: task.points_awarded_at ? "linear-gradient(135deg,#FFD700,#F5A623)" : "linear-gradient(135deg,#F5A623,#F0676A)",
-            boxShadow: task.points_awarded_at ? "0 2px 8px rgba(255,215,0,.35)" : "none",
-          }}>⭐ {toLocalDigits(task.points ?? 0, lang)}</span>
+        {(task.points ?? 0) > 0 || hasShare ? (
+          <span
+            title={
+              hasShare
+                ? (lang === "ar"
+                    ? `نصيبك: ${myShare} من ${task.points ?? 0} نقطة`
+                    : `Your share: ${myShare} of ${task.points ?? 0} pts`)
+                : (lang === "ar" ? "نقاط المهمة (لم تُحتسب بعد)" : "Task points (not awarded yet)")
+            }
+            style={{
+              marginInlineStart: "auto",
+              display: "inline-flex", alignItems: "center", gap: 3,
+              padding: "3px 9px", borderRadius: 999, fontSize: 11, fontWeight: 800, color: "#fff",
+              background: task.points_awarded_at ? "linear-gradient(135deg,#FFD700,#F5A623)" : "linear-gradient(135deg,#F5A623,#F0676A)",
+              boxShadow: task.points_awarded_at ? "0 2px 8px rgba(255,215,0,.35)" : "none",
+            }}
+          >
+            ⭐ {toLocalDigits(hasShare ? myShare! : (task.points ?? 0), lang)}
+            {!task.points_awarded_at && (
+              <span style={{ fontWeight: 700, opacity: 0.85 }}>{lang === "ar" ? "؟" : "?"}</span>
+            )}
+          </span>
         ) : (
           <span aria-hidden style={{
             marginInlineStart: "auto",
