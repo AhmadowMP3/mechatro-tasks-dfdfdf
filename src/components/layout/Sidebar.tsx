@@ -277,7 +277,17 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       <nav
         aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"}
-        style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}
+        className="sidebar-scroll"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          overscrollBehavior: "contain",
+          WebkitOverflowScrolling: "touch",
+          padding: "8px 10px 20px",
+          scrollbarWidth: "thin",
+        }}
+
         onKeyDown={(e) => {
           const key = e.key;
           if (key !== "ArrowDown" && key !== "ArrowUp" && key !== "Home" && key !== "End") return;
