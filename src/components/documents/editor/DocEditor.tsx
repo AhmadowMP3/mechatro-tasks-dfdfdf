@@ -20,7 +20,7 @@ import { Ribbon } from "./Ribbon";
 import { PageBreak, DocField, ItemsTable } from "./extensions";
 import { BlockFormat } from "./text-attrs";
 import { DocClientCard } from "../DocBody";
-import { fieldValue, type RichCtx } from "@/lib/docs/rich";
+import { fieldValue, termsBlockHtml, type RichCtx } from "@/lib/docs/rich";
 import type { DocClient } from "@/lib/docs/model";
 import { PAPER, type DocLang, type DocTheme } from "@/lib/docs/types";
 import { toast } from "sonner";
@@ -34,11 +34,13 @@ type Props = {
   meta: RichCtx["meta"];
   showClientBox: boolean;
   client: DocClient;
+  /** Terms & conditions from the type template, inserted on demand. */
+  terms?: { ar: string; en: string };
 };
 
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
-export function DocEditor({ html, onChange, lang, theme, currency, meta, showClientBox, client }: Props) {
+export function DocEditor({ html, onChange, lang, theme, currency, meta, showClientBox, client, terms }: Props) {
   const ar = lang === "ar";
   const palette = PAPER[theme];
   const lastEmitted = useRef(html);
@@ -126,7 +128,19 @@ export function DocEditor({ html, onChange, lang, theme, currency, meta, showCli
 
   return (
     <div className="doc-editor">
-      <Ribbon editor={editor} lang={lang} onImage={insertImage} />
+      <Ribbon
+        editor={editor}
+        lang={lang}
+        onImage={insertImage}
+        onInsertTerms={
+          terms && (lang === "ar" ? terms.ar : terms.en).trim()
+            ? () => {
+                const block = termsBlockHtml(lang, lang === "ar" ? terms.ar : terms.en);
+                if (block) editor?.chain().focus().insertContent(block).run();
+              }
+            : undefined
+        }
+      />
       <div className="doc-editor-canvas">
         <div
           className="doc-editor-sheet"

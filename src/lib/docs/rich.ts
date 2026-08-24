@@ -207,17 +207,21 @@ export function resolveDocHtml(html: string, ctx: RichCtx): string {
   return root.innerHTML;
 }
 
-/** Seed body for a brand-new document (Word-style HTML). */
-export function starterBodyHtml(opts: { lang: DocLang; termsAr?: string; termsEn?: string }): string {
-  const ar = opts.lang === "ar";
-  const terms = (ar ? opts.termsAr : opts.termsEn) ?? "";
-  const items = `<table data-items="${writeItemsAttr(emptyItemsData())}"></table>`;
-  const termsHtml = terms
-    ? `<h3>${esc(ar ? "الشروط والأحكام" : "Terms & Conditions")}</h3>` +
-      terms
-        .split(/\n{2,}/)
-        .map((p) => `<p style="font-size:11px">${esc(p).replace(/\n/g, "<br/>") || "<br/>"}</p>`)
-        .join("")
-    : "";
-  return `<p><br/></p>${items}<p><br/></p>${termsHtml}`;
+/** Seed body for a brand-new document: intentionally empty (header/footer/title only). */
+export function starterBodyHtml(): string {
+  return "<p><br/></p>";
+}
+
+/** Terms & conditions block, inserted on demand from the ribbon. */
+export function termsBlockHtml(lang: DocLang, terms: string): string {
+  const ar = lang === "ar";
+  const body = (terms ?? "").trim();
+  if (!body) return "";
+  return (
+    `<h3>${esc(ar ? "الشروط والأحكام" : "Terms & Conditions")}</h3>` +
+    body
+      .split(/\n{2,}/)
+      .map((p) => `<p style="font-size:11px">${esc(p).replace(/\n/g, "<br/>") || "<br/>"}</p>`)
+      .join("")
+  );
 }
