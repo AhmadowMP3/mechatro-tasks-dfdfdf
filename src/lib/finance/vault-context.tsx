@@ -65,6 +65,7 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
     }
     const m = (data as LockMeta | null) ?? null;
     setMeta(m);
+    setMetaLoaded(true);
     return m;
   }, []);
 
@@ -72,15 +73,17 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
     void loadMeta();
   }, [loadMeta]);
 
-  // Resolve the visible status once we know both the stored password and the session.
+  // Resolve the visible status once the stored password record is known.
   useEffect(() => {
-    if (status === "error") return;
-    if (!meta) {
-      setStatus(meta === null && sessionId !== undefined ? "not_set" : "loading");
-      return;
-    }
-    setStatus(isUnlockedFor(sessionId) ? "unlocked" : "locked");
-  }, [meta, sessionId, status]);
+    if (!metaLoaded) return;
+    setStatus((prev) => {
+      if (prev === "error") return prev;
+      if (!meta) return "not_set";
+      if (prev === "unlocked") return "unlocked";
+      return isUnlockedFor(sessionId) ? "unlocked" : "locked";
+    });
+  }, [meta, metaLoaded, sessionId]);
+
 
   const lock = useCallback(() => {
     clearUnlocked();
