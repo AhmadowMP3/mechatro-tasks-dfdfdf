@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Share2, Eye, Pencil, Crown, UserPlus, ChevronDown, KeyRound, Compass, Briefcase, UsersRound, BarChart3, UserCog, Wallet, Receipt, TrendingDown, TrendingUp, Building2, StickyNote } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Trophy, Bell, Settings, LogOut, X, ShieldCheck, ScrollText, Library, FileText, Eye, Pencil, Crown, UserPlus, ChevronDown, KeyRound, Compass, Briefcase, UsersRound, BarChart3, UserCog, Wallet, Receipt, TrendingDown, TrendingUp, Building2, StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -88,7 +88,7 @@ const NAV_SECTIONS: NavSection[] = [
       { to: "/access-control", icon: UserPlus, key: null, label: { ar: "الأعضاء والدعوات", en: "People & Invites" } },
       { to: "/documents",      icon: FileText, key: null, label: { ar: "المستندات التجارية", en: "Business Documents" } },
       { to: "/doc-templates",  icon: FileText, key: null, label: { ar: "قوالب المستندات", en: "Document Templates" } },
-      { to: "/share-links",    icon: Share2,   key: null, label: { ar: "روابط المشاركة", en: "Share Links" } },
+      
     ],
 
   },
@@ -137,10 +137,10 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     .map((section) => {
       let items = section.items;
 
-      // "share-links" and "doc-templates" are master-only within the admin section
+      // "doc-templates" and "documents" are master-only within the admin section
       if (section.titleKey === "adminSection") {
         items = items.filter(
-          (i) => (i.to !== "/share-links" && i.to !== "/doc-templates" && i.to !== "/documents") || isMasterAdmin,
+          (i) => (i.to !== "/doc-templates" && i.to !== "/documents") || isMasterAdmin,
         );
       }
 
