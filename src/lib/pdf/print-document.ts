@@ -44,7 +44,9 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
   }
   @page {
     size: A4;
-    margin: 12mm;
+    /* Paginated documents carry their own inner padding; a printer margin
+       here would push each page onto two sheets. */
+    margin: 0;
   }
   html, body {
     margin: 0;
