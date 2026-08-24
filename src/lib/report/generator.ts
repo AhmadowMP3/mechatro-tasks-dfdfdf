@@ -294,6 +294,7 @@ async function renderHtmlToPdfBlob(
 
   // 2. Content pages — draw chrome + packed blocks.
   const totalPhysicalPages = pdfPageCount + contentPages.length;
+  let lastContentBottomPt = 0;
   contentPages.forEach((pageBlocks, idx) => {
     pdf.addPage();
     pdfPageCount++;
