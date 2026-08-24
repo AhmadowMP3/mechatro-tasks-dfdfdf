@@ -14,8 +14,7 @@ import {
   BLOCK_LABELS, emptyItemRow, newBlock, uid,
   type BlockKind, type DocBlock, type DocClient, type DocModel, type ItemsBlock,
 } from "@/lib/docs/model";
-import { DocPaper } from "@/components/documents/DocPaper";
-import { DocBody } from "@/components/documents/DocBody";
+import { PaginatedDoc } from "@/components/documents/PaginatedDoc";
 import { exportDocPdf, exportDocWord } from "@/lib/docs/export-doc";
 import { logActivity } from "@/lib/activity";
 
@@ -334,9 +333,18 @@ function DocumentEditorPage() {
             </div>
           </div>
           <PaperPreview>
-            <DocPaper header={header} footer={footer} lang={doc.lang} theme={doc.theme} meta={meta} page={{ current: 1, total: 1 }}>
-              <DocBody model={doc.model} client={doc.client} lang={doc.lang} theme={doc.theme} currency={doc.currency} />
-            </DocPaper>
+            <PaginatedDoc
+              input={{
+                header,
+                footer,
+                model: doc.model,
+                client: doc.client,
+                lang: doc.lang,
+                theme: doc.theme,
+                currency: doc.currency,
+                meta,
+              }}
+            />
           </PaperPreview>
         </div>
       </div>

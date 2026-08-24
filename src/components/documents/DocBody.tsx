@@ -25,6 +25,16 @@ export function DocBody({ model, client, lang, theme, currency }: Props) {
   );
 }
 
+/** One measurable unit of the body — used by the paginator. */
+export function DocUnit({ block, lang, theme, currency }: { block: DocBlock; lang: DocLang; theme: DocTheme; currency: string }) {
+  return <BlockView block={block} ar={lang === "ar"} c={PAPER[theme]} currency={currency} />;
+}
+
+/** The "to / client" card, standalone (paginator + page renderer). */
+export function DocClientCard({ client, lang, theme }: { client: DocClient; lang: DocLang; theme: DocTheme }) {
+  return <ClientBox client={client} ar={lang === "ar"} c={PAPER[theme]} />;
+}
+
 type Palette = { bg: string; surface: string; ink: string; muted: string; border: string; zebra: string };
 
 function ClientBox({ client, ar, c }: { client: DocClient; ar: boolean; c: Palette }) {

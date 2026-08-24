@@ -21,6 +21,8 @@ export type DocRenderInput = {
   currency: string;
   meta: { number: string; date: string; validUntil?: string; client?: string };
   title: string;
+  /** Optional pre-computed page split (same one the PDF uses). */
+  pages?: { showClientBox: boolean; blocks: DocBlock[] }[];
 };
 
 type Palette = { bg: string; surface: string; ink: string; muted: string; border: string; zebra: string };
@@ -87,8 +89,22 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
   ${(ar ? header.extraAr : header.extraEn) ? `<div style="font-size:9pt;color:${c.muted};margin-top:8px">${nl2br(ar ? header.extraAr : header.extraEn)}</div>` : ""}
   ${header.showRule ? `<div style="border-top:2px solid ${header.accent};margin:10px 0 4px"></div>` : ""}`;
 
-  const clientBox = model.showClientBox ? renderClientBox(client, ar, c) : "";
-  const body = model.blocks.map((b) => renderBlock(b, ar, c, currency)).join("");
+  // With a pre-computed page split, mirror the PDF exactly: each page's body
+  // is emitted in order with an explicit page break between pages.
+  const pages = input.pages && input.pages.length > 0 ? input.pages : null;
+  const clientBox = pages
+    ? pages[0]!.showClientBox ? renderClientBox(client, ar, c) : ""
+    : model.showClientBox ? renderClientBox(client, ar, c) : "";
+  const body = pages
+    ? pages
+        .map((p, i) => {
+          const inner =
+            (i > 0 && p.showClientBox ? renderClientBox(client, ar, c) : "") +
+            p.blocks.map((b) => renderBlock(b, ar, c, currency)).join("");
+          return i === 0 ? inner : `<div class="pb">${inner}</div>`;
+        })
+        .join("")
+    : model.blocks.map((b) => renderBlock(b, ar, c, currency)).join("");
 
   const bank = ar ? footer.bankAr : footer.bankEn;
   const signature = ar ? footer.signatureAr : footer.signatureEn;

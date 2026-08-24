@@ -18,10 +18,16 @@ type Props = {
   scale?: number;
   /** Drop the on-screen shadow / rounded corners (used by the exporters). */
   bare?: boolean;
+  /**
+   * grow  — one elastic sheet (legacy behaviour), at least A4 tall.
+   * fixed — exactly one A4 page (used by the paginated preview / exporters).
+   * auto  — hug the content (used to measure the header + footer chrome).
+   */
+  sizing?: "grow" | "fixed" | "auto";
   children?: React.ReactNode;
 };
 
-export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, children }: Props) {
+export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", children }: Props) {
   const ar = lang === "ar";
   const c = PAPER[theme];
   const dir = ar ? "rtl" : "ltr";
@@ -42,7 +48,8 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
     <div
       style={{
         width: A4.width,
-        minHeight: A4.height,
+        minHeight: sizing === "auto" ? undefined : A4.height,
+        height: sizing === "fixed" ? A4.height : undefined,
         transform: scale === 1 ? undefined : `scale(${scale})`,
         transformOrigin: ar ? "top right" : "top left",
         background: c.bg,
@@ -54,7 +61,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
         fontFamily: "'Montserrat Arabic', 'Almarai', 'Montserrat', system-ui, sans-serif",
         boxShadow: bare ? undefined : "0 18px 50px rgba(0,0,0,.35)",
         borderRadius: bare ? 0 : 4,
-        overflow: bare ? undefined : "hidden",
+        overflow: sizing === "fixed" || !bare ? "hidden" : undefined,
       }}
     >
       {/* ── Header band ─────────────────────────────────────────── */}
@@ -110,7 +117,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
       </div>
 
       {/* ── Body ────────────────────────────────────────────────── */}
-      <div className="pdf-flow" style={{ flex: 1, padding: "6px 40px 18px", fontSize: 12.5, lineHeight: 1.7 }}>
+      <div className="pdf-flow" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: "6px 40px 18px", fontSize: 12.5, lineHeight: 1.7 }}>
         {children}
       </div>
 

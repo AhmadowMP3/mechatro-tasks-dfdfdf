@@ -44,7 +44,9 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
   }
   @page {
     size: A4;
-    margin: 12mm;
+    /* Paginated documents carry their own inner padding; a printer margin
+       here would push each page onto two sheets. */
+    margin: 0;
   }
   html, body {
     margin: 0;
@@ -60,6 +62,19 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
   #print-root {
     width: ${A4_WIDTH_PX}px;
     margin: 0 auto;
+  }
+  /* Pre-paginated documents: one .doc-page element == exactly one sheet. */
+  .doc-page {
+    width: ${A4_WIDTH_PX}px;
+    overflow: hidden;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    break-after: page;
+    page-break-after: always;
+  }
+  .doc-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
   }
   /* On screen (only briefly visible during load), keep layout stable. */
   @media print {
