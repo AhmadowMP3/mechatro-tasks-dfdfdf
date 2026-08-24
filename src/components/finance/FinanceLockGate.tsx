@@ -1,40 +1,33 @@
 import { useState } from "react";
-import { Lock, ShieldCheck, KeyRound, Loader2, AlertTriangle, LifeBuoy } from "lucide-react";
+import { Lock, ShieldCheck, Loader2, AlertTriangle, LifeBuoy } from "lucide-react";
 import { useApp } from "@/lib/app-context";
 import { useFinanceVault } from "@/lib/finance/vault-context";
-import { passphraseStrength } from "@/lib/finance/crypto";
-import { runVaultMigration, type MigrationProgress } from "@/lib/finance/migrate";
+import { passwordStrength } from "@/lib/finance/lock";
 import { VaultAdminPanel } from "./VaultAdminPanel";
 
-
 const T = {
-  setupTitle: { ar: "تفعيل خزنة المالية المشفّرة", en: "Set up the encrypted finance vault" },
+  setupTitle: { ar: "تعيين كلمة سر المالية", en: "Set the finance password" },
   setupBody: {
-    ar: "اختر عبارة مرور مالية واحدة. كل البيانات المالية ستُشفَّر داخل متصفحك قبل حفظها، ولا يمكن لأي شخص — بما فيهم مدير النظام أو قاعدة البيانات — قراءتها بدون هذه العبارة.",
-    en: "Choose one shared finance passphrase. All finance data is encrypted in your browser before it is saved — nobody, including the database or an administrator, can read it without this passphrase.",
+    ar: "اختر كلمة سر واحدة لفتح قسم المالية. ستُطلب مرة واحدة بعد كل تسجيل دخول. البيانات المالية تُحفظ بشكل عادي — كلمة السر هنا للحماية من الدخول فقط.",
+    en: "Choose one password to open the finance section. It is asked once per sign-in. Finance data is stored normally — this password only gates access.",
   },
-  warn: {
-    ar: "لا توجد طريقة لاستعادة العبارة. إذا فُقدت، تُفقد كل البيانات المالية نهائياً.",
-    en: "There is no recovery. If the passphrase is lost, all finance data is permanently unreadable.",
-  },
-  pass: { ar: "عبارة المرور", en: "Passphrase" },
-  confirm: { ar: "تأكيد العبارة", en: "Confirm passphrase" },
-  ack: {
-    ar: "أفهم أنه لا يمكن استعادة البيانات إذا نسيت العبارة.",
-    en: "I understand the data cannot be recovered if I forget this passphrase.",
-  },
-  create: { ar: "تفعيل الخزنة", en: "Create vault" },
-  unlockTitle: { ar: "الخزنة المالية مقفلة", en: "Finance vault is locked" },
+  pass: { ar: "كلمة السر", en: "Password" },
+  confirm: { ar: "تأكيد كلمة السر", en: "Confirm password" },
+  create: { ar: "تعيين وفتح المالية", en: "Set and open finance" },
+  unlockTitle: { ar: "قسم المالية مقفل", en: "Finance is locked" },
   unlockBody: {
-    ar: "أدخل عبارة المرور المالية لفك تشفير البيانات في هذا المتصفح.",
-    en: "Enter the finance passphrase to decrypt the data in this browser.",
+    ar: "أدخل كلمة سر المالية لفتح القسم في هذه الجلسة.",
+    en: "Enter the finance password to open this section for the current session.",
   },
   unlock: { ar: "فتح", en: "Unlock" },
-  wrong: { ar: "عبارة المرور غير صحيحة.", en: "Incorrect passphrase." },
-  mismatch: { ar: "العبارتان غير متطابقتين.", en: "Passphrases do not match." },
-  weak: { ar: "استخدم 10 أحرف على الأقل.", en: "Use at least 10 characters." },
-  encrypting: { ar: "جارٍ تشفير السجلات الحالية…", en: "Encrypting existing records…" },
-  strength: { ar: ["ضعيفة جداً", "ضعيفة", "متوسطة", "جيدة", "قوية"], en: ["Very weak", "Weak", "Fair", "Good", "Strong"] },
+  wrong: { ar: "كلمة السر غير صحيحة.", en: "Incorrect password." },
+  mismatch: { ar: "كلمتا السر غير متطابقتين.", en: "Passwords do not match." },
+  weak: { ar: "استخدم 8 أحرف على الأقل.", en: "Use at least 8 characters." },
+  help: { ar: "كلمة السر غير مقبولة؟", en: "Password not accepted?" },
+  strength: {
+    ar: ["ضعيفة جداً", "ضعيفة", "متوسطة", "جيدة", "قوية"],
+    en: ["Very weak", "Weak", "Fair", "Good", "Strong"],
+  },
 };
 
 const card: React.CSSProperties = {
@@ -76,16 +69,13 @@ export function FinanceLockGate({ children }: { children: React.ReactNode }) {
   const { lang } = useApp();
   const ar = lang === "ar";
   const t = <K extends keyof typeof T>(k: K) => (ar ? T[k].ar : T[k].en) as string;
-  const { status, migrated, setup, unlock, markMigrated, error } = useFinanceVault();
+  const { status, setup, unlock, error } = useFinanceVault();
 
   const [pass, setPass] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [progress, setProgress] = useState<MigrationProgress | null>(null);
   const [showHelp, setShowHelp] = useState(false);
-
 
   if (status === "loading") {
     return (
@@ -97,43 +87,17 @@ export function FinanceLockGate({ children }: { children: React.ReactNode }) {
 
   if (status === "error") {
     return (
-      <div style={{ ...card, borderColor: "var(--danger, #ef4444)" }}>
+      <div style={{ ...card, borderColor: "#ef4444" }}>
         <AlertTriangle size={22} color="#ef4444" />
         <p style={{ margin: 0 }}>{error}</p>
       </div>
     );
   }
 
-  if (status === "unlocked") {
-    if (!migrated) {
-      // Encrypt legacy plaintext rows once, right after the vault is opened.
-      if (!busy) {
-        setBusy(true);
-        void runVaultMigration(setProgress)
-          .then(() => markMigrated())
-          .catch((e) => setMsg(String(e?.message ?? e)))
-          .finally(() => setBusy(false));
-      }
-      return (
-        <div style={card}>
-          <h2 style={{ margin: 0, display: "flex", gap: 10, alignItems: "center" }}>
-            <ShieldCheck size={22} /> {t("encrypting")}
-          </h2>
-          {progress && (
-            <p style={{ margin: 0, color: "var(--muted-foreground)" }}>
-              {progress.table} — {progress.done}/{progress.total}
-            </p>
-          )}
-          {msg && <p style={{ color: "#ef4444", margin: 0 }}>{msg}</p>}
-          <Loader2 className="spin" size={22} />
-        </div>
-      );
-    }
-    return <>{children}</>;
-  }
+  if (status === "unlocked") return <>{children}</>;
 
   const isSetup = status === "not_set";
-  const strength = passphraseStrength(pass);
+  const strength = passwordStrength(pass);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -141,7 +105,7 @@ export function FinanceLockGate({ children }: { children: React.ReactNode }) {
     setBusy(true);
     try {
       if (isSetup) {
-        if (pass.length < 10) return setMsg(t("weak"));
+        if (pass.length < 8) return setMsg(t("weak"));
         if (pass !== confirm) return setMsg(t("mismatch"));
         await setup(pass);
       } else {
@@ -158,87 +122,53 @@ export function FinanceLockGate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <form onSubmit={submit} style={card} dir={ar ? "rtl" : "ltr"}>
-      <h2 style={{ margin: 0, display: "flex", gap: 10, alignItems: "center", fontSize: 20 }}>
-        {isSetup ? <ShieldCheck size={22} /> : <Lock size={22} />}
-        {isSetup ? t("setupTitle") : t("unlockTitle")}
-      </h2>
-      <p style={{ margin: 0, color: "var(--muted-foreground)", lineHeight: 1.7 }}>
-        {isSetup ? t("setupBody") : t("unlockBody")}
-      </p>
+    <div dir={ar ? "rtl" : "ltr"}>
+      <form onSubmit={submit} style={card}>
+        <h2 style={{ margin: 0, display: "flex", gap: 10, alignItems: "center", fontSize: 20 }}>
+          {isSetup ? <ShieldCheck size={22} /> : <Lock size={22} />}
+          {isSetup ? t("setupTitle") : t("unlockTitle")}
+        </h2>
+        <p style={{ margin: 0, color: "var(--muted-foreground)", lineHeight: 1.7 }}>
+          {isSetup ? t("setupBody") : t("unlockBody")}
+        </p>
 
-      {isSetup && (
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            padding: 12,
-            borderRadius: 12,
-            background: "rgba(239,68,68,.08)",
-            border: "1px solid rgba(239,68,68,.35)",
-          }}
-        >
-          <AlertTriangle size={18} color="#ef4444" style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: 13.5, lineHeight: 1.6 }}>{t("warn")}</span>
-        </div>
-      )}
+        <label style={{ display: "grid", gap: 6 }}>
+          <span style={{ fontWeight: 700, fontSize: 13 }}>{t("pass")}</span>
+          <input
+            style={input}
+            type="password"
+            autoComplete={isSetup ? "new-password" : "current-password"}
+            value={pass}
+            onChange={(e) => setPass(e.target.value)}
+          />
+        </label>
 
-      <label style={{ display: "grid", gap: 6, fontSize: 13, fontWeight: 700 }}>
-        {t("pass")}
-        <input
-          style={input}
-          type="password"
-          value={pass}
-          autoFocus
-          autoComplete={isSetup ? "new-password" : "current-password"}
-          onChange={(e) => setPass(e.target.value)}
-        />
-      </label>
-
-      {isSetup && (
-        <>
-          <div style={{ display: "flex", gap: 4 }}>
-            {[0, 1, 2, 3].map((i) => (
-              <span
-                key={i}
-                style={{
-                  height: 5,
-                  flex: 1,
-                  borderRadius: 4,
-                  background: i < strength ? "var(--grad-blue)" : "var(--border)",
-                }}
+        {isSetup && (
+          <>
+            <label style={{ display: "grid", gap: 6 }}>
+              <span style={{ fontWeight: 700, fontSize: 13 }}>{t("confirm")}</span>
+              <input
+                style={input}
+                type="password"
+                autoComplete="new-password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
               />
-            ))}
-          </div>
-          <span style={{ fontSize: 12, color: "var(--muted-foreground)", marginTop: -8 }}>
-            {(ar ? T.strength.ar : T.strength.en)[strength]}
-          </span>
-          <label style={{ display: "grid", gap: 6, fontSize: 13, fontWeight: 700 }}>
-            {t("confirm")}
-            <input
-              style={input}
-              type="password"
-              value={confirm}
-              autoComplete="new-password"
-              onChange={(e) => setConfirm(e.target.value)}
-            />
-          </label>
-          <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13.5 }}>
-            <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} style={{ marginTop: 3 }} />
-            {t("ack")}
-          </label>
-        </>
-      )}
+            </label>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--muted-foreground)" }}>
+              {(ar ? T.strength.ar : T.strength.en)[strength]}
+            </p>
+          </>
+        )}
 
-      {msg && <p style={{ color: "#ef4444", margin: 0, fontSize: 13.5 }}>{msg}</p>}
+        {msg && <p style={{ margin: 0, color: "#ef4444", fontWeight: 700 }}>{msg}</p>}
 
-      <button type="submit" style={{ ...button, opacity: busy || (isSetup && !ack) ? 0.6 : 1 }} disabled={busy || (isSetup && !ack)}>
-        {busy ? <Loader2 size={17} className="spin" /> : <KeyRound size={17} />}
-        {isSetup ? t("create") : t("unlock")}
-      </button>
+        <button type="submit" style={{ ...button, opacity: busy ? 0.6 : 1 }} disabled={busy}>
+          {busy ? <Loader2 className="spin" size={17} /> : isSetup ? <ShieldCheck size={17} /> : <Lock size={17} />}
+          {isSetup ? t("create") : t("unlock")}
+        </button>
 
-      {!isSetup && (
-        <>
+        {!isSetup && (
           <button
             type="button"
             onClick={() => setShowHelp((v) => !v)}
@@ -247,23 +177,25 @@ export function FinanceLockGate({ children }: { children: React.ReactNode }) {
               border: "none",
               color: "var(--muted-foreground)",
               cursor: "pointer",
-              fontSize: 13,
               display: "inline-flex",
               alignItems: "center",
-              gap: 6,
-              justifySelf: "start",
-              padding: 0,
+              gap: 8,
+              fontWeight: 700,
             }}
           >
-            <LifeBuoy size={15} />
-            {ar ? "العبارة لا تُقبل؟" : "Passphrase not accepted?"}
+            <LifeBuoy size={16} />
+            {t("help")}
           </button>
-          {showHelp && <VaultAdminPanel />}
-        </>
+        )}
+      </form>
+
+      {showHelp && !isSetup && (
+        <div style={{ maxWidth: 640, margin: "0 auto 60px" }}>
+          <VaultAdminPanel />
+        </div>
       )}
-    </form>
+    </div>
   );
 }
-
 
 export default FinanceLockGate;
