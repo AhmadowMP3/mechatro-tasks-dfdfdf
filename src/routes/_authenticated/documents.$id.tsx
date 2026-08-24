@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2, Plus, Trash2, ChevronUp, ChevronDown, Sun, Moon, GitBranch, FileDown, FileType2 } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { requireMaster } from "@/lib/route-guards";
 import { docTemplates } from "@/lib/docs/api";
