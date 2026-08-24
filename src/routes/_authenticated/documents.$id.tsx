@@ -14,8 +14,7 @@ import {
   BLOCK_LABELS, emptyItemRow, newBlock, uid,
   type BlockKind, type DocBlock, type DocClient, type DocModel, type ItemsBlock,
 } from "@/lib/docs/model";
-import { DocPaper } from "@/components/documents/DocPaper";
-import { DocBody } from "@/components/documents/DocBody";
+import { PaginatedDoc } from "@/components/documents/PaginatedDoc";
 import { exportDocPdf, exportDocWord } from "@/lib/docs/export-doc";
 import { logActivity } from "@/lib/activity";
 
