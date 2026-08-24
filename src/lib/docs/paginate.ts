@@ -80,6 +80,7 @@ function sliceBlock(block: DocBlock, from: number, to: number, isLast: boolean):
     return {
       ...block,
       rows: block.rows.slice(from, to),
+      startIndex: from,
       titleAr: from === 0 ? block.titleAr : "",
       titleEn: from === 0 ? block.titleEn : "",
       showTotals: isLast ? block.showTotals : false,
