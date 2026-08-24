@@ -184,7 +184,8 @@ function PublicDocView() {
         </span>
       </header>
 
-      <main style={{ padding: "18px 0 40px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <main style={{ padding: "18px 4px 40px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div ref={shellRef} style={{ width: "100%", maxWidth: A4_W, display: "flex", flexDirection: "column", alignItems: "center" }}>
         {row === "loading" && <div style={{ color: "#94A3B8", fontSize: 13, padding: 40 }}>{ar ? "جارٍ التحميل…" : "Loading…"}</div>}
 
         {row !== "loading" && !doc && (
@@ -206,20 +207,24 @@ function PublicDocView() {
         )}
 
         {srcDoc && (
-          <div style={{ width: 794 * scale, height: frameHeight * scale, overflow: "hidden" }}>
+          <div style={{ width: A4_W * scale, height: frameHeight * scale, overflow: "hidden", direction: "ltr" }}>
             <iframe
               ref={frameRef}
               title={doc?.title ?? "document"}
               sandbox="allow-same-origin"
               srcDoc={srcDoc}
+              scrolling="no"
               style={{
-                width: 794, height: frameHeight, border: 0, background: doc?.payload?.background ?? "#081320",
+                width: A4_W, height: frameHeight, border: 0, background: doc?.payload?.background ?? "#081320",
                 transform: `scale(${scale})`, transformOrigin: "top left", pointerEvents: "none",
+                display: "block",
               }}
             />
           </div>
         )}
+        </div>
       </main>
+
     </div>
   );
 }
