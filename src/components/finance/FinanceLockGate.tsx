@@ -84,6 +84,8 @@ export function FinanceLockGate({ children }: { children: React.ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [progress, setProgress] = useState<MigrationProgress | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
+
 
   if (status === "loading") {
     return (
