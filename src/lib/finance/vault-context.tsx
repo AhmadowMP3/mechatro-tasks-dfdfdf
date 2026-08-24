@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { supabase } from "@/integrations/supabase/client";
 import { checkVerifier, deriveVaultKey, KDF_ITERATIONS, makeVerifier, randomSaltB64 } from "./crypto";
 import { setVaultKey } from "./vault-db";
+import { findVariantByData, findWorkingVariant, rekeyVault, resetVault, type RekeyProgress } from "./vault-admin";
 
 export type VaultStatus = "loading" | "not_set" | "locked" | "unlocked" | "error";
 
@@ -10,6 +11,8 @@ type VaultMeta = {
   kdf_iterations: number;
   verifier: string;
   encrypted_at: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 type VaultContextValue = {
@@ -20,6 +23,12 @@ type VaultContextValue = {
   error: string | null;
   setup: (passphrase: string) => Promise<void>;
   unlock: (passphrase: string) => Promise<boolean>;
+  /** Tries common variants of the typed passphrase; returns the one that worked. */
+  recover: (passphrase: string) => Promise<{ ar: string; en: string } | null>;
+  /** Change the passphrase, re-encrypting every record. Vault must be unlocked. */
+  rekey: (newPassphrase: string, onProgress?: (p: RekeyProgress) => void) => Promise<number>;
+  /** Destructive: forget the passphrase (and optionally the encrypted rows). */
+  reset: (opts: { wipeEncrypted: boolean }) => Promise<number>;
   lock: () => void;
   markMigrated: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -29,11 +38,14 @@ const VaultContext = createContext<VaultContextValue | null>(null);
 
 const IDLE_LOCK_MS = 15 * 60 * 1000;
 
+
 export function FinanceVaultProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<VaultStatus>("loading");
   const [meta, setMeta] = useState<VaultMeta | null>(null);
   const [error, setError] = useState<string | null>(null);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keyRef = useRef<CryptoKey | null>(null);
+
 
   const loadMeta = useCallback(async () => {
     const { data, error: err } = await supabase.from("finance_vault_meta").select("*").eq("id", true).maybeSingle();
@@ -53,9 +65,11 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
   }, [loadMeta]);
 
   const lock = useCallback(() => {
+    keyRef.current = null;
     setVaultKey(null);
     setStatus((prev) => (prev === "unlocked" ? "locked" : prev));
   }, []);
+
 
   // Auto-lock on idle, on tab close and when the tab is hidden for a long time.
   useEffect(() => {
@@ -91,6 +105,7 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
       .from("finance_vault_meta")
       .upsert({ id: true, kdf_salt: salt, kdf_iterations: KDF_ITERATIONS, verifier }, { onConflict: "id" });
     if (err) throw new Error(err.message);
+    keyRef.current = key;
     setVaultKey(key);
     setMeta({ kdf_salt: salt, kdf_iterations: KDF_ITERATIONS, verifier, encrypted_at: null });
     setStatus("unlocked");
@@ -102,7 +117,9 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
       if (!m) return false;
       const key = await deriveVaultKey(passphrase, m.kdf_salt, m.kdf_iterations ?? KDF_ITERATIONS);
       if (!(await checkVerifier(key, m.verifier))) return false;
+      keyRef.current = key;
       setVaultKey(key);
+
       setStatus("unlocked");
       return true;
     },
@@ -115,6 +132,45 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
     setMeta((m) => (m ? { ...m, encrypted_at: stamp } : m));
   }, []);
 
+  const recover = useCallback(
+    async (passphrase: string) => {
+      const m = meta ?? (await loadMeta());
+      if (!m) return null;
+      const hit = (await findWorkingVariant(m, passphrase)) ?? (await findVariantByData(m, passphrase));
+      if (!hit) return null;
+      keyRef.current = hit.key;
+      setVaultKey(hit.key);
+      setStatus("unlocked");
+      return hit.variant.label;
+    },
+    [meta, loadMeta],
+  );
+
+  const rekey = useCallback(
+    async (newPassphrase: string, onProgress?: (p: RekeyProgress) => void) => {
+      const current = keyRef.current;
+      if (!current) throw new Error("Unlock the vault first");
+      const res = await rekeyVault(current, newPassphrase, onProgress);
+      keyRef.current = res.key;
+      setVaultKey(res.key);
+      await loadMeta();
+      return res.rows;
+    },
+    [loadMeta],
+  );
+
+  const reset = useCallback(
+    async (opts: { wipeEncrypted: boolean }) => {
+      const res = await resetVault(opts);
+      keyRef.current = null;
+      setVaultKey(null);
+      setMeta(null);
+      setStatus("not_set");
+      return res.removed;
+    },
+    [],
+  );
+
   const value = useMemo<VaultContextValue>(
     () => ({
       status,
@@ -123,14 +179,18 @@ export function FinanceVaultProvider({ children }: { children: React.ReactNode }
       error,
       setup,
       unlock,
+      recover,
+      rekey,
+      reset,
       lock,
       markMigrated,
       refresh: async () => {
         await loadMeta();
       },
     }),
-    [status, meta, error, setup, unlock, lock, markMigrated, loadMeta],
+    [status, meta, error, setup, unlock, recover, rekey, reset, lock, markMigrated, loadMeta],
   );
+
 
   return <VaultContext.Provider value={value}>{children}</VaultContext.Provider>;
 }
