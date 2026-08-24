@@ -3,6 +3,16 @@
 
 import { Extension } from "@tiptap/core";
 
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    blockFormat: {
+      setLineHeight: (value: string) => ReturnType;
+      unsetLineHeight: () => ReturnType;
+      setBlockDir: (dir: "rtl" | "ltr" | null) => ReturnType;
+    };
+  }
+}
+
 const BLOCKS = ["paragraph", "heading", "listItem", "blockquote"];
 
 export const BlockFormat = Extension.create({

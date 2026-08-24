@@ -131,7 +131,7 @@ export function DocEditor({ html, onChange, lang, theme, currency, meta, showCli
         <div
           className="doc-editor-sheet"
           dir={ar ? "rtl" : "ltr"}
-          style={{ background: palette.bg, color: palette.text }}
+          style={{ background: palette.bg, color: palette.ink }}
         >
           {showClientBox && (
             <div style={{ marginBottom: 14 }}>
