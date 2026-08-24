@@ -132,7 +132,7 @@ function sliceBlock(block: DocBlock, from: number, to: number, isLast: boolean, 
     };
   }
   if (block.kind === "text" || block.kind === "terms") {
-    const part = textChunks(langText(block, lang)).slice(from, to).join("\n");
+    const part = joinChunks(textChunks(langText(block, lang)).slice(from, to));
     const base = lang === "ar" ? { ar: part, en: "" } : { ar: "", en: part };
     if (block.kind === "terms") {
       return { ...block, ...base, titleAr: from === 0 ? block.titleAr : "", titleEn: from === 0 ? block.titleEn : "" };
