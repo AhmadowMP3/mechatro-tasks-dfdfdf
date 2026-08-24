@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { vaultDb as supabase } from "@/lib/finance/vault-db";
+import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { formatMoney, convertAmount, type Currency, type Invoice, type Expense, type IncomeEntry, type FxRate } from "@/lib/finance";
 import { TrendingUp, TrendingDown, DollarSign, AlertCircle, RefreshCw, Plus, Wallet } from "lucide-react";
