@@ -68,7 +68,7 @@ export function DocEditor({ html, onChange, lang, theme, currency, meta, showCli
         Highlight.configure({ multicolor: true }),
         TextAlign.configure({ types: ["heading", "paragraph"] }),
         Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer nofollow" } }),
-        Image.configure({ inline: false, allowBase64: true }),
+        ResizableImage.configure({ inline: false, allowBase64: true }),
         Table.configure({ resizable: true }),
         TableRow,
         TableHeader,
