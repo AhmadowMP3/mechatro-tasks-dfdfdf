@@ -45,6 +45,7 @@ import { Route as AuthenticatedFinancePayrollRouteImport } from './routes/_authe
 import { Route as AuthenticatedFinanceIncomeRouteImport } from './routes/_authenticated/finance.income'
 import { Route as AuthenticatedFinanceExpensesRouteImport } from './routes/_authenticated/finance.expenses'
 import { Route as AuthenticatedFinanceCustomersRouteImport } from './routes/_authenticated/finance.customers'
+import { Route as AuthenticatedDocumentsIdRouteImport } from './routes/_authenticated/documents.$id'
 import { Route as AuthenticatedFinanceInvoicesIndexRouteImport } from './routes/_authenticated/finance.invoices.index'
 import { Route as ApiPublicHooksBackupAutoApproveRouteImport } from './routes/api/public/hooks/backup-auto-approve'
 import { Route as ApiPublicGoogleDriveCallbackRouteImport } from './routes/api/public/google/drive-callback'
@@ -244,6 +245,12 @@ const AuthenticatedFinanceCustomersRoute =
     path: '/customers',
     getParentRoute: () => AuthenticatedFinanceRoute,
   } as any)
+const AuthenticatedDocumentsIdRoute =
+  AuthenticatedDocumentsIdRouteImport.update({
+    id: '/documents/$id',
+    path: '/documents/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFinanceInvoicesIndexRoute =
   AuthenticatedFinanceInvoicesIndexRouteImport.update({
     id: '/invoices/',
@@ -289,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/share/$token': typeof ShareTokenRouteWithChildren
+  '/documents/$id': typeof AuthenticatedDocumentsIdRoute
   '/finance/customers': typeof AuthenticatedFinanceCustomersRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/finance/income': typeof AuthenticatedFinanceIncomeRoute
@@ -327,6 +335,7 @@ export interface FileRoutesByTo {
   '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/': typeof AuthenticatedIndexRoute
+  '/documents/$id': typeof AuthenticatedDocumentsIdRoute
   '/finance/customers': typeof AuthenticatedFinanceCustomersRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/finance/income': typeof AuthenticatedFinanceIncomeRoute
@@ -370,6 +379,7 @@ export interface FileRoutesById {
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/share/$token': typeof ShareTokenRouteWithChildren
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/documents/$id': typeof AuthenticatedDocumentsIdRoute
   '/_authenticated/finance/customers': typeof AuthenticatedFinanceCustomersRoute
   '/_authenticated/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/_authenticated/finance/income': typeof AuthenticatedFinanceIncomeRoute
@@ -413,6 +423,7 @@ export interface FileRouteTypes {
     | '/share-links'
     | '/tasks'
     | '/share/$token'
+    | '/documents/$id'
     | '/finance/customers'
     | '/finance/expenses'
     | '/finance/income'
@@ -451,6 +462,7 @@ export interface FileRouteTypes {
     | '/share-links'
     | '/tasks'
     | '/'
+    | '/documents/$id'
     | '/finance/customers'
     | '/finance/expenses'
     | '/finance/income'
@@ -493,6 +505,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks'
     | '/share/$token'
     | '/_authenticated/'
+    | '/_authenticated/documents/$id'
     | '/_authenticated/finance/customers'
     | '/_authenticated/finance/expenses'
     | '/_authenticated/finance/income'
@@ -779,6 +792,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinanceCustomersRouteImport
       parentRoute: typeof AuthenticatedFinanceRoute
     }
+    '/_authenticated/documents/$id': {
+      id: '/_authenticated/documents/$id'
+      path: '/documents/$id'
+      fullPath: '/documents/$id'
+      preLoaderRoute: typeof AuthenticatedDocumentsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/finance/invoices/': {
       id: '/_authenticated/finance/invoices/'
       path: '/invoices'
@@ -872,6 +892,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedShareLinksRoute: typeof AuthenticatedShareLinksRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedDocumentsIdRoute: typeof AuthenticatedDocumentsIdRoute
   AuthenticatedReportsHistoryCompareRoute: typeof AuthenticatedReportsHistoryCompareRoute
   AuthenticatedTeamIdRoute: typeof AuthenticatedTeamIdRoute
   AuthenticatedDocumentsIndexRoute: typeof AuthenticatedDocumentsIndexRoute
@@ -894,6 +915,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedShareLinksRoute: AuthenticatedShareLinksRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedDocumentsIdRoute: AuthenticatedDocumentsIdRoute,
   AuthenticatedReportsHistoryCompareRoute:
     AuthenticatedReportsHistoryCompareRoute,
   AuthenticatedTeamIdRoute: AuthenticatedTeamIdRoute,
