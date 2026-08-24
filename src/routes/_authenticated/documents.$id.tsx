@@ -56,9 +56,22 @@ function DocumentEditorPage() {
       .then(async (d) => {
         const t = await docTemplates.ensure(d.doc_type);
         if (!alive) return;
-        setDoc(d);
+        // Old block documents are converted once, on open, into the
+        // Word-style body. The original blocks stay on the row as a backup.
+        if (needsConversion(d.model)) {
+          const html = blocksToHtml(d.model, {
+            lang: d.lang,
+            theme: d.theme,
+            currency: d.currency,
+            meta: { number: d.number },
+          });
+          setDoc({ ...d, model: { ...d.model, version: 2, html } });
+          setDirty(true);
+        } else {
+          setDoc(d);
+          setDirty(false);
+        }
         setTpl(t);
-        setDirty(false);
       })
       .catch((e) => toast.error((e as Error).message))
       .finally(() => { if (alive) setLoading(false); });
