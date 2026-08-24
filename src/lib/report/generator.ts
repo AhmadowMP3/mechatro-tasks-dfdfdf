@@ -311,6 +311,7 @@ async function renderHtmlToPdfBlob(
     }
 
     // Content blocks
+    const isLastContentPage = idx === contentPages.length - 1;
     for (const b of pageBlocks) {
       const xPt = SIDE_PAD * pxToPt;
       const yPt = (CONTENT_TOP + b.yPx) * pxToPt;
