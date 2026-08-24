@@ -1,13 +1,16 @@
 // Word-style ribbon for the document editor.
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Table as TableIcon, Image as ImageIcon, Link2, Minus, SeparatorHorizontal,
   Undo2, Redo2, Rows3, Columns3, Trash2, Type, Highlighter, Baseline, Braces,
+  Grid2x2X, RowsIcon, Eraser, Library, ImagePlus,
 } from "lucide-react";
 import { DOC_FIELDS, fieldLabel } from "@/lib/docs/rich";
+import { DOC_SNIPPETS, type SnippetId } from "@/lib/docs/snippets";
+import type { LogoVariant } from "@/lib/docs/model";
 import type { DocLang } from "@/lib/docs/types";
 
 const FONTS = [
@@ -23,13 +26,34 @@ const COLORS = ["#0B1A2A", "#1E3A57", "#42C2EE", "#C9A227", "#22C55E", "#EF4444"
 const HIGHLIGHTS = ["#FEF08A", "#BBF7D0", "#BFDBFE", "#FBCFE8", "#E2E8F0"];
 const LINE_HEIGHTS = ["1.2", "1.4", "1.6", "1.8", "2"];
 
-export function Ribbon({ editor, lang, onImage, onInsertTerms }: { editor: Editor | null; lang: DocLang; onImage: (file: File) => void; onInsertTerms?: () => void }) {
+type RibbonProps = {
+  editor: Editor | null;
+  lang: DocLang;
+  onImage: (file: File) => void;
+  onInsertTerms?: () => void;
+  /** Insert a ready-made snippet by id. */
+  onSnippet?: (id: SnippetId) => void;
+  logoVariant?: LogoVariant;
+  onLogoVariant?: (v: LogoVariant) => void;
+  /** Save / export / preview buttons pinned to the end of the ribbon. */
+  actions?: React.ReactNode;
+};
+
+export function Ribbon({ editor, lang, onImage, onInsertTerms, onSnippet, logoVariant, onLogoVariant, actions }: RibbonProps) {
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const [snipOpen, setSnipOpen] = useState(false);
   const ar = lang === "ar";
   if (!editor) return null;
 
   const chain = () => editor.chain().focus();
   const isTable = editor.isActive("table");
+
+  /** Delete whatever object is selected: image, items table, page break… */
+  const deleteSelected = () => {
+    const c = editor.chain().focus();
+    if (editor.isActive("table")) { c.deleteTable().run(); return; }
+    c.deleteSelection().run();
+  };
 
   return (
     <div className="doc-ribbon">
@@ -130,11 +154,13 @@ export function Ribbon({ editor, lang, onImage, onInsertTerms }: { editor: Edito
           <>
             <RBtn onClick={() => chain().addRowAfter().run()} title={ar ? "صف" : "Row"}><Rows3 size={15} /></RBtn>
             <RBtn onClick={() => chain().addColumnAfter().run()} title={ar ? "عمود" : "Column"}><Columns3 size={15} /></RBtn>
-            <RBtn onClick={() => chain().deleteRow().run()} title={ar ? "حذف صف" : "Delete row"}><Trash2 size={15} /></RBtn>
+            <RBtn danger onClick={() => chain().deleteRow().run()} title={ar ? "حذف صف" : "Delete row"}><RowsIcon size={15} /></RBtn>
+            <RBtn danger onClick={() => chain().deleteColumn().run()} title={ar ? "حذف عمود" : "Delete column"}><Columns3 size={15} /></RBtn>
+            <RBtn danger onClick={() => chain().deleteTable().run()} title={ar ? "حذف الجدول" : "Delete table"}><Grid2x2X size={15} /></RBtn>
             <RBtn onClick={() => chain().mergeOrSplit().run()} title={ar ? "دمج/فصل" : "Merge / split"}><Braces size={15} /></RBtn>
           </>
         )}
-        <RBtn onClick={() => fileRef.current?.click()} title={ar ? "صورة" : "Image"}><ImageIcon size={15} /></RBtn>
+        <RBtn onClick={() => fileRef.current?.click()} title={ar ? "صورة" : "Image"}><ImagePlus size={15} /></RBtn>
         <RBtn
           onClick={() => {
             const url = window.prompt(ar ? "الرابط:" : "URL:", "https://");
@@ -146,6 +172,7 @@ export function Ribbon({ editor, lang, onImage, onInsertTerms }: { editor: Edito
         </RBtn>
         <RBtn onClick={() => chain().setHorizontalRule().run()} title={ar ? "خط فاصل" : "Divider"}><Minus size={15} /></RBtn>
         <RBtn onClick={() => chain().insertContent({ type: "pageBreak" }).run()} title={ar ? "فاصل صفحة" : "Page break"}><SeparatorHorizontal size={15} /></RBtn>
+        <RBtn danger onClick={deleteSelected} title={ar ? "حذف العنصر المحدد" : "Delete selected element"}><Eraser size={15} /></RBtn>
       </div>
 
       {/* Group: smart content */}
@@ -171,14 +198,53 @@ export function Ribbon({ editor, lang, onImage, onInsertTerms }: { editor: Edito
           <option value="">{ar ? "حقل تلقائي" : "Auto field"}</option>
           {DOC_FIELDS.map((f) => <option key={f.key} value={f.key}>{fieldLabel(f.key, lang)}</option>)}
         </select>
+
+        {onSnippet && (
+          <div className="doc-ribbon-menu" onMouseLeave={() => setSnipOpen(false)}>
+            <button type="button" className={`doc-ribbon-btn${snipOpen ? " is-active" : ""}`} onClick={() => setSnipOpen((o) => !o)} title={ar ? "مقاطع جاهزة" : "Snippets"}>
+              <Library size={15} /> <span style={{ fontSize: 11.5 }}>{ar ? "مقاطع" : "Snippets"}</span>
+            </button>
+            {snipOpen && (
+              <div className="doc-ribbon-menu-list">
+                {DOC_SNIPPETS.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => { onSnippet(s.id); setSnipOpen(false); }}
+                  >
+                    {ar ? s.labelAr : s.labelEn}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Group: brand */}
+      {onLogoVariant && (
+        <div className="doc-ribbon-group">
+          <select
+            className="doc-ribbon-select"
+            value={logoVariant ?? "auto"}
+            onChange={(e) => onLogoVariant(e.target.value as LogoVariant)}
+            title={ar ? "شكل الشعار" : "Logo variant"}
+          >
+            <option value="auto">{ar ? "الشعار: تلقائي" : "Logo: auto"}</option>
+            <option value="dark">{ar ? "الشعار: أصلي" : "Logo: original"}</option>
+            <option value="light">{ar ? "الشعار: أبيض" : "Logo: white"}</option>
+          </select>
+        </div>
+      )}
+
+      {actions && <div className="doc-ribbon-actions">{actions}</div>}
     </div>
   );
 }
 
-function RBtn({ children, onClick, active, title }: { children: React.ReactNode; onClick: () => void; active?: boolean; title?: string }) {
+function RBtn({ children, onClick, active, title, danger }: { children: React.ReactNode; onClick: () => void; active?: boolean; title?: string; danger?: boolean }) {
   return (
-    <button type="button" className={`doc-ribbon-btn${active ? " is-active" : ""}`} onClick={onClick} title={title}>
+    <button type="button" className={`doc-ribbon-btn${active ? " is-active" : ""}${danger ? " is-danger" : ""}`} onClick={onClick} title={title}>
       {children}
     </button>
   );
