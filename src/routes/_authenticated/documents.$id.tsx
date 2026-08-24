@@ -530,7 +530,10 @@ function ItemsEditor({
 
 function PaperPreview({ children }: { children: React.ReactNode }) {
   const [width, setWidth] = useState(0);
+  const [paperHeight, setPaperHeight] = useState(1123);
   const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const [inner, setInner] = useState<HTMLDivElement | null>(null);
+
   useEffect(() => {
     if (!el) return;
     const ro = new ResizeObserver(() => setWidth(el.clientWidth));
@@ -538,11 +541,25 @@ function PaperPreview({ children }: { children: React.ReactNode }) {
     setWidth(el.clientWidth);
     return () => ro.disconnect();
   }, [el]);
+
+  // The paper grows past one A4 page as content is added — track its real
+  // height so the scaled wrapper never clips the bottom of the document.
+  useEffect(() => {
+    if (!inner) return;
+    const ro = new ResizeObserver(() => setPaperHeight(Math.max(1123, inner.scrollHeight)));
+    ro.observe(inner);
+    setPaperHeight(Math.max(1123, inner.scrollHeight));
+    return () => ro.disconnect();
+  }, [inner]);
+
   const scale = width > 0 ? Math.min(1, width / 794) : 1;
   return (
     <div ref={setEl} style={{ width: "100%", overflow: "hidden" }}>
-      <div style={{ height: 1123 * scale, position: "relative" }}>
-        <div style={{ position: "absolute", inset: 0, transform: `scale(${scale})`, transformOrigin: "top left", width: 794 }}>
+      <div style={{ height: paperHeight * scale, position: "relative" }}>
+        <div
+          ref={setInner}
+          style={{ position: "absolute", top: 0, insetInlineStart: 0, transform: `scale(${scale})`, transformOrigin: "top left", width: 794 }}
+        >
           {children}
         </div>
       </div>
