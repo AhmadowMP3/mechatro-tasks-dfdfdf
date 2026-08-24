@@ -335,6 +335,30 @@ async function renderHtmlToPdfBlob(
     void idx;
   });
 
+  // 3. QR stamp — bottom-left of the LAST page only, just above the footer.
+  if (prepared) {
+    pdf.setPage(pdfPageCount);
+    const qrPt = 62;
+    const footerPt = FOOTER_H * pxToPt;
+    const x = SIDE_PAD * pxToPt;
+    const y = pageH - footerPt - 8 - qrPt;
+    pdf.setFillColor(255, 255, 255);
+    pdf.roundedRect(x - 3, y - 3, qrPt + 6, qrPt + 6, 4, 4, "F");
+    pdf.addImage(prepared.qrDataUrl, "PNG", x, y, qrPt, qrPt, undefined, "FAST");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(148, 163, 184);
+    pdf.text("Scan for a read-only copy", x + qrPt + 8, y + qrPt / 2, { align: "left" });
+
+    void saveSharePayload(prepared.token, {
+      html: inlined + qrStampHtml(prepared.qrDataUrl, "en").replace("position:absolute;left:34px;bottom:16px;", "position:relative;margin:18px 0 0 34px;"),
+      css: PDF_STYLE,
+      width: A4_W,
+      background: "#081320",
+      color: "#E6EEF7",
+      title: filename,
+    });
+  }
+
   const blob = pdf.output("blob");
   void filename;
   return { blob, pageCount: pdfPageCount };
