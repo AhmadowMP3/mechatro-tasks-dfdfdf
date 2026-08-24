@@ -39,7 +39,10 @@ function createMeasurer(lang: DocLang): Measurer {
     `width:${BODY_WIDTH}px`,
     "visibility:hidden",
     "pointer-events:none",
-    "contain:layout size style",
+    // NOTE: never use `contain: size` here — it makes the host height 0 and
+    // every measurement comes back empty.
+    "contain:layout style",
+    "height:auto",
     "font-size:12.5px",
     "line-height:1.7",
     `direction:${lang === "ar" ? "rtl" : "ltr"}`,
@@ -52,7 +55,8 @@ function createMeasurer(lang: DocLang): Measurer {
   return {
     measure(node) {
       flushSync(() => root.render(node as React.ReactElement));
-      return Math.ceil(host.getBoundingClientRect().height);
+      const rect = host.getBoundingClientRect().height;
+      return Math.ceil(Math.max(rect, host.scrollHeight));
     },
     destroy() {
       // Unmount asynchronously — React forbids unmounting while rendering.
@@ -76,6 +80,7 @@ function sliceBlock(block: DocBlock, from: number, to: number, isLast: boolean):
     return {
       ...block,
       rows: block.rows.slice(from, to),
+      startIndex: from,
       titleAr: from === 0 ? block.titleAr : "",
       titleEn: from === 0 ? block.titleEn : "",
       showTotals: isLast ? block.showTotals : false,

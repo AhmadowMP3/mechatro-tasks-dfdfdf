@@ -179,7 +179,7 @@ function BlockView({ block, ar, c, currency }: { block: DocBlock; ar: boolean; c
             <tbody>
               {t.lines.map((l, i) => (
                 <tr key={l.row.id} style={{ background: i % 2 ? c.zebra : "transparent" }}>
-                  <Td c={c}>{i + 1}</Td>
+                  <Td c={c}>{(block.startIndex ?? 0) + i + 1}</Td>
                   <Td c={c}>{(ar ? l.row.descAr : l.row.descEn) || "—"}</Td>
                   {block.showUnit && <Td c={c}>{ar ? l.row.unitAr : l.row.unitEn}</Td>}
                   {block.showQty && <Td c={c} ltr>{l.row.qty}</Td>}

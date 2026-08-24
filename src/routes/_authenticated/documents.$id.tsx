@@ -40,6 +40,7 @@ function DocumentEditorPage() {
   const ar = lang === "ar";
   const isMobile = useIsMobile();
   const [tab, setTab] = useState<"edit" | "preview">("edit");
+  const [pageCount, setPageCount] = useState(1);
 
   const [doc, setDoc] = useState<BusinessDoc | null>(null);
   const [tpl, setTpl] = useState<DocTemplate | null>(null);
@@ -324,7 +325,9 @@ function DocumentEditorPage() {
           }}
         >
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12.5, color: "var(--muted-foreground)" }}>{ar ? "معاينة A4" : "A4 preview"}</span>
+            <span style={{ fontSize: 12.5, color: "var(--muted-foreground)" }}>
+              {ar ? "معاينة A4" : "A4 preview"} · {ar ? `${pageCount} صفحة` : `${pageCount} page${pageCount === 1 ? "" : "s"}`}
+            </span>
             <div style={{ marginInlineStart: "auto", display: "flex", gap: 6 }}>
               <MiniToggle active={doc.theme === "light"} onClick={() => patch({ theme: "light" })} label={<Sun size={14} />} />
               <MiniToggle active={doc.theme === "dark"} onClick={() => patch({ theme: "dark" })} label={<Moon size={14} />} />
@@ -334,6 +337,8 @@ function DocumentEditorPage() {
           </div>
           <PaperPreview>
             <PaginatedDoc
+              labels
+              onPages={setPageCount}
               input={{
                 header,
                 footer,

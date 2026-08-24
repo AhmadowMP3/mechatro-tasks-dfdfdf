@@ -35,6 +35,8 @@ export type ItemsBlock = {
   showQty: boolean;
   showPrice: boolean;
   showTotals: boolean;
+  /** Set by the paginator on sliced continuations so row numbers keep counting. */
+  startIndex?: number;
   taxRate: number;      // %
   discount: number;     // absolute, on subtotal
   shipping: number;
