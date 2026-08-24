@@ -22,7 +22,7 @@ export type DocRenderInput = {
   meta: { number: string; date: string; validUntil?: string; client?: string };
   title: string;
   /** Optional pre-computed page split (same one the PDF uses). */
-  pages?: { showClientBox: boolean; blocks: DocBlock[] }[];
+  pages?: { showClientBox: boolean; blocks: DocBlock[]; html?: string }[];
 };
 
 type Palette = { bg: string; surface: string; ink: string; muted: string; border: string; zebra: string };
@@ -103,7 +103,7 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
         .map((p, i) => {
           const inner =
             (i > 0 && p.showClientBox ? renderClientBox(client, ar, c) : "") +
-            p.blocks.map((b) => renderBlock(b, ar, c, currency)).join("");
+            (typeof p.html === "string" ? p.html : p.blocks.map((b) => renderBlock(b, ar, c, currency)).join(""));
           return i === 0 ? inner : `<div class="pb">${inner}</div>`;
         })
         .join("")
