@@ -1,5 +1,21 @@
 import "./lib/error-capture";
 
+import {
+  SELF_HOSTED_SUPABASE_PROJECT_ID,
+  SELF_HOSTED_SUPABASE_PUBLISHABLE_KEY,
+  SELF_HOSTED_SUPABASE_URL,
+} from "./lib/backend-config";
+
+// Pin SSR + server functions to the self-hosted backend, whatever the host injects.
+try {
+  process.env.SUPABASE_URL = SELF_HOSTED_SUPABASE_URL;
+  process.env.SUPABASE_PUBLISHABLE_KEY = SELF_HOSTED_SUPABASE_PUBLISHABLE_KEY;
+  process.env.SUPABASE_PROJECT_ID = SELF_HOSTED_SUPABASE_PROJECT_ID;
+} catch {
+  /* read-only env in some runtimes — build-time VITE_* values still apply */
+}
+
+
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
