@@ -53,7 +53,7 @@ export function emptyItemRow(): ItemRow {
 }
 
 export function defaultModel(): DocModel {
-  return { version: 2, showClientBox: true, html: "" };
+  return { version: 2, showClientBox: true, html: "", logoVariant: "auto" };
 }
 
 /** Merge a stored blob over the default so older documents keep working. */
@@ -62,10 +62,12 @@ export function mergeModel(raw: unknown): DocModel {
   const r = raw as Partial<DocModel> & { blocks?: unknown };
   const html = typeof r.html === "string" ? r.html : "";
   const blocks = Array.isArray(r.blocks) ? (r.blocks.filter(Boolean) as unknown[]) : undefined;
+  const variant: LogoVariant = r.logoVariant === "light" || r.logoVariant === "dark" ? r.logoVariant : "auto";
   return {
     version: 2,
     showClientBox: r.showClientBox !== false,
     html,
+    logoVariant: variant,
     ...(blocks && blocks.length > 0 ? { blocks } : {}),
   };
 }
