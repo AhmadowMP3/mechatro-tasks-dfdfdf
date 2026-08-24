@@ -23,3 +23,13 @@ Single file that brings the self-hosted database fully up to date:
 6. Verification queries at the end — sections (a) and (b) must return **0 rows**; (c) lists current balances; (d) must list the 4 business-doc tables.
 
 Everything except the verification queries runs inside a single transaction.
+
+## `2026-08-24-missing-tables-check.sql`
+
+Compares the self-hosted `public` schema against the 50 tables the app expects and
+creates the only one that was missing: `backup_error_log` (backup / Google Drive
+sync error log, master-admin read + delete, RLS enabled). Idempotent — safe to
+re-run; creates nothing else and never touches existing rows.
+
+Run order: (1) pre-check lists missing tables, (2) creation block,
+(3) post-check must return **0 rows**, (4) `notify pgrst, 'reload schema'`.
