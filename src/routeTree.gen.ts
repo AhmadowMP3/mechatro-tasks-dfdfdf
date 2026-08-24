@@ -33,6 +33,7 @@ import { Route as ShareTokenIndexRouteImport } from './routes/share.$token.index
 import { Route as AuthenticatedTeamIndexRouteImport } from './routes/_authenticated/team.index'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedFinanceIndexRouteImport } from './routes/_authenticated/finance.index'
+import { Route as AuthenticatedDocumentsIndexRouteImport } from './routes/_authenticated/documents.index'
 import { Route as ShareTokenPageRouteImport } from './routes/share.$token.$page'
 import { Route as AuthenticatedTeamIdRouteImport } from './routes/_authenticated/team.$id'
 import { Route as AuthenticatedReportsHistoryCompareRouteImport } from './routes/_authenticated/reports-history_.compare'
@@ -44,6 +45,7 @@ import { Route as AuthenticatedFinancePayrollRouteImport } from './routes/_authe
 import { Route as AuthenticatedFinanceIncomeRouteImport } from './routes/_authenticated/finance.income'
 import { Route as AuthenticatedFinanceExpensesRouteImport } from './routes/_authenticated/finance.expenses'
 import { Route as AuthenticatedFinanceCustomersRouteImport } from './routes/_authenticated/finance.customers'
+import { Route as AuthenticatedDocumentsIdRouteImport } from './routes/_authenticated/documents.$id'
 import { Route as AuthenticatedFinanceInvoicesIndexRouteImport } from './routes/_authenticated/finance.invoices.index'
 import { Route as ApiPublicHooksBackupAutoApproveRouteImport } from './routes/api/public/hooks/backup-auto-approve'
 import { Route as ApiPublicGoogleDriveCallbackRouteImport } from './routes/api/public/google/drive-callback'
@@ -174,6 +176,12 @@ const AuthenticatedFinanceIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedFinanceRoute,
   } as any)
+const AuthenticatedDocumentsIndexRoute =
+  AuthenticatedDocumentsIndexRouteImport.update({
+    id: '/documents/',
+    path: '/documents/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ShareTokenPageRoute = ShareTokenPageRouteImport.update({
   id: '/$page',
   path: '/$page',
@@ -237,6 +245,12 @@ const AuthenticatedFinanceCustomersRoute =
     path: '/customers',
     getParentRoute: () => AuthenticatedFinanceRoute,
   } as any)
+const AuthenticatedDocumentsIdRoute =
+  AuthenticatedDocumentsIdRouteImport.update({
+    id: '/documents/$id',
+    path: '/documents/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFinanceInvoicesIndexRoute =
   AuthenticatedFinanceInvoicesIndexRouteImport.update({
     id: '/invoices/',
@@ -282,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/share/$token': typeof ShareTokenRouteWithChildren
+  '/documents/$id': typeof AuthenticatedDocumentsIdRoute
   '/finance/customers': typeof AuthenticatedFinanceCustomersRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/finance/income': typeof AuthenticatedFinanceIncomeRoute
@@ -293,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/team/$id': typeof AuthenticatedTeamIdRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/documents/': typeof AuthenticatedDocumentsIndexRoute
   '/finance/': typeof AuthenticatedFinanceIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/team/': typeof AuthenticatedTeamIndexRoute
@@ -319,6 +335,7 @@ export interface FileRoutesByTo {
   '/share-links': typeof AuthenticatedShareLinksRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/': typeof AuthenticatedIndexRoute
+  '/documents/$id': typeof AuthenticatedDocumentsIdRoute
   '/finance/customers': typeof AuthenticatedFinanceCustomersRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/finance/income': typeof AuthenticatedFinanceIncomeRoute
@@ -330,6 +347,7 @@ export interface FileRoutesByTo {
   '/reports-history/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/team/$id': typeof AuthenticatedTeamIdRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/documents': typeof AuthenticatedDocumentsIndexRoute
   '/finance': typeof AuthenticatedFinanceIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/team': typeof AuthenticatedTeamIndexRoute
@@ -361,6 +379,7 @@ export interface FileRoutesById {
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/share/$token': typeof ShareTokenRouteWithChildren
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/documents/$id': typeof AuthenticatedDocumentsIdRoute
   '/_authenticated/finance/customers': typeof AuthenticatedFinanceCustomersRoute
   '/_authenticated/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/_authenticated/finance/income': typeof AuthenticatedFinanceIncomeRoute
@@ -372,6 +391,7 @@ export interface FileRoutesById {
   '/_authenticated/reports-history_/compare': typeof AuthenticatedReportsHistoryCompareRoute
   '/_authenticated/team/$id': typeof AuthenticatedTeamIdRoute
   '/share/$token/$page': typeof ShareTokenPageRoute
+  '/_authenticated/documents/': typeof AuthenticatedDocumentsIndexRoute
   '/_authenticated/finance/': typeof AuthenticatedFinanceIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/team/': typeof AuthenticatedTeamIndexRoute
@@ -403,6 +423,7 @@ export interface FileRouteTypes {
     | '/share-links'
     | '/tasks'
     | '/share/$token'
+    | '/documents/$id'
     | '/finance/customers'
     | '/finance/expenses'
     | '/finance/income'
@@ -414,6 +435,7 @@ export interface FileRouteTypes {
     | '/reports-history/compare'
     | '/team/$id'
     | '/share/$token/$page'
+    | '/documents/'
     | '/finance/'
     | '/projects/'
     | '/team/'
@@ -440,6 +462,7 @@ export interface FileRouteTypes {
     | '/share-links'
     | '/tasks'
     | '/'
+    | '/documents/$id'
     | '/finance/customers'
     | '/finance/expenses'
     | '/finance/income'
@@ -451,6 +474,7 @@ export interface FileRouteTypes {
     | '/reports-history/compare'
     | '/team/$id'
     | '/share/$token/$page'
+    | '/documents'
     | '/finance'
     | '/projects'
     | '/team'
@@ -481,6 +505,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks'
     | '/share/$token'
     | '/_authenticated/'
+    | '/_authenticated/documents/$id'
     | '/_authenticated/finance/customers'
     | '/_authenticated/finance/expenses'
     | '/_authenticated/finance/income'
@@ -492,6 +517,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports-history_/compare'
     | '/_authenticated/team/$id'
     | '/share/$token/$page'
+    | '/_authenticated/documents/'
     | '/_authenticated/finance/'
     | '/_authenticated/projects/'
     | '/_authenticated/team/'
@@ -682,6 +708,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinanceIndexRouteImport
       parentRoute: typeof AuthenticatedFinanceRoute
     }
+    '/_authenticated/documents/': {
+      id: '/_authenticated/documents/'
+      path: '/documents'
+      fullPath: '/documents/'
+      preLoaderRoute: typeof AuthenticatedDocumentsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/share/$token/$page': {
       id: '/share/$token/$page'
       path: '/$page'
@@ -758,6 +791,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/finance/customers'
       preLoaderRoute: typeof AuthenticatedFinanceCustomersRouteImport
       parentRoute: typeof AuthenticatedFinanceRoute
+    }
+    '/_authenticated/documents/$id': {
+      id: '/_authenticated/documents/$id'
+      path: '/documents/$id'
+      fullPath: '/documents/$id'
+      preLoaderRoute: typeof AuthenticatedDocumentsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/finance/invoices/': {
       id: '/_authenticated/finance/invoices/'
@@ -852,8 +892,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedShareLinksRoute: typeof AuthenticatedShareLinksRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedDocumentsIdRoute: typeof AuthenticatedDocumentsIdRoute
   AuthenticatedReportsHistoryCompareRoute: typeof AuthenticatedReportsHistoryCompareRoute
   AuthenticatedTeamIdRoute: typeof AuthenticatedTeamIdRoute
+  AuthenticatedDocumentsIndexRoute: typeof AuthenticatedDocumentsIndexRoute
   AuthenticatedTeamIndexRoute: typeof AuthenticatedTeamIndexRoute
 }
 
@@ -873,9 +915,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedShareLinksRoute: AuthenticatedShareLinksRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedDocumentsIdRoute: AuthenticatedDocumentsIdRoute,
   AuthenticatedReportsHistoryCompareRoute:
     AuthenticatedReportsHistoryCompareRoute,
   AuthenticatedTeamIdRoute: AuthenticatedTeamIdRoute,
+  AuthenticatedDocumentsIndexRoute: AuthenticatedDocumentsIndexRoute,
   AuthenticatedTeamIndexRoute: AuthenticatedTeamIndexRoute,
 }
 
