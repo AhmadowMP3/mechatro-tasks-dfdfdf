@@ -260,7 +260,7 @@ function renderBlock(block: DocBlock, ar: boolean, c: Palette, currency: string)
         ${t.lines
           .map(
             (l, i) =>
-              `<tr${i % 2 ? ` style="background:${c.zebra}"` : ""}>${td(String(i + 1))}${td((ar ? l.row.descAr : l.row.descEn) || "—")}` +
+              `<tr${i % 2 ? ` style="background:${c.zebra}"` : ""}>${td(String((block.startIndex ?? 0) + i + 1))}${td((ar ? l.row.descAr : l.row.descEn) || "—")}` +
               `${block.showUnit ? td(ar ? l.row.unitAr : l.row.unitEn) : ""}` +
               `${block.showQty ? td(String(l.row.qty), { ltr: true }) : ""}` +
               `${block.showPrice ? td(money(l.row.price, ""), { ltr: true }) : ""}` +
