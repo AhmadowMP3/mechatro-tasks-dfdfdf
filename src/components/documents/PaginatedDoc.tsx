@@ -114,8 +114,11 @@ export function DocPages({
 /**
  * Live paginated preview. Falls back to a single elastic sheet until the
  * first measurement pass finishes (one frame), so nothing flashes empty.
+ * `onPages` reports the page count back to the surrounding UI.
  */
-export function PaginatedDoc({ input, bare = false, gap = 18 }: { input: PaginatedDocInput; bare?: boolean; gap?: number }) {
+export function PaginatedDoc({
+  input, bare = false, gap = 18, labels = false, onPages,
+}: { input: PaginatedDocInput; bare?: boolean; gap?: number; labels?: boolean; onPages?: (n: number) => void }) {
   const [pages, setPages] = useState<DocPage[] | null>(null);
   const signature = useMemo(
     () => JSON.stringify([input.model, input.client, input.lang, input.theme, input.currency, input.header, input.footer, input.meta]),
@@ -125,7 +128,9 @@ export function PaginatedDoc({ input, bare = false, gap = 18 }: { input: Paginat
   useEffect(() => {
     let alive = true;
     const t = setTimeout(() => {
-      void paginateDocument(input).then((p) => { if (alive) setPages(p); }).catch(() => { /* keep fallback */ });
+      void paginateDocument(input)
+        .then((p) => { if (alive) { setPages(p); onPages?.(p.length); } })
+        .catch(() => { if (alive) { setPages(null); onPages?.(1); } });
     }, 120);
     return () => { alive = false; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -144,6 +149,22 @@ export function PaginatedDoc({ input, bare = false, gap = 18 }: { input: Paginat
       >
         <DocBody model={input.model} client={input.client} lang={input.lang} theme={input.theme} currency={input.currency} />
       </DocPaper>
+    );
+  }
+
+  if (labels) {
+    const ar = input.lang === "ar";
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap }}>
+        {pages.map((p, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ fontSize: 11.5, color: "var(--muted-foreground)", textAlign: ar ? "right" : "left" }}>
+              {ar ? `صفحة ${i + 1} من ${pages.length}` : `Page ${i + 1} of ${pages.length}`}
+            </div>
+            <DocPages input={input} pages={[p]} bare={bare} pageIndexOffset={i} totalPages={pages.length} />
+          </div>
+        ))}
+      </div>
     );
   }
 
