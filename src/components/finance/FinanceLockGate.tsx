@@ -236,8 +236,34 @@ export function FinanceLockGate({ children }: { children: React.ReactNode }) {
         {busy ? <Loader2 size={17} className="spin" /> : <KeyRound size={17} />}
         {isSetup ? t("create") : t("unlock")}
       </button>
+
+      {!isSetup && (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowHelp((v) => !v)}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--muted-foreground)",
+              cursor: "pointer",
+              fontSize: 13,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              justifySelf: "start",
+              padding: 0,
+            }}
+          >
+            <LifeBuoy size={15} />
+            {ar ? "العبارة لا تُقبل؟" : "Passphrase not accepted?"}
+          </button>
+          {showHelp && <VaultDiagnostics compact />}
+        </>
+      )}
     </form>
   );
 }
+
 
 export default FinanceLockGate;
