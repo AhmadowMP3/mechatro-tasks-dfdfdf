@@ -26,6 +26,7 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedNotesRouteImport } from './routes/_authenticated/notes'
 import { Route as AuthenticatedLeagueRouteImport } from './routes/_authenticated/league'
 import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
+import { Route as AuthenticatedDocTemplatesRouteImport } from './routes/_authenticated/doc-templates'
 import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedAccessControlRouteImport } from './routes/_authenticated/access-control'
 import { Route as ShareTokenIndexRouteImport } from './routes/share.$token.index'
@@ -134,6 +135,12 @@ const AuthenticatedFinanceRoute = AuthenticatedFinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDocTemplatesRoute =
+  AuthenticatedDocTemplatesRouteImport.update({
+    id: '/doc-templates',
+    path: '/doc-templates',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedActivityRoute = AuthenticatedActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
@@ -262,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/access-control': typeof AuthenticatedAccessControlRoute
   '/activity': typeof AuthenticatedActivityRoute
+  '/doc-templates': typeof AuthenticatedDocTemplatesRoute
   '/finance': typeof AuthenticatedFinanceRouteWithChildren
   '/league': typeof AuthenticatedLeagueRoute
   '/notes': typeof AuthenticatedNotesRoute
@@ -300,6 +308,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/access-control': typeof AuthenticatedAccessControlRoute
   '/activity': typeof AuthenticatedActivityRoute
+  '/doc-templates': typeof AuthenticatedDocTemplatesRoute
   '/league': typeof AuthenticatedLeagueRoute
   '/notes': typeof AuthenticatedNotesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
@@ -338,6 +347,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/access-control': typeof AuthenticatedAccessControlRoute
   '/_authenticated/activity': typeof AuthenticatedActivityRoute
+  '/_authenticated/doc-templates': typeof AuthenticatedDocTemplatesRoute
   '/_authenticated/finance': typeof AuthenticatedFinanceRouteWithChildren
   '/_authenticated/league': typeof AuthenticatedLeagueRoute
   '/_authenticated/notes': typeof AuthenticatedNotesRoute
@@ -380,6 +390,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/access-control'
     | '/activity'
+    | '/doc-templates'
     | '/finance'
     | '/league'
     | '/notes'
@@ -418,6 +429,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/access-control'
     | '/activity'
+    | '/doc-templates'
     | '/league'
     | '/notes'
     | '/notifications'
@@ -455,6 +467,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/access-control'
     | '/_authenticated/activity'
+    | '/_authenticated/doc-templates'
     | '/_authenticated/finance'
     | '/_authenticated/league'
     | '/_authenticated/notes'
@@ -618,6 +631,13 @@ declare module '@tanstack/react-router' {
       path: '/finance'
       fullPath: '/finance'
       preLoaderRoute: typeof AuthenticatedFinanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/doc-templates': {
+      id: '/_authenticated/doc-templates'
+      path: '/doc-templates'
+      fullPath: '/doc-templates'
+      preLoaderRoute: typeof AuthenticatedDocTemplatesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/activity': {
@@ -819,6 +839,7 @@ const AuthenticatedProjectsRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessControlRoute: typeof AuthenticatedAccessControlRoute
   AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
+  AuthenticatedDocTemplatesRoute: typeof AuthenticatedDocTemplatesRoute
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRouteWithChildren
   AuthenticatedLeagueRoute: typeof AuthenticatedLeagueRoute
   AuthenticatedNotesRoute: typeof AuthenticatedNotesRoute
@@ -839,6 +860,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessControlRoute: AuthenticatedAccessControlRoute,
   AuthenticatedActivityRoute: AuthenticatedActivityRoute,
+  AuthenticatedDocTemplatesRoute: AuthenticatedDocTemplatesRoute,
   AuthenticatedFinanceRoute: AuthenticatedFinanceRouteWithChildren,
   AuthenticatedLeagueRoute: AuthenticatedLeagueRoute,
   AuthenticatedNotesRoute: AuthenticatedNotesRoute,
