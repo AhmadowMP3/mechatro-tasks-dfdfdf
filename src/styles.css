@@ -1260,11 +1260,79 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   line-height: 1;
 }
 
+.doc-ribbon-btn.is-danger {
+  color: #ef4444;
+}
+.doc-ribbon-btn.is-danger:hover {
+  background: color-mix(in srgb, #ef4444 16%, transparent);
+}
+.doc-ribbon-menu {
+  position: relative;
+}
+.doc-ribbon-menu-list {
+  position: absolute;
+  top: 34px;
+  inset-inline-start: 0;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.32);
+}
+.doc-ribbon-menu-list button {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 12.5px;
+  text-align: start;
+  cursor: pointer;
+}
+.doc-ribbon-menu-list button:hover {
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+}
+.doc-ribbon-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-inline-start: auto;
+}
+.doc-ribbon-actions .btn-primary,
+.doc-ribbon-actions .btn-ghost {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
 .doc-editor-canvas {
   overflow-x: auto;
-  padding: 4px;
+  padding: clamp(6px, 2vw, 18px);
   border-radius: 16px;
   background: color-mix(in srgb, var(--muted) 22%, transparent);
+}
+/* The WYSIWYG sheet: real A4 width with the branded chrome around the body. */
+.doc-editor-paper {
+  width: 794px;
+  margin: 0 auto;
+  box-shadow: 0 18px 44px rgb(0 0 0 / 0.3);
+  border-radius: 6px;
+}
+.doc-editor-paper .ProseMirror {
+  outline: none;
+  min-height: 420px;
+}
+.doc-editor-paper .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: inline-start;
+  height: 0;
+  pointer-events: none;
+  opacity: 0.45;
 }
 .doc-editor-sheet {
   width: 794px;
@@ -1286,6 +1354,7 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   pointer-events: none;
   opacity: 0.45;
 }
+
 
 /* Shared body typography — identical in the editor, preview, PDF and Word. */
 .doc-rich {
