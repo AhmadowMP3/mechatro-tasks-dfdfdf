@@ -18,10 +18,16 @@ type Props = {
   scale?: number;
   /** Drop the on-screen shadow / rounded corners (used by the exporters). */
   bare?: boolean;
+  /**
+   * grow  — one elastic sheet (legacy behaviour), at least A4 tall.
+   * fixed — exactly one A4 page (used by the paginated preview / exporters).
+   * auto  — hug the content (used to measure the header + footer chrome).
+   */
+  sizing?: "grow" | "fixed" | "auto";
   children?: React.ReactNode;
 };
 
-export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, children }: Props) {
+export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", children }: Props) {
   const ar = lang === "ar";
   const c = PAPER[theme];
   const dir = ar ? "rtl" : "ltr";
