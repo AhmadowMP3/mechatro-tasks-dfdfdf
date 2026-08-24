@@ -1,6 +1,6 @@
-// Document content model: an ordered list of blocks stored on
-// business_docs.model. Every block is bilingual so the same document can be
-// rendered AR or EN without re-authoring.
+// Document content model. The body is Word-style rich HTML stored on
+// business_docs.model.html. Legacy block documents keep their raw `blocks`
+// array as an untouched backup; it is converted to HTML once on open.
 
 export type DocClient = {
   nameAr: string;
@@ -25,69 +25,15 @@ export type ItemRow = {
   discount: number; // absolute amount on the line
 };
 
-export type ItemsBlock = {
-  id: string;
-  kind: "items";
-  titleAr: string;
-  titleEn: string;
-  rows: ItemRow[];
-  showUnit: boolean;
-  showQty: boolean;
-  showPrice: boolean;
-  showTotals: boolean;
-  /** Set by the paginator on sliced continuations so row numbers keep counting. */
-  startIndex?: number;
-  taxRate: number;      // %
-  discount: number;     // absolute, on subtotal
-  shipping: number;
-};
-
-export type DocBlock =
-  | { id: string; kind: "heading"; ar: string; en: string }
-  | { id: string; kind: "text"; ar: string; en: string }
-  | {
-      id: string;
-      kind: "keyvalue";
-      titleAr: string;
-      titleEn: string;
-      rows: { id: string; kAr: string; kEn: string; vAr: string; vEn: string }[];
-    }
-  | {
-      id: string;
-      kind: "table";
-      titleAr: string;
-      titleEn: string;
-      headAr: string[];
-      headEn: string[];
-      rows: { id: string; cellsAr: string[]; cellsEn: string[] }[];
-    }
-  | ItemsBlock
-  | { id: string; kind: "terms"; titleAr: string; titleEn: string; ar: string; en: string }
-  | { id: string; kind: "spacer"; size: number }
-  | { id: string; kind: "pagebreak" };
-
 export type DocModel = {
-  /** 1 = legacy blocks · 2 = Word-style rich HTML body. */
-  version: 1 | 2;
+  /** Always 2 — Word-style rich HTML body. */
+  version: 2;
   showClientBox: boolean;
-  /** Legacy blocks — kept as a backup after the v2 conversion. */
-  blocks: DocBlock[];
-  /** Rich body HTML (v2). */
-  html?: string;
+  /** Rich body HTML. */
+  html: string;
+  /** Legacy blocks of pre-Word documents, kept only as a backup. */
+  blocks?: unknown[];
 };
-
-export type BlockKind = DocBlock["kind"];
-
-export const BLOCK_LABELS: { kind: BlockKind; ar: string; en: string }[] = [
-  { kind: "heading", ar: "عنوان فرعي", en: "Heading" },
-  { kind: "text", ar: "نص", en: "Text" },
-  { kind: "items", ar: "جدول بنود (حساب تلقائي)", en: "Items table (auto totals)" },
-  { kind: "table", ar: "جدول حر", en: "Free table" },
-  { kind: "keyvalue", ar: "بيانات (مفتاح/قيمة)", en: "Key / value list" },
-  { kind: "terms", ar: "الشروط والأحكام", en: "Terms & conditions" },
-  { kind: "spacer", ar: "مسافة", en: "Spacer" },
-  { kind: "pagebreak", ar: "فاصل صفحة", en: "Page break" },
-];
 
 export function uid(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -101,76 +47,35 @@ export function emptyItemRow(): ItemRow {
   return { id: uid(), descAr: "", descEn: "", unitAr: "", unitEn: "", qty: 1, price: 0, discount: 0 };
 }
 
-export function newBlock(kind: BlockKind): DocBlock {
-  switch (kind) {
-    case "heading":
-      return { id: uid(), kind, ar: "عنوان", en: "Heading" };
-    case "text":
-      return { id: uid(), kind, ar: "", en: "" };
-    case "keyvalue":
-      return {
-        id: uid(),
-        kind,
-        titleAr: "بيانات",
-        titleEn: "Details",
-        rows: [{ id: uid(), kAr: "", kEn: "", vAr: "", vEn: "" }],
-      };
-    case "table":
-      return {
-        id: uid(),
-        kind,
-        titleAr: "",
-        titleEn: "",
-        headAr: ["العمود ١", "العمود ٢"],
-        headEn: ["Column 1", "Column 2"],
-        rows: [{ id: uid(), cellsAr: ["", ""], cellsEn: ["", ""] }],
-      };
-    case "items":
-      return {
-        id: uid(),
-        kind,
-        titleAr: "البنود",
-        titleEn: "Items",
-        rows: [emptyItemRow()],
-        showUnit: true,
-        showQty: true,
-        showPrice: true,
-        showTotals: true,
-        taxRate: 0,
-        discount: 0,
-        shipping: 0,
-      };
-    case "terms":
-      return { id: uid(), kind, titleAr: "الشروط والأحكام", titleEn: "Terms & Conditions", ar: "", en: "" };
-    case "spacer":
-      return { id: uid(), kind, size: 16 };
-    case "pagebreak":
-      return { id: uid(), kind };
-  }
-}
-
 export function defaultModel(): DocModel {
-  return {
-    version: 2,
-    showClientBox: true,
-    blocks: [newBlock("items"), newBlock("terms")],
-    html: "",
-  };
+  return { version: 2, showClientBox: true, html: "" };
 }
 
 /** Merge a stored blob over the default so older documents keep working. */
 export function mergeModel(raw: unknown): DocModel {
-  const base = { showClientBox: true, blocks: [] as DocBlock[] };
   if (!raw || typeof raw !== "object") return defaultModel();
-  const r = raw as Partial<DocModel>;
-  const blocks = Array.isArray(r.blocks) ? (r.blocks.filter(Boolean) as DocBlock[]) : [];
+  const r = raw as Partial<DocModel> & { blocks?: unknown };
   const html = typeof r.html === "string" ? r.html : "";
-  return { ...base, ...r, version: html.trim() ? 2 : (r.version === 2 ? 2 : 1), blocks, html };
+  const blocks = Array.isArray(r.blocks) ? (r.blocks.filter(Boolean) as unknown[]) : undefined;
+  return {
+    version: 2,
+    showClientBox: r.showClientBox !== false,
+    html,
+    ...(blocks && blocks.length > 0 ? { blocks } : {}),
+  };
 }
 
 export function mergeClient(raw: unknown): DocClient {
   return { ...emptyClient(), ...(raw && typeof raw === "object" ? (raw as Partial<DocClient>) : {}) };
 }
+
+/** Everything the totals calculator needs from an items table. */
+export type ItemsCalcInput = {
+  rows: ItemRow[];
+  taxRate: number;   // %
+  discount: number;  // absolute, on subtotal
+  shipping: number;
+};
 
 export type ItemsTotals = {
   lines: { row: ItemRow; total: number }[];
@@ -182,16 +87,16 @@ export type ItemsTotals = {
   grand: number;
 };
 
-export function computeItems(block: ItemsBlock): ItemsTotals {
-  const lines = block.rows.map((row) => ({
+export function computeItems(data: ItemsCalcInput): ItemsTotals {
+  const lines = (data.rows ?? []).map((row) => ({
     row,
     total: Math.max(0, (Number(row.qty) || 0) * (Number(row.price) || 0) - (Number(row.discount) || 0)),
   }));
   const subtotal = lines.reduce((s, l) => s + l.total, 0);
-  const discount = Number(block.discount) || 0;
+  const discount = Number(data.discount) || 0;
   const taxable = Math.max(0, subtotal - discount);
-  const tax = taxable * ((Number(block.taxRate) || 0) / 100);
-  const shipping = Number(block.shipping) || 0;
+  const tax = taxable * ((Number(data.taxRate) || 0) / 100);
+  const shipping = Number(data.shipping) || 0;
   return { lines, subtotal, discount, taxable, tax, shipping, grand: taxable + tax + shipping };
 }
 

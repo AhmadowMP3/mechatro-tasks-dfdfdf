@@ -8,7 +8,7 @@
 // fully editable there.
 
 import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "./types";
-import { computeItems, money, type DocBlock, type DocClient, type DocModel } from "./model";
+import { type DocClient, type DocModel } from "./model";
 import { loadBrandLogo } from "@/lib/pdf/assets";
 
 export type DocRenderInput = {
@@ -22,7 +22,7 @@ export type DocRenderInput = {
   meta: { number: string; date: string; validUntil?: string; client?: string };
   title: string;
   /** Optional pre-computed page split (same one the PDF uses). */
-  pages?: { showClientBox: boolean; blocks: DocBlock[]; html?: string }[];
+  pages?: { showClientBox: boolean; html?: string }[];
 };
 
 type Palette = { bg: string; surface: string; ink: string; muted: string; border: string; zebra: string };
@@ -35,7 +35,7 @@ const esc = (s: unknown): string =>
 const nl2br = (s: unknown): string => esc(s).replace(/\r?\n/g, "<br/>");
 
 export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
-  const { header, footer, model, client, lang, theme, currency, meta, title } = input;
+  const { header, footer, model, client, lang, theme, meta, title } = input;
   const ar = lang === "ar";
   const c = PAPER[theme];
   const dir = ar ? "rtl" : "ltr";
@@ -103,11 +103,11 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
         .map((p, i) => {
           const inner =
             (i > 0 && p.showClientBox ? renderClientBox(client, ar, c) : "") +
-            (typeof p.html === "string" ? p.html : p.blocks.map((b) => renderBlock(b, ar, c, currency)).join(""));
+            (typeof p.html === "string" ? p.html : "");
           return i === 0 ? inner : `<div class="pb">${inner}</div>`;
         })
         .join("")
-    : model.blocks.map((b) => renderBlock(b, ar, c, currency)).join("");
+    : (model.html ?? "");
 
   const bank = ar ? footer.bankAr : footer.bankEn;
   const signature = ar ? footer.signatureAr : footer.signatureEn;
@@ -199,104 +199,6 @@ function renderClientBox(client: DocClient, ar: boolean, c: Palette): string {
     ${name ? `<tr><td colspan="2" style="font-size:11pt;font-weight:bold">${esc(name)}</td></tr>` : ""}
     ${cells}${closing}
   </table>`;
-}
-
-function renderBlock(block: DocBlock, ar: boolean, c: Palette, currency: string): string {
-  const cellBase = `border:1px solid ${c.border};padding:5px 7px;font-size:9.5pt`;
-  const th = (t: string, w?: number) =>
-    `<th style="${cellBase};background:${c.surface};font-weight:bold;text-align:inherit${w ? `;width:${w}px` : ""}">${esc(t)}</th>`;
-  const td = (t: string, o?: { bold?: boolean; ltr?: boolean; colSpan?: number; end?: boolean }) =>
-    `<td${o?.colSpan ? ` colspan="${o.colSpan}"` : ""} style="${cellBase}${o?.bold ? ";font-weight:bold" : ""}${o?.ltr ? ";direction:ltr" : ""}${o?.end ? ";text-align:end" : ""}">${esc(t)}</td>`;
-
-  switch (block.kind) {
-    case "heading": {
-      const t = ar ? block.ar : block.en;
-      return t ? `<div style="font-size:12.5pt;font-weight:bold;margin:14px 0 4px">${esc(t)}</div>` : "";
-    }
-    case "text": {
-      const t = ar ? block.ar : block.en;
-      return t ? `<div style="font-size:10pt;line-height:1.7;margin:6px 0">${nl2br(t)}</div>` : "";
-    }
-    case "spacer":
-      return `<div style="height:${Math.max(4, block.size)}px">&nbsp;</div>`;
-    case "pagebreak":
-      return `<br clear="all" style="mso-special-character:line-break;page-break-before:always" /><div class="pb"></div>`;
-    case "terms": {
-      const t = ar ? block.ar : block.en;
-      if (!t) return "";
-      return `<table style="width:100%;border-collapse:collapse;border:1px solid ${c.border};margin:12px 0" cellpadding="6"><tr><td>
-        <div style="font-size:10pt;font-weight:bold;margin-bottom:4px">${esc(ar ? block.titleAr : block.titleEn)}</div>
-        <div style="font-size:9pt;color:${c.muted};line-height:1.7">${nl2br(t)}</div>
-      </td></tr></table>`;
-    }
-    case "keyvalue": {
-      const rows = block.rows.filter((r) => (ar ? r.kAr || r.vAr : r.kEn || r.vEn));
-      if (!rows.length) return "";
-      return `${(ar ? block.titleAr : block.titleEn) ? `<div style="font-size:10.5pt;font-weight:bold;margin:12px 0 4px">${esc(ar ? block.titleAr : block.titleEn)}</div>` : ""}
-      <table style="width:100%;border-collapse:collapse;margin-bottom:10px" cellpadding="4">
-        ${rows
-          .map(
-            (r) =>
-              `<tr><td style="font-size:9.5pt;color:${c.muted};border-bottom:1px dashed ${c.border};width:38%">${esc(ar ? r.kAr : r.kEn)}</td>` +
-              `<td style="font-size:9.5pt;font-weight:bold;border-bottom:1px dashed ${c.border}">${esc(ar ? r.vAr : r.vEn)}</td></tr>`,
-          )
-          .join("")}
-      </table>`;
-    }
-    case "table": {
-      const head = ar ? block.headAr : block.headEn;
-      if (!block.rows.length) return "";
-      return `${(ar ? block.titleAr : block.titleEn) ? `<div style="font-size:10.5pt;font-weight:bold;margin:12px 0 4px">${esc(ar ? block.titleAr : block.titleEn)}</div>` : ""}
-      <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-        <tr>${head.map((h) => th(h)).join("")}</tr>
-        ${block.rows
-          .map((r, i) => {
-            const cells = ar ? r.cellsAr : r.cellsEn;
-            return `<tr${i % 2 ? ` style="background:${c.zebra}"` : ""}>${head.map((_, ci) => td(cells[ci] ?? "")).join("")}</tr>`;
-          })
-          .join("")}
-      </table>`;
-    }
-    case "items": {
-      const t = computeItems(block);
-      const cols = 3 + (block.showUnit ? 1 : 0) + (block.showQty ? 1 : 0) + (block.showPrice ? 1 : 0);
-      const sum = (label: string, value: string, bold?: boolean) =>
-        `<tr${bold ? ` style="background:${c.surface}"` : ""}>${td(label, { colSpan: cols - 1, bold, end: true })}${td(value, { bold, ltr: true })}</tr>`;
-      return `${(ar ? block.titleAr : block.titleEn) ? `<div style="font-size:10.5pt;font-weight:bold;margin:12px 0 4px">${esc(ar ? block.titleAr : block.titleEn)}</div>` : ""}
-      <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-        <tr>
-          ${th("#", 28)}${th(ar ? "البيان" : "Description")}
-          ${block.showUnit ? th(ar ? "الوحدة" : "Unit", 60) : ""}
-          ${block.showQty ? th(ar ? "الكمية" : "Qty", 50) : ""}
-          ${block.showPrice ? th(ar ? "سعر الوحدة" : "Unit price", 80) : ""}
-          ${th(ar ? "الإجمالي" : "Total", 90)}
-        </tr>
-        ${t.lines
-          .map(
-            (l, i) =>
-              `<tr${i % 2 ? ` style="background:${c.zebra}"` : ""}>${td(String((block.startIndex ?? 0) + i + 1))}${td((ar ? l.row.descAr : l.row.descEn) || "—")}` +
-              `${block.showUnit ? td(ar ? l.row.unitAr : l.row.unitEn) : ""}` +
-              `${block.showQty ? td(String(l.row.qty), { ltr: true }) : ""}` +
-              `${block.showPrice ? td(money(l.row.price, ""), { ltr: true }) : ""}` +
-              `${td(money(l.total, ""), { ltr: true })}</tr>`,
-          )
-          .join("")}
-        ${
-          block.showTotals
-            ? [
-                sum(ar ? "المجموع" : "Subtotal", money(t.subtotal, currency)),
-                t.discount > 0 ? sum(ar ? "الخصم" : "Discount", `- ${money(t.discount, currency)}`) : "",
-                block.taxRate > 0 ? sum(`${ar ? "الضريبة" : "Tax"} ${block.taxRate}%`, money(t.tax, currency)) : "",
-                t.shipping > 0 ? sum(ar ? "الشحن" : "Shipping", money(t.shipping, currency)) : "",
-                sum(ar ? "الإجمالي النهائي" : "Grand total", money(t.grand, currency), true),
-              ].join("")
-            : ""
-        }
-      </table>`;
-    }
-    default:
-      return "";
-  }
 }
 
 /** Download the Word-compatible document to the user's device. */

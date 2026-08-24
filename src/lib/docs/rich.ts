@@ -86,7 +86,7 @@ function docTotals(html: string, doc: Document | null): { subtotal: number; tax:
   for (const el of tables) {
     const data = readItemsAttr(el.getAttribute("data-items"));
     if (!data) continue;
-    const t = computeItems({ id: "x", kind: "items", startIndex: 0, ...data });
+    const t = computeItems(data);
     subtotal += t.subtotal;
     tax += t.tax;
     grand += t.grand;
@@ -124,7 +124,7 @@ export function writeItemsAttr(data: ItemsData): string {
 export function buildItemsTableHtml(data: ItemsData, ctx: RichCtx, startIndex = 0, showTotals = data.showTotals): string {
   const ar = ctx.lang === "ar";
   const c = PAPER[ctx.theme];
-  const t = computeItems({ id: "x", kind: "items", startIndex, ...data });
+  const t = computeItems(data);
   const cols = 2 + (data.showUnit ? 1 : 0) + (data.showQty ? 1 : 0) + (data.showPrice ? 1 : 0) + 1;
   const th = (label: string, w?: number) =>
     `<th style="border:1px solid ${c.border};padding:6px 8px;font-weight:700;text-align:inherit;background:${c.surface}${w ? `;width:${w}px` : ""}">${esc(label)}</th>`;
@@ -205,4 +205,19 @@ export function resolveDocHtml(html: string, ctx: RichCtx): string {
   });
 
   return root.innerHTML;
+}
+
+/** Seed body for a brand-new document (Word-style HTML). */
+export function starterBodyHtml(opts: { lang: DocLang; termsAr?: string; termsEn?: string }): string {
+  const ar = opts.lang === "ar";
+  const terms = (ar ? opts.termsAr : opts.termsEn) ?? "";
+  const items = `<table data-items="${writeItemsAttr(emptyItemsData())}"></table>`;
+  const termsHtml = terms
+    ? `<h3>${esc(ar ? "الشروط والأحكام" : "Terms & Conditions")}</h3>` +
+      terms
+        .split(/\n{2,}/)
+        .map((p) => `<p style="font-size:11px">${esc(p).replace(/\n/g, "<br/>") || "<br/>"}</p>`)
+        .join("")
+    : "";
+  return `<p><br/></p>${items}<p><br/></p>${termsHtml}`;
 }

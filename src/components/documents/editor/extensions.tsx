@@ -137,7 +137,7 @@ function ItemsTableView({ node, updateAttributes, extension, editor }: NodeViewP
   const opts = extension.options as ItemsTableOptions;
   const ar = opts.lang === "ar";
   const data: ItemsData = mergeItemsData(node.attrs.data);
-  const totals = computeItems({ id: "x", kind: "items", startIndex: 0, ...data });
+  const totals = computeItems(data);
   const editable = editor.isEditable;
 
   const set = (p: Partial<ItemsData>) => updateAttributes({ data: { ...data, ...p } });
