@@ -182,6 +182,142 @@ export type Database = {
         }
         Relationships: []
       }
+      business_doc_revisions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          doc_id: string
+          footer_override: Json | null
+          header_override: Json | null
+          id: string
+          model: Json
+          number: string
+          revision: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          doc_id: string
+          footer_override?: Json | null
+          header_override?: Json | null
+          id?: string
+          model?: Json
+          number: string
+          revision: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          doc_id?: string
+          footer_override?: Json | null
+          header_override?: Json | null
+          id?: string
+          model?: Json
+          number?: string
+          revision?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_doc_revisions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_doc_revisions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_doc_revisions_doc_id_fkey"
+            columns: ["doc_id"]
+            isOneToOne: false
+            referencedRelation: "business_docs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_docs: {
+        Row: {
+          client: Json
+          created_at: string
+          created_by: string | null
+          currency: string
+          doc_type: Database["public"]["Enums"]["business_doc_type"]
+          footer_override: Json | null
+          header_override: Json | null
+          id: string
+          issue_date: string
+          lang: string
+          model: Json
+          number: string
+          revision: number
+          status: Database["public"]["Enums"]["business_doc_status"]
+          theme: string
+          title: string
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          client?: Json
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          doc_type: Database["public"]["Enums"]["business_doc_type"]
+          footer_override?: Json | null
+          header_override?: Json | null
+          id?: string
+          issue_date?: string
+          lang?: string
+          model?: Json
+          number: string
+          revision?: number
+          status?: Database["public"]["Enums"]["business_doc_status"]
+          theme?: string
+          title?: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          client?: Json
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          doc_type?: Database["public"]["Enums"]["business_doc_type"]
+          footer_override?: Json | null
+          header_override?: Json | null
+          id?: string
+          issue_date?: string
+          lang?: string
+          model?: Json
+          number?: string
+          revision?: number
+          status?: Database["public"]["Enums"]["business_doc_status"]
+          theme?: string
+          title?: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_docs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_docs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           active: boolean | null
@@ -232,6 +368,60 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           tax_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      doc_counters: {
+        Row: {
+          doc_type: Database["public"]["Enums"]["business_doc_type"]
+          seq: number
+          year: number
+        }
+        Insert: {
+          doc_type: Database["public"]["Enums"]["business_doc_type"]
+          seq?: number
+          year: number
+        }
+        Update: {
+          doc_type?: Database["public"]["Enums"]["business_doc_type"]
+          seq?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      doc_templates: {
+        Row: {
+          created_at: string
+          defaults: Json
+          doc_type: Database["public"]["Enums"]["business_doc_type"]
+          footer: Json
+          header: Json
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          defaults?: Json
+          doc_type: Database["public"]["Enums"]["business_doc_type"]
+          footer?: Json
+          header?: Json
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          defaults?: Json
+          doc_type?: Database["public"]["Enums"]["business_doc_type"]
+          footer?: Json
+          header?: Json
+          id?: string
+          is_default?: boolean
+          name?: string
           updated_at?: string
         }
         Relationships: []
@@ -2596,6 +2786,10 @@ export type Database = {
         Returns: boolean
       }
       close_ended_seasons: { Args: never; Returns: number }
+      doc_type_prefix: {
+        Args: { _type: Database["public"]["Enums"]["business_doc_type"] }
+        Returns: string
+      }
       find_recovery_account: {
         Args: { p_query: string }
         Returns: {
@@ -2608,6 +2802,10 @@ export type Database = {
       is_note_owner: {
         Args: { _note_id: string; _user_id: string }
         Returns: boolean
+      }
+      next_doc_number: {
+        Args: { _type: Database["public"]["Enums"]["business_doc_type"] }
+        Returns: string
       }
       next_invoice_number: { Args: never; Returns: string }
       next_invoice_seq: { Args: never; Returns: number }
@@ -2625,6 +2823,14 @@ export type Database = {
         | "completed"
         | "failed"
         | "expired"
+      business_doc_status: "draft" | "sent" | "accepted" | "rejected" | "void"
+      business_doc_type:
+        | "quotation"
+        | "rfq"
+        | "offer"
+        | "invoice"
+        | "proforma_invoice"
+        | "purchase_order"
       currency_code: "SYP" | "USD"
       expense_status: "pending" | "paid" | "cancelled"
       invoice_status:
@@ -2785,6 +2991,15 @@ export const Constants = {
         "completed",
         "failed",
         "expired",
+      ],
+      business_doc_status: ["draft", "sent", "accepted", "rejected", "void"],
+      business_doc_type: [
+        "quotation",
+        "rfq",
+        "offer",
+        "invoice",
+        "proforma_invoice",
+        "purchase_order",
       ],
       currency_code: ["SYP", "USD"],
       expense_status: ["pending", "paid", "cancelled"],
