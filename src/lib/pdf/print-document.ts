@@ -15,11 +15,15 @@ export type PrintOptions = {
   title: string;
   /** Document language — sets html[lang] and html[dir]. */
   lang: "ar" | "en";
+  /** Page background (defaults to the app's dark navy). */
+  background?: string;
+  /** Page text color (defaults to the app's light ink). */
+  color?: string;
 };
 
 const A4_WIDTH_PX = 794;
 
-function buildIframeHtml(lang: "ar" | "en", title: string): string {
+function buildIframeHtml(lang: "ar" | "en", title: string, background: string, color: string): string {
   const dir = lang === "ar" ? "rtl" : "ltr";
   // Escape title for safe embedding in HTML.
   const safeTitle = title.replace(/[&<>"']/g, (c) =>
