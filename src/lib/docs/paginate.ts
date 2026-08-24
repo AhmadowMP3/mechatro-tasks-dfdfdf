@@ -68,14 +68,38 @@ function createMeasurer(lang: DocLang): Measurer {
   };
 }
 
-function rowsOf(block: DocBlock): number {
+/** Break a long text body into splittable chunks (paragraphs, then ~180-char
+ *  word-safe pieces) so a huge paragraph can flow onto the next page instead
+ *  of being clipped. */
+function textChunks(text: string): string[] {
+  const out: string[] = [];
+  for (const para of (text ?? "").split(/\n/)) {
+    if (para.length <= 180) { out.push(para); continue; }
+    const words = para.split(/(\s+)/);
+    let buf = "";
+    for (const w of words) {
+      if (buf.length + w.length > 180 && buf.trim()) { out.push(buf); buf = w.trimStart(); }
+      else buf += w;
+    }
+    if (buf.trim()) out.push(buf);
+  }
+  return out.length > 0 ? out : [""];
+}
+
+function langText(block: DocBlock, lang: DocLang): string {
+  if (block.kind === "text" || block.kind === "terms") return (lang === "ar" ? block.ar : block.en) ?? "";
+  return "";
+}
+
+function rowsOf(block: DocBlock, lang: DocLang): number {
   if (block.kind === "items" || block.kind === "table") return block.rows.length;
+  if (block.kind === "text" || block.kind === "terms") return textChunks(langText(block, lang)).length;
   return 0;
 }
 
-/** A row-slice of a table/items block; keeps the title only on the first
+/** A row-slice of a table/items/text block; keeps the title only on the first
  *  slice and the totals only on the last one. */
-function sliceBlock(block: DocBlock, from: number, to: number, isLast: boolean): DocBlock {
+function sliceBlock(block: DocBlock, from: number, to: number, isLast: boolean, lang: DocLang): DocBlock {
   if (block.kind === "items") {
     return {
       ...block,
@@ -94,8 +118,17 @@ function sliceBlock(block: DocBlock, from: number, to: number, isLast: boolean):
       titleEn: from === 0 ? block.titleEn : "",
     };
   }
+  if (block.kind === "text" || block.kind === "terms") {
+    const part = textChunks(langText(block, lang)).slice(from, to).join("\n");
+    const base = lang === "ar" ? { ar: part, en: "" } : { ar: "", en: part };
+    if (block.kind === "terms") {
+      return { ...block, ...base, titleAr: from === 0 ? block.titleAr : "", titleEn: from === 0 ? block.titleEn : "" };
+    }
+    return { ...block, ...base };
+  }
   return block;
 }
+
 
 export type PaginateInput = {
   model: DocModel;
