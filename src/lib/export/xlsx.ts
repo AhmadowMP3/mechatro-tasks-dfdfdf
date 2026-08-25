@@ -5,6 +5,7 @@
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import logoUrl from "@/assets/mechatro-logo.png";
+import logoArUrl from "@/assets/mechatro-logo-ar.png";
 import type { Lang } from "@/i18n/dict";
 import { sanitizeCell } from "@/lib/security/sanitize";
 
@@ -71,13 +72,14 @@ export type XlsxExportOptions<Row> = {
   fileName?: string;
 };
 
-let cachedLogo: ArrayBuffer | null = null;
-async function getLogo(): Promise<ArrayBuffer | null> {
-  if (cachedLogo) return cachedLogo;
+const cachedLogos: { ar: ArrayBuffer | null; en: ArrayBuffer | null } = { ar: null, en: null };
+async function getLogo(lang: "ar" | "en" = "en"): Promise<ArrayBuffer | null> {
+  const key = lang === "ar" ? "ar" : "en";
+  if (cachedLogos[key]) return cachedLogos[key];
   try {
-    const res = await fetch(logoUrl);
+    const res = await fetch(key === "ar" ? logoArUrl : logoUrl);
     const buf = await res.arrayBuffer();
-    cachedLogo = buf;
+    cachedLogos[key] = buf;
     return buf;
   } catch { return null; }
 }
@@ -216,7 +218,7 @@ export async function exportToBrandedXlsx<Row>(opts: XlsxExportOptions<Row>) {
   });
 
   // Logo (top-right / top-left depending on language)
-  const logo = await getLogo();
+  const logo = await getLogo(lang === "ar" ? "ar" : "en");
   if (logo) {
     const imageId = wb.addImage({ buffer: logo, extension: "png" });
     // 120px wide, anchored inside row 1

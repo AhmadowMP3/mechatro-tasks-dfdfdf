@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
-import logo from "@/assets/mechatro-logo.png";
+import { logoFor } from "@/lib/brand/logo";
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
@@ -50,7 +50,7 @@ function ResetPasswordPage() {
         background: "rgba(10,26,43,.85)", border: "1px solid var(--border)",
         display: "flex", flexDirection: "column", gap: 14,
       }}>
-        <img src={logo} alt="Mechatro" style={{ width: 180, alignSelf: "center", marginBottom: 8 }} />
+        <img src={logoFor(lang)} alt="Mechatro" style={{ width: 180, alignSelf: "center", marginBottom: 8 }} />
         <h2 style={{ margin: 0, textAlign: "center" }}>{l ? "كلمة مرور جديدة" : "New password"}</h2>
         <input
           type="password" value={password} onChange={(e) => setPassword(e.target.value)}

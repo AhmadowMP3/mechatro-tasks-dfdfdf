@@ -4,7 +4,7 @@ import { useApp } from "@/lib/app-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar } from "@/components/Avatar";
 import { relativeTime } from "@/lib/format";
-import logo from "@/assets/mechatro-logo.png";
+import { logoFor } from "@/lib/brand/logo";
 
 type SuspenderInfo = {
   id: string;
@@ -86,7 +86,7 @@ export function SuspendedScreen() {
         animation: "floatIn .5s ease-out both",
         textAlign: "center",
       }}>
-        <img src={logo} alt="Mechatro" style={{ height: 28, opacity: .9, marginBottom: 22 }} />
+        <img src={logoFor(lang)} alt="Mechatro" style={{ height: 28, opacity: .9, marginBottom: 22 }} />
 
         <div style={{
           margin: "0 auto 20px", width: 96, height: 96, borderRadius: "50%",

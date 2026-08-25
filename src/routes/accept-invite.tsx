@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-context";
 import { ShieldCheck, User as UserIcon, Sparkles, Lock, Loader2, AlertTriangle } from "lucide-react";
-import logo from "@/assets/mechatro-logo.png";
+import { logoFor } from "@/lib/brand/logo";
 
 const searchSchema = z.object({ token: z.string().catch("").default("") });
 
@@ -176,7 +176,7 @@ function AcceptInvitePage() {
         backdropFilter: "blur(6px)",
       }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 18 }}>
-          <img src={logo} alt="Mechatro" style={{ width: 180, marginBottom: 10 }} />
+          <img src={logoFor(lang)} alt="Mechatro" style={{ width: 180, marginBottom: 10 }} />
           <div style={{
             display: "inline-flex", gap: 6, alignItems: "center",
             fontSize: 12, color: "#F0B429", fontWeight: 800, letterSpacing: 0.5,

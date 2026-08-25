@@ -1,6 +1,10 @@
 import type { ReportData } from "./data";
 import { dict, type Lang } from "@/i18n/dict";
-import logo from "@/assets/mechatro-logo.png";
+import { LOGO_AR, LOGO_EN } from "@/lib/brand/logo";
+
+// Logo used by the templates below; switched per report language at build time.
+let logo: string = LOGO_EN;
+const setBrandLogo = (l: string) => { logo = l === "ar" ? LOGO_AR : LOGO_EN; };
 
 /**
  * Single-style "Dashboard Card" report generator.
@@ -509,6 +513,7 @@ function block(html: string): string {
 
 /** Build the full bilingual (side-by-side AR/EN) member report. */
 export function buildBilingualHtml(data: ReportData): string {
+  setBrandLogo("ar");
   const s = computeStats(data);
   const cover = coverPage(data, s, "en");
   const blocks = [
@@ -526,6 +531,7 @@ export function buildBilingualHtml(data: ReportData): string {
 /** Build a single-language member report (AR or EN only). Uses the same
  *  dashboard-card style; each card body is single-column in the chosen language. */
 export function buildReportHtml(data: ReportData, lang: Lang): string {
+  setBrandLogo(lang);
   const s = computeStats(data);
   const cover = coverPage(data, s, lang);
 

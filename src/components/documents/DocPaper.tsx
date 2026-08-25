@@ -2,7 +2,7 @@
 // document editor + exporters. Renders the branded header band, the body
 // (children), and the footer band, in light or dark theme, AR or EN.
 
-import logo from "@/assets/mechatro-logo.png";
+import { logoFor } from "@/lib/brand/logo";
 import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
 import type { LogoVariant } from "@/lib/docs/model";
@@ -80,7 +80,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
           {/* Brand block */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, overflowWrap: "anywhere", alignItems: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>
             {header.showLogo && (
-              <img src={logo} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", maxWidth: "100%", objectFit: "contain", filter: logoFilter(logoVariant, theme) }} />
+              <img src={logoFor(lang)} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", maxWidth: "100%", objectFit: "contain", filter: logoFilter(logoVariant, theme) }} />
             )}
             {company && <div style={{ fontSize: 12.5, fontWeight: 700, overflowWrap: "anywhere" }}>{company}</div>}
             {address && <div style={{ fontSize: 10.5, color: c.muted, overflowWrap: "anywhere" }}>{address}</div>}

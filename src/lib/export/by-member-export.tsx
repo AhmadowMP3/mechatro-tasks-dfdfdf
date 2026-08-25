@@ -3,7 +3,7 @@
 
 import { printReactDocument } from "@/lib/pdf/print-document";
 import { exportToBrandedXlsx } from "@/lib/export/xlsx";
-import logoUrl from "@/assets/mechatro-logo.png";
+import { logoFor } from "@/lib/brand/logo";
 import type { Lang } from "@/i18n/dict";
 import type { MemberGroup, MemberProject } from "@/components/tasks/MemberBoard";
 
@@ -83,7 +83,7 @@ function ByMemberDocument({ groups, projects, lang, title, subtitle, filtersSumm
           <div style={{ width: 60, height: 5, background: C.blue, borderRadius: 3, marginTop: 8 }} />
         </div>
         <div style={{ textAlign: ar ? "left" : "right", fontSize: 10.5, color: C.muted, lineHeight: 1.7 }}>
-          <img src={logoUrl} alt="Mechatro" style={{ height: 34, objectFit: "contain", marginBottom: 6 }} />
+          <img src={logoFor(lang)} alt="Mechatro" style={{ height: 34, objectFit: "contain", marginBottom: 6 }} />
           <div>{ar ? "أُنشئ" : "Generated"}: {generatedAt}</div>
           {generatedBy && <div>{ar ? "بواسطة" : "By"}: {generatedBy}</div>}
         </div>

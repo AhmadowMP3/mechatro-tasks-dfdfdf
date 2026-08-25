@@ -9,7 +9,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { fetchPublicShare, type PublicShareRow } from "@/lib/share/public-share";
-import logo from "@/assets/mechatro-logo.png";
+import { logoFor } from "@/lib/brand/logo";
 
 export const Route = createFileRoute("/v/$token")({
   ssr: false,
@@ -278,7 +278,7 @@ function PublicDocView() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <img src={logo} alt="Mechatro" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} />
+          <img src={logoFor(lang)} alt="Mechatro" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 800 }}>mechatro</div>
             <div style={{ fontSize: 11, color: "#94A3B8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

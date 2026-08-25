@@ -42,7 +42,7 @@ export async function buildDocWordHtml(input: DocRenderInput): Promise<string> {
   const dir = ar ? "rtl" : "ltr";
   const align = ar ? "right" : "left";
   const opp = ar ? "left" : "right";
-  const logo = header.showLogo ? await loadBrandLogo() : null;
+  const logo = header.showLogo ? await loadBrandLogo(ar ? "ar" : "en") : null;
   const logoCss = logoFilter(model.logoVariant, theme) ? `;filter:${logoFilter(model.logoVariant, theme)}` : "";
 
   const contactBits = [

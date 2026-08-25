@@ -4,6 +4,7 @@ import type { Lang } from "@/i18n/dict";
 import { supabase } from "@/lib/security/db";
 import montArabic from "@/assets/MontserratArabic-Regular.ttf.asset.json";
 import logoBundledUrl from "@/assets/mechatro-logo.png";
+import logoArBundledUrl from "@/assets/mechatro-logo-ar.png";
 
 
 import { buildKpiSnapshot } from "./snapshot";
@@ -61,7 +62,7 @@ const CONTENT_BOTTOM = A4_H - FOOTER_H - 10; // small gap above footer
 const CONTENT_H = CONTENT_BOTTOM - CONTENT_TOP;
 
 // Cache the logo as a data URL so html2canvas never has to hit the CDN.
-let LOGO_DATA_URL: string | null = null;
+const LOGO_DATA_URLS: { ar: string | null; en: string | null } = { ar: null, en: null };
 async function fetchAsDataUrl(url: string): Promise<string | null> {
   try {
     const resp = await fetch(url);
@@ -77,25 +78,28 @@ async function fetchAsDataUrl(url: string): Promise<string | null> {
     return null;
   }
 }
-async function getLogoDataUrl(): Promise<string | null> {
-  if (LOGO_DATA_URL) return LOGO_DATA_URL;
-  // 1) Try the CDN asset pointer.
-  try {
-    const mod = await import("@/assets/mechatro-logo.png.asset.json");
-    const url = (mod.default as { url: string }).url;
-    const dataUrl = await fetchAsDataUrl(url);
-    if (dataUrl) {
-      LOGO_DATA_URL = dataUrl;
-      return LOGO_DATA_URL;
+async function getLogoDataUrl(variant: "ar" | "en" = "en"): Promise<string | null> {
+  const cached = LOGO_DATA_URLS[variant];
+  if (cached) return cached;
+  // 1) Try the CDN asset pointer (EN logo only — the AR logo is bundled).
+  if (variant === "en") {
+    try {
+      const mod = await import("@/assets/mechatro-logo.png.asset.json");
+      const url = (mod.default as { url: string }).url;
+      const dataUrl = await fetchAsDataUrl(url);
+      if (dataUrl) {
+        LOGO_DATA_URLS.en = dataUrl;
+        return dataUrl;
+      }
+    } catch {
+      // fall through
     }
-  } catch {
-    // fall through
   }
   // 2) Fallback to the Vite-bundled PNG (same-origin, always resolvable).
-  const bundled = await fetchAsDataUrl(logoBundledUrl);
+  const bundled = await fetchAsDataUrl(variant === "ar" ? logoArBundledUrl : logoBundledUrl);
   if (bundled) {
-    LOGO_DATA_URL = bundled;
-    return LOGO_DATA_URL;
+    LOGO_DATA_URLS[variant] = bundled;
+    return bundled;
   }
   return null;
 }
@@ -105,12 +109,11 @@ async function getLogoDataUrl(): Promise<string | null> {
  *  Matches both the CDN URL and the Vite-bundled URL (which may include a
  *  content hash like `mechatro-logo-abc123.png` in production builds). */
 async function inlineLogo(html: string): Promise<string> {
-  const dataUrl = await getLogoDataUrl();
-  if (!dataUrl) return html;
-  return html.replace(
-    /src="([^"]*mechatro-logo[^"]*\.png[^"]*)"/g,
-    `src="${dataUrl}"`
-  );
+  const [enUrl, arUrl] = await Promise.all([getLogoDataUrl("en"), getLogoDataUrl("ar")]);
+  let out = html;
+  if (arUrl) out = out.replace(/src="([^"]*mechatro-logo-ar[^"]*\.png[^"]*)"/g, `src="${arUrl}"`);
+  if (enUrl) out = out.replace(/src="((?![^"]*mechatro-logo-ar)[^"]*mechatro-logo[^"]*\.png[^"]*)"/g, `src="${enUrl}"`);
+  return out;
 }
 
 
@@ -243,6 +246,7 @@ async function renderHtmlToPdfBlob(
   rangeText: string,
   kind: ReportKind = "member",
   share: ShareTarget | null = null,
+  lang: "ar" | "en" = "ar",
 ): Promise<{ blob: Blob; pageCount: number }> {
   const [{ default: html2canvas }, jspdfMod] = await Promise.all([
     import("html2canvas"),
@@ -251,7 +255,7 @@ async function renderHtmlToPdfBlob(
   const JsPDF = (jspdfMod as unknown as { jsPDF: typeof import("jspdf").jsPDF }).jsPDF;
 
   const inlined = await inlineLogo(html);
-  const logoDataUrl = (await getLogoDataUrl()) ?? "";
+  const logoDataUrl = (await getLogoDataUrl(lang)) ?? "";
   const prepared = share ? await prepareShare(share) : null;
 
   const parser = new DOMParser();
@@ -418,7 +422,7 @@ export async function buildMemberReportPdf(
   const rangeText = data.range.from
     ? `${data.range.from.toISOString().slice(0, 10)} — ${(data.range.to ?? new Date()).toISOString().slice(0, 10)}`
     : "All time";
-  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, data.member.full_name, rangeText, "member", { kind: "member_report", refId: `${data.member.id}:${data.range.label}:${choice}`, title: `${data.member.full_name} — ${data.range.label}` });
+  const { blob, pageCount } = await renderHtmlToPdfBlob(html, filename, data.member.full_name, rangeText, "member", { kind: "member_report", refId: `${data.member.id}:${data.range.label}:${choice}`, title: `${data.member.full_name} — ${data.range.label}` }, choice === "en" ? "en" : "ar");
   return { blob, filename, pageCount, data, choice };
 }
 
