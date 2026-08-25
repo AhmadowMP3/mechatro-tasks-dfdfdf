@@ -7,7 +7,7 @@ import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { requireMaster } from "@/lib/route-guards";
 import { docTemplates } from "@/lib/docs/api";
-import { defaultFooter, defaultHeader } from "@/lib/docs/defaults";
+import { BASE_HEADER, defaultFooter, defaultHeader } from "@/lib/docs/defaults";
 import { DOC_TYPES, docTypeLabel, type DocFooter, type DocHeader, type DocLang, type DocTemplate, type DocTheme, type DocType } from "@/lib/docs/types";
 import { DocPaper } from "@/components/documents/DocPaper";
 
