@@ -5,6 +5,7 @@
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import logoUrl from "@/assets/mechatro-logo.png";
+import logoArUrl from "@/assets/mechatro-logo-ar.png";
 import type { Lang } from "@/i18n/dict";
 import { sanitizeCell } from "@/lib/security/sanitize";
 
@@ -34,13 +35,14 @@ export type FinanceSheetSpec = {
   totalsRow?: Record<string, string | number | null | undefined>;
 };
 
-let cachedLogo: ArrayBuffer | null = null;
-async function getLogo(): Promise<ArrayBuffer | null> {
-  if (cachedLogo) return cachedLogo;
+const cachedLogos: { ar: ArrayBuffer | null; en: ArrayBuffer | null } = { ar: null, en: null };
+async function getLogo(lang: "ar" | "en" = "en"): Promise<ArrayBuffer | null> {
+  const key = lang === "ar" ? "ar" : "en";
+  if (cachedLogos[key]) return cachedLogos[key];
   try {
-    const res = await fetch(logoUrl);
+    const res = await fetch(key === "ar" ? logoArUrl : logoUrl);
     const buf = await res.arrayBuffer();
-    cachedLogo = buf;
+    cachedLogos[key] = buf;
     return buf;
   } catch {
     return null;
@@ -67,7 +69,7 @@ export async function exportFinanceWorkbook(
   wb.creator = "Mechatro Finance";
   wb.created = new Date();
 
-  const logo = await getLogo();
+  const logo = await getLogo(lang === "ar" ? "ar" : "en");
   const logoId = logo ? wb.addImage({ buffer: logo, extension: "png" }) : null;
 
   for (const spec of sheets) {

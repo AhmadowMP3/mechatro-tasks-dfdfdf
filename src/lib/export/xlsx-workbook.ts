@@ -9,6 +9,7 @@
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import logoUrl from "@/assets/mechatro-logo.png";
+import logoArUrl from "@/assets/mechatro-logo-ar.png";
 import { supabase } from "@/integrations/supabase/client";
 import { BRAND, STATUS_COLOR, PRIORITY_COLOR } from "./xlsx";
 import type { Lang } from "@/i18n/dict";
@@ -25,9 +26,9 @@ type Task = {
 type Profile = { id: string; full_name: string; role: string; job_title: string | null; total_points: number | null; current_streak: number | null; active: boolean };
 type Project = { id: string; name_ar: string; name_en: string; color: string };
 
-async function fetchLogo(): Promise<ArrayBuffer | null> {
+async function fetchLogo(lang: "ar" | "en" = "en"): Promise<ArrayBuffer | null> {
   try {
-    const r = await fetch(logoUrl);
+    const r = await fetch(lang === "ar" ? logoArUrl : logoUrl);
     return await r.arrayBuffer();
   } catch { return null; }
 }
@@ -176,7 +177,7 @@ export async function exportBrandedWorkbook(opts: WorkbookOptions) {
   wb.creator = "Mechatro Tasks";
   wb.created = new Date();
 
-  const logo = await fetchLogo();
+  const logo = await fetchLogo(lang === "ar" ? "ar" : "en");
   const logoId = logo ? wb.addImage({ buffer: logo, extension: "png" }) : null;
 
   const period = periodLabel ?? (opts.from && opts.to
