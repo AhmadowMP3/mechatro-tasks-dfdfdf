@@ -748,6 +748,7 @@ export type Database = {
           effective_date: string | null
           id: string
           note: string | null
+          sar_per_usd: number | null
           syp_per_usd: number | null
         }
         Insert: {
@@ -756,6 +757,7 @@ export type Database = {
           effective_date?: string | null
           id?: string
           note?: string | null
+          sar_per_usd?: number | null
           syp_per_usd?: number | null
         }
         Update: {
@@ -764,6 +766,7 @@ export type Database = {
           effective_date?: string | null
           id?: string
           note?: string | null
+          sar_per_usd?: number | null
           syp_per_usd?: number | null
         }
         Relationships: []
@@ -2851,7 +2854,7 @@ export type Database = {
         | "invoice"
         | "proforma_invoice"
         | "purchase_order"
-      currency_code: "SYP" | "USD"
+      currency_code: "SYP" | "USD" | "SAR"
       expense_status: "pending" | "paid" | "cancelled"
       invoice_status:
         | "draft"
@@ -3021,7 +3024,7 @@ export const Constants = {
         "proforma_invoice",
         "purchase_order",
       ],
-      currency_code: ["SYP", "USD"],
+      currency_code: ["SYP", "USD", "SAR"],
       expense_status: ["pending", "paid", "cancelled"],
       invoice_status: [
         "draft",
