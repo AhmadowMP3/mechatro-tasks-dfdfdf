@@ -487,16 +487,37 @@ function Area({ label, value, onChange }: { label: string; value: string; onChan
   );
 }
 function Num({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const clamp = (n: number) => Math.max(min, Math.min(max, n));
   return (
     <label style={{ minWidth: 0 }}>
       <span style={labelStyle}>{label}</span>
       <input
-        type="number" style={inputStyle} value={value} min={min} max={max}
-        onChange={(e) => onChange(Math.max(min, Math.min(max, Number(e.target.value) || 0)))}
+        type="number"
+        inputMode="numeric"
+        style={{ ...inputStyle, direction: "ltr", textAlign: "start" }}
+        value={draft ?? String(value)}
+        min={min}
+        max={max}
+        onChange={(e) => {
+          const raw = e.target.value;
+          setDraft(raw);
+          if (raw === "") return;
+          const n = Number(raw);
+          if (Number.isFinite(n) && n >= min && n <= max) onChange(n);
+        }}
+        onBlur={() => {
+          if (draft !== null) {
+            const n = Number(draft);
+            onChange(Number.isFinite(n) && draft !== "" ? clamp(n) : value);
+          }
+          setDraft(null);
+        }}
       />
     </label>
   );
 }
+
 function Color({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <label style={{ minWidth: 0 }}>
