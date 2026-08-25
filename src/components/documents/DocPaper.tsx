@@ -76,7 +76,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
     >
       {/* ── Header band (identical on every template) ───────────── */}
       <div style={{ padding: "24px 40px 12px", flexShrink: 0 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "232px minmax(0, 1fr) 232px", alignItems: "start", justifyItems: "stretch", gap: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "300px minmax(0, 1fr) 300px", alignItems: "start", justifyItems: "stretch", gap: 18 }}>
           {/* Brand block */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, overflowWrap: "anywhere", alignItems: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>
             {header.showLogo && (

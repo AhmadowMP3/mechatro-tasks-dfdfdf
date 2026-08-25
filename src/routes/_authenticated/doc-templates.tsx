@@ -187,7 +187,7 @@ function DocTemplatesPage() {
                 <Toggle label={ar ? "صندوق البيانات" : "Meta box"} value={tpl.header.showMetaBox} onChange={(v) => setHeader({ showMetaBox: v })} />
               </Row>
               <Row>
-                <Num label={ar ? "ارتفاع الشعار" : "Logo height"} value={tpl.header.logoHeight} min={20} max={110} onChange={(v) => setHeader({ logoHeight: v })} />
+                <Num label={ar ? "ارتفاع الشعار" : "Logo height"} value={tpl.header.logoHeight} min={20} max={140} onChange={(v) => setHeader({ logoHeight: v })} />
                 <Pick
                   label={ar ? "محاذاة الشعار" : "Logo align"}
                   value={tpl.header.logoAlign}

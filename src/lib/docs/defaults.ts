@@ -19,7 +19,7 @@ export const OFFICIAL_CONTACT_ROWS: DocFooterRow[] = [
 
 export const BASE_HEADER: DocHeader = {
   showLogo: true,
-  logoHeight: 52,
+  logoHeight: 110,
   logoAlign: "start",
   titleAr: "",
   titleEn: "",
