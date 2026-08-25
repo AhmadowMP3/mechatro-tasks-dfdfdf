@@ -8,7 +8,7 @@ import { useIsCompact } from "@/hooks/use-compact";
 
 import { Sidebar } from "./Sidebar";
 import { MobileTabBar } from "./MobileTabBar";
-import logo from "@/assets/mechatro-logo.png";
+import { logoFor } from "@/lib/brand/logo";
 import { isShareMode, getShareLink } from "@/lib/share-mode";
 import { CommandPalette, openCommandPalette } from "@/lib/command-palette";
 import { GlobalShortcuts } from "@/lib/shortcuts";
@@ -145,7 +145,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
               >
                 <Menu size={20} />
               </button>
-              <img src={logo} alt="Mechatro" style={{ height: 24, flexShrink: 0 }} />
+              <img src={logoFor(lang)} alt="Mechatro" style={{ height: 24, flexShrink: 0 }} />
             </>
           )}
           {shareMode && (

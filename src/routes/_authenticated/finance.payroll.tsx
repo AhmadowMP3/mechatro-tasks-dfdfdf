@@ -502,7 +502,7 @@ function PaySlipModal({ entry, member, onClose }: { entry: PayrollEntry; member:
               <div style={{ fontWeight: 800, fontSize: 20 }}>{lang === "ar" ? (settings?.company_name_ar ?? "ميكاترو") : (settings?.company_name_en ?? "Mechatro")}</div>
               <div style={{ fontSize: 12, opacity: 0.9 }}>{lang === "ar" ? (settings?.company_address_ar ?? "") : (settings?.company_address_en ?? "")}</div>
             </div>
-            <img src="/mechatro-logo.png" alt="logo" style={{ height: 40 }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+            <img src={logoFor(lang)} alt="logo" style={{ height: 40 }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
           </div>
           <h2 style={{ margin: "0 0 4px", fontSize: 22 }}>{t("paySlip")}</h2>
           <div style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>{period && `${monthLabel(period.month, lang)} ${period.year}`}</div>

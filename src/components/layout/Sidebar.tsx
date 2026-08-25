@@ -7,7 +7,7 @@ import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { RoleBadge } from "@/components/Pills";
 import { Avatar } from "@/components/Avatar";
-import logo from "@/assets/mechatro-logo.png";
+import { logoFor } from "@/lib/brand/logo";
 import type { DictKey } from "@/i18n/dict";
 import { isShareMode, getShareLink } from "@/lib/share-mode";
 import { InstallAppButton } from "@/components/InstallAppButton";
@@ -196,7 +196,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             background: "transparent", color: "var(--foreground)", borderRadius: 10, cursor: "pointer", border: "none",
           }}><X size={20} /></button>
         )}
-        <img src={logo} alt="Mechatro" style={{ width: 172, maxWidth: "100%", filter: "drop-shadow(0 2px 8px rgba(0,0,0,.4))" }} />
+        <img src={logoFor(lang)} alt="Mechatro" style={{ width: 172, maxWidth: "100%", filter: "drop-shadow(0 2px 8px rgba(0,0,0,.4))" }} />
         <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, letterSpacing: 0.5 }}>
           {t("appName")}
         </div>
