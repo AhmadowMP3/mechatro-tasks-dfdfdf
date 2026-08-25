@@ -81,21 +81,9 @@ async function fetchAsDataUrl(url: string): Promise<string | null> {
 async function getLogoDataUrl(variant: "ar" | "en" = "en"): Promise<string | null> {
   const cached = LOGO_DATA_URLS[variant];
   if (cached) return cached;
-  // 1) Try the CDN asset pointer (EN logo only — the AR logo is bundled).
-  if (variant === "en") {
-    try {
-      const mod = await import("@/assets/mechatro-logo.png.asset.json");
-      const url = (mod.default as { url: string }).url;
-      const dataUrl = await fetchAsDataUrl(url);
-      if (dataUrl) {
-        LOGO_DATA_URLS.en = dataUrl;
-        return dataUrl;
-      }
-    } catch {
-      // fall through
-    }
-  }
-  // 2) Fallback to the Vite-bundled PNG (same-origin, always resolvable).
+  // Always use the Vite-bundled PNGs so the trimmed (full-height) English
+  // wordmark is used — the CDN copy is the older padded version.
+
   const bundled = await fetchAsDataUrl(variant === "ar" ? logoArBundledUrl : logoBundledUrl);
   if (bundled) {
     LOGO_DATA_URLS[variant] = bundled;
