@@ -275,7 +275,7 @@ async function renderHtmlToPdfBlob(
     ? await renderFragmentToCanvas(headerHtml(memberName, rangeText, logoDataUrl, kind), html2canvas, A4_W)
     : null;
   const footerCanvas = logoDataUrl
-    ? await renderFragmentToCanvas(footerHtml(logoDataUrl), html2canvas, A4_W)
+    ? await renderFragmentToCanvas(footerHtml(logoDataUrl, lang), html2canvas, A4_W)
     : null;
 
   // Render each content block into its own canvas so we know its true height
