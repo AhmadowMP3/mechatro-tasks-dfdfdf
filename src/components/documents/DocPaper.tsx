@@ -206,10 +206,19 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 14, flexWrap: "nowrap", fontSize: 9.5, color: c.muted }}>
           <span style={{ flex: "1 1 auto", minWidth: 0, overflowWrap: "anywhere" }}>{note}</span>
+          {footer.showGeneratedAt && (
+            <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
+              {ar ? "أُنشئ في" : "Generated"}:{" "}
+              <span style={{ direction: "ltr", display: "inline-block" }}>
+                {new Date().toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </span>
+            </span>
+          )}
           <span style={{ direction: "ltr", flexShrink: 0, whiteSpace: "nowrap" }}>
             {footer.showPageNumbers ? (ar ? `الصفحة ${page?.current ?? 1} / ${page?.total ?? 1}` : `Page ${page?.current ?? 1} / ${page?.total ?? 1}`) : ""}
           </span>
         </div>
+
       </div>
 
 
