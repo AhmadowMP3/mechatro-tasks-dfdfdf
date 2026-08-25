@@ -2,7 +2,7 @@
 // document editor + exporters. Renders the branded header band, the body
 // (children), and the footer band, in light or dark theme, AR or EN.
 
-import logo from "@/assets/mechatro-logo.png";
+import { logoFor } from "@/lib/brand/logo";
 import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
 import type { LogoVariant } from "@/lib/docs/model";
