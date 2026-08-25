@@ -187,14 +187,7 @@ function DocTemplatesPage() {
                 <Toggle label={ar ? "صندوق البيانات" : "Meta box"} value={tpl.header.showMetaBox} onChange={(v) => setHeader({ showMetaBox: v })} />
               </Row>
               <Row>
-                <div style={{ display: "grid", gap: 6 }}>
-                  <Num label={ar ? "ارتفاع الشعار" : "Logo height"} value={tpl.header.logoHeight} min={20} max={140} onChange={(v) => setHeader({ logoHeight: v })} />
-                  {tpl.header.logoHeight !== BASE_HEADER.logoHeight && (
-                    <button type="button" className="btn-ghost" style={{ fontSize: 12, padding: "6px 10px" }} onClick={() => setHeader({ logoHeight: BASE_HEADER.logoHeight })}>
-                      {ar ? `استخدام الحجم الافتراضي (${BASE_HEADER.logoHeight}px)` : `Use default size (${BASE_HEADER.logoHeight}px)`}
-                    </button>
-                  )}
-                </div>
+                <Num label={ar ? "ارتفاع الشعار" : "Logo height"} value={tpl.header.logoHeight} min={20} max={140} onChange={(v) => setHeader({ logoHeight: v })} />
                 <Pick
                   label={ar ? "محاذاة الشعار" : "Logo align"}
                   value={tpl.header.logoAlign}
@@ -207,6 +200,19 @@ function DocTemplatesPage() {
                 />
                 <Color label={ar ? "لون التمييز" : "Accent"} value={tpl.header.accent} onChange={(v) => setHeader({ accent: v })} />
               </Row>
+              {tpl.header.logoHeight !== BASE_HEADER.logoHeight && (
+                <div style={{ display: "flex" }}>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    style={{ fontSize: 12, padding: "8px 12px", minHeight: 36, lineHeight: 1.2, whiteSpace: "nowrap" }}
+                    onClick={() => setHeader({ logoHeight: BASE_HEADER.logoHeight })}
+                  >
+                    {ar ? `استخدام الحجم الافتراضي (${BASE_HEADER.logoHeight}px)` : `Use default size (${BASE_HEADER.logoHeight}px)`}
+                  </button>
+                </div>
+              )}
+
               <Row>
                 <Text label={ar ? "العنوان (عربي)" : "Title (AR)"} value={tpl.header.titleAr} onChange={(v) => setHeader({ titleAr: v })} />
                 <Text label={ar ? "العنوان (إنجليزي)" : "Title (EN)"} value={tpl.header.titleEn} onChange={(v) => setHeader({ titleEn: v })} />
