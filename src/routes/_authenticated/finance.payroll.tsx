@@ -23,6 +23,7 @@ import { PayrollSlipDocument, type CompanySettings } from "@/components/finance/
 import { ExportMenu } from "@/components/finance/ExportMenu";
 import { exportFinanceListPdf, exportFinanceListXlsx } from "@/lib/finance-list-export";
 import { useFinancialSettings } from "@/lib/finance-hooks";
+import { logoFor } from "@/lib/brand/logo";
 
 
 export const Route = createFileRoute("/_authenticated/finance/payroll")({
