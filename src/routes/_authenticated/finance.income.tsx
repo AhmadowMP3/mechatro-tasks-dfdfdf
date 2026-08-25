@@ -5,7 +5,7 @@ import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { Plus, Trash2, Pencil, Search } from "lucide-react";
-import { formatMoney, paymentMethodKey, type IncomeEntry, type Currency, type PaymentMethod, type FxRate } from "@/lib/finance";
+import { formatMoney, fxRates, rateToUsd, paymentMethodKey, type IncomeEntry, type Currency, type PaymentMethod, type FxRate } from "@/lib/finance";
 import { PaymentMethodSelect } from "@/components/finance/PaymentMethodSelect";
 import { formatDate } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-dialog";

@@ -8,6 +8,7 @@ import {
   formatMoney, computeInvoiceTotals, lineTotal, invoiceStatusColor, invoiceStatusKey, paymentMethodKey,
   type Invoice, type InvoiceItem, type InvoicePayment, type Customer, type Currency, type PaymentMethod, type FinancialSettings, type FxRate,
 } from "@/lib/finance";
+import { fxRates, rateToUsd } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
 import { Plus, Trash2, Save, Send, Download, DollarSign, ArrowLeft, X, Ban, Receipt } from "lucide-react";
 import { useConfirm } from "@/components/confirm-dialog";
