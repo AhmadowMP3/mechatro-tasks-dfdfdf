@@ -5,7 +5,7 @@ import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { Plus, Trash2, Pencil, Search, Paperclip, Download } from "lucide-react";
-import { formatMoney, paymentMethodKey, type Expense, type ExpenseCategory, type Currency, type PaymentMethod, type ExpenseStatus, type FxRate } from "@/lib/finance";
+import { formatMoney, fxRates, rateToUsd, paymentMethodKey, type Expense, type ExpenseCategory, type Currency, type PaymentMethod, type ExpenseStatus, type FxRate } from "@/lib/finance";
 import { PaymentMethodSelect } from "@/components/finance/PaymentMethodSelect";
 import { formatDate } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -288,7 +288,7 @@ function ExpenseModal({ expense, categories, onClose, onSaved }: { expense: Expe
         if (upErr) throw upErr;
         receipt_path = path;
       }
-      const rate = latestFx ? Number(latestFx.syp_per_usd) : null;
+      const rate = latestFx ? rateToUsd(form.currency, fxRates(latestFx)) : null;
       const payload = {
         ...form,
         category_id: form.category_id || null,
@@ -338,6 +338,7 @@ function ExpenseModal({ expense, categories, onClose, onSaved }: { expense: Expe
               <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as Currency })} style={inp}>
                 <option value="SYP">SYP</option>
                 <option value="USD">USD</option>
+                <option value="SAR">SAR</option>
               </select>
             </Field>
           </div>

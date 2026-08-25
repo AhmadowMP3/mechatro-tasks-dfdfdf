@@ -74,26 +74,60 @@ export function monthLabel(month: number, lang: "ar" | "en"): string {
   return (lang === "ar" ? ar : en)[Math.max(0, Math.min(11, month - 1))];
 }
 
-/** Format money with thousands separators, Arabic-Indic digits when RTL. */
-export function formatMoney(amount: number | string | null | undefined, currency: Currency, lang: "ar" | "en" = "en"): string {
-  const n = typeof amount === "string" ? parseFloat(amount) : (amount ?? 0);
-  const isNegative = n < 0;
-  const abs = Math.abs(n);
-  const parts = abs.toFixed(2).split(".");
-  const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  const raw = `${isNegative ? "-" : ""}${intPart}.${parts[1]}`;
-  const withLocale = raw;
-  const sym = currency === "USD" ? "$" : (lang === "ar" ? "ل.س" : "SYP");
-  return currency === "USD" ? `${sym}${withLocale}` : `${withLocale} ${sym}`;
+/** Fallback peg used when no SAR rate has been stored yet. */
+export const DEFAULT_SAR_PER_USD = 3.75;
+export const DEFAULT_SYP_PER_USD = 15000;
+
+export type FxRates = { sypPerUsd: number; sarPerUsd: number };
+
+/** Normalise a stored fx_rates row (or a bare SYP/USD number) into rate pairs. */
+export function fxRates(source: number | { syp_per_usd?: number | null; sar_per_usd?: number | null } | null | undefined): FxRates {
+  if (typeof source === "number") return { sypPerUsd: source > 0 ? source : DEFAULT_SYP_PER_USD, sarPerUsd: DEFAULT_SAR_PER_USD };
+  const syp = Number(source?.syp_per_usd ?? 0);
+  const sar = Number(source?.sar_per_usd ?? 0);
+  return {
+    sypPerUsd: syp > 0 ? syp : DEFAULT_SYP_PER_USD,
+    sarPerUsd: sar > 0 ? sar : DEFAULT_SAR_PER_USD,
+  };
 }
 
-/** Convert one currency to another using the given SYP/USD rate. Returns the amount unchanged if already in target currency. */
-export function convertAmount(amount: number, fromCurrency: Currency, toCurrency: Currency, sypPerUsd: number): number {
+/** Units of `currency` per 1 USD — stored on invoices / expenses / income. */
+export function rateToUsd(currency: Currency, rates: FxRates): number {
+  if (currency === "USD") return 1;
+  if (currency === "SAR") return rates.sarPerUsd;
+  return rates.sypPerUsd;
+}
+
+/** Split a formatted amount into its numeric part and its currency, so the UI
+ *  can render the Saudi Riyal symbol as an SVG glyph. */
+export function formatMoneyNumber(amount: number | string | null | undefined): string {
+  const n = typeof amount === "string" ? parseFloat(amount) : (amount ?? 0);
+  const safe = Number.isFinite(n) ? n : 0;
+  const isNegative = safe < 0;
+  const parts = Math.abs(safe).toFixed(2).split(".");
+  const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${isNegative ? "-" : ""}${intPart}.${parts[1]}`;
+}
+
+/** Format money with thousands separators and the plain-text currency symbol. */
+export function formatMoney(amount: number | string | null | undefined, currency: Currency, lang: "ar" | "en" = "en"): string {
+  const num = formatMoneyNumber(amount);
+  if (currency === "USD") return `$${num}`;
+  if (currency === "SAR") return `${num} ${lang === "ar" ? "ر.س" : "SAR"}`;
+  return `${num} ${lang === "ar" ? "ل.س" : "SYP"}`;
+}
+
+/** Convert between any two currencies by pivoting through USD. */
+export function convertAmount(
+  amount: number,
+  fromCurrency: Currency,
+  toCurrency: Currency,
+  rates: number | FxRates,
+): number {
   if (fromCurrency === toCurrency) return amount;
-  if (sypPerUsd <= 0) return amount;
-  if (fromCurrency === "USD" && toCurrency === "SYP") return amount * sypPerUsd;
-  if (fromCurrency === "SYP" && toCurrency === "USD") return amount / sypPerUsd;
-  return amount;
+  const r = typeof rates === "number" ? fxRates(rates) : rates;
+  const usd = amount / rateToUsd(fromCurrency, r);
+  return usd * rateToUsd(toCurrency, r);
 }
 
 /** Recompute an invoice line total: (qty * unit_price) - discount. */

@@ -5,7 +5,8 @@ import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { Save, Plus, Trash2, TrendingUp } from "lucide-react";
-import type { FinancialSettings, FxRate } from "@/lib/finance";
+import type { FinancialSettings, FxRate, Currency } from "@/lib/finance";
+import { CURRENCIES, currencyLabel } from "@/lib/currency";
 import { formatDate } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-dialog";
 import { VaultAdminPanel } from "@/components/finance/VaultAdminPanel";
@@ -50,13 +51,14 @@ function FinanceSettingsPage() {
   };
 
   const [newRate, setNewRate] = useState<number>(0);
+  const [newSarRate, setNewSarRate] = useState<number>(3.75);
   const [newRateDate, setNewRateDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [addingRate, setAddingRate] = useState(false);
 
   const addRate = async () => {
     if (newRate <= 0) { toast.error(t("fxRate")); return; }
     setAddingRate(true);
-    const { error } = await supabase.from("fx_rates").upsert({ effective_date: newRateDate, syp_per_usd: newRate }, { onConflict: "effective_date" });
+    const { error } = await supabase.from("fx_rates").upsert({ effective_date: newRateDate, syp_per_usd: newRate, sar_per_usd: newSarRate > 0 ? newSarRate : 3.75 }, { onConflict: "effective_date" });
     setAddingRate(false);
     if (error) { toast.error(error.message); return; }
     toast.success(t("saved"));
@@ -93,9 +95,8 @@ function FinanceSettingsPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <Field label={t("invoicePrefix")}><input value={form.invoice_number_prefix ?? "INV"} onChange={(e) => setForm({ ...form, invoice_number_prefix: e.target.value })} style={inp} /></Field>
           <Field label={t("currency")}>
-            <select value={form.default_currency ?? "SYP"} onChange={(e) => setForm({ ...form, default_currency: e.target.value as "SYP" | "USD" })} style={inp}>
-              <option value="SYP">SYP · ل.س</option>
-              <option value="USD">USD · $</option>
+            <select value={form.default_currency ?? "SYP"} onChange={(e) => setForm({ ...form, default_currency: e.target.value as Currency })} style={inp}>
+              {CURRENCIES.map((c) => <option key={c} value={c}>{currencyLabel(c, lang)}</option>)}
             </select>
           </Field>
         </div>
@@ -116,6 +117,7 @@ function FinanceSettingsPage() {
         <div style={{ display: "flex", gap: 8, alignItems: "end", flexWrap: "wrap", marginBottom: 14, padding: 12, background: "var(--surface-2)", borderRadius: 10 }}>
           <Field label={t("effectiveDate")}><input type="date" value={newRateDate} onChange={(e) => setNewRateDate(e.target.value)} style={inp} /></Field>
           <Field label={t("fxRate") + " (SYP/USD)"}><input type="number" min={0} step="0.01" value={newRate || ""} onChange={(e) => setNewRate(parseFloat(e.target.value) || 0)} style={inp} /></Field>
+          <Field label={t("fxRate") + " (SAR/USD)"}><input type="number" min={0} step="0.01" value={newSarRate || ""} onChange={(e) => setNewSarRate(parseFloat(e.target.value) || 0)} style={inp} /></Field>
           <button onClick={addRate} disabled={addingRate} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
             <Plus size={16} /> {t("updateFxRate")}
           </button>
@@ -128,7 +130,7 @@ function FinanceSettingsPage() {
             {fxRates?.map((r) => (
               <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "var(--surface-2)", borderRadius: 8, border: "1px solid var(--border)" }}>
                 <span style={{ fontSize: 13 }}>{formatDate(r.effective_date, lang)}</span>
-                <span style={{ fontWeight: 700 }}>1 USD = {Number(r.syp_per_usd).toLocaleString()} SYP</span>
+                <span style={{ fontWeight: 700, fontSize: 13 }}>1 USD = {Number(r.syp_per_usd).toLocaleString()} SYP · {Number(r.sar_per_usd ?? 3.75).toLocaleString()} SAR</span>
                 <button onClick={() => removeRate(r.id)} className="brand-btn-sm" style={{ background: "transparent", color: "#F0676A", border: "none", padding: 4 }}>
                   <Trash2 size={13} />
                 </button>

@@ -8,6 +8,7 @@ import {
   formatMoney, computeInvoiceTotals, lineTotal, invoiceStatusColor, invoiceStatusKey, paymentMethodKey,
   type Invoice, type InvoiceItem, type InvoicePayment, type Customer, type Currency, type PaymentMethod, type FinancialSettings, type FxRate,
 } from "@/lib/finance";
+import { fxRates, rateToUsd } from "@/lib/finance";
 import { formatDate } from "@/lib/format";
 import { Plus, Trash2, Save, Send, Download, DollarSign, ArrowLeft, X, Ban, Receipt } from "lucide-react";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -167,7 +168,7 @@ function InvoiceEditorPage() {
     if (items.length === 0 || items.every((it) => !it.description_ar && !it.description_en)) { toast.error(t("addItem")); return; }
     setSaving(true);
     try {
-      const rate = latestFx ? Number(latestFx.syp_per_usd) : null;
+      const rate = latestFx ? rateToUsd(currency, fxRates(latestFx)) : null;
       const invoicePayload = {
         customer_id: customerId,
         issue_date: issueDate,
@@ -341,6 +342,7 @@ function InvoiceEditorPage() {
           <select disabled={!isEditable} value={currency} onChange={(e) => setCurrency(e.target.value as Currency)} style={inp}>
             <option value="SYP">SYP · ل.س</option>
             <option value="USD">USD · $</option>
+            <option value="SAR">SAR · ر.س</option>
           </select>
         </Field>
       </section>

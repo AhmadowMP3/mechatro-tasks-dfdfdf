@@ -146,7 +146,7 @@ function CustomersPage() {
                 {c.phone && <div style={{ display: "flex", alignItems: "center", gap: 6 }}><Phone size={12} /> {c.phone}</div>}
                 {c.tax_number && <div>{t("taxNumber")}: {c.tax_number}</div>}
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 6, background: "var(--surface-2)", width: "fit-content", fontSize: 11 }}>
-                  {c.default_currency === "USD" ? t("usd") : t("syp")}
+                  {c.default_currency === "USD" ? t("usd") : c.default_currency === "SAR" ? t("sar") : t("syp")}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
@@ -223,6 +223,7 @@ function CustomerModal({ customer, onClose, onSaved }: { customer: Customer | nu
               <select value={form.default_currency} onChange={(e) => setForm({ ...form, default_currency: e.target.value as Currency })} style={inp}>
                 <option value="SYP">SYP · ل.س</option>
                 <option value="USD">USD · $</option>
+                <option value="SAR">SAR · ر.س</option>
               </select>
             </Field>
           </div>

@@ -5,7 +5,7 @@ import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { Plus, Trash2, Pencil, Search } from "lucide-react";
-import { formatMoney, paymentMethodKey, type IncomeEntry, type Currency, type PaymentMethod, type FxRate } from "@/lib/finance";
+import { formatMoney, fxRates, rateToUsd, paymentMethodKey, type IncomeEntry, type Currency, type PaymentMethod, type FxRate } from "@/lib/finance";
 import { PaymentMethodSelect } from "@/components/finance/PaymentMethodSelect";
 import { formatDate } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -218,7 +218,7 @@ function IncomeModal({ entry, onClose, onSaved }: { entry: IncomeEntry | null; o
     if (form.amount <= 0) { toast.error(t("amount")); return; }
     if (!form.description_ar && !form.description_en) { toast.error(t("description")); return; }
     setSaving(true);
-    const rate = latestFx ? Number(latestFx.syp_per_usd) : null;
+    const rate = latestFx ? rateToUsd(form.currency, fxRates(latestFx)) : null;
     const payload = {
       ...form,
       category: form.category || null,
@@ -256,6 +256,7 @@ function IncomeModal({ entry, onClose, onSaved }: { entry: IncomeEntry | null; o
               <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as Currency })} style={inp}>
                 <option value="SYP">SYP</option>
                 <option value="USD">USD</option>
+                <option value="SAR">SAR</option>
               </select>
             </Field>
           </div>

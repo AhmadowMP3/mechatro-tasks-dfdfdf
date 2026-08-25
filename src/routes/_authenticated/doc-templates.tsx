@@ -286,7 +286,7 @@ function DocTemplatesPage() {
                 <Pick
                   label={ar ? "العملة" : "Currency"}
                   value={tpl.defaults.currency}
-                  options={[{ v: "USD", l: "USD" }, { v: "SYP", l: ar ? "ل.س" : "SYP" }, { v: "EUR", l: "EUR" }]}
+                  options={[{ v: "USD", l: "USD" }, { v: "SAR", l: ar ? "ر.س" : "SAR" }, { v: "SYP", l: ar ? "ل.س" : "SYP" }, { v: "EUR", l: "EUR" }]}
                   onChange={(v) => { setTpl({ ...tpl, defaults: { ...tpl.defaults, currency: v } }); setDirty(true); }}
                 />
                 <Num

@@ -1010,6 +1010,7 @@ function SalaryRow({ member, current, onSave }: { member: { id: string; full_nam
         <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as Currency })} style={{ ...inp, width: 80 }}>
           <option value="SYP">SYP</option>
           <option value="USD">USD</option>
+          <option value="SAR">SAR</option>
         </select>
       </td>
       <td style={{ ...td, textAlign: "end" }}>
