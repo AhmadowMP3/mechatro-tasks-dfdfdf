@@ -197,15 +197,17 @@ function headerHtml(title: string, rangeText: string, logoDataUrl: string, kind:
 
 /** HTML for the shared page-chrome footer. Rendered once; the page number is
  *  drawn on top as jsPDF text so we don't need one canvas per page. */
-function footerHtml(logoDataUrl: string): string {
-  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${FOOTER_H}px;padding:10px ${SIDE_PAD}px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-top:1px solid #1E3A57;font-size:10px;color:#94A3B8;letter-spacing:.5px;background:#081320">
+function footerHtml(logoDataUrl: string, lang: "ar" | "en" = "en"): string {
+  const tagline = lang === "ar" ? "ميكاترو · حلول الطاقة المبتكرة" : "mechatro · Innovative Energy Solutions";
+  return `<div class="pdf-chrome" style="width:${A4_W}px;height:${FOOTER_H}px;padding:10px ${SIDE_PAD}px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-top:1px solid #1E3A57;font-size:10px;color:#94A3B8;letter-spacing:.5px;background:#081320;direction:${lang === "ar" ? "rtl" : "ltr"}">
     <div style="display:flex;align-items:center;gap:8px">
       <img src="${logoDataUrl}" style="width:20px;height:20px;object-fit:contain;opacity:.9"/>
-      <span>mechatro · Innovative Energy Solutions</span>
+      <span>${tagline}</span>
     </div>
     <div style="width:120px"></div>
   </div>`;
 }
+
 
 function escHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -273,7 +275,7 @@ async function renderHtmlToPdfBlob(
     ? await renderFragmentToCanvas(headerHtml(memberName, rangeText, logoDataUrl, kind), html2canvas, A4_W)
     : null;
   const footerCanvas = logoDataUrl
-    ? await renderFragmentToCanvas(footerHtml(logoDataUrl), html2canvas, A4_W)
+    ? await renderFragmentToCanvas(footerHtml(logoDataUrl, lang), html2canvas, A4_W)
     : null;
 
   // Render each content block into its own canvas so we know its true height

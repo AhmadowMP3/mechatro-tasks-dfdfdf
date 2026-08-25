@@ -114,7 +114,7 @@ function drawFooter(
     ? `${genLabel}: ${formatGeneratedAt(opts.lang)} · ${byLabel} ${who}`
     : `${genLabel}: ${formatGeneratedAt(opts.lang)}`;
 
-  const center = `${BRAND.name} · ${BRAND.nameAr}`;
+  const center = isAr ? BRAND.nameAr : BRAND.name;
   setFont(pdf, center, hasArabicFont, opts.lang);
   const centerW = pdf.getTextWidth(center);
   pdf.text(center, (pageW - centerW) / 2, y + 3);

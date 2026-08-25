@@ -175,28 +175,34 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
           <div style={{ height: 1.5, borderRadius: 2, background: `linear-gradient(90deg, ${footer.accent}00, ${footer.accent}, ${footer.accent}00)`, marginBottom: 8 }} />
         )}
 
-        {/* Official bilingual contact block: EN left · AR right */}
+        {/* Contact block — document language only (AR or EN, never both) */}
         {footer.contactRows.length > 0 && (
           <div style={{ display: "grid", gap: 2.5, marginBottom: 6 }}>
-            {footer.contactRows.map((row, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                  fontSize: 9.5,
-                  color: c.muted,
-                  direction: "ltr",
-                  alignItems: "baseline",
-                }}
-              >
-                <span style={{ textAlign: "left", direction: "ltr", minWidth: 0, overflowWrap: "anywhere", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.en}</span>
-                <span style={{ textAlign: "right", direction: "rtl", minWidth: 0, overflowWrap: "anywhere", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.ar}</span>
-              </div>
-            ))}
+            {footer.contactRows.map((row, i) => {
+              const text = ((ar ? row.ar : row.en) || (ar ? row.en : row.ar) || "").trim();
+              if (!text) return null;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    fontSize: 9.5,
+                    color: c.muted,
+                    direction: dir,
+                    textAlign: align,
+                    minWidth: 0,
+                    overflowWrap: "anywhere",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {text}
+                </div>
+              );
+            })}
           </div>
         )}
+
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 14, flexWrap: "nowrap", fontSize: 9.5, color: c.muted }}>
           <span style={{ flex: "1 1 auto", minWidth: 0, overflowWrap: "anywhere" }}>{note}</span>
