@@ -7,7 +7,7 @@ import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { requireMaster } from "@/lib/route-guards";
 import { docTemplates } from "@/lib/docs/api";
-import { defaultFooter, defaultHeader } from "@/lib/docs/defaults";
+import { BASE_HEADER, defaultFooter, defaultHeader } from "@/lib/docs/defaults";
 import { DOC_TYPES, docTypeLabel, type DocFooter, type DocHeader, type DocLang, type DocTemplate, type DocTheme, type DocType } from "@/lib/docs/types";
 import { DocPaper } from "@/components/documents/DocPaper";
 
@@ -187,7 +187,14 @@ function DocTemplatesPage() {
                 <Toggle label={ar ? "صندوق البيانات" : "Meta box"} value={tpl.header.showMetaBox} onChange={(v) => setHeader({ showMetaBox: v })} />
               </Row>
               <Row>
-                <Num label={ar ? "ارتفاع الشعار" : "Logo height"} value={tpl.header.logoHeight} min={20} max={110} onChange={(v) => setHeader({ logoHeight: v })} />
+                <div style={{ display: "grid", gap: 6 }}>
+                  <Num label={ar ? "ارتفاع الشعار" : "Logo height"} value={tpl.header.logoHeight} min={20} max={140} onChange={(v) => setHeader({ logoHeight: v })} />
+                  {tpl.header.logoHeight !== BASE_HEADER.logoHeight && (
+                    <button type="button" className="btn-ghost" style={{ fontSize: 12, padding: "6px 10px" }} onClick={() => setHeader({ logoHeight: BASE_HEADER.logoHeight })}>
+                      {ar ? `استخدام الحجم الافتراضي (${BASE_HEADER.logoHeight}px)` : `Use default size (${BASE_HEADER.logoHeight}px)`}
+                    </button>
+                  )}
+                </div>
                 <Pick
                   label={ar ? "محاذاة الشعار" : "Logo align"}
                   value={tpl.header.logoAlign}

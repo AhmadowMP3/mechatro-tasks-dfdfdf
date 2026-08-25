@@ -70,10 +70,10 @@ async function drawHeader(pdf: jsPDF, hasArabicFont: boolean, lang: "ar" | "en")
   pdf.line(12, PAGE.marginTop - 4, pageW - 12, PAGE.marginTop - 4);
 
   if (logo?.dataUrl) {
-    const targetH = 14; // mm
+    const targetH = 24; // mm
     const ratio = logo.widthPx / Math.max(1, logo.heightPx);
-    const targetW = Math.min(64, targetH * ratio);
-    pdf.addImage(logo.dataUrl, "PNG", 12, 5, targetW, targetH, undefined, "FAST");
+    const targetW = Math.min(96, targetH * ratio);
+    pdf.addImage(logo.dataUrl, "PNG", 12, 4, targetW, targetH, undefined, "FAST");
   } else {
     pdf.setTextColor(...hexToRgb(BRAND.ink));
     setFont(pdf, "Mechatro", hasArabicFont, lang, "bold");

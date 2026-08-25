@@ -76,12 +76,15 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
     >
       {/* ── Header band (identical on every template) ───────────── */}
       <div style={{ padding: "24px 40px 12px", flexShrink: 0 }}>
+        {/* Logo band — full width so a tall logo never squeezes the title */}
+        {header.showLogo && (
+          <div style={{ display: "flex", justifyContent: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? (ar ? "flex-start" : "flex-end") : (ar ? "flex-end" : "flex-start"), marginBottom: 10 }}>
+            <img src={logoFor(lang)} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", maxWidth: "100%", objectFit: "contain", filter: logoFilter(logoVariant, theme) }} />
+          </div>
+        )}
         <div style={{ display: "grid", gridTemplateColumns: "232px minmax(0, 1fr) 232px", alignItems: "start", justifyItems: "stretch", gap: 18 }}>
           {/* Brand block */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, overflowWrap: "anywhere", alignItems: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>
-            {header.showLogo && (
-              <img src={logoFor(lang)} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", maxWidth: "100%", objectFit: "contain", filter: logoFilter(logoVariant, theme) }} />
-            )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, overflowWrap: "anywhere", alignItems: "flex-start" }}>
             {company && <div style={{ fontSize: 12.5, fontWeight: 700, overflowWrap: "anywhere" }}>{company}</div>}
             {address && <div style={{ fontSize: 10.5, color: c.muted, overflowWrap: "anywhere" }}>{address}</div>}
             {contactBits.length > 0 && (
@@ -90,6 +93,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
               </div>
             )}
           </div>
+
 
           {/* Centered document title */}
           <div style={{ textAlign: "center", paddingTop: 6, minWidth: 0 }}>

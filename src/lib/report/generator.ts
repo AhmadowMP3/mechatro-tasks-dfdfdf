@@ -53,7 +53,7 @@ const PDF_STYLE = `
 const A4_W = 794;
 const A4_H = 1123;
 // Page chrome sizes reserved at top and bottom of each content page.
-const HEADER_H = 74; // px, includes hairline
+const HEADER_H = 104; // px, includes hairline
 const FOOTER_H = 42; // px, includes hairline
 const SIDE_PAD = 44; // px, matches .pdf-block width offset
 const CONTENT_W = A4_W - SIDE_PAD * 2; // 706
@@ -181,7 +181,7 @@ function headerHtml(title: string, rangeText: string, logoDataUrl: string, kind:
   const label = REPORT_LABELS[kind];
   return `<div class="pdf-chrome" style="width:${A4_W}px;height:${HEADER_H}px;padding:14px ${SIDE_PAD}px 10px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-bottom:1px solid #1E3A57;background:#081320">
     <div style="display:flex;align-items:center;gap:12px">
-      <img src="${logoDataUrl}" style="height:32px;object-fit:contain"/>
+      <img src="${logoDataUrl}" style="height:56px;object-fit:contain"/>
       <div style="border-left:2px solid #1E3A57;padding-left:12px">
         <div style="font-size:10.5px;font-weight:900;letter-spacing:2px;color:#E6EEF7;text-transform:uppercase">${escHtml(label.en)}</div>
         <div dir="rtl" style="font-size:10px;color:#94A3B8;margin-top:2px;font-family:'Montserrat Arabic','Cairo',sans-serif">${escHtml(label.ar)}</div>
@@ -200,7 +200,7 @@ function headerHtml(title: string, rangeText: string, logoDataUrl: string, kind:
 function footerHtml(logoDataUrl: string): string {
   return `<div class="pdf-chrome" style="width:${A4_W}px;height:${FOOTER_H}px;padding:10px ${SIDE_PAD}px;display:flex;justify-content:space-between;align-items:center;font-family:'Montserrat','Montserrat Arabic',sans-serif;border-top:1px solid #1E3A57;font-size:10px;color:#94A3B8;letter-spacing:.5px;background:#081320">
     <div style="display:flex;align-items:center;gap:8px">
-      <img src="${logoDataUrl}" style="width:14px;height:14px;object-fit:contain;opacity:.9"/>
+      <img src="${logoDataUrl}" style="width:20px;height:20px;object-fit:contain;opacity:.9"/>
       <span>mechatro · Innovative Energy Solutions</span>
     </div>
     <div style="width:120px"></div>
