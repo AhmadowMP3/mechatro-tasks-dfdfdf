@@ -288,7 +288,7 @@ function ExpenseModal({ expense, categories, onClose, onSaved }: { expense: Expe
         if (upErr) throw upErr;
         receipt_path = path;
       }
-      const rate = latestFx ? Number(latestFx.syp_per_usd) : null;
+      const rate = latestFx ? rateToUsd(form.currency, fxRates(latestFx)) : null;
       const payload = {
         ...form,
         category_id: form.category_id || null,
@@ -338,6 +338,7 @@ function ExpenseModal({ expense, categories, onClose, onSaved }: { expense: Expe
               <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as Currency })} style={inp}>
                 <option value="SYP">SYP</option>
                 <option value="USD">USD</option>
+                <option value="SAR">SAR</option>
               </select>
             </Field>
           </div>

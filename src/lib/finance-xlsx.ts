@@ -56,7 +56,9 @@ function stamp(): string {
 }
 
 function moneyFmt(currency: string): string {
-  return currency === "USD" ? '"$"#,##0.00;[Red]"-$"#,##0.00' : '#,##0.00" SYP"';
+  if (currency === "USD") return '"$"#,##0.00;[Red]"-$"#,##0.00';
+  if (currency === "SAR") return '#,##0.00" SAR"';
+  return '#,##0.00" SYP"';
 }
 
 export async function exportFinanceWorkbook(

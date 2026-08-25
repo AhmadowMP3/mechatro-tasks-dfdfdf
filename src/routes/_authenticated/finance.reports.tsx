@@ -1,3 +1,4 @@
+import { CURRENCIES } from "@/lib/currency";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -6,6 +7,7 @@ import { useApp } from "@/lib/app-context";
 import {
   formatMoney,
   convertAmount,
+  fxRates,
   type Currency,
   type Invoice,
   type Expense,
@@ -88,7 +90,7 @@ function FinanceReports() {
       return data as FxRate | null;
     },
   });
-  const rate = Number(latestFx?.syp_per_usd ?? 15000);
+  const rate = fxRates(latestFx);
 
   const { data: invoices } = useQuery({
     queryKey: ["invoices", "reports"],
@@ -447,7 +449,7 @@ function FinanceReports() {
         </div>
         <div className="no-print" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ display: "inline-flex", background: "var(--surface-2)", borderRadius: 10, padding: 3, border: "1px solid var(--border)" }}>
-            {(["SYP", "USD"] as Currency[]).map((c) => (
+            {CURRENCIES.map((c) => (
               <button
                 key={c}
                 onClick={() => setDisplayCurrency(c)}
@@ -459,7 +461,7 @@ function FinanceReports() {
                   minWidth: 60,
                 }}
               >
-                {c === "SYP" ? t("syp") : t("usd")}
+                {c === "SYP" ? t("syp") : c === "USD" ? t("usd") : t("sar")}
               </button>
             ))}
           </div>

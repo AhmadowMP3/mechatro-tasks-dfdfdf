@@ -806,6 +806,7 @@ export const dict = {
   currency: { ar: "العملة", en: "Currency" },
   syp: { ar: "ل.س", en: "SYP" },
   usd: { ar: "دولار", en: "USD" },
+  sar: { ar: "ريال", en: "SAR" },
   amount: { ar: "المبلغ", en: "Amount" },
   quantity: { ar: "الكمية", en: "Qty" },
   unitPrice: { ar: "سعر الوحدة", en: "Unit Price" },

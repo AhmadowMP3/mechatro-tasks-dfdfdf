@@ -520,7 +520,7 @@ function ExpenseSubModal({ sub, onClose, onSaved }: { sub: SubscriptionExpense |
             <Field label={t("amount")}><input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })} style={inp} /></Field>
             <Field label={t("currency")}>
               <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as Currency })} style={inp}>
-                <option value="SYP">SYP</option><option value="USD">USD</option>
+                <option value="SYP">SYP</option><option value="USD">USD</option><option value="SAR">SAR</option>
               </select>
             </Field>
             <Field label={t("cycle")}>
@@ -604,7 +604,7 @@ function IncomeSubModal({ sub, customers, onClose, onSaved }: { sub: Subscriptio
             <Field label={t("amount")}><input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })} style={inp} /></Field>
             <Field label={t("currency")}>
               <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as Currency })} style={inp}>
-                <option value="SYP">SYP</option><option value="USD">USD</option>
+                <option value="SYP">SYP</option><option value="USD">USD</option><option value="SAR">SAR</option>
               </select>
             </Field>
             <Field label={t("cycle")}>

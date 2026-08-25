@@ -167,7 +167,7 @@ function InvoiceEditorPage() {
     if (items.length === 0 || items.every((it) => !it.description_ar && !it.description_en)) { toast.error(t("addItem")); return; }
     setSaving(true);
     try {
-      const rate = latestFx ? Number(latestFx.syp_per_usd) : null;
+      const rate = latestFx ? rateToUsd(currency, fxRates(latestFx)) : null;
       const invoicePayload = {
         customer_id: customerId,
         issue_date: issueDate,
@@ -341,6 +341,7 @@ function InvoiceEditorPage() {
           <select disabled={!isEditable} value={currency} onChange={(e) => setCurrency(e.target.value as Currency)} style={inp}>
             <option value="SYP">SYP · ل.س</option>
             <option value="USD">USD · $</option>
+            <option value="SAR">SAR · ر.س</option>
           </select>
         </Field>
       </section>

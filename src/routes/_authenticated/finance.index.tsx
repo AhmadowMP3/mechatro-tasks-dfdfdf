@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
-import { formatMoney, convertAmount, type Currency, type Invoice, type Expense, type IncomeEntry, type FxRate } from "@/lib/finance";
+import { CURRENCIES } from "@/lib/currency";
+import { formatMoney, convertAmount, fxRates, type Currency, type Invoice, type Expense, type IncomeEntry, type FxRate } from "@/lib/finance";
 import { TrendingUp, TrendingDown, DollarSign, AlertCircle, RefreshCw, Plus, Wallet } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import { Link } from "@tanstack/react-router";
@@ -24,7 +25,7 @@ function FinanceDashboard() {
     },
   });
 
-  const rate = Number(latestFx?.syp_per_usd ?? 15000);
+  const rate = fxRates(latestFx);
 
   const { data: invoices } = useQuery({
     queryKey: ["invoices", "dashboard"],
@@ -146,7 +147,7 @@ function FinanceDashboard() {
           <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
             <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("currency")}:</span>
             <div style={{ display: "inline-flex", background: "var(--surface-2)", borderRadius: 12, padding: 4, border: "1px solid var(--border)" }}>
-              {(["SYP", "USD"] as Currency[]).map((c) => (
+              {CURRENCIES.map((c) => (
                 <button
                   key={c}
                   onClick={() => setDisplayCurrency(c)}
@@ -158,14 +159,14 @@ function FinanceDashboard() {
                     minWidth: 68,
                   }}
                 >
-                  {c === "SYP" ? t("syp") : t("usd")}
+                  {c === "SYP" ? t("syp") : c === "USD" ? t("usd") : t("sar")}
                 </button>
               ))}
             </div>
           </div>
           {latestFx && (
             <span style={{ fontSize: 12, color: "var(--muted)", flexBasis: "100%" }}>
-              1 USD = {Number(latestFx.syp_per_usd).toLocaleString()} SYP
+              1 USD = {Number(latestFx.syp_per_usd).toLocaleString()} SYP · {Number(latestFx.sar_per_usd ?? 3.75).toLocaleString()} SAR
             </span>
           )}
         </div>
