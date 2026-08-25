@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
-import { CURRENCIES } from "@/lib/currency";
+import { CURRENCIES, RiyalSymbol } from "@/lib/currency";
+import { Money } from "@/components/finance/Money";
 import { formatMoney, convertAmount, fxRates, type Currency, type Invoice, type Expense, type IncomeEntry, type FxRate } from "@/lib/finance";
 import { TrendingUp, TrendingDown, DollarSign, AlertCircle, RefreshCw, Plus, Wallet } from "lucide-react";
 import { formatDate } from "@/lib/format";
@@ -200,12 +201,12 @@ function FinanceDashboard() {
 
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%,240px),1fr))", gap: 14 }}>
-        <KpiCard icon={TrendingUp} label={t("totalIncome") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdIncome, displayCurrency, lang)} tone="green" />
-        <KpiCard icon={TrendingDown} label={t("totalExpenses") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdExpenses, displayCurrency, lang)} tone="red" />
-        <KpiCard icon={DollarSign} label={t("netProfit") + " · " + t("monthToDate")} value={formatMoney(kpi.mtdNet, displayCurrency, lang)} tone={kpi.mtdNet >= 0 ? "green" : "red"} />
-        <KpiCard icon={AlertCircle} label={t("accountsReceivable")} value={formatMoney(kpi.outstandingAR, displayCurrency, lang)} tone="orange" />
-        <KpiCard icon={TrendingUp} label={t("totalIncome") + " · " + t("yearToDate")} value={formatMoney(kpi.ytdIncome, displayCurrency, lang)} tone="blue" />
-        <KpiCard icon={DollarSign} label={t("netProfit") + " · " + t("yearToDate")} value={formatMoney(kpi.ytdNet, displayCurrency, lang)} tone={kpi.ytdNet >= 0 ? "green" : "red"} />
+        <KpiCard icon={TrendingUp} label={t("totalIncome") + " · " + t("monthToDate")} value={<Money amount={kpi.mtdIncome} currency={displayCurrency} />} tone="green" />
+        <KpiCard icon={TrendingDown} label={t("totalExpenses") + " · " + t("monthToDate")} value={<Money amount={kpi.mtdExpenses} currency={displayCurrency} />} tone="red" />
+        <KpiCard icon={DollarSign} label={t("netProfit") + " · " + t("monthToDate")} value={<Money amount={kpi.mtdNet} currency={displayCurrency} />} tone={kpi.mtdNet >= 0 ? "green" : "red"} />
+        <KpiCard icon={AlertCircle} label={t("accountsReceivable")} value={<Money amount={kpi.outstandingAR} currency={displayCurrency} />} tone="orange" />
+        <KpiCard icon={TrendingUp} label={t("totalIncome") + " · " + t("yearToDate")} value={<Money amount={kpi.ytdIncome} currency={displayCurrency} />} tone="blue" />
+        <KpiCard icon={DollarSign} label={t("netProfit") + " · " + t("yearToDate")} value={<Money amount={kpi.ytdNet} currency={displayCurrency} />} tone={kpi.ytdNet >= 0 ? "green" : "red"} />
       </div>
 
       {/* Monthly Chart */}
@@ -260,7 +261,7 @@ function FinanceDashboard() {
                   </div>
                   <div style={{ textAlign: lang === "ar" ? "left" : "right" }}>
                     <div style={{ fontWeight: 700, color: inv.status === "overdue" ? "#F0676A" : "var(--foreground)" }}>
-                      {formatMoney(balance, inv.currency, lang)}
+                      <Money amount={balance} currency={inv.currency} />
                     </div>
                     <div style={{ fontSize: 11, color: "var(--muted)" }}>{t(inv.status === "overdue" ? "invoiceOverdue" : "amountDue")}</div>
                   </div>
@@ -287,7 +288,7 @@ function FinanceDashboard() {
   );
 }
 
-function KpiCard({ icon: Icon, label, value, tone }: { icon: React.ComponentType<{ size?: number; color?: string }>; label: string; value: string; tone: "green" | "red" | "blue" | "orange" }) {
+function KpiCard({ icon: Icon, label, value, tone }: { icon: React.ComponentType<{ size?: number; color?: string }>; label: string; value: React.ReactNode; tone: "green" | "red" | "blue" | "orange" }) {
   const toneColor = tone === "green" ? "#50C878" : tone === "red" ? "#F0676A" : tone === "orange" ? "#FBBF24" : "#60A5FA";
   return (
     <div className="brand-card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
