@@ -3,7 +3,11 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { dict, type Lang } from "@/i18n/dict";
-import logo from "@/assets/mechatro-logo.png";
+import { LOGO_AR, LOGO_EN } from "@/lib/brand/logo";
+
+// Logo used by the templates below; switched per report language at build time.
+let logo: string = LOGO_EN;
+const setBrandLogo = (l: string) => { logo = l === "ar" ? LOGO_AR : LOGO_EN; };
 import { P, CARD_STYLE, esc, fmtDate, card, cardHeader, block, kpiTile, miniKpi } from "./pdf-chrome";
 
 export type TeamReportRange = {
@@ -303,7 +307,7 @@ function projectsCard(data: TeamReportData): string {
 
 /** Build the full team report HTML (single style, bilingual). */
 export function buildTeamReportHtml(data: TeamReportData, _lang: Lang = "en"): string {
-  void _lang;
+  setBrandLogo(_lang);
   const cover = coverPage(data);
   const parts: string[] = [];
   // Section header card announcing member roster

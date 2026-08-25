@@ -3,7 +3,11 @@
 
 import type { KpiSnapshot } from "./snapshot";
 import type { ReportLangChoice } from "./generator";
-import logo from "@/assets/mechatro-logo.png";
+import { LOGO_AR, LOGO_EN } from "@/lib/brand/logo";
+
+// Logo used by the templates below; switched per report language at build time.
+let logo: string = LOGO_EN;
+const setBrandLogo = (l: string) => { logo = l === "ar" ? LOGO_AR : LOGO_EN; };
 import { P, CARD_STYLE, esc, card, cardHeader, block } from "./pdf-chrome";
 
 function fmtISODate(iso: string | null): string {
@@ -149,7 +153,7 @@ export function buildComparisonHtml(
     language: ReportLangChoice;
   }
 ): string {
-  void meta.language;
+  setBrandLogo(meta.language === "en" ? "en" : "ar");
   const cover = coverPage(a, b, meta);
 
   // KPI comparison card
