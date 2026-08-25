@@ -20,7 +20,7 @@ export const BRAND = {
 export const PAGE = {
   width: 210,
   height: 297,
-  marginTop: 24,      // reserved for header band (logo)
+  marginTop: 34,      // reserved for header band (larger logo)
   marginBottom: 16,   // reserved for footer band (page counter + meta)
   marginX: 0,         // horizontal margin already baked into the HTML content
 } as const;
