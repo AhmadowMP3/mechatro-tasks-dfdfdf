@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/security/db";
 import { useApp } from "@/lib/app-context";
-import logo from "@/assets/mechatro-logo.png";
+import { logoFor } from "@/lib/brand/logo";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -205,7 +205,7 @@ function AuthPage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 22 }}>
-          <img src={logo} alt="Mechatro" style={{ width: "min(200px, 62%)", height: "auto", marginBottom: 10 }} />
+          <img src={logoFor(lang)} alt="Mechatro" style={{ width: "min(200px, 62%)", height: "auto", marginBottom: 10 }} />
           <div style={{ fontSize: 13, color: subtitleColor, fontWeight: 700 }}>{t("appName")}</div>
         </div>
 
