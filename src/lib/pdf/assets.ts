@@ -2,18 +2,21 @@
 // and the Montserrat Arabic font (as base64 for jsPDF font embedding).
 
 import logoUrl from "@/assets/mechatro-logo.png";
+import logoArUrl from "@/assets/mechatro-logo-ar.png";
 import fontAsset from "@/assets/MontserratArabic-Regular.ttf.asset.json";
 
 const fontUrl: string = fontAsset.url;
 
-let logoPromise: Promise<{ dataUrl: string; widthPx: number; heightPx: number } | null> | null = null;
+type LogoAsset = { dataUrl: string; widthPx: number; heightPx: number } | null;
+const logoPromises: { ar: Promise<LogoAsset> | null; en: Promise<LogoAsset> | null } = { ar: null, en: null };
 let fontPromise: Promise<string | null> | null = null;
 
-export function loadBrandLogo() {
-  if (!logoPromise) {
-    logoPromise = (async () => {
+export function loadBrandLogo(lang: "ar" | "en" = "en") {
+  const key = lang === "ar" ? "ar" : "en";
+  if (!logoPromises[key]) {
+    logoPromises[key] = (async () => {
       try {
-        const res = await fetch(logoUrl);
+        const res = await fetch(key === "ar" ? logoArUrl : logoUrl);
         const blob = await res.blob();
         const dataUrl = await new Promise<string>((resolve, reject) => {
           const r = new FileReader();
@@ -34,7 +37,7 @@ export function loadBrandLogo() {
       }
     })();
   }
-  return logoPromise;
+  return logoPromises[key];
 }
 
 function arrayBufferToBase64(buf: ArrayBuffer): string {

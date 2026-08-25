@@ -61,7 +61,7 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 async function drawHeader(pdf: jsPDF, hasArabicFont: boolean, lang: "ar" | "en") {
-  const logo = await loadBrandLogo();
+  const logo = await loadBrandLogo(lang);
   const pageW = pdf.internal.pageSize.getWidth();
   // Blue hairline under header band.
   const [br, bg, bb] = hexToRgb(BRAND.blue);
