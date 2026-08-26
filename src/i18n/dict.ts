@@ -7,7 +7,7 @@ export const dict = {
   projects: { ar: "المشاريع", en: "Projects" },
   tasks: { ar: "المهام", en: "Tasks" },
   team: { ar: "الفريق", en: "Team" },
-  league: { ar: "الدوري", en: "League" },
+  league: { ar: "الترتيب العام", en: "Leaderboard" },
   notifications: { ar: "الإشعارات", en: "Notifications" },
   settings: { ar: "الإعدادات", en: "Settings" },
   logout: { ar: "تسجيل الخروج", en: "Log out" },
