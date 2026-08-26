@@ -430,10 +430,12 @@ function TasksPage() {
               {archivedView
                 ? (lang === "ar" ? "المهام النشطة" : "Active tasks")
                 : (lang === "ar" ? "الأرشيف" : "Archive")}
-              {!archivedView && archivedCount > 0 && (
+              {archivedCount > 0 && (
                 <span style={{
                   marginInlineStart: 6, padding: "1px 7px", borderRadius: 999,
-                  fontSize: 11, fontWeight: 800, background: "var(--surface-3)", color: "var(--muted)",
+                  fontSize: 11, fontWeight: 800,
+                  background: archivedView ? "rgba(255,255,255,.2)" : "var(--surface-3)",
+                  color: archivedView ? "#fff" : "var(--muted)",
                 }}>{archivedCount}</span>
               )}
             </button>
