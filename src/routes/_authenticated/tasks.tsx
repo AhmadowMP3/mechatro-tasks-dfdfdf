@@ -160,6 +160,8 @@ function TasksPage() {
     const { since, until } = resolveDateRange(f.datePreset, f.dateFrom, f.dateTo);
     const priorityRank: Record<string, number> = { urgent: 4, high: 3, normal: 2, low: 1 };
     let out = (data?.tasks ?? []).filter((tk) => {
+      const isArchived = tk.archived === true;
+      if (archivedView ? !isArchived : isArchived) return false;
       if (f.projects.length && !f.projects.includes(tk.project_id ?? "__none__")) return false;
       if (f.assignees.length) {
         const taskAssignees = assigneesByTask[tk.id] ?? (tk.assignee_id ? [tk.assignee_id] : []);
