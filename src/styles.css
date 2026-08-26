@@ -1229,36 +1229,68 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 .doc-ribbon-palette {
   position: relative;
 }
+.doc-ribbon-palette-btn {
+  flex-direction: column;
+  gap: 2px;
+}
+.doc-ribbon-palette-bar {
+  display: block;
+  width: 15px;
+  height: 3px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+}
 .doc-ribbon-swatches {
   position: absolute;
-  top: 34px;
+  top: calc(100% + 4px);
   inset-inline-start: 0;
-  z-index: 10;
+  z-index: 40;
   display: none;
-  gap: 4px;
-  padding: 6px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--card);
   box-shadow: 0 12px 30px rgb(0 0 0 / 0.28);
 }
-.doc-ribbon-palette:hover .doc-ribbon-swatches,
-.doc-ribbon-palette:focus-within .doc-ribbon-swatches {
+.doc-ribbon-swatches.is-open {
   display: flex;
 }
+.doc-ribbon-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 22px);
+  gap: 6px;
+}
+.doc-ribbon-swatch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
 .doc-ribbon-swatches button {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border: 1px solid var(--border);
   border-radius: 5px;
+  cursor: pointer;
+}
+.doc-ribbon-color-input {
+  width: 44px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
   cursor: pointer;
 }
 .doc-ribbon-clear {
   background: transparent;
   color: var(--muted-foreground);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1;
 }
+
 
 .doc-ribbon-btn.is-danger {
   color: #ef4444;
