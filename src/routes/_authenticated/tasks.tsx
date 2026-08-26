@@ -27,7 +27,7 @@ import type { DictKey } from "@/i18n/dict";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 import { BulkAssigneeModal } from "@/components/tasks/BulkAssigneeModal";
-import { Trash2, CircleDot, Users } from "lucide-react";
+import { Trash2, CircleDot, Users, Archive } from "lucide-react";
 import { useTasksRealtime } from "@/hooks/useTasksRealtime";
 
 export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
@@ -101,6 +101,8 @@ function TasksPage() {
 
   const [f, setF] = useState<Filters>(DEFAULTS);
   const patch = (p: Partial<Filters>) => setF((cur) => ({ ...cur, ...p }));
+  // Archive mode: completed tasks are auto-archived and hidden from normal views.
+  const [archivedView, setArchivedView] = useState(false);
 
   const memberScope = !isAdmin && user ? user.id : null;
   const peopleForFilters = isAdmin
@@ -158,6 +160,8 @@ function TasksPage() {
     const { since, until } = resolveDateRange(f.datePreset, f.dateFrom, f.dateTo);
     const priorityRank: Record<string, number> = { urgent: 4, high: 3, normal: 2, low: 1 };
     let out = (data?.tasks ?? []).filter((tk) => {
+      const isArchived = tk.archived === true;
+      if (archivedView ? !isArchived : isArchived) return false;
       if (f.projects.length && !f.projects.includes(tk.project_id ?? "__none__")) return false;
       if (f.assignees.length) {
         const taskAssignees = assigneesByTask[tk.id] ?? (tk.assignee_id ? [tk.assignee_id] : []);
@@ -187,7 +191,30 @@ function TasksPage() {
       return 0;
     });
     return out;
-  }, [data, f, fileCounts]);
+  }, [data, f, fileCounts, archivedView]);
+
+  const archivedCount = useMemo(
+    () => (data?.tasks ?? []).filter((tk) => tk.archived === true).length,
+    [data],
+  );
+
+  // Notify + hint when a task vanishes from the board because it got archived.
+  const prevArchived = useMemo(() => new Set<string>(), []);
+  useEffect(() => {
+    const ids = (data?.tasks ?? []).filter((tk) => tk.archived === true).map((tk) => tk.id);
+    if (prevArchived.size === 0) { ids.forEach((id) => prevArchived.add(id)); return; }
+    const fresh = ids.filter((id) => !prevArchived.has(id));
+    ids.forEach((id) => prevArchived.add(id));
+    if (fresh.length && !archivedView) {
+      toast.success(
+        lang === "ar"
+          ? (fresh.length === 1 ? "تمت أرشفة المهمة المكتملة" : `تمت أرشفة ${fresh.length} مهام مكتملة`)
+          : (fresh.length === 1 ? "Completed task archived" : `${fresh.length} completed tasks archived`),
+        { action: { label: lang === "ar" ? "الأرشيف" : "Archive", onClick: () => setArchivedView(true) } },
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.tasks]);
 
   // Global "N" shortcut / palette "New task" action.
   useEffect(() => {
@@ -378,12 +405,38 @@ function TasksPage() {
   return (
     <div>
       <PageHeader
-        title={isAdmin ? t("tasks") : (lang === "ar" ? "مهامي" : "My Tasks")}
+        title={
+          archivedView
+            ? (lang === "ar" ? "أرشيف المهام" : "Tasks Archive")
+            : isAdmin ? t("tasks") : (lang === "ar" ? "مهامي" : "My Tasks")
+        }
         actions={
           <>
             <ViewSwitcher value={view} onChange={setView} showByMember={isAdmin} />
 
-            {isAdmin && (
+            <button
+              onClick={() => setArchivedView((v) => !v)}
+              className="brand-btn"
+              title={lang === "ar" ? "المهام المكتملة تتأرشف تلقائياً" : "Completed tasks are archived automatically"}
+              style={{
+                background: archivedView ? "var(--grad-blue)" : "var(--surface-2)",
+                color: archivedView ? "#fff" : "var(--foreground)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <Archive size={18} />
+              {archivedView
+                ? (lang === "ar" ? "المهام النشطة" : "Active tasks")
+                : (lang === "ar" ? "الأرشيف" : "Archive")}
+              {!archivedView && archivedCount > 0 && (
+                <span style={{
+                  marginInlineStart: 6, padding: "1px 7px", borderRadius: 999,
+                  fontSize: 11, fontWeight: 800, background: "var(--surface-3)", color: "var(--muted)",
+                }}>{archivedCount}</span>
+              )}
+            </button>
+
+            {isAdmin && !archivedView && (
               <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
                 <Plus size={18} /> {t("newTask")}
               </button>
@@ -514,7 +567,7 @@ function TasksPage() {
           language_pref: "ar", theme_pref: "dark",
         }))) as typeof users;
         return filtered.length === 0 ? (
-          <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noTasks")}</div>
+          <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{archivedView ? (lang === "ar" ? "لا مهام في الأرشيف" : "No archived tasks") : t("noTasks")}</div>
         ) : view === "cards" ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px),1fr))", gap: 14 }}>
             {filtered.map((tk) => {

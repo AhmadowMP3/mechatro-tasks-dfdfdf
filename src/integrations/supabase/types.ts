@@ -2538,6 +2538,8 @@ export type Database = {
       }
       tasks: {
         Row: {
+          archived: boolean
+          archived_at: string | null
           assignee_id: string | null
           completed_at: string | null
           created_at: string
@@ -2558,6 +2560,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived?: boolean
+          archived_at?: string | null
           assignee_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -2578,6 +2582,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived?: boolean
+          archived_at?: string | null
           assignee_id?: string | null
           completed_at?: string | null
           created_at?: string
