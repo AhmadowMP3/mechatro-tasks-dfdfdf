@@ -2831,6 +2831,18 @@ export type Database = {
         Returns: boolean
       }
       is_share_admin: { Args: { _uid: string }; Returns: boolean }
+      leaderboard: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          current_streak: number
+          full_name: string
+          id: string
+          job_title: string
+          longest_streak: number
+          total_points: number
+        }[]
+      }
       next_doc_number: {
         Args: { _type: Database["public"]["Enums"]["business_doc_type"] }
         Returns: string
