@@ -122,8 +122,22 @@ export function Ribbon({ editor, lang, onImage, onInsertTerms, onSnippet, logoVa
         <RBtn active={editor.isActive("italic")} onClick={() => chain().toggleItalic().run()} title="Italic"><Italic size={15} /></RBtn>
         <RBtn active={editor.isActive("underline")} onClick={() => chain().toggleUnderline().run()} title="Underline"><UnderlineIcon size={15} /></RBtn>
         <RBtn active={editor.isActive("strike")} onClick={() => chain().toggleStrike().run()} title="Strike"><Strikethrough size={15} /></RBtn>
-        <Palette icon={<Baseline size={15} />} colors={COLORS} onPick={(c) => chain().setColor(c).run()} onClear={() => chain().unsetColor().run()} title={ar ? "لون النص" : "Text color"} />
-        <Palette icon={<Highlighter size={15} />} colors={HIGHLIGHTS} onPick={(c) => chain().toggleHighlight({ color: c }).run()} onClear={() => chain().unsetHighlight().run()} title={ar ? "تمييز" : "Highlight"} />
+        <Palette
+          icon={<Baseline size={15} />}
+          colors={COLORS}
+          current={(editor.getAttributes("textStyle").color as string) ?? undefined}
+          onPick={(c) => chain().setColor(c).run()}
+          onClear={() => chain().unsetColor().run()}
+          title={ar ? "لون النص" : "Text color"}
+        />
+        <Palette
+          icon={<Highlighter size={15} />}
+          colors={HIGHLIGHTS}
+          current={(editor.getAttributes("highlight").color as string) ?? undefined}
+          onPick={(c) => chain().setHighlight({ color: c }).run()}
+          onClear={() => chain().unsetHighlight().run()}
+          title={ar ? "تمييز" : "Highlight"}
+        />
       </div>
 
       {/* Group: paragraph */}
