@@ -27,7 +27,7 @@ import type { DictKey } from "@/i18n/dict";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useBulkSelection, BulkCheckbox } from "@/lib/bulk-selection";
 import { BulkAssigneeModal } from "@/components/tasks/BulkAssigneeModal";
-import { Trash2, CircleDot, Users } from "lucide-react";
+import { Trash2, CircleDot, Users, Archive } from "lucide-react";
 import { useTasksRealtime } from "@/hooks/useTasksRealtime";
 
 export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
@@ -567,7 +567,7 @@ function TasksPage() {
           language_pref: "ar", theme_pref: "dark",
         }))) as typeof users;
         return filtered.length === 0 ? (
-          <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{t("noTasks")}</div>
+          <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{archivedView ? (lang === "ar" ? "لا مهام في الأرشيف" : "No archived tasks") : t("noTasks")}</div>
         ) : view === "cards" ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px),1fr))", gap: 14 }}>
             {filtered.map((tk) => {
