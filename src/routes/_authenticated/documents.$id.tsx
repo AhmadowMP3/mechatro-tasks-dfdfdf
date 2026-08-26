@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2, Sun, Moon, GitBranch, FileDown, FileType2, Eye, X, ChevronDown } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sun, Moon, GitBranch, FileDown, Eye, X, ChevronDown } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -13,7 +13,7 @@ import type { DocClient, DocModel } from "@/lib/docs/model";
 import { PaginatedDoc } from "@/components/documents/PaginatedDoc";
 import { DocEditor } from "@/components/documents/editor/DocEditor";
 import { blocksToHtml, needsConversion } from "@/lib/docs/convert-legacy";
-import { exportDocPdf, exportDocWord } from "@/lib/docs/export-doc";
+import { exportDocPdf } from "@/lib/docs/export-doc";
 import { logActivity } from "@/lib/activity";
 
 export const Route = createFileRoute("/_authenticated/documents/$id")({
@@ -106,7 +106,7 @@ function DocumentEditorPage() {
     finally { setSaving(false); }
   };
 
-  const [exporting, setExporting] = useState<null | "pdf" | "word">(null);
+  const [exporting, setExporting] = useState<null | "pdf">(null);
 
   const meta = useMemo(() => {
     if (!doc) return undefined;
@@ -115,7 +115,7 @@ function DocumentEditorPage() {
     return { number: doc.number, date: fmt(doc.issue_date) ?? "—", validUntil: fmt(doc.valid_until), client: client || undefined };
   }, [doc]);
 
-  const exportAs = async (kind: "pdf" | "word") => {
+  const exportAs = async (kind: "pdf") => {
     if (!doc || !tpl) return;
     try {
       setExporting(kind);
@@ -138,8 +138,7 @@ function DocumentEditorPage() {
         },
         title: `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`,
       };
-      if (kind === "pdf") await exportDocPdf(input);
-      else await exportDocWord(input);
+      await exportDocPdf(input);
       void logActivity(user?.id ?? null, "file_added", "business_doc", doc.id, {
         number: doc.number, doc_type: doc.doc_type, format: kind, theme: doc.theme, lang: doc.lang,
       });
@@ -164,9 +163,6 @@ function DocumentEditorPage() {
       </button>
       <button className="btn-ghost" onClick={() => exportAs("pdf")} disabled={!!exporting}>
         {exporting === "pdf" ? <Loader2 size={15} className="spin" /> : <FileDown size={15} />} PDF
-      </button>
-      <button className="btn-ghost" onClick={() => exportAs("word")} disabled={!!exporting}>
-        {exporting === "word" ? <Loader2 size={15} className="spin" /> : <FileType2 size={15} />} Word
       </button>
       <button className="btn-primary" onClick={save} disabled={saving || !dirty}>
         {saving ? <Loader2 size={15} className="spin" /> : <Save size={15} />} {ar ? "حفظ" : "Save"}

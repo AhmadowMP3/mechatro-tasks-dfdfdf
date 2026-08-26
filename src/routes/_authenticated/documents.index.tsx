@@ -1,13 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { FileText, Plus, Search, Copy, Trash2, Loader2, FileDown, FileType2 } from "lucide-react";
+import { FileText, Plus, Search, Copy, Trash2, Loader2, FileDown } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { requireMaster } from "@/lib/route-guards";
 import { docTemplates } from "@/lib/docs/api";
-import { exportDocPdf, exportDocWord } from "@/lib/docs/export-doc";
+import { exportDocPdf } from "@/lib/docs/export-doc";
 import { businessDocs, DOC_STATUS_LABELS, type BusinessDoc } from "@/lib/docs/docs-api";
 import { DOC_TYPES, docTypeLabel, type DocType } from "@/lib/docs/types";
 
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/documents/")({
       { title: "Business Documents · Mechatro" },
       { name: "description", content: "Create and manage quotations, RFQs, offers, invoices, proforma invoices and purchase orders." },
       { property: "og:title", content: "Business Documents · Mechatro" },
-      { property: "og:description", content: "Branded quotations, RFQs, offers and invoices with PDF and Word export." },
+      { property: "og:description", content: "Branded quotations, RFQs, offers and invoices with PDF export." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -86,7 +86,7 @@ function DocumentsListPage() {
     }
   };
 
-  const exportDoc = async (doc: BusinessDoc, kind: "pdf" | "word") => {
+  const exportDoc = async (doc: BusinessDoc) => {
     try {
       setBusy(true);
       const tpl = await docTemplates.ensure(doc.doc_type);
@@ -106,8 +106,7 @@ function DocumentsListPage() {
         meta: { number: doc.number, date: fmt(doc.issue_date) ?? "—", validUntil: fmt(doc.valid_until), client: clientName || undefined },
         title: `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`,
       };
-      if (kind === "pdf") await exportDocPdf(input);
-      else await exportDocWord(input);
+      await exportDocPdf(input);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -236,11 +235,8 @@ function DocumentsListPage() {
                   <button className="btn-ghost" disabled={busy} onClick={() => duplicate(d)} style={{ minHeight: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0 }}>
                     <Copy size={14} style={{ flexShrink: 0 }} /> <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{ar ? "تكرار" : "Duplicate"}</span>
                   </button>
-                  <button className="btn-ghost" disabled={busy} onClick={() => exportDoc(d, "pdf")} style={{ minHeight: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0 }} title="PDF">
+                  <button className="btn-ghost" disabled={busy} onClick={() => exportDoc(d)} style={{ minHeight: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0 }} title="PDF">
                     <FileDown size={14} style={{ flexShrink: 0 }} /> PDF
-                  </button>
-                  <button className="btn-ghost" disabled={busy} onClick={() => exportDoc(d, "word")} style={{ minHeight: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, whiteSpace: "nowrap", minWidth: 0 }} title="Word">
-                    <FileType2 size={14} style={{ flexShrink: 0 }} /> Word
                   </button>
                   <button
                     className="btn-ghost"
