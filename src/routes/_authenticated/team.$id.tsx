@@ -36,9 +36,8 @@ function MemberProfilePage() {
           .order("updated_at", { ascending: false }),
         supabase.from("work_sessions").select("duration_minutes,started_at").eq("user_id", id),
         supabase.from("user_badges").select("code,awarded_at,meta").eq("user_id", id).order("awarded_at", { ascending: false }),
-        supabase.from("profiles")
-          .select("id,total_points,active,status")
-          .order("total_points", { ascending: false }),
+        fetchLeaderboard().then((rows) => ({ data: rows })),
+
       ]);
       return {
         profile: profileRes.data as Profile | null,
