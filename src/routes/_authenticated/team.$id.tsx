@@ -11,6 +11,8 @@ import { GenerateReportDialog } from "@/components/team/GenerateReportDialog";
 import { toLocalDigits, formatMinutes, formatDate } from "@/lib/format";
 import type { DictKey } from "@/i18n/dict";
 import { requireAdmin } from "@/lib/route-guards";
+import { fetchLeaderboard } from "@/lib/leaderboard";
+
 
 export const Route = createFileRoute("/_authenticated/team/$id")({
   ssr: false,
@@ -36,9 +38,8 @@ function MemberProfilePage() {
           .order("updated_at", { ascending: false }),
         supabase.from("work_sessions").select("duration_minutes,started_at").eq("user_id", id),
         supabase.from("user_badges").select("code,awarded_at,meta").eq("user_id", id).order("awarded_at", { ascending: false }),
-        supabase.from("profiles")
-          .select("id,total_points,active,status")
-          .order("total_points", { ascending: false }),
+        fetchLeaderboard().then((rows) => ({ data: rows })),
+
       ]);
       return {
         profile: profileRes.data as Profile | null,
@@ -198,7 +199,7 @@ function MemberProfilePage() {
       <SectionTitle icon={<TrendingUp size={16} />}>{t("leaderboard")}</SectionTitle>
       <div className="brand-card" style={{ padding: 14, marginBottom: 18 }}>
         {(() => {
-          const list = (data?.ranking ?? []).filter((p) => p.active !== false && p.status !== "suspended");
+          const list = data?.ranking ?? [];
           const pos = list.findIndex((p) => p.id === id);
           const pts = (list.find((p) => p.id === id)?.total_points as number | null) ?? 0;
           return (
