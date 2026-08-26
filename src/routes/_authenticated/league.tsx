@@ -30,11 +30,7 @@ function LeaguePage() {
 
   const { data: people } = useQuery({
     queryKey: ["leaderboard-profiles"],
-    queryFn: async () =>
-      (await supabase
-        .from("profiles")
-        .select("id,full_name,total_points,current_streak,active,status")
-        .order("total_points", { ascending: false })).data ?? [],
+    queryFn: fetchLeaderboard,
   });
 
   const { data: badges } = useQuery({
@@ -45,7 +41,6 @@ function LeaguePage() {
   const rankings: Row[] = useMemo(
     () =>
       (people ?? [])
-        .filter((p) => p.active !== false && p.status !== "suspended")
         .map((p) => ({
           id: p.id,
           full_name: p.full_name,
@@ -55,6 +50,7 @@ function LeaguePage() {
         .sort((a, b) => b.points - a.points || a.full_name.localeCompare(b.full_name)),
     [people],
   );
+
 
   const badgesByUser = useMemo(() => {
     const m = new Map<string, string[]>();
