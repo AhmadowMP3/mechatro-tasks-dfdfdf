@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Trophy, Flame, Award, Medal } from "lucide-react";
 import { supabase } from "@/lib/security/db";
+import { fetchLeaderboard } from "@/lib/leaderboard";
+
 import { useApp } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { toLocalDigits } from "@/lib/format";
