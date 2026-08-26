@@ -6,40 +6,33 @@ import { useApp } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { toLocalDigits } from "@/lib/format";
 
-/** Mini podium of the current active season's top 3, linking to /league. */
+/** Mini podium of the overall top 3, linking to /league. */
 export function LeaguePodiumCard() {
   const { t, lang, users, user } = useApp();
 
   const { data } = useQuery({
     queryKey: ["dashboard-podium"],
     queryFn: async () => {
-      const nowIso = new Date().toISOString();
-      const { data: season } = await supabase
-        .from("league_seasons").select("id,name")
-        .eq("status", "active").eq("scope", "global")
-        .lte("starts_at", nowIso).gte("ends_at", nowIso)
-        .order("starts_at", { ascending: false }).limit(1).maybeSingle();
-      if (!season) return { season: null, scores: [], stats: [] };
-      const { data: scores } = await supabase
-        .from("season_scores").select("user_id,points,tasks_done,last_rank")
-        .eq("season_id", season.id).order("points", { ascending: false }).limit(10);
-      const ids = (scores ?? []).map((s) => s.user_id);
-      const { data: stats } = ids.length
-        ? await supabase.from("profiles").select("id,current_streak").in("id", ids)
-        : { data: [] };
-      return { season, scores: scores ?? [], stats: stats ?? [] };
+      const { data: rows } = await supabase
+        .from("profiles")
+        .select("id,full_name,total_points,current_streak,active,status")
+        .order("total_points", { ascending: false })
+        .limit(50);
+      return { rows: rows ?? [] };
     },
   });
 
-  const season = data?.season;
-  if (!season) return null;
+  const rows = (data?.rows ?? [])
+    .filter((p) => p.active !== false && p.status !== "suspended")
+    .map((p) => ({
+      id: p.id,
+      points: p.total_points ?? 0,
+      streak: p.current_streak ?? 0,
+      full_name: p.full_name,
+    }))
+    .sort((a, b) => b.points - a.points || a.full_name.localeCompare(b.full_name));
 
-  const rows = (data.scores ?? []).map((s) => ({
-    id: s.user_id,
-    points: s.points,
-    streak: data.stats?.find((p) => p.id === s.user_id)?.current_streak ?? 0,
-    profile: users.find((u) => u.id === s.user_id),
-  })).filter((r) => r.profile);
+  if (rows.length === 0) return null;
 
   const podium = rows.slice(0, 3);
   const medals = ["#FFD700", "#C0C0C0", "#CD7F32"];
@@ -56,10 +49,10 @@ export function LeaguePodiumCard() {
         <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <div>
             <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
-              {t("currentSeason")}
+              {t("leaderboard")}
             </div>
             <div style={{ fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", gap: 6 }}>
-              <Trophy size={16} color="#FFD700" /> {season.name}
+              <Trophy size={16} color="#FFD700" /> {t("points")}
             </div>
           </div>
           <ChevronRight size={20} style={{ color: "var(--muted)" }} />
@@ -85,7 +78,7 @@ export function LeaguePodiumCard() {
                   {r && (
                     <>
                       <div style={{ position: "relative", display: "inline-block" }}>
-                        <Avatar id={r.id} name={r.profile!.full_name} size={pos === 0 ? 52 : 40} />
+                        <Avatar id={r.id} name={r.full_name} size={pos === 0 ? 52 : 40} />
                         <div style={{
                           position: "absolute", top: -4, right: -4, width: 20, height: 20, borderRadius: "50%",
                           background: medals[pos], display: "flex", alignItems: "center", justifyContent: "center",
@@ -93,7 +86,7 @@ export function LeaguePodiumCard() {
                         }}>{icon}</div>
                       </div>
                       <div dir="auto" style={{ fontSize: 11, fontWeight: 700, marginTop: 6, maxWidth: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {r.profile!.full_name.split(" ")[0]}
+                        {r.full_name.split(" ")[0]}
                       </div>
                       <div dir="auto" style={{ fontSize: 16, fontWeight: 900, color: medals[pos], whiteSpace: "nowrap" }}>
                         {toLocalDigits(r.points, lang)}
