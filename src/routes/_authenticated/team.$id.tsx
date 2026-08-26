@@ -199,7 +199,7 @@ function MemberProfilePage() {
       <SectionTitle icon={<TrendingUp size={16} />}>{t("leaderboard")}</SectionTitle>
       <div className="brand-card" style={{ padding: 14, marginBottom: 18 }}>
         {(() => {
-          const list = (data?.ranking ?? []).filter((p) => p.active !== false && p.status !== "suspended");
+          const list = data?.ranking ?? [];
           const pos = list.findIndex((p) => p.id === id);
           const pts = (list.find((p) => p.id === id)?.total_points as number | null) ?? 0;
           return (
