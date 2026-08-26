@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Trophy, Medal, Award, Flame, ChevronRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchLeaderboard } from "@/lib/leaderboard";
 import { useApp } from "@/lib/app-context";
 import { Avatar } from "@/components/Avatar";
 import { toLocalDigits } from "@/lib/format";
