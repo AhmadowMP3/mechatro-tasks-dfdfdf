@@ -191,7 +191,30 @@ function TasksPage() {
       return 0;
     });
     return out;
-  }, [data, f, fileCounts]);
+  }, [data, f, fileCounts, archivedView]);
+
+  const archivedCount = useMemo(
+    () => (data?.tasks ?? []).filter((tk) => tk.archived === true).length,
+    [data],
+  );
+
+  // Notify + hint when a task vanishes from the board because it got archived.
+  const prevArchived = useMemo(() => new Set<string>(), []);
+  useEffect(() => {
+    const ids = (data?.tasks ?? []).filter((tk) => tk.archived === true).map((tk) => tk.id);
+    if (prevArchived.size === 0) { ids.forEach((id) => prevArchived.add(id)); return; }
+    const fresh = ids.filter((id) => !prevArchived.has(id));
+    ids.forEach((id) => prevArchived.add(id));
+    if (fresh.length && !archivedView) {
+      toast.success(
+        lang === "ar"
+          ? (fresh.length === 1 ? "تمت أرشفة المهمة المكتملة" : `تمت أرشفة ${fresh.length} مهام مكتملة`)
+          : (fresh.length === 1 ? "Completed task archived" : `${fresh.length} completed tasks archived`),
+        { action: { label: lang === "ar" ? "الأرشيف" : "Archive", onClick: () => setArchivedView(true) } },
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.tasks]);
 
   // Global "N" shortcut / palette "New task" action.
   useEffect(() => {
