@@ -7,7 +7,7 @@ export const dict = {
   projects: { ar: "المشاريع", en: "Projects" },
   tasks: { ar: "المهام", en: "Tasks" },
   team: { ar: "الفريق", en: "Team" },
-  league: { ar: "الدوري", en: "League" },
+  league: { ar: "الترتيب العام", en: "Leaderboard" },
   notifications: { ar: "الإشعارات", en: "Notifications" },
   settings: { ar: "الإعدادات", en: "Settings" },
   logout: { ar: "تسجيل الخروج", en: "Log out" },
@@ -170,6 +170,8 @@ export const dict = {
   onTimePct: { ar: "الإنجاز في الوقت", en: "On-time" },
   // League
   monthlyLeaderboard: { ar: "الترتيب الشهري", en: "Monthly leaderboard" },
+  leaderboard: { ar: "الترتيب العام", en: "Leaderboard" },
+  overallRank: { ar: "الترتيب العام", en: "Overall rank" },
   points: { ar: "النقاط", en: "Points" },
   pointsReward: { ar: "نقاط المكافأة", en: "Points reward" },
   pointsHint: { ar: "تُمنح للمكلَّف عند اعتماد المهمة", en: "Awarded to the assignee on approval" },
