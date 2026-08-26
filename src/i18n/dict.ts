@@ -170,6 +170,8 @@ export const dict = {
   onTimePct: { ar: "الإنجاز في الوقت", en: "On-time" },
   // League
   monthlyLeaderboard: { ar: "الترتيب الشهري", en: "Monthly leaderboard" },
+  leaderboard: { ar: "الترتيب العام", en: "Leaderboard" },
+  overallRank: { ar: "الترتيب العام", en: "Overall rank" },
   points: { ar: "النقاط", en: "Points" },
   pointsReward: { ar: "نقاط المكافأة", en: "Points reward" },
   pointsHint: { ar: "تُمنح للمكلَّف عند اعتماد المهمة", en: "Awarded to the assignee on approval" },
