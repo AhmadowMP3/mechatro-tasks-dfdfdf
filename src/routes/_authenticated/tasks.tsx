@@ -567,7 +567,12 @@ function TasksPage() {
           language_pref: "ar", theme_pref: "dark",
         }))) as typeof users;
         return filtered.length === 0 ? (
-          <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{archivedView ? (lang === "ar" ? "لا مهام في الأرشيف" : "No archived tasks") : t("noTasks")}</div>
+          <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
+            <div>{archivedView ? (lang === "ar" ? "لا مهام في الأرشيف" : "No archived tasks") : t("noTasks")}</div>
+            <div style={{ marginTop: 8, fontSize: 12 }}>
+              {lang === "ar" ? "المهام المكتملة تتأرشف تلقائياً" : "Completed tasks are archived automatically"}
+            </div>
+          </div>
         ) : view === "cards" ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px),1fr))", gap: 14 }}>
             {filtered.map((tk) => {
