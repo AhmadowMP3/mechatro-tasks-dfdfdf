@@ -407,7 +407,9 @@ function TasksPage() {
       <PageHeader
         title={
           archivedView
-            ? (lang === "ar" ? "أرشيف المهام" : "Tasks Archive")
+            ? isAdmin
+              ? (lang === "ar" ? "أرشيف المهام" : "Tasks Archive")
+              : (lang === "ar" ? "أرشيف مهامي" : "My Archived Tasks")
             : isAdmin ? t("tasks") : (lang === "ar" ? "مهامي" : "My Tasks")
         }
         actions={
