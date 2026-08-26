@@ -12,18 +12,10 @@ export function LeaguePodiumCard() {
 
   const { data } = useQuery({
     queryKey: ["dashboard-podium"],
-    queryFn: async () => {
-      const { data: rows } = await supabase
-        .from("profiles")
-        .select("id,full_name,total_points,current_streak,active,status")
-        .order("total_points", { ascending: false })
-        .limit(50);
-      return { rows: rows ?? [] };
-    },
+    queryFn: async () => ({ rows: await fetchLeaderboard() }),
   });
 
   const rows = (data?.rows ?? [])
-    .filter((p) => p.active !== false && p.status !== "suspended")
     .map((p) => ({
       id: p.id,
       points: p.total_points ?? 0,
@@ -31,6 +23,7 @@ export function LeaguePodiumCard() {
       full_name: p.full_name,
     }))
     .sort((a, b) => b.points - a.points || a.full_name.localeCompare(b.full_name));
+
 
   if (rows.length === 0) return null;
 
