@@ -250,16 +250,69 @@ function RBtn({ children, onClick, active, title, danger }: { children: React.Re
   );
 }
 
-function Palette({ icon, colors, onPick, onClear, title }: { icon: React.ReactNode; colors: string[]; onPick: (c: string) => void; onClear: () => void; title: string }) {
+function Palette({ icon, colors, onPick, onClear, title, current }: { icon: React.ReactNode; colors: string[]; onPick: (c: string) => void; onClear: () => void; title: string; current?: string }) {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  // Keep the document selection alive: never let the ribbon steal focus.
+  const keep = (e: React.MouseEvent) => e.preventDefault();
+
   return (
-    <div className="doc-ribbon-palette" title={title}>
-      <span className="doc-ribbon-btn">{icon}</span>
-      <div className="doc-ribbon-swatches">
-        {colors.map((c) => (
-          <button key={c} type="button" style={{ background: c }} onClick={() => onPick(c)} title={c} />
-        ))}
-        <button type="button" className="doc-ribbon-clear" onClick={onClear}>×</button>
-      </div>
+    <div className="doc-ribbon-palette" ref={boxRef} title={title}>
+      <button
+        type="button"
+        className={`doc-ribbon-btn doc-ribbon-palette-btn${open ? " is-active" : ""}`}
+        onMouseDown={keep}
+        onClick={() => setOpen((o) => !o)}
+        title={title}
+      >
+        {icon}
+        <span className="doc-ribbon-palette-bar" style={{ background: current || "transparent" }} />
+      </button>
+      {open && (
+        <div className="doc-ribbon-swatches is-open" onMouseDown={keep}>
+          <div className="doc-ribbon-swatch-grid">
+            {colors.map((c) => (
+              <button
+                key={c}
+                type="button"
+                style={{ background: c }}
+                onMouseDown={keep}
+                onClick={() => { onPick(c); setOpen(false); }}
+                title={c}
+              />
+            ))}
+          </div>
+          <div className="doc-ribbon-swatch-row">
+            <input
+              type="color"
+              className="doc-ribbon-color-input"
+              value={/^#[0-9a-fA-F]{6}$/.test(current ?? "") ? (current as string) : "#000000"}
+              onMouseDown={(e) => e.stopPropagation()}
+              onChange={(e) => onPick(e.target.value)}
+              title={title}
+            />
+            <button type="button" className="doc-ribbon-clear" onMouseDown={keep} onClick={() => { onClear(); setOpen(false); }}>
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
