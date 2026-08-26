@@ -405,12 +405,38 @@ function TasksPage() {
   return (
     <div>
       <PageHeader
-        title={isAdmin ? t("tasks") : (lang === "ar" ? "مهامي" : "My Tasks")}
+        title={
+          archivedView
+            ? (lang === "ar" ? "أرشيف المهام" : "Tasks Archive")
+            : isAdmin ? t("tasks") : (lang === "ar" ? "مهامي" : "My Tasks")
+        }
         actions={
           <>
             <ViewSwitcher value={view} onChange={setView} showByMember={isAdmin} />
 
-            {isAdmin && (
+            <button
+              onClick={() => setArchivedView((v) => !v)}
+              className="brand-btn"
+              title={lang === "ar" ? "المهام المكتملة تتأرشف تلقائياً" : "Completed tasks are archived automatically"}
+              style={{
+                background: archivedView ? "var(--grad-blue)" : "var(--surface-2)",
+                color: archivedView ? "#fff" : "var(--foreground)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <Archive size={18} />
+              {archivedView
+                ? (lang === "ar" ? "المهام النشطة" : "Active tasks")
+                : (lang === "ar" ? "الأرشيف" : "Archive")}
+              {!archivedView && archivedCount > 0 && (
+                <span style={{
+                  marginInlineStart: 6, padding: "1px 7px", borderRadius: 999,
+                  fontSize: 11, fontWeight: 800, background: "var(--surface-3)", color: "var(--muted)",
+                }}>{archivedCount}</span>
+              )}
+            </button>
+
+            {isAdmin && !archivedView && (
               <button onClick={() => setNewOpen(true)} className="brand-btn" style={{ background: "var(--grad-blue)", color: "#fff" }}>
                 <Plus size={18} /> {t("newTask")}
               </button>
