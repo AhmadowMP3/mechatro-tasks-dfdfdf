@@ -36,17 +36,16 @@ function MemberProfilePage() {
           .order("updated_at", { ascending: false }),
         supabase.from("work_sessions").select("duration_minutes,started_at").eq("user_id", id),
         supabase.from("user_badges").select("code,awarded_at,meta").eq("user_id", id).order("awarded_at", { ascending: false }),
-        supabase.from("season_scores")
-          .select("points,tasks_done,last_rank,season_id,league_seasons(name,status,starts_at,ends_at)")
-          .eq("user_id", id)
-          .order("points", { ascending: false }),
+        supabase.from("profiles")
+          .select("id,total_points,active,status")
+          .order("total_points", { ascending: false }),
       ]);
       return {
         profile: profileRes.data as Profile | null,
         tasks: tasksRes.data ?? [],
         sessions: sessionsRes.data ?? [],
         badges: badgesRes.data ?? [],
-        scores: scoresRes.data ?? [],
+        ranking: scoresRes.data ?? [],
       };
     },
   });
@@ -195,31 +194,26 @@ function MemberProfilePage() {
         )}
       </div>
 
-      {/* Season standings */}
-      <SectionTitle icon={<TrendingUp size={16} />}>{t("seasonStandings")}</SectionTitle>
+      {/* Overall rank */}
+      <SectionTitle icon={<TrendingUp size={16} />}>{t("leaderboard")}</SectionTitle>
       <div className="brand-card" style={{ padding: 14, marginBottom: 18 }}>
-        {(data?.scores ?? []).length === 0 ? (
-          <div style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", padding: 10 }}>{t("noSeasons")}</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {(data?.scores ?? []).map((s) => {
-              const ls = s.league_seasons as { name?: string; status?: string } | null;
-              return (
-                <div key={s.season_id} style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "10px 12px", background: "var(--surface-2)", borderRadius: 8, gap: 10, flexWrap: "wrap",
-                }}>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{ls?.name ?? "—"}</div>
-                  <div style={{ display: "flex", gap: 12, fontSize: 13, color: "var(--muted)" }}>
-                    <span>#{toLocalDigits(s.last_rank ?? 0, lang)}</span>
-                    <span>{toLocalDigits(s.points, lang)} pts</span>
-                    <span>{toLocalDigits(s.tasks_done, lang)} {t("tasksDone")}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {(() => {
+          const list = (data?.ranking ?? []).filter((p) => p.active !== false && p.status !== "suspended");
+          const pos = list.findIndex((p) => p.id === id);
+          const pts = data?.profile?.total_points ?? 0;
+          return (
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              padding: "10px 12px", background: "var(--surface-2)", borderRadius: 8, gap: 10, flexWrap: "wrap",
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{t("overallRank")}</div>
+              <div style={{ display: "flex", gap: 12, fontSize: 13, color: "var(--muted)" }}>
+                <span>#{toLocalDigits(pos >= 0 ? pos + 1 : list.length, lang)}</span>
+                <span>{toLocalDigits(pts, lang)} {t("points")}</span>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Recent tasks */}
