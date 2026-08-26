@@ -27,6 +27,7 @@ function NotFoundComponent() {
   );
 }
 
+const CHUNK_RELOAD_KEY = "mechatro-chunk-reload";
 const CHUNK_ERROR_RE =
   /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|Loading chunk .* failed|error loading dynamically imported module/i;
 
@@ -35,31 +36,51 @@ function isChunkLoadError(e: unknown): boolean {
   return CHUNK_ERROR_RE.test(msg);
 }
 
-function tryChunkReload(): boolean {
+function clearBrowserCaches() {
+  if (typeof window === "undefined" || !("caches" in window)) return Promise.resolve();
+  return caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).then(() => undefined);
+}
+
+function tryChunkReload(force = false): boolean {
   if (typeof window === "undefined") return false;
   try {
-    if (sessionStorage.getItem("chunk-reload") === "1") return false;
-    sessionStorage.setItem("chunk-reload", "1");
+    const now = Date.now();
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    const previous = JSON.parse(sessionStorage.getItem(CHUNK_RELOAD_KEY) ?? "null") as
+      | { at?: number; count?: number; path?: string }
+      | null;
+    const samePath = previous?.path === currentPath && now - (previous.at ?? 0) < 30_000;
+    const count = samePath ? (previous?.count ?? 0) + 1 : 1;
+    if (!force && count > 2) return false;
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, JSON.stringify({ at: now, count, path: currentPath }));
   } catch { /* ignore */ }
   const url = new URL(window.location.href);
   url.searchParams.set("_v", String(Date.now()));
-  window.location.replace(url.toString());
+  void clearBrowserCaches().finally(() => window.location.replace(url.toString()));
   return true;
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
+  const isChunkError = isChunkLoadError(error);
   useEffect(() => {
-    if (isChunkLoadError(error) && tryChunkReload()) return;
+    if (isChunkError && tryChunkReload()) return;
     reportLovableError(error, { boundary: "root" });
     console.error(error);
-  }, [error]);
+  }, [error, isChunkError]);
   return (
     <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "var(--background)", color: "var(--foreground)" }}>
       <div style={{ textAlign: "center", maxWidth: 480 }}>
         <h2>Something went wrong</h2>
         <p style={{ color: "var(--muted-foreground)", marginBottom: 20, whiteSpace: "pre-wrap" }}>{error.message}</p>
-        <button onClick={() => { router.invalidate(); reset(); }} style={{ padding: "12px 24px", borderRadius: 12, background: "var(--grad-blue)", color: "#fff", fontWeight: 700, border: "none", cursor: "pointer" }}>Try again</button>
+        <button
+          onClick={() => {
+            if (isChunkError && tryChunkReload(true)) return;
+            router.invalidate();
+            reset();
+          }}
+          style={{ padding: "12px 24px", borderRadius: 12, background: "var(--grad-blue)", color: "#fff", fontWeight: 700, border: "none", cursor: "pointer" }}
+        >Try again</button>
       </div>
     </div>
   );
@@ -119,8 +140,10 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useEffect(() => {
-    // Successful mount → clear the stale-chunk reload guard.
-    try { sessionStorage.removeItem("chunk-reload"); } catch { /* ignore */ }
+    // Successful mount → clear the stale-chunk reload guard after lazy routes had time to resolve.
+    const clearChunkReload = window.setTimeout(() => {
+      try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch { /* ignore */ }
+    }, 8000);
     const onRejection = (ev: PromiseRejectionEvent) => {
       if (isChunkLoadError(ev.reason) && tryChunkReload()) ev.preventDefault();
     };
@@ -130,6 +153,7 @@ function RootComponent() {
     window.addEventListener("unhandledrejection", onRejection);
     window.addEventListener("error", onError);
     return () => {
+      window.clearTimeout(clearChunkReload);
       window.removeEventListener("unhandledrejection", onRejection);
       window.removeEventListener("error", onError);
     };
