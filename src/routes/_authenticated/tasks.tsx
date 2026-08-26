@@ -101,6 +101,8 @@ function TasksPage() {
 
   const [f, setF] = useState<Filters>(DEFAULTS);
   const patch = (p: Partial<Filters>) => setF((cur) => ({ ...cur, ...p }));
+  // Archive mode: completed tasks are auto-archived and hidden from normal views.
+  const [archivedView, setArchivedView] = useState(false);
 
   const memberScope = !isAdmin && user ? user.id : null;
   const peopleForFilters = isAdmin
