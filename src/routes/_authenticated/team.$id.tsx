@@ -200,7 +200,7 @@ function MemberProfilePage() {
         {(() => {
           const list = (data?.ranking ?? []).filter((p) => p.active !== false && p.status !== "suspended");
           const pos = list.findIndex((p) => p.id === id);
-          const pts = data?.profile?.total_points ?? 0;
+          const pts = (list.find((p) => p.id === id)?.total_points as number | null) ?? 0;
           return (
             <div style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
