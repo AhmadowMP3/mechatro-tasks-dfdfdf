@@ -407,7 +407,9 @@ function TasksPage() {
       <PageHeader
         title={
           archivedView
-            ? (lang === "ar" ? "أرشيف المهام" : "Tasks Archive")
+            ? isAdmin
+              ? (lang === "ar" ? "أرشيف المهام" : "Tasks Archive")
+              : (lang === "ar" ? "أرشيف مهامي" : "My Archived Tasks")
             : isAdmin ? t("tasks") : (lang === "ar" ? "مهامي" : "My Tasks")
         }
         actions={
@@ -428,10 +430,12 @@ function TasksPage() {
               {archivedView
                 ? (lang === "ar" ? "المهام النشطة" : "Active tasks")
                 : (lang === "ar" ? "الأرشيف" : "Archive")}
-              {!archivedView && archivedCount > 0 && (
+              {archivedCount > 0 && (
                 <span style={{
                   marginInlineStart: 6, padding: "1px 7px", borderRadius: 999,
-                  fontSize: 11, fontWeight: 800, background: "var(--surface-3)", color: "var(--muted)",
+                  fontSize: 11, fontWeight: 800,
+                  background: archivedView ? "rgba(255,255,255,.2)" : "var(--surface-3)",
+                  color: archivedView ? "#fff" : "var(--muted)",
                 }}>{archivedCount}</span>
               )}
             </button>
@@ -567,7 +571,12 @@ function TasksPage() {
           language_pref: "ar", theme_pref: "dark",
         }))) as typeof users;
         return filtered.length === 0 ? (
-          <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>{archivedView ? (lang === "ar" ? "لا مهام في الأرشيف" : "No archived tasks") : t("noTasks")}</div>
+          <div className="brand-card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
+            <div>{archivedView ? (lang === "ar" ? "لا مهام في الأرشيف" : "No archived tasks") : t("noTasks")}</div>
+            <div style={{ marginTop: 8, fontSize: 12 }}>
+              {lang === "ar" ? "المهام المكتملة تتأرشف تلقائياً" : "Completed tasks are archived automatically"}
+            </div>
+          </div>
         ) : view === "cards" ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%, 280px),1fr))", gap: 14 }}>
             {filtered.map((tk) => {
