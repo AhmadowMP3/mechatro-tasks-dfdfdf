@@ -21,11 +21,30 @@ export async function fetchLeaderboard(): Promise<LeaderboardRow[]> {
       rpc: (fn: string) => Promise<{ data: LeaderboardRow[] | null; error: unknown }>;
     }
   ).rpc("leaderboard");
-  if (error) return [];
-  return (data ?? []).map((r) => ({
+
+  if (error || !data) {
+    if (error) console.error("[leaderboard] rpc failed, falling back to profiles:", error);
+    // Fallback: direct profiles read (RLS may narrow this to the current user).
+    const fb = await supabase
+      .from("profiles")
+      .select("id,full_name,avatar_url,job_title,total_points,current_streak,longest_streak")
+      .order("total_points", { ascending: false });
+    if (fb.error) {
+      console.error("[leaderboard] profiles fallback failed:", fb.error);
+      return [];
+    }
+    return normalize((fb.data ?? []) as unknown as LeaderboardRow[]);
+  }
+
+  return normalize(data);
+}
+
+function normalize(rows: LeaderboardRow[]): LeaderboardRow[] {
+  return rows.map((r) => ({
     ...r,
     total_points: r.total_points ?? 0,
     current_streak: r.current_streak ?? 0,
     longest_streak: r.longest_streak ?? 0,
   }));
 }
+

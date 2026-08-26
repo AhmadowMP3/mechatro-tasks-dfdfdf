@@ -75,9 +75,14 @@ function LeaguePage() {
       {rankings.length === 0 && (
         <div className="brand-card" style={{ padding: 40, textAlign: "center" }}>
           <Trophy size={48} color="#FFD700" style={{ margin: "0 auto 12px" }} />
-          <div style={{ color: "var(--muted)", fontSize: 13 }}>—</div>
+          <div style={{ color: "var(--muted)", fontSize: 13, lineHeight: 1.6 }}>
+            {lang === "ar"
+              ? "لا توجد بيانات ترتيب حالياً. إذا كنت مسؤولاً، تأكد من تطبيق سكربت قاعدة البيانات scripts/sql/2026-08-26-leaderboard-function.sql على السيرفر."
+              : "No ranking data available. If you are an admin, make sure scripts/sql/2026-08-26-leaderboard-function.sql has been applied to the server."}
+          </div>
         </div>
       )}
+
 
       {/* Podium */}
       {podium.length > 0 && (
