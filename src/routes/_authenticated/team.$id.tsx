@@ -11,6 +11,8 @@ import { GenerateReportDialog } from "@/components/team/GenerateReportDialog";
 import { toLocalDigits, formatMinutes, formatDate } from "@/lib/format";
 import type { DictKey } from "@/i18n/dict";
 import { requireAdmin } from "@/lib/route-guards";
+import { fetchLeaderboard } from "@/lib/leaderboard";
+
 
 export const Route = createFileRoute("/_authenticated/team/$id")({
   ssr: false,
