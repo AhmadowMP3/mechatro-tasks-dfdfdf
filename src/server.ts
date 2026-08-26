@@ -51,6 +51,57 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   });
 }
 
+function isJavaScriptAsset(pathname: string): boolean {
+  return pathname.startsWith("/assets/") && pathname.endsWith(".js");
+}
+
+function staleAssetReloadResponse(): Response {
+  return new Response(
+    `const key = "mechatro-stale-asset-reload";
+const now = Date.now();
+const previous = Number(sessionStorage.getItem(key) || "0");
+sessionStorage.setItem(key, String(now));
+if (!previous || now - previous > 30000) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("_v", String(now));
+  const reload = () => window.location.replace(url.toString());
+  if ("caches" in window) caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).finally(reload);
+  else reload();
+}
+await new Promise(() => {});
+export {};`,
+    {
+      status: 200,
+      headers: {
+        "content-type": "application/javascript; charset=utf-8",
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        pragma: "no-cache",
+        expires: "0",
+      },
+    },
+  );
+}
+
+function withSafeCacheHeaders(request: Request, response: Response): Response {
+  const url = new URL(request.url);
+  if (response.status === 404 && isJavaScriptAsset(url.pathname)) {
+    return staleAssetReloadResponse();
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html")) return response;
+
+  const headers = new Headers(response.headers);
+  headers.set("cache-control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  headers.set("pragma", "no-cache");
+  headers.set("expires", "0");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function isH3SwallowedErrorBody(body: string): boolean {
   try {
     const payload = JSON.parse(body) as { unhandled?: unknown; message?: unknown };
@@ -65,7 +116,7 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return withSafeCacheHeaders(request, await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {
