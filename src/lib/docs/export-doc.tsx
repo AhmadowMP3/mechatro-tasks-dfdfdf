@@ -1,10 +1,24 @@
-// Exporters for business documents: PDF (browser print engine → perfect
-// Arabic shaping) and Word (.doc, same layout, fully editable).
+// Exporter for business documents: PDF via the browser print engine
+// (perfect Arabic shaping, exact A4 layout).
 
 import { DocPages, paginateDocument, type PaginatedDocInput } from "@/components/documents/PaginatedDoc";
 import { printReactDocument } from "@/lib/pdf/print-document";
-import { PAPER, docTypeLabel, type DocType } from "./types";
-import { downloadDocWord, type DocRenderInput } from "./export-html";
+import { PAPER, docTypeLabel, type DocFooter, type DocHeader, type DocLang, type DocTheme, type DocType } from "./types";
+import type { DocClient, DocModel } from "./model";
+
+export type DocRenderInput = {
+  header: DocHeader;
+  footer: DocFooter;
+  model: DocModel;
+  client: DocClient;
+  lang: DocLang;
+  theme: DocTheme;
+  currency: string;
+  meta: { number: string; date: string; validUntil?: string; client?: string };
+  title: string;
+  /** Optional pre-computed page split (same one the PDF uses). */
+  pages?: { showClientBox: boolean; html?: string }[];
+};
 
 export type ExportDocInput = DocRenderInput & { docType: DocType; number: string; docId?: string };
 
@@ -46,9 +60,4 @@ export async function exportDocPdf(input: ExportDocInput): Promise<void> {
       },
     },
   );
-}
-
-export async function exportDocWord(input: ExportDocInput): Promise<void> {
-  const pages = await paginateDocument(paginatedInput(input));
-  await downloadDocWord({ ...input, pages }, filenameFor(input));
 }
