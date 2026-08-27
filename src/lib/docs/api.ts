@@ -4,6 +4,7 @@
 import { supabase } from "@/lib/security/db";
 import type { Json } from "@/integrations/supabase/types";
 import { mergeDefaults, mergeFooter, mergeHeader, mergeBody, defaultBody, defaultDefaults, defaultFooter, defaultHeader } from "./defaults";
+import { isMissingSchema } from "./schema-fallback";
 import type { DocTemplate, DocType } from "./types";
 
 type Row = {
@@ -53,30 +54,33 @@ export const docTemplates = {
       header: defaultHeader(type) as unknown as Json,
       footer: defaultFooter(type) as unknown as Json,
       defaults: defaultDefaults(type) as unknown as Json,
-      body: defaultBody() as unknown as Json,
     };
-    const { data: created, error: insErr } = await supabase
+    let { data: created, error: insErr } = await supabase
       .from("doc_templates")
-      .insert(seed)
+      .insert({ ...seed, body: defaultBody() as unknown as Json })
       .select("*")
       .single();
+    if (insErr && isMissingSchema(insErr)) {
+      ({ data: created, error: insErr } = await supabase.from("doc_templates").insert(seed).select("*").single());
+    }
     if (insErr) throw insErr;
     return hydrate(created as unknown as Row);
   },
 
   async save(tpl: DocTemplate): Promise<DocTemplate> {
-    const { data, error } = await supabase
-      .from("doc_templates")
-      .update({
-        name: tpl.name,
-        header: tpl.header as unknown as Json,
-        footer: tpl.footer as unknown as Json,
-        defaults: tpl.defaults as unknown as Json,
-        body: tpl.body as unknown as Json,
-      })
-      .eq("id", tpl.id)
-      .select("*")
-      .single();
+    const base = {
+      name: tpl.name,
+      header: tpl.header as unknown as Json,
+      footer: tpl.footer as unknown as Json,
+      defaults: tpl.defaults as unknown as Json,
+    };
+    const run = (patch: typeof base & { body?: Json }) =>
+      supabase.from("doc_templates").update(patch).eq("id", tpl.id).select("*").single();
+
+    let { data, error } = await run({ ...base, body: tpl.body as unknown as Json });
+    // Backend still missing the `body` column (self-hosted not migrated yet):
+    // keep header/footer edits working instead of failing the whole save.
+    if (error && isMissingSchema(error)) ({ data, error } = await run(base));
     if (error) throw error;
     return hydrate(data as unknown as Row);
   },

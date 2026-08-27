@@ -62,7 +62,7 @@ export function DocEditor({
   // Shared reusable blocks composed in the template settings.
   useEffect(() => {
     let alive = true;
-    docBlocks.list().then((b) => { if (alive) setLibrary(b); }).catch(() => {});
+    docBlocks.list().then((b) => { if (alive && b) setLibrary(b); }).catch(() => {});
     return () => { alive = false; };
   }, []);
 
