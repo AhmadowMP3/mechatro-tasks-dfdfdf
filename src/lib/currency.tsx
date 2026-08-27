@@ -75,3 +75,15 @@ export function riyalSymbolSvg(size = "0.95em", color = "currentColor"): string 
   );
 }
 
+
+/** Amount + currency as HTML for the printed sheet / PDF / Word export.
+ *  SAR prints the official glyph; other currencies stay plain text. */
+export function moneyHtml(amount: number, currency: string, theme: "light" | "dark" = "light"): string {
+  const v = Number.isFinite(amount) ? amount : 0;
+  const num = v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (currency !== "SAR") return `${num}${currency ? ` ${currency}` : ""}`;
+  return (
+    `<span style="display:inline-flex;align-items:center;gap:3px;direction:ltr;white-space:nowrap">` +
+    `<span>${num}</span>${riyalSymbolSvg("0.95em", theme === "dark" ? "#FFFFFF" : "#0D1B2A")}</span>`
+  );
+}
