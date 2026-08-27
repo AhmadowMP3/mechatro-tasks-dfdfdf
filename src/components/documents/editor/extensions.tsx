@@ -6,6 +6,7 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
 import { Plus, Trash2 } from "lucide-react";
+import { RiyalSymbol } from "@/lib/currency";
 import { computeItems, money, uid, type ItemRow } from "@/lib/docs/model";
 import { DOC_FIELDS, fieldLabel, mergeItemsData, readItemsAttr, writeItemsAttr, emptyItemsData, type ItemsData } from "@/lib/docs/rich";
 import type { DocLang } from "@/lib/docs/types";
@@ -265,12 +266,25 @@ function ItemsTableView({ node, updateAttributes, extension, editor }: NodeViewP
 
         {data.showTotals && (
           <div className="doc-items-totals">
-            <span>{ar ? "المجموع" : "Subtotal"}: {money(totals.subtotal, opts.currency)}</span>
-            {Number(data.taxRate) > 0 && <span>{ar ? "الضريبة" : "Tax"}: {money(totals.tax, opts.currency)}</span>}
-            <strong>{ar ? "الإجمالي" : "Total"}: {money(totals.grand, opts.currency)}</strong>
+            <span>{ar ? "المجموع" : "Subtotal"}: <DocMoney value={totals.subtotal} currency={opts.currency} /></span>
+            {Number(data.taxRate) > 0 && <span>{ar ? "الضريبة" : "Tax"}: <DocMoney value={totals.tax} currency={opts.currency} /></span>}
+            <strong>{ar ? "الإجمالي" : "Total"}: <DocMoney value={totals.grand} currency={opts.currency} /></strong>
           </div>
         )}
       </div>
     </NodeViewWrapper>
+  );
+}
+
+/** Amount + currency inside the editor preview — the Saudi Riyal shows its
+ *  official glyph, matching the printed sheet exactly. */
+function DocMoney({ value, currency }: { value: number; currency: string }) {
+  const num = money(value, "");
+  if (currency !== "SAR") return <>{money(value, currency)}</>;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, direction: "ltr" }}>
+      {num}
+      <RiyalSymbol size="0.95em" />
+    </span>
   );
 }
