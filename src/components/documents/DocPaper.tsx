@@ -2,8 +2,10 @@
 // document editor + exporters. Renders the branded header band, the body
 // (children), and the footer band, in light or dark theme, AR or EN.
 
+import { useRef, useState } from "react";
+
 import { logoFor } from "@/lib/brand/logo";
-import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
+import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
 import type { LogoVariant } from "@/lib/docs/model";
 
@@ -11,6 +13,15 @@ import type { LogoVariant } from "@/lib/docs/model";
 export function logoFilter(variant: LogoVariant | undefined, theme: DocTheme): string | undefined {
   const v = variant && variant !== "auto" ? variant : theme === "dark" ? "light" : "dark";
   return v === "light" ? "brightness(0) invert(1)" : undefined;
+}
+
+/** 1% grid with magnetic snapping at the edges and the centre. */
+function snap(v: number): number {
+  const clamped = Math.min(100, Math.max(0, v));
+  for (const anchor of [0, 25, 50, 75, 100]) {
+    if (Math.abs(clamped - anchor) <= 2.5) return anchor;
+  }
+  return Math.round(clamped);
 }
 
 export const A4 = { width: 794, height: 1123 } as const;
