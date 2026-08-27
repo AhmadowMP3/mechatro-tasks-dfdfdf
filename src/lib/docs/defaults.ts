@@ -5,7 +5,7 @@
 // The header/footer below is the OFFICIAL Mechatro letterhead chrome and is
 // identical for every document type — only the title changes.
 
-import { DOC_TYPES, type DocDefaults, type DocFooter, type DocFooterRow, type DocHeader, type DocType } from "./types";
+import { DOC_TYPES, type DocBody, type DocDefaults, type DocFooter, type DocFooterRow, type DocHeader, type DocType } from "./types";
 
 const BLUE = "#42C2EE";
 
