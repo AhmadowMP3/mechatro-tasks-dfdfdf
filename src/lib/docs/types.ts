@@ -8,6 +8,8 @@ export type DocStatus = Database["public"]["Enums"]["business_doc_status"];
 export type DocLang = "ar" | "en";
 export type DocTheme = "light" | "dark";
 
+export type DocLogoMode = "inline" | "band" | "free";
+
 /** Fully editable header model, stored as JSON on doc_templates.header. */
 export type DocHeader = {
   showLogo: boolean;
