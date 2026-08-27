@@ -223,6 +223,26 @@ function DocTemplatesPage() {
                 </div>
               )}
 
+              {(tpl.header.logoMode ?? "inline") === "free" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "10px 12px", borderRadius: 10, border: "1px dashed var(--border)", background: "var(--card)" }}>
+                  <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+                    {ar ? "اسحب الشعار داخل المعاينة، أو استخدم الأسهم." : "Drag the logo in the preview, or nudge it."}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, direction: "ltr" }}>
+                    X {tpl.header.logoX ?? 0}% · Y {tpl.header.logoY ?? 0}%
+                  </span>
+                  <div style={{ display: "flex", gap: 6, marginInlineStart: "auto" }}>
+                    <NudgeBtn label="←" onClick={() => nudge(-1, 0)} />
+                    <NudgeBtn label="→" onClick={() => nudge(1, 0)} />
+                    <NudgeBtn label="↑" onClick={() => nudge(0, -1)} />
+                    <NudgeBtn label="↓" onClick={() => nudge(0, 1)} />
+                    <button type="button" className="btn-ghost" style={{ fontSize: 12, padding: "6px 10px", minHeight: 34 }} onClick={() => setHeader({ logoX: 0, logoY: 0 })}>
+                      {ar ? "إعادة الموضع" : "Reset position"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <Row>
                 <Text label={ar ? "العنوان (عربي)" : "Title (AR)"} value={tpl.header.titleAr} onChange={(v) => setHeader({ titleAr: v })} />
                 <Text label={ar ? "العنوان (إنجليزي)" : "Title (EN)"} value={tpl.header.titleEn} onChange={(v) => setHeader({ titleEn: v })} />
