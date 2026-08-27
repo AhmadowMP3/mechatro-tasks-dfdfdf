@@ -2,7 +2,7 @@
 // the branded letterhead (header + footer from the template) around a freely
 // editable body — what you type is exactly what the PDF prints.
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -24,6 +24,7 @@ import { DocClientCard } from "../DocBody";
 import { DocPaper } from "../DocPaper";
 import { fieldValue, termsBlockHtml, type RichCtx } from "@/lib/docs/rich";
 import { snippetHtml, type SnippetId } from "@/lib/docs/snippets";
+import { docBlocks, blockLabel, type DocBlock } from "@/lib/docs/blocks";
 import type { DocClient, LogoVariant } from "@/lib/docs/model";
 import type { DocFooter, DocHeader, DocLang, DocTheme } from "@/lib/docs/types";
 import { toast } from "sonner";
@@ -56,6 +57,15 @@ export function DocEditor({
 }: Props) {
   const ar = lang === "ar";
   const lastEmitted = useRef(html);
+  const [library, setLibrary] = useState<DocBlock[]>([]);
+
+  // Shared reusable blocks composed in the template settings.
+  useEffect(() => {
+    let alive = true;
+    docBlocks.list().then((b) => { if (alive) setLibrary(b); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
 
   const ctx = useMemo<RichCtx>(() => ({ lang, theme, currency, meta }), [lang, theme, currency, meta]);
   const fieldValues = useMemo(() => {
@@ -158,6 +168,8 @@ export function DocEditor({
         lang={lang}
         onImage={insertImage}
         onSnippet={insertSnippet}
+        blocks={library.map((b) => ({ id: b.id, label: blockLabel(b, lang), html: b.html }))}
+        onBlock={(blockHtml) => editor?.chain().focus().insertContent(blockHtml).run()}
         logoVariant={logoVariant}
         onLogoVariant={onLogoVariant}
         actions={actions}
