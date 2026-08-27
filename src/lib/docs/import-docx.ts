@@ -12,6 +12,8 @@ export type DocxImport = {
   html: string;
   /** Plain text of the document (for AI extraction). */
   text: string;
+  /** Structured digest (headings, paragraphs, tables as rows) for the AI. */
+  digest: string;
   /** Non-fatal conversion notes from Word. */
   warnings: string[];
   images: number;
