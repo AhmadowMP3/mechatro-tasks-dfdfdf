@@ -369,6 +369,36 @@ export type Database = {
         }
         Relationships: []
       }
+      doc_blocks: {
+        Row: {
+          created_at: string
+          html: string
+          id: string
+          name_ar: string
+          name_en: string
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          html?: string
+          id?: string
+          name_ar?: string
+          name_en?: string
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          html?: string
+          id?: string
+          name_ar?: string
+          name_en?: string
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       doc_counters: {
         Row: {
           doc_type: Database["public"]["Enums"]["business_doc_type"]
@@ -389,6 +419,7 @@ export type Database = {
       }
       doc_templates: {
         Row: {
+          body: Json
           created_at: string
           defaults: Json
           doc_type: Database["public"]["Enums"]["business_doc_type"]
@@ -400,6 +431,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          body?: Json
           created_at?: string
           defaults?: Json
           doc_type: Database["public"]["Enums"]["business_doc_type"]
@@ -411,6 +443,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          body?: Json
           created_at?: string
           defaults?: Json
           doc_type?: Database["public"]["Enums"]["business_doc_type"]
