@@ -1624,3 +1624,44 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   font-size: 12px;
   direction: ltr;
 }
+
+/* ── Simplified document editor (template body + reusable blocks) ───────── */
+.simple-doc-editor {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+}
+.simple-doc-ribbon {
+  position: static;
+  border-radius: 0;
+  border-inline: 0;
+  border-top: 0;
+}
+.simple-doc-surface {
+  background: #ffffff;
+  color: #0B1A2A;
+  padding: 18px 20px;
+  overflow-x: auto;
+}
+.simple-doc-surface .doc-rich { color: #0B1A2A; }
+.simple-doc-surface .ProseMirror { outline: none; min-height: inherit; }
+.doc-blocks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.doc-block-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+.doc-block-row.is-active {
+  border-color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+}
