@@ -57,6 +57,42 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
     .map((s) => (s ?? "").trim())
     .filter(Boolean);
 
+  const mode: DocLogoMode = header.logoMode ?? "inline";
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const logoImg = (
+    <img
+      src={logoFor(lang)}
+      alt="Mechatro"
+      draggable={false}
+      style={{ height: header.logoHeight, width: "auto", maxWidth: mode === "inline" ? 300 : "100%", objectFit: "contain", filter: logoFilter(logoVariant, theme), userSelect: "none", pointerEvents: "none" }}
+    />
+  );
+
+  const startDrag = (e: React.PointerEvent) => {
+    if (!draggableLogo || !onLogoMove) return;
+    e.preventDefault();
+    const box = headerRef.current;
+    if (!box) return;
+    setDragging(true);
+    const move = (ev: PointerEvent) => {
+      const r = box.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      const rawX = ((ev.clientX - r.left) / r.width) * 100;
+      const x = snap(ar ? 100 - rawX : rawX);
+      const y = snap(((ev.clientY - r.top) / r.height) * 100);
+      onLogoMove(x, y);
+    };
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
   return (
     <div
       style={{
