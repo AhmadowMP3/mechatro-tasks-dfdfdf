@@ -9,6 +9,7 @@
 // so it prints, paginates and exports to Word 1:1 with what was typed.
 
 import { PAPER, type DocLang, type DocTheme } from "./types";
+import { moneyHtml } from "@/lib/currency";
 import { computeItems, money, uid, type ItemRow } from "./model";
 
 export type ItemsData = {
@@ -30,6 +31,12 @@ export type RichCtx = {
   currency: string;
   meta: { number?: string; date?: string; validUntil?: string; client?: string };
 };
+
+/** Money for the printed sheet: the Saudi Riyal prints as its official glyph
+ *  (an inlined PNG), every other currency stays plain text. */
+function moneyDoc(n: number, ctx: RichCtx): string {
+  return moneyHtml(n, ctx.currency, ctx.theme);
+}
 
 export function emptyItemsData(): ItemsData {
   return {
@@ -109,6 +116,16 @@ export function fieldValue(key: string, ctx: RichCtx, totals: { subtotal: number
   }
 }
 
+/** Same as `fieldValue`, but as HTML — money fields carry the riyal glyph. */
+export function fieldValueHtml(key: string, ctx: RichCtx, totals: { subtotal: number; tax: number; grand: number }): string {
+  switch (key) {
+    case "subtotal": return moneyDoc(totals.subtotal, ctx);
+    case "tax": return moneyDoc(totals.tax, ctx);
+    case "total": return moneyDoc(totals.grand, ctx);
+    default: return esc(fieldValue(key, ctx, totals));
+  }
+}
+
 export function readItemsAttr(raw: string | null): ItemsData | null {
   if (!raw) return null;
   try { return mergeItemsData(JSON.parse(decodeURIComponent(raw))); } catch { /* fall through */ }
@@ -128,9 +145,9 @@ export function buildItemsTableHtml(data: ItemsData, ctx: RichCtx, startIndex = 
   const cols = 2 + (data.showUnit ? 1 : 0) + (data.showQty ? 1 : 0) + (data.showPrice ? 1 : 0) + 1;
   const th = (label: string, w?: number) =>
     `<th style="border:1px solid ${c.border};padding:6px 8px;font-weight:700;text-align:inherit;background:${c.surface}${w ? `;width:${w}px` : ""}">${esc(label)}</th>`;
-  const td = (v: unknown, opts?: { bold?: boolean; ltr?: boolean; alignEnd?: boolean; span?: number }) =>
+  const td = (v: unknown, opts?: { bold?: boolean; ltr?: boolean; alignEnd?: boolean; span?: number; raw?: boolean }) =>
     `<td${opts?.span ? ` colspan="${opts.span}"` : ""} style="border:1px solid ${c.border};padding:6px 8px;vertical-align:top;` +
-    `${opts?.bold ? "font-weight:700;" : ""}${opts?.ltr ? "direction:ltr;" : ""}${opts?.alignEnd ? `text-align:${ar ? "left" : "right"};` : ""}">${esc(v)}</td>`;
+    `${opts?.bold ? "font-weight:700;" : ""}${opts?.ltr ? "direction:ltr;" : ""}${opts?.alignEnd ? `text-align:${ar ? "left" : "right"};` : ""}">${opts?.raw ? String(v) : esc(v)}</td>`;
 
   const head =
     `<tr>${th("#", 32)}${th(ar ? "البيان" : "Description")}` +
@@ -157,14 +174,14 @@ export function buildItemsTableHtml(data: ItemsData, ctx: RichCtx, startIndex = 
     .join("");
 
   const sum = (label: string, value: string, bold = false) =>
-    `<tr${bold ? ` style="background:${c.surface}"` : ""}>${td(label, { span: cols - 1, bold, alignEnd: true })}${td(value, { bold, ltr: true })}</tr>`;
+    `<tr${bold ? ` style="background:${c.surface}"` : ""}>${td(label, { span: cols - 1, bold, alignEnd: true })}${td(value, { bold, ltr: true, raw: true })}</tr>`;
 
   const totals = showTotals
-    ? sum(ar ? "المجموع" : "Subtotal", money(t.subtotal, ctx.currency)) +
-      (t.discount > 0 ? sum(ar ? "الخصم" : "Discount", `- ${money(t.discount, ctx.currency)}`) : "") +
-      (Number(data.taxRate) > 0 ? sum(`${ar ? "الضريبة" : "Tax"} ${data.taxRate}%`, money(t.tax, ctx.currency)) : "") +
-      (t.shipping > 0 ? sum(ar ? "الشحن" : "Shipping", money(t.shipping, ctx.currency)) : "") +
-      sum(ar ? "الإجمالي النهائي" : "Grand total", money(t.grand, ctx.currency), true)
+    ? sum(ar ? "المجموع" : "Subtotal", moneyDoc(t.subtotal, ctx)) +
+      (t.discount > 0 ? sum(ar ? "الخصم" : "Discount", `- ${moneyDoc(t.discount, ctx)}`) : "") +
+      (Number(data.taxRate) > 0 ? sum(`${ar ? "الضريبة" : "Tax"} ${data.taxRate}%`, moneyDoc(t.tax, ctx)) : "") +
+      (t.shipping > 0 ? sum(ar ? "الشحن" : "Shipping", moneyDoc(t.shipping, ctx)) : "") +
+      sum(ar ? "الإجمالي النهائي" : "Grand total", moneyDoc(t.grand, ctx), true)
     : "";
 
   const title = (ar ? data.titleAr : data.titleEn) && startIndex === 0
@@ -192,7 +209,7 @@ export function resolveDocHtml(html: string, ctx: RichCtx): string {
 
   root.querySelectorAll("span[data-doc-field]").forEach((el) => {
     const key = el.getAttribute("data-doc-field") ?? "";
-    el.textContent = fieldValue(key, ctx, totals);
+    el.innerHTML = fieldValueHtml(key, ctx, totals);
   });
 
   root.querySelectorAll("table[data-items]").forEach((el) => {
