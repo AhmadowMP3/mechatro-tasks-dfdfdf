@@ -187,6 +187,16 @@ function DocTemplatesPage() {
                 <Toggle label={ar ? "صندوق البيانات" : "Meta box"} value={tpl.header.showMetaBox} onChange={(v) => setHeader({ showMetaBox: v })} />
               </Row>
               <Row>
+                <Pick
+                  label={ar ? "مكان الشعار" : "Logo placement"}
+                  value={tpl.header.logoMode ?? "inline"}
+                  options={[
+                    { v: "inline", l: ar ? "بجانب العنوان" : "Beside title" },
+                    { v: "band", l: ar ? "شريط أعلى" : "Band above" },
+                    { v: "free", l: ar ? "حر (بالسحب)" : "Free (drag)" },
+                  ]}
+                  onChange={(v) => setHeader({ logoMode: v as DocHeader["logoMode"] })}
+                />
                 <Num label={ar ? "ارتفاع الشعار" : "Logo height"} value={tpl.header.logoHeight} min={20} max={140} onChange={(v) => setHeader({ logoHeight: v })} />
                 <Pick
                   label={ar ? "محاذاة الشعار" : "Logo align"}
