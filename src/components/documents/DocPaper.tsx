@@ -75,16 +75,39 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
       }}
     >
       {/* ── Header band (identical on every template) ───────────── */}
-      <div style={{ padding: "24px 40px 12px", flexShrink: 0 }}>
+      <div ref={headerRef} style={{ padding: "24px 40px 12px", flexShrink: 0, position: "relative" }}>
         {/* Logo band — full width so a tall logo never squeezes the title */}
-        {header.showLogo && (
+        {header.showLogo && mode === "band" && (
           <div style={{ display: "flex", justifyContent: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? (ar ? "flex-start" : "flex-end") : (ar ? "flex-end" : "flex-start"), marginBottom: 10 }}>
-            <img src={logoFor(lang)} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", maxWidth: "100%", objectFit: "contain", filter: logoFilter(logoVariant, theme) }} />
+            {logoImg}
           </div>
         )}
-        <div style={{ display: "grid", gridTemplateColumns: "232px minmax(0, 1fr) 232px", alignItems: "start", justifyItems: "stretch", gap: 18 }}>
-          {/* Brand block */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, overflowWrap: "anywhere", alignItems: "flex-start" }}>
+        {/* Free mode — the logo floats, so reserve its band to avoid overlap */}
+        {header.showLogo && mode === "free" && <div style={{ height: header.logoHeight + 8 }} />}
+        {header.showLogo && mode === "free" && (
+          <div
+            onPointerDown={startDrag}
+            style={{
+              position: "absolute",
+              insetInlineStart: `${header.logoX}%`,
+              top: `${header.logoY}%`,
+              transform: `translate(${ar ? "" : "-"}${header.logoX}%, -${header.logoY}%)`,
+              cursor: draggableLogo ? (dragging ? "grabbing" : "grab") : undefined,
+              touchAction: draggableLogo ? "none" : undefined,
+              outline: draggableLogo ? `1px dashed ${header.accent}66` : undefined,
+              outlineOffset: 4,
+              zIndex: 2,
+            }}
+          >
+            {logoImg}
+          </div>
+        )}
+        <div style={{ display: "grid", gridTemplateColumns: mode === "inline" ? "auto minmax(0, 1fr) 232px" : "232px minmax(0, 1fr) 232px", alignItems: mode === "inline" ? "center" : "start", justifyItems: "stretch", gap: 18 }}>
+          {/* Brand block (with the logo beside it in inline mode) */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, maxWidth: mode === "inline" ? 300 : undefined, overflowWrap: "anywhere", alignItems: "flex-start" }}>
+            {header.showLogo && mode === "inline" && (
+              <div style={{ marginBottom: 6, alignSelf: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>{logoImg}</div>
+            )}
             {company && <div style={{ fontSize: 12.5, fontWeight: 700, overflowWrap: "anywhere" }}>{company}</div>}
             {address && <div style={{ fontSize: 10.5, color: c.muted, overflowWrap: "anywhere" }}>{address}</div>}
             {contactBits.length > 0 && (
