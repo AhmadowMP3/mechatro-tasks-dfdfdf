@@ -26,14 +26,19 @@ export function TemplateContentSection({ lang, bodyLang, currency, html, onChang
 
   const [blocks, setBlocks] = useState<DocBlock[]>([]);
   const [busy, setBusy] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   const [editing, setEditing] = useState<DocBlock | null>(null);
   const [draft, setDraft] = useState<{ name_ar: string; name_en: string; html: string } | null>(null);
 
   const load = () => {
     docBlocks
       .list()
-      .then(setBlocks)
-      .catch((e) => toast.error((e as Error).message));
+      .then((rows) => {
+        if (rows === null) { setUnavailable(true); setBlocks([]); return; }
+        setUnavailable(false);
+        setBlocks(rows);
+      })
+      .catch(() => setUnavailable(true));
   };
   useEffect(load, []);
 
@@ -128,12 +133,18 @@ export function TemplateContentSection({ lang, bodyLang, currency, html, onChang
       {/* ── Reusable blocks library ─────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
         <strong style={{ fontSize: 13.5 }}>{ar ? "مكتبة المقاطع الجاهزة" : "Reusable blocks"}</strong>
-        <button className="btn-ghost" type="button" onClick={startNew} style={{ fontSize: 12.5 }}>
+        <button className="btn-ghost" type="button" onClick={startNew} disabled={unavailable} style={{ fontSize: 12.5 }}>
           <Plus size={14} /> {ar ? "مقطع جديد" : "New block"}
         </button>
       </div>
 
-      {blocks.length === 0 ? (
+      {unavailable ? (
+        <div style={{ fontSize: 12.5, color: "var(--muted-foreground)", border: "1px dashed var(--border)", borderRadius: 10, padding: "10px 12px", lineHeight: 1.6 }}>
+          {ar
+            ? "مكتبة المقاطع غير متاحة على هذا الخادم بعد (لم يتم تحديث قاعدة البيانات). المحتوى الافتراضي أعلاه يعمل بشكل طبيعي."
+            : "The blocks library is not available on this backend yet (database not migrated). The default content above still works normally."}
+        </div>
+      ) : blocks.length === 0 ? (
         <div style={{ fontSize: 12.5, color: "var(--muted-foreground)" }}>
           {ar ? "لا توجد مقاطع بعد — أنشئ مقطعاً لتستخدمه في كل الأنواع." : "No blocks yet — create one to reuse it across every document type."}
         </div>
