@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { FileText, Plus, Search, Copy, Trash2, Loader2, FileDown } from "lucide-react";
+import { FileText, Plus, Search, Copy, Trash2, Loader2, FileDown, FileUp } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -10,6 +10,7 @@ import { docTemplates } from "@/lib/docs/api";
 import { exportDocPdf } from "@/lib/docs/export-doc";
 import { businessDocs, DOC_STATUS_LABELS, type BusinessDoc } from "@/lib/docs/docs-api";
 import { DOC_TYPES, docTypeLabel, type DocType } from "@/lib/docs/types";
+import { ImportDocxDialog } from "@/components/documents/ImportDocxDialog";
 
 export const Route = createFileRoute("/_authenticated/documents/")({
   ssr: false,
@@ -36,6 +37,7 @@ function DocumentsListPage() {
   const [type, setType] = useState<DocType | "all">("all");
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const reload = () => {
     setLoading(true);
@@ -152,7 +154,13 @@ function DocumentsListPage() {
 
       {/* Create buttons */}
       <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ fontSize: 13, fontWeight: 700 }}>{ar ? "إنشاء مستند جديد" : "Create a new document"}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>{ar ? "إنشاء مستند جديد" : "Create a new document"}</div>
+          <button className="btn-primary" disabled={busy} onClick={() => setImporting(true)} style={{ marginInlineStart: "auto", minHeight: 40 }}>
+            <FileUp size={15} />
+            {ar ? "استيراد من Word" : "Import from Word"}
+          </button>
+        </div>
         <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 190px), 1fr))" }}>
           {DOC_TYPES.map((d) => (
             <button key={d.type} className="btn-ghost" disabled={busy} onClick={() => create(d.type)} style={{ justifyContent: "flex-start", minHeight: 44 }}>
@@ -165,6 +173,18 @@ function DocumentsListPage() {
           ))}
         </div>
       </div>
+
+      {importing && (
+        <ImportDocxDialog
+          ar={ar}
+          onClose={() => setImporting(false)}
+          onCreated={(doc) => {
+            setImporting(false);
+            navigate({ to: "/documents/$id", params: { id: doc.id } });
+          }}
+        />
+      )}
+
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
