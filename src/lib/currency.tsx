@@ -31,41 +31,47 @@ export function currencySymbolText(currency: Currency, lang: "ar" | "en" = "en")
   }
 }
 
-/** Geometry of the new Saudi Riyal symbol, shared by the component and the
- *  inline-SVG string used inside exported HTML. */
-const RIYAL_PATHS = [
-  "M6 3.6v7.1c0 3.1 2.1 5.1 5.2 5.1H19.2",
-  "M13.6 3.6v6.2",
-  "M4 18.4 14.6 16.5",
-  "M4 21.4 14.6 19.5",
-];
+/** Height-to-width helper so the artwork never distorts at any font size. */
+function glyphWidth(size: number | string): string {
+  return typeof size === "number"
+    ? `${Math.round(size * RIYAL_ASPECT * 100) / 100}px`
+    : `calc(${size} * ${RIYAL_ASPECT})`;
+}
 
-/** The new Saudi Riyal symbol as an inline React element. */
+/** The official Saudi Riyal symbol as a React element.
+ *  In the app it is tinted with the surrounding text color through a CSS mask,
+ *  so it inherits hover states, muted text and both themes automatically. */
 export function RiyalSymbol({ size = "1em", color = "currentColor", style }: { size?: number | string; color?: string; style?: React.CSSProperties }) {
+  const height = typeof size === "number" ? `${size}px` : size;
+  const mask = `url("${riyalGlyphFor("#000")}") no-repeat center / contain`;
   return (
-    <svg
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      fill="none"
-      stroke={color}
-      strokeWidth={2}
-      strokeLinecap="round"
-      aria-label="SAR"
+    <span
       role="img"
-      style={{ display: "inline-block", verticalAlign: "-0.12em", ...style }}
-    >
-      {RIYAL_PATHS.map((d) => <path key={d} d={d} />)}
-    </svg>
+      aria-label="SAR"
+      style={{
+        display: "inline-block",
+        height,
+        width: glyphWidth(size),
+        verticalAlign: "-0.12em",
+        background: color === "currentColor" ? "currentColor" : color,
+        WebkitMask: mask,
+        mask,
+        flexShrink: 0,
+        ...style,
+      }}
+    />
   );
 }
 
-/** The same symbol as an SVG string — for exported HTML / PDF / Word markup. */
+/** The same symbol as an HTML string — for exported document HTML, the PDF
+ *  sheet, the Word export and the QR viewer. CSS masks are not portable to
+ *  Word, so this variant embeds the pre-tinted PNG directly. */
 export function riyalSymbolSvg(size = "0.95em", color = "currentColor"): string {
+  const height = typeof size === "number" ? `${size}px` : size;
   return (
-    `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="${color}" ` +
-    `stroke-width="2" stroke-linecap="round" style="display:inline-block;vertical-align:-0.12em">` +
-    RIYAL_PATHS.map((d) => `<path d="${d}"/>`).join("") +
-    `</svg>`
+    `<img src="${riyalGlyphFor(color)}" alt="SAR" ` +
+    `style="display:inline-block;height:${height};width:${glyphWidth(size)};` +
+    `vertical-align:-0.12em;object-fit:contain" />`
   );
 }
+
