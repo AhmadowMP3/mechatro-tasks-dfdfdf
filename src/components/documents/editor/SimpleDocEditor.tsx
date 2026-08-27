@@ -99,19 +99,7 @@ export function SimpleDocEditor({
     if (!editor || !onReady) return;
     onReady({
       insert: (block: string) => editor.chain().focus().insertContent(block).run(),
-      selectionHtml: () => {
-        const { from, to } = editor.state.selection;
-        if (from === to) return editor.getHTML();
-        const slice = editor.state.doc.slice(from, to);
-        const div = document.createElement("div");
-        // Serialize the selected slice through a detached fragment.
-        const frag = editor.view.someProp("clipboardSerializer") ?? null;
-        void frag;
-        div.appendChild(
-          (editor.view.dom.ownerDocument ?? document).createRange().createContextualFragment(""),
-        );
-        return editor.storage && slice ? editor.getHTML() : editor.getHTML();
-      },
+      selectionHtml: () => editor.getHTML(),
     });
   }, [editor, onReady]);
 
