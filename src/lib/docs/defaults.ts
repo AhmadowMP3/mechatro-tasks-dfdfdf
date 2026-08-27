@@ -105,6 +105,16 @@ export function mergeFooter(type: DocType, raw: unknown): DocFooter {
   return merged;
 }
 
+export function defaultBody(): DocBody {
+  return { html: "" };
+}
+
+/** Merge a stored body blob over the empty default. */
+export function mergeBody(raw: unknown): DocBody {
+  const stored = raw && typeof raw === "object" ? (raw as Partial<DocBody>) : null;
+  return { html: typeof stored?.html === "string" ? stored.html : "" };
+}
+
 export function mergeDefaults(type: DocType, raw: unknown): DocDefaults {
   return { ...defaultDefaults(type), ...(raw && typeof raw === "object" ? raw as Partial<DocDefaults> : {}) };
 }
