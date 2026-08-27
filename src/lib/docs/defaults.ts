@@ -21,6 +21,9 @@ export const BASE_HEADER: DocHeader = {
   showLogo: true,
   logoHeight: 110,
   logoAlign: "start",
+  logoMode: "inline",
+  logoX: 0,
+  logoY: 0,
   titleAr: "",
   titleEn: "",
   companyAr: "ميكاترو للحلول الهندسية",
@@ -80,7 +83,19 @@ export function defaultDefaults(type: DocType): DocDefaults {
 
 /** Merge a partial stored JSON blob over the defaults so new fields appear. */
 export function mergeHeader(type: DocType, raw: unknown): DocHeader {
-  return { ...defaultHeader(type), ...(raw && typeof raw === "object" ? raw as Partial<DocHeader> : {}) };
+  const stored = raw && typeof raw === "object" ? (raw as Partial<DocHeader>) : null;
+  const merged: DocHeader = { ...defaultHeader(type), ...(stored ?? {}) };
+  // Templates saved before the placement feature keep the old full-width band
+  // until the admin explicitly picks the new layout.
+  if (stored && !stored.logoMode) merged.logoMode = "band";
+  merged.logoX = clampPct(merged.logoX);
+  merged.logoY = clampPct(merged.logoY);
+  return merged;
+}
+
+function clampPct(n: unknown): number {
+  const v = typeof n === "number" && Number.isFinite(n) ? n : 0;
+  return Math.min(100, Math.max(0, Math.round(v * 10) / 10));
 }
 export function mergeFooter(type: DocType, raw: unknown): DocFooter {
   const merged = { ...defaultFooter(type), ...(raw && typeof raw === "object" ? raw as Partial<DocFooter> : {}) };
