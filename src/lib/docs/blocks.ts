@@ -3,6 +3,7 @@
 
 import { supabase } from "@/lib/security/db";
 import { sanitizeHtml } from "@/lib/security/sanitize";
+import { isMissingSchema } from "./schema-fallback";
 
 export type DocBlock = {
   id: string;
@@ -29,14 +30,26 @@ export function blockLabel(b: DocBlock, lang: "ar" | "en"): string {
   return primary || b.name_en || b.name_ar || (lang === "ar" ? "بدون اسم" : "Untitled");
 }
 
+/** Thrown when the connected backend has no `doc_blocks` table yet. */
+export class BlocksUnavailableError extends Error {
+  constructor() {
+    super("doc_blocks table is not available on this backend");
+    this.name = "BlocksUnavailableError";
+  }
+}
+
 export const docBlocks = {
-  async list(): Promise<DocBlock[]> {
+  /** Returns null when the backend has not been migrated yet. */
+  async list(): Promise<DocBlock[] | null> {
     const { data, error } = await supabase
       .from("doc_blocks")
       .select("*")
       .order("sort", { ascending: true })
       .order("created_at", { ascending: true });
-    if (error) throw error;
+    if (error) {
+      if (isMissingSchema(error)) return null;
+      throw error;
+    }
     return ((data ?? []) as unknown as Row[]).map(hydrate);
   },
 
@@ -51,7 +64,7 @@ export const docBlocks = {
       })
       .select("*")
       .single();
-    if (error) throw error;
+    if (error) throw isMissingSchema(error) ? new BlocksUnavailableError() : error;
     return hydrate(data as unknown as Row);
   },
 
@@ -59,7 +72,7 @@ export const docBlocks = {
     const body = { ...patch };
     if (typeof body.html === "string") body.html = sanitizeHtml(body.html);
     const { data, error } = await supabase.from("doc_blocks").update(body).eq("id", id).select("*").single();
-    if (error) throw error;
+    if (error) throw isMissingSchema(error) ? new BlocksUnavailableError() : error;
     return hydrate(data as unknown as Row);
   },
 

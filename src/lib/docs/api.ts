@@ -4,6 +4,7 @@
 import { supabase } from "@/lib/security/db";
 import type { Json } from "@/integrations/supabase/types";
 import { mergeDefaults, mergeFooter, mergeHeader, mergeBody, defaultBody, defaultDefaults, defaultFooter, defaultHeader } from "./defaults";
+import { isMissingSchema } from "./schema-fallback";
 import type { DocTemplate, DocType } from "./types";
 
 type Row = {
