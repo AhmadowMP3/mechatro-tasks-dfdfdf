@@ -67,6 +67,9 @@ export type DocDefaults = {
   termsEn: string;
 };
 
+/** Ready-made body content preloaded into every new document of a type. */
+export type DocBody = { html: string };
+
 export type DocTemplate = {
   id: string;
   doc_type: DocType;
@@ -75,6 +78,7 @@ export type DocTemplate = {
   header: DocHeader;
   footer: DocFooter;
   defaults: DocDefaults;
+  body: DocBody;
   created_at?: string;
   updated_at?: string;
 };

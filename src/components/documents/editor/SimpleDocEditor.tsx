@@ -1,0 +1,226 @@
+// Simplified Word-style editor used by the template settings page (default
+// document content) and by the reusable-blocks library. Same engine and same
+// output HTML as the full document editor — just a trimmed toolbar.
+
+import { useEffect, useRef, useState } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import { TextStyle, Color, FontSize, FontFamily } from "@tiptap/extension-text-style";
+import Highlight from "@tiptap/extension-highlight";
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableCell } from "@tiptap/extension-table-cell";
+import {
+  Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight,
+  List, ListOrdered, Table as TableIcon, ImagePlus, Rows3, Columns3, Grid2x2X,
+  Undo2, Redo2, Eraser, Loader2, Type,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import { ResizableImage, IMAGE_MAX_WIDTH } from "./ResizableImage";
+import { PageBreak, DocField, ItemsTable } from "./extensions";
+import { BlockFormat } from "./text-attrs";
+import { DOC_FIELDS, fieldLabel } from "@/lib/docs/rich";
+import { prepareImage } from "@/lib/docs/upload";
+import type { DocLang } from "@/lib/docs/types";
+
+type Props = {
+  html: string;
+  onChange: (html: string) => void;
+  lang: DocLang;
+  currency: string;
+  placeholder?: string;
+  minHeight?: number;
+  /** Extra toolbar buttons pinned to the end (e.g. "save as block"). */
+  extraTools?: React.ReactNode;
+  /** Called with the editor's current selection HTML, for "save as block". */
+  onReady?: (api: { insert: (html: string) => void; selectionHtml: () => string }) => void;
+};
+
+export function SimpleDocEditor({
+  html, onChange, lang, currency, placeholder, minHeight = 220, extraTools, onReady,
+}: Props) {
+  const ar = lang === "ar";
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const lastEmitted = useRef(html);
+  const [uploading, setUploading] = useState(false);
+
+  const editor = useEditor(
+    {
+      extensions: [
+        StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
+        Underline,
+        TextStyle,
+        Color,
+        FontSize,
+        FontFamily,
+        BlockFormat,
+        Highlight.configure({ multicolor: true }),
+        TextAlign.configure({ types: ["heading", "paragraph"] }),
+        Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer nofollow" } }),
+        ResizableImage.configure({ inline: false, allowBase64: true }),
+        Table.configure({ resizable: true }),
+        TableRow,
+        TableHeader,
+        TableCell,
+        Placeholder.configure({
+          placeholder: placeholder ?? (ar ? "اكتب المحتوى الافتراضي هنا…" : "Write the default content here…"),
+        }),
+        PageBreak,
+        DocField.configure({ lang, values: {} }),
+        ItemsTable.configure({ lang, currency }),
+      ],
+      content: html || "<p></p>",
+      editorProps: {
+        attributes: { class: "doc-rich doc-rich-editable", dir: ar ? "rtl" : "ltr", spellcheck: "false" },
+      },
+      onUpdate: ({ editor: e }) => {
+        const next = e.getHTML();
+        lastEmitted.current = next;
+        onChange(next);
+      },
+    },
+    [lang, currency],
+  );
+
+  useEffect(() => {
+    if (!editor) return;
+    if (html === lastEmitted.current) return;
+    lastEmitted.current = html;
+    editor.commands.setContent(html || "<p></p>", { emitUpdate: false });
+  }, [editor, html]);
+
+  useEffect(() => {
+    if (!editor || !onReady) return;
+    onReady({
+      insert: (block: string) => editor.chain().focus().insertContent(block).run(),
+      selectionHtml: () => editor.getHTML(),
+    });
+  }, [editor, onReady]);
+
+  const pickImage = async (file: File) => {
+    try {
+      setUploading(true);
+      const { src } = await prepareImage(file);
+      editor?.chain().focus().setImage({ src, width: Math.round(IMAGE_MAX_WIDTH * 0.6), align: "center" } as { src: string }).run();
+    } catch {
+      toast.error(ar ? "تعذّر إضافة الصورة (الحد 8 ميغابايت)" : "Could not add the image (8 MB max)");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (!editor) return null;
+  const chain = () => editor.chain().focus();
+  const isTable = editor.isActive("table");
+
+  return (
+    <div className="simple-doc-editor">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void pickImage(f);
+          e.currentTarget.value = "";
+        }}
+      />
+      <div className="doc-ribbon simple-doc-ribbon">
+        <div className="doc-ribbon-group">
+          <SBtn onClick={() => chain().undo().run()} title={ar ? "تراجع" : "Undo"}><Undo2 size={15} /></SBtn>
+          <SBtn onClick={() => chain().redo().run()} title={ar ? "إعادة" : "Redo"}><Redo2 size={15} /></SBtn>
+          <select
+            className="doc-ribbon-select"
+            value={
+              editor.isActive("heading", { level: 1 }) ? "h1"
+              : editor.isActive("heading", { level: 2 }) ? "h2"
+              : editor.isActive("heading", { level: 3 }) ? "h3"
+              : "p"
+            }
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "p") chain().setParagraph().run();
+              else chain().setHeading({ level: Number(v.slice(1)) as 1 | 2 | 3 }).run();
+            }}
+          >
+            <option value="p">{ar ? "نص عادي" : "Normal text"}</option>
+            <option value="h1">{ar ? "عنوان 1" : "Heading 1"}</option>
+            <option value="h2">{ar ? "عنوان 2" : "Heading 2"}</option>
+            <option value="h3">{ar ? "عنوان 3" : "Heading 3"}</option>
+          </select>
+        </div>
+
+        <div className="doc-ribbon-group">
+          <SBtn active={editor.isActive("bold")} onClick={() => chain().toggleBold().run()} title="Bold"><Bold size={15} /></SBtn>
+          <SBtn active={editor.isActive("italic")} onClick={() => chain().toggleItalic().run()} title="Italic"><Italic size={15} /></SBtn>
+          <SBtn active={editor.isActive("underline")} onClick={() => chain().toggleUnderline().run()} title="Underline"><UnderlineIcon size={15} /></SBtn>
+          <SBtn active={editor.isActive({ textAlign: "right" })} onClick={() => chain().setTextAlign("right").run()} title={ar ? "يمين" : "Right"}><AlignRight size={15} /></SBtn>
+          <SBtn active={editor.isActive({ textAlign: "center" })} onClick={() => chain().setTextAlign("center").run()} title={ar ? "وسط" : "Center"}><AlignCenter size={15} /></SBtn>
+          <SBtn active={editor.isActive({ textAlign: "left" })} onClick={() => chain().setTextAlign("left").run()} title={ar ? "يسار" : "Left"}><AlignLeft size={15} /></SBtn>
+          <SBtn active={editor.isActive("bulletList")} onClick={() => chain().toggleBulletList().run()} title={ar ? "قائمة نقطية" : "Bullets"}><List size={15} /></SBtn>
+          <SBtn active={editor.isActive("orderedList")} onClick={() => chain().toggleOrderedList().run()} title={ar ? "قائمة مرقمة" : "Numbered"}><ListOrdered size={15} /></SBtn>
+        </div>
+
+        <div className="doc-ribbon-group">
+          <SBtn onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title={ar ? "جدول" : "Table"}><TableIcon size={15} /></SBtn>
+          {isTable && (
+            <>
+              <SBtn onClick={() => chain().addRowAfter().run()} title={ar ? "إضافة صف" : "Add row"}><Rows3 size={15} /></SBtn>
+              <SBtn onClick={() => chain().addColumnAfter().run()} title={ar ? "إضافة عمود" : "Add column"}><Columns3 size={15} /></SBtn>
+              <SBtn danger onClick={() => chain().deleteRow().run()} title={ar ? "حذف صف" : "Delete row"}><Rows3 size={15} /></SBtn>
+              <SBtn danger onClick={() => chain().deleteColumn().run()} title={ar ? "حذف عمود" : "Delete column"}><Columns3 size={15} /></SBtn>
+              <SBtn danger onClick={() => chain().deleteTable().run()} title={ar ? "حذف الجدول" : "Delete table"}><Grid2x2X size={15} /></SBtn>
+            </>
+          )}
+          <SBtn onClick={() => fileRef.current?.click()} title={ar ? "صورة" : "Image"}>
+            {uploading ? <Loader2 size={15} className="spin" /> : <ImagePlus size={15} />}
+          </SBtn>
+          <SBtn onClick={() => chain().insertContent({ type: "itemsTable" }).run()} title={ar ? "جدول بنود بحساب تلقائي" : "Items table"}>
+            <Type size={15} /> <span style={{ fontSize: 11.5 }}>{ar ? "بنود" : "Items"}</span>
+          </SBtn>
+          <select
+            className="doc-ribbon-select"
+            value=""
+            onChange={(e) => {
+              if (!e.target.value) return;
+              chain().insertContent({ type: "docField", attrs: { field: e.target.value } }).run();
+              e.currentTarget.value = "";
+            }}
+            title={ar ? "حقل تلقائي" : "Auto field"}
+          >
+            <option value="">{ar ? "حقل تلقائي" : "Auto field"}</option>
+            {DOC_FIELDS.map((f) => <option key={f.key} value={f.key}>{fieldLabel(f.key, lang)}</option>)}
+          </select>
+          <SBtn danger onClick={() => chain().unsetAllMarks().clearNodes().run()} title={ar ? "مسح التنسيق" : "Clear formatting"}><Eraser size={15} /></SBtn>
+        </div>
+
+        {extraTools && <div className="doc-ribbon-actions">{extraTools}</div>}
+      </div>
+
+      <div className="simple-doc-surface" style={{ minHeight }}>
+        <EditorContent editor={editor} />
+      </div>
+    </div>
+  );
+}
+
+function SBtn({ children, onClick, active, title, danger }: { children: React.ReactNode; onClick: () => void; active?: boolean; title?: string; danger?: boolean }) {
+  return (
+    <button
+      type="button"
+      className={`doc-ribbon-btn${active ? " is-active" : ""}${danger ? " is-danger" : ""}`}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      title={title}
+    >
+      {children}
+    </button>
+  );
+}

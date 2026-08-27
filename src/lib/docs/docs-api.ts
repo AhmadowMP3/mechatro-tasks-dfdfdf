@@ -96,7 +96,7 @@ export const businessDocs = {
       lang: tpl.defaults.lang,
       theme: tpl.defaults.theme,
       currency: tpl.defaults.currency,
-      model: { ...defaultModel(), showClientBox: false, html: starterBodyHtml() } as unknown as Json,
+      model: { ...defaultModel(), showClientBox: false, html: (tpl.body?.html?.trim() ? tpl.body.html : starterBodyHtml()) } as unknown as Json,
       status: "draft" as DocStatus,
       issue_date: today(),
       valid_until: validity > 0 ? addDays(validity) : null,

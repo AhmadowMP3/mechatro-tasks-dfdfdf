@@ -10,6 +10,9 @@ import { docTemplates } from "@/lib/docs/api";
 import { BASE_HEADER, defaultFooter, defaultHeader } from "@/lib/docs/defaults";
 import { DOC_TYPES, docTypeLabel, type DocFooter, type DocHeader, type DocLang, type DocTemplate, type DocTheme, type DocType } from "@/lib/docs/types";
 import { DocPaper } from "@/components/documents/DocPaper";
+import { DocRichBody } from "@/components/documents/DocRichBody";
+import { TemplateContentSection } from "@/components/documents/TemplateContentSection";
+import { emptyClient } from "@/lib/docs/model";
 
 export const Route = createFileRoute("/_authenticated/doc-templates")({
   ssr: false,
@@ -354,6 +357,16 @@ function DocTemplatesPage() {
                 <Area label={ar ? "الشروط (إنجليزي)" : "Terms (EN)"} value={tpl.defaults.termsEn} onChange={(v) => { setTpl({ ...tpl, defaults: { ...tpl.defaults, termsEn: v } }); setDirty(true); }} />
               </Row>
             </Section>
+
+            <Section title={ar ? "محتوى المستند والمقاطع الجاهزة" : "Document content & blocks"}>
+              <TemplateContentSection
+                lang={ar ? "ar" : "en"}
+                bodyLang={tpl.defaults.lang}
+                currency={tpl.defaults.currency}
+                html={tpl.body.html}
+                onChange={(html) => { setTpl((t) => (t ? { ...t, body: { html } } : t)); setDirty(true); }}
+              />
+            </Section>
           </div>
 
           {/* ── Preview column ──────────────────────────────── */}
@@ -381,7 +394,18 @@ function DocTemplatesPage() {
                 draggableLogo={(tpl.header.logoMode ?? "inline") === "free"}
                 onLogoMove={(x, y) => setHeader({ logoX: x, logoY: y })}
               >
-                <SampleBody lang={previewLang} theme={previewTheme} terms={previewLang === "ar" ? tpl.defaults.termsAr : tpl.defaults.termsEn} currency={tpl.defaults.currency} />
+                {tpl.body.html.trim() ? (
+                  <DocRichBody
+                    html={tpl.body.html}
+                    showClientBox={false}
+                    client={emptyClient()}
+                    lang={previewLang}
+                    theme={previewTheme}
+                    ctx={{ lang: previewLang, theme: previewTheme, currency: tpl.defaults.currency, meta: sampleMeta }}
+                  />
+                ) : (
+                  <SampleBody lang={previewLang} theme={previewTheme} terms={previewLang === "ar" ? tpl.defaults.termsAr : tpl.defaults.termsEn} currency={tpl.defaults.currency} />
+                )}
               </DocPaper>
             </PaperPreview>
           </div>

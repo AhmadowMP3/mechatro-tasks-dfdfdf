@@ -5,7 +5,7 @@
 // The header/footer below is the OFFICIAL Mechatro letterhead chrome and is
 // identical for every document type — only the title changes.
 
-import { DOC_TYPES, type DocDefaults, type DocFooter, type DocFooterRow, type DocHeader, type DocType } from "./types";
+import { DOC_TYPES, type DocBody, type DocDefaults, type DocFooter, type DocFooterRow, type DocHeader, type DocType } from "./types";
 
 const BLUE = "#42C2EE";
 
@@ -103,6 +103,16 @@ export function mergeFooter(type: DocType, raw: unknown): DocFooter {
   const rows = Array.isArray(merged.contactRows) ? merged.contactRows.filter((r) => r && (r.en || r.ar)) : [];
   merged.contactRows = rows.length ? rows.map((r) => ({ en: r.en ?? "", ar: r.ar ?? "" })) : OFFICIAL_CONTACT_ROWS.map((r) => ({ ...r }));
   return merged;
+}
+
+export function defaultBody(): DocBody {
+  return { html: "" };
+}
+
+/** Merge a stored body blob over the empty default. */
+export function mergeBody(raw: unknown): DocBody {
+  const stored = raw && typeof raw === "object" ? (raw as Partial<DocBody>) : null;
+  return { html: typeof stored?.html === "string" ? stored.html : "" };
 }
 
 export function mergeDefaults(type: DocType, raw: unknown): DocDefaults {

@@ -33,15 +33,19 @@ type RibbonProps = {
   onInsertTerms?: () => void;
   /** Insert a ready-made snippet by id. */
   onSnippet?: (id: SnippetId) => void;
+  /** Reusable blocks from the shared library. */
+  blocks?: { id: string; label: string; html: string }[];
+  onBlock?: (html: string) => void;
   logoVariant?: LogoVariant;
   onLogoVariant?: (v: LogoVariant) => void;
   /** Save / export / preview buttons pinned to the end of the ribbon. */
   actions?: React.ReactNode;
 };
 
-export function Ribbon({ editor, lang, onImage, onInsertTerms, onSnippet, logoVariant, onLogoVariant, actions }: RibbonProps) {
+export function Ribbon({ editor, lang, onImage, onInsertTerms, onSnippet, blocks, onBlock, logoVariant, onLogoVariant, actions }: RibbonProps) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [snipOpen, setSnipOpen] = useState(false);
+  const [blockOpen, setBlockOpen] = useState(false);
   const ar = lang === "ar";
   if (!editor) return null;
 
@@ -227,6 +231,23 @@ export function Ribbon({ editor, lang, onImage, onInsertTerms, onSnippet, logoVa
                     onClick={() => { onSnippet(s.id); setSnipOpen(false); }}
                   >
                     {ar ? s.labelAr : s.labelEn}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {onBlock && blocks && blocks.length > 0 && (
+          <div className="doc-ribbon-menu" onMouseLeave={() => setBlockOpen(false)}>
+            <button type="button" className={`doc-ribbon-btn${blockOpen ? " is-active" : ""}`} onClick={() => setBlockOpen((o) => !o)} title={ar ? "مكتبة المقاطع" : "Blocks library"}>
+              <Library size={15} /> <span style={{ fontSize: 11.5 }}>{ar ? "مكتبتي" : "Blocks"}</span>
+            </button>
+            {blockOpen && (
+              <div className="doc-ribbon-menu-list">
+                {blocks.map((b) => (
+                  <button key={b.id} type="button" onClick={() => { onBlock(b.html); setBlockOpen(false); }}>
+                    {b.label}
                   </button>
                 ))}
               </div>

@@ -3,7 +3,7 @@
 
 import { supabase } from "@/lib/security/db";
 import type { Json } from "@/integrations/supabase/types";
-import { mergeDefaults, mergeFooter, mergeHeader, defaultDefaults, defaultFooter, defaultHeader } from "./defaults";
+import { mergeDefaults, mergeFooter, mergeHeader, mergeBody, defaultBody, defaultDefaults, defaultFooter, defaultHeader } from "./defaults";
 import type { DocTemplate, DocType } from "./types";
 
 type Row = {
@@ -14,6 +14,7 @@ type Row = {
   header: unknown;
   footer: unknown;
   defaults: unknown;
+  body?: unknown;
   created_at?: string;
   updated_at?: string;
 };
@@ -27,6 +28,7 @@ function hydrate(row: Row): DocTemplate {
     header: mergeHeader(row.doc_type, row.header),
     footer: mergeFooter(row.doc_type, row.footer),
     defaults: mergeDefaults(row.doc_type, row.defaults),
+    body: mergeBody(row.body),
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -51,6 +53,7 @@ export const docTemplates = {
       header: defaultHeader(type) as unknown as Json,
       footer: defaultFooter(type) as unknown as Json,
       defaults: defaultDefaults(type) as unknown as Json,
+      body: defaultBody() as unknown as Json,
     };
     const { data: created, error: insErr } = await supabase
       .from("doc_templates")
@@ -69,6 +72,7 @@ export const docTemplates = {
         header: tpl.header as unknown as Json,
         footer: tpl.footer as unknown as Json,
         defaults: tpl.defaults as unknown as Json,
+        body: tpl.body as unknown as Json,
       })
       .eq("id", tpl.id)
       .select("*")
