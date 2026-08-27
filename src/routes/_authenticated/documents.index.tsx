@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { FileText, Plus, Search, Copy, Trash2, Loader2, FileDown } from "lucide-react";
+import { FileText, Plus, Search, Copy, Trash2, Loader2, FileDown, FileUp } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -10,6 +10,7 @@ import { docTemplates } from "@/lib/docs/api";
 import { exportDocPdf } from "@/lib/docs/export-doc";
 import { businessDocs, DOC_STATUS_LABELS, type BusinessDoc } from "@/lib/docs/docs-api";
 import { DOC_TYPES, docTypeLabel, type DocType } from "@/lib/docs/types";
+import { ImportDocxDialog } from "@/components/documents/ImportDocxDialog";
 
 export const Route = createFileRoute("/_authenticated/documents/")({
   ssr: false,
@@ -36,6 +37,7 @@ function DocumentsListPage() {
   const [type, setType] = useState<DocType | "all">("all");
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const reload = () => {
     setLoading(true);
