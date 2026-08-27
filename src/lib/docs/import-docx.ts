@@ -12,6 +12,8 @@ export type DocxImport = {
   html: string;
   /** Plain text of the document (for AI extraction). */
   text: string;
+  /** Structured digest (headings, paragraphs, tables as rows) for the AI. */
+  digest: string;
   /** Non-fatal conversion notes from Word. */
   warnings: string[];
   images: number;
@@ -114,6 +116,69 @@ function cleanup(rawHtml: string): { html: string; images: number; tables: numbe
   return { html: host.innerHTML.trim(), images: images.length, tables: tables.length };
 }
 
+/* ── Structured digest for the AI ─────────────────────────────────
+ * Plain text loses table columns, which is exactly where item rows,
+ * quantities and prices live. The digest keeps the document order but
+ * renders every table as `| cell | cell |` rows under its own header,
+ * so the model reads real columns instead of guessing. */
+function cellText(el: Element): string {
+  return (el.textContent ?? "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+}
+
+export function buildDigest(html: string, limit = 40000): string {
+  if (typeof document === "undefined") return "";
+  const host = document.createElement("div");
+  host.innerHTML = html;
+
+  const out: string[] = [];
+  let tableNo = 0;
+
+  const walk = (node: Element) => {
+    for (const el of Array.from(node.children)) {
+      const tag = el.tagName.toLowerCase();
+      if (tag === "table") {
+        tableNo += 1;
+        const rows = Array.from(el.querySelectorAll("tr"));
+        out.push(`[TABLE ${tableNo} — ${rows.length} row(s)]`);
+        rows.forEach((tr, i) => {
+          const cells = Array.from(tr.children).map(cellText);
+          if (cells.every((c) => !c)) return;
+          const prefix = i === 0 ? "HEADER" : `ROW ${i}`;
+          out.push(`${prefix} | ${cells.join(" | ")}`);
+        });
+        out.push(`[END TABLE ${tableNo}]`);
+        continue;
+      }
+      if (/^h[1-6]$/.test(tag)) {
+        const t = cellText(el);
+        if (t) out.push(`# ${t}`);
+        continue;
+      }
+      if (tag === "ul" || tag === "ol") {
+        Array.from(el.querySelectorAll("li")).forEach((li) => {
+          const t = cellText(li);
+          if (t) out.push(`- ${t}`);
+        });
+        continue;
+      }
+      if (tag === "img") {
+        out.push("[IMAGE]");
+        continue;
+      }
+      if (el.children.length && !["p", "li"].includes(tag)) {
+        walk(el);
+        continue;
+      }
+      const t = cellText(el);
+      if (t) out.push(t);
+    }
+  };
+
+  walk(host);
+  const joined = out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return joined.length > limit ? `${joined.slice(0, limit)}\n[TRUNCATED]` : joined;
+}
+
 export async function convertDocx(file: File): Promise<DocxImport> {
   const mammoth = await import("mammoth/mammoth.browser.js");
   const arrayBuffer = await file.arrayBuffer();
@@ -137,6 +202,7 @@ export async function convertDocx(file: File): Promise<DocxImport> {
   return {
     html,
     text,
+    digest: buildDigest(html) || text,
     warnings: (result.messages ?? []).map((m: { message?: string }) => String(m.message ?? "")).filter(Boolean).slice(0, 8),
     images: cleaned.images,
     tables: cleaned.tables,
