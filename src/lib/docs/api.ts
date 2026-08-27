@@ -74,7 +74,7 @@ export const docTemplates = {
       footer: tpl.footer as unknown as Json,
       defaults: tpl.defaults as unknown as Json,
     };
-    const run = (patch: Record<string, unknown>) =>
+    const run = (patch: typeof base & { body?: Json }) =>
       supabase.from("doc_templates").update(patch).eq("id", tpl.id).select("*").single();
 
     let { data, error } = await run({ ...base, body: tpl.body as unknown as Json });
