@@ -34,10 +34,13 @@ type Props = {
   sizing?: "grow" | "fixed" | "auto";
   /** Letterhead logo rendering (auto follows the theme). */
   logoVariant?: LogoVariant;
+  /** Template editor only — lets the admin drag the logo inside the header. */
+  draggableLogo?: boolean;
+  onLogoMove?: (x: number, y: number) => void;
   children?: React.ReactNode;
 };
 
-export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", logoVariant, children }: Props) {
+export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", logoVariant, draggableLogo = false, onLogoMove, children }: Props) {
   const ar = lang === "ar";
   const c = PAPER[theme];
   const dir = ar ? "rtl" : "ltr";
