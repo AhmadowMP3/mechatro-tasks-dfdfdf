@@ -1,12 +1,15 @@
 // Single source of truth for the currencies the system supports.
 //
 // The Saudi Riyal uses its new official symbol. Because that glyph is missing
-// from most installed fonts (and from the fonts embedded in our PDFs / Excel
-// files), it is rendered as an inline SVG in the UI, the document sheet and the
-// PDF (both are built from the same HTML), while plain-text surfaces
-// (Excel cells, file names, logs) fall back to "SAR" / "ر.س".
+// from every font we ship (screen, PDF, Word, Excel), it is rendered as the
+// official artwork: a transparent PNG, inlined as a data URL so it renders
+// identically in the app, the document sheet, the PDF, the Word export and the
+// sandboxed /v/:token viewer. Plain-text surfaces (Excel cells, file names,
+// logs) still fall back to "SAR" / "ر.س".
 
 import type { Currency } from "./finance";
+import { RIYAL_ASPECT, riyalGlyphFor } from "./currency/riyal-glyph";
+
 
 export const CURRENCIES: Currency[] = ["SYP", "USD", "SAR"];
 
