@@ -49,6 +49,15 @@ function DocTemplatesPage() {
     setDirty(true);
   };
 
+  const nudge = (dx: number, dy: number) => {
+    setTpl((t) => {
+      if (!t) return t;
+      const clamp = (n: number) => Math.min(100, Math.max(0, Math.round(n)));
+      return { ...t, header: { ...t.header, logoX: clamp((t.header.logoX ?? 0) + dx), logoY: clamp((t.header.logoY ?? 0) + dy) } };
+    });
+    setDirty(true);
+  };
+
   const save = async () => {
     if (!tpl) return;
     try {
@@ -369,6 +378,8 @@ function DocTemplatesPage() {
                 theme={previewTheme}
                 meta={sampleMeta}
                 page={{ current: 1, total: 1 }}
+                draggableLogo={(tpl.header.logoMode ?? "inline") === "free"}
+                onLogoMove={(x, y) => setHeader({ logoX: x, logoY: y })}
               >
                 <SampleBody lang={previewLang} theme={previewTheme} terms={previewLang === "ar" ? tpl.defaults.termsAr : tpl.defaults.termsEn} currency={tpl.defaults.currency} />
               </DocPaper>
@@ -377,6 +388,20 @@ function DocTemplatesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function NudgeBtn({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border)",
+        background: "var(--card)", color: "var(--foreground)", cursor: "pointer",
+        fontSize: 14, fontWeight: 700, lineHeight: 1,
+      }}
+    >{label}</button>
   );
 }
 
