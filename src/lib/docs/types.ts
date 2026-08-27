@@ -8,11 +8,17 @@ export type DocStatus = Database["public"]["Enums"]["business_doc_status"];
 export type DocLang = "ar" | "en";
 export type DocTheme = "light" | "dark";
 
+export type DocLogoMode = "inline" | "band" | "free";
+
 /** Fully editable header model, stored as JSON on doc_templates.header. */
 export type DocHeader = {
   showLogo: boolean;
   logoHeight: number;          // px inside the A4 page
   logoAlign: "start" | "center" | "end";
+  /** inline = beside the title, band = full-width row above, free = dragged. */
+  logoMode: DocLogoMode;
+  logoX: number;               // 0–100 % of the header box (free mode)
+  logoY: number;               // 0–100 % of the header box (free mode)
   titleAr: string;
   titleEn: string;
   companyAr: string;

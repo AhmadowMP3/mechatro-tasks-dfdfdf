@@ -2,8 +2,10 @@
 // document editor + exporters. Renders the branded header band, the body
 // (children), and the footer band, in light or dark theme, AR or EN.
 
+import { useRef, useState } from "react";
+
 import { logoFor } from "@/lib/brand/logo";
-import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
+import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
 import type { LogoVariant } from "@/lib/docs/model";
 
@@ -11,6 +13,15 @@ import type { LogoVariant } from "@/lib/docs/model";
 export function logoFilter(variant: LogoVariant | undefined, theme: DocTheme): string | undefined {
   const v = variant && variant !== "auto" ? variant : theme === "dark" ? "light" : "dark";
   return v === "light" ? "brightness(0) invert(1)" : undefined;
+}
+
+/** 1% grid with magnetic snapping at the edges and the centre. */
+function snap(v: number): number {
+  const clamped = Math.min(100, Math.max(0, v));
+  for (const anchor of [0, 25, 50, 75, 100]) {
+    if (Math.abs(clamped - anchor) <= 2.5) return anchor;
+  }
+  return Math.round(clamped);
 }
 
 export const A4 = { width: 794, height: 1123 } as const;
@@ -34,10 +45,13 @@ type Props = {
   sizing?: "grow" | "fixed" | "auto";
   /** Letterhead logo rendering (auto follows the theme). */
   logoVariant?: LogoVariant;
+  /** Template editor only — lets the admin drag the logo inside the header. */
+  draggableLogo?: boolean;
+  onLogoMove?: (x: number, y: number) => void;
   children?: React.ReactNode;
 };
 
-export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", logoVariant, children }: Props) {
+export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", logoVariant, draggableLogo = false, onLogoMove, children }: Props) {
   const ar = lang === "ar";
   const c = PAPER[theme];
   const dir = ar ? "rtl" : "ltr";
@@ -53,6 +67,42 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
   const contactBits = [header.phone, header.email, header.website, header.taxNumber ? (ar ? `الرقم الضريبي: ${header.taxNumber}` : `Tax No: ${header.taxNumber}`) : ""]
     .map((s) => (s ?? "").trim())
     .filter(Boolean);
+
+  const mode: DocLogoMode = header.logoMode ?? "inline";
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const logoImg = (
+    <img
+      src={logoFor(lang)}
+      alt="Mechatro"
+      draggable={false}
+      style={{ height: header.logoHeight, width: "auto", maxWidth: mode === "inline" ? 300 : "100%", objectFit: "contain", filter: logoFilter(logoVariant, theme), userSelect: "none", pointerEvents: "none" }}
+    />
+  );
+
+  const startDrag = (e: React.PointerEvent) => {
+    if (!draggableLogo || !onLogoMove) return;
+    e.preventDefault();
+    const box = headerRef.current;
+    if (!box) return;
+    setDragging(true);
+    const move = (ev: PointerEvent) => {
+      const r = box.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      const rawX = ((ev.clientX - r.left) / r.width) * 100;
+      const x = snap(ar ? 100 - rawX : rawX);
+      const y = snap(((ev.clientY - r.top) / r.height) * 100);
+      onLogoMove(x, y);
+    };
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
 
   return (
     <div
@@ -75,16 +125,39 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
       }}
     >
       {/* ── Header band (identical on every template) ───────────── */}
-      <div style={{ padding: "24px 40px 12px", flexShrink: 0 }}>
+      <div ref={headerRef} style={{ padding: "24px 40px 12px", flexShrink: 0, position: "relative" }}>
         {/* Logo band — full width so a tall logo never squeezes the title */}
-        {header.showLogo && (
+        {header.showLogo && mode === "band" && (
           <div style={{ display: "flex", justifyContent: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? (ar ? "flex-start" : "flex-end") : (ar ? "flex-end" : "flex-start"), marginBottom: 10 }}>
-            <img src={logoFor(lang)} alt="Mechatro" style={{ height: header.logoHeight, width: "auto", maxWidth: "100%", objectFit: "contain", filter: logoFilter(logoVariant, theme) }} />
+            {logoImg}
           </div>
         )}
-        <div style={{ display: "grid", gridTemplateColumns: "232px minmax(0, 1fr) 232px", alignItems: "start", justifyItems: "stretch", gap: 18 }}>
-          {/* Brand block */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, overflowWrap: "anywhere", alignItems: "flex-start" }}>
+        {/* Free mode — the logo floats, so reserve its band to avoid overlap */}
+        {header.showLogo && mode === "free" && <div style={{ height: header.logoHeight + 8 }} />}
+        {header.showLogo && mode === "free" && (
+          <div
+            onPointerDown={startDrag}
+            style={{
+              position: "absolute",
+              insetInlineStart: `${header.logoX}%`,
+              top: `${header.logoY}%`,
+              transform: `translate(${ar ? "" : "-"}${header.logoX}%, -${header.logoY}%)`,
+              cursor: draggableLogo ? (dragging ? "grabbing" : "grab") : undefined,
+              touchAction: draggableLogo ? "none" : undefined,
+              outline: draggableLogo ? `1px dashed ${header.accent}66` : undefined,
+              outlineOffset: 4,
+              zIndex: 2,
+            }}
+          >
+            {logoImg}
+          </div>
+        )}
+        <div style={{ display: "grid", gridTemplateColumns: mode === "inline" ? "auto minmax(0, 1fr) 232px" : "232px minmax(0, 1fr) 232px", alignItems: mode === "inline" ? "center" : "start", justifyItems: "stretch", gap: 18 }}>
+          {/* Brand block (with the logo beside it in inline mode) */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, maxWidth: mode === "inline" ? 300 : undefined, overflowWrap: "anywhere", alignItems: "flex-start" }}>
+            {header.showLogo && mode === "inline" && (
+              <div style={{ marginBottom: 6, alignSelf: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? "flex-end" : "flex-start" }}>{logoImg}</div>
+            )}
             {company && <div style={{ fontSize: 12.5, fontWeight: 700, overflowWrap: "anywhere" }}>{company}</div>}
             {address && <div style={{ fontSize: 10.5, color: c.muted, overflowWrap: "anywhere" }}>{address}</div>}
             {contactBits.length > 0 && (
