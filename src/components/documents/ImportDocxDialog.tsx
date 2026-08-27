@@ -6,10 +6,11 @@ import { toast } from "sonner";
 import { Upload, Loader2, Check, X, Sparkles, FileText, AlertTriangle } from "lucide-react";
 
 import { convertDocx, guessLang, isDocxFile, isLegacyDoc, type DocxImport } from "@/lib/docs/import-docx";
-import { analyzeImportedDoc, type DocxExtraction } from "@/lib/docs/import-ai.functions";
+import { analyzeImportedDoc, type DocxExtraction, type DocxItem } from "@/lib/docs/import-ai.functions";
 import { docTemplates } from "@/lib/docs/api";
 import { businessDocs, type BusinessDoc } from "@/lib/docs/docs-api";
-import { emptyClient, defaultModel, type DocClient } from "@/lib/docs/model";
+import { emptyClient, defaultModel, uid, type DocClient } from "@/lib/docs/model";
+import { emptyItemsData, writeItemsAttr } from "@/lib/docs/rich";
 import { DOC_TYPES, docTypeLabel, type DocLang, type DocTemplate, type DocType } from "@/lib/docs/types";
 import { PaginatedDoc } from "./PaginatedDoc";
 import { CURRENCIES, currencyLabel } from "@/lib/currency";
@@ -51,6 +52,8 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [tpl, setTpl] = useState<DocTemplate | null>(null);
   const [aiFields, setAiFields] = useState<Set<string>>(new Set());
+  const [items, setItems] = useState<DocxItem[]>([]);
+  const [insertItems, setInsertItems] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   // Reload the template whenever the admin changes the detected type.
@@ -88,16 +91,19 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
       setImported(res);
 
       const lang = guessLang(res.text);
+      const source = (res.digest || res.text).slice(0, 60000);
       let extraction: DocxExtraction | null = null;
-      if (res.text.trim().length > 20) {
+      if (source.trim().length > 20) {
         setStep(ar ? "الذكاء الاصطناعي يحلل المحتوى…" : "AI is analysing the content…");
         try {
-          extraction = await analyzeImportedDoc({ data: { text: res.text.slice(0, 24000), lang } });
+          extraction = await analyzeImportedDoc({ data: { text: source, lang } });
         } catch (e) {
           setAiError((e as Error).message);
         }
       }
       setAi(extraction);
+      setItems(extraction?.items ?? []);
+      setInsertItems(false);
 
       const marked = new Set<string>();
       const mark = (k: string, v: unknown) => { if (v) marked.add(k); return v; };
@@ -141,6 +147,29 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
     return Object.values(draft.client).some((v) => (v ?? "").trim().length > 0);
   }, [draft]);
 
+  const itemsHtml = () => {
+    const rows = items
+      .filter((it) => (it.descAr || it.descEn || it.no || it.qty != null || it.price != null))
+      .map((it) => ({
+        id: uid(),
+        descAr: it.descAr ?? "",
+        descEn: it.descEn ?? "",
+        unitAr: it.unit ?? "",
+        unitEn: it.unit ?? "",
+        qty: it.qty ?? 0,
+        price: it.price ?? 0,
+        discount: 0,
+      }));
+    if (rows.length === 0) return "";
+    const data = { ...emptyItemsData(), rows };
+    return `<table data-items="${writeItemsAttr(data)}"></table><p><br/></p>`;
+  };
+
+  const bodyHtml = () => {
+    const base = imported?.html ?? "";
+    return insertItems ? `${base}${itemsHtml()}` : base;
+  };
+
   const approve = async () => {
     if (!draft || !imported) return;
     try {
@@ -154,7 +183,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
         currency: draft.currency,
         issue_date: draft.issueDate || created.issue_date,
         valid_until: draft.validUntil || null,
-        model: { ...defaultModel(), showClientBox: hasClient, html: imported.html },
+        model: { ...defaultModel(), showClientBox: hasClient, html: bodyHtml() },
       });
       toast.success(ar ? `تم إنشاء ${saved.number} من ملف Word` : `Created ${saved.number} from Word`);
       onCreated(saved);
@@ -168,7 +197,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
     ? {
         header: tpl.header,
         footer: tpl.footer,
-        model: { ...defaultModel(), showClientBox: hasClient, html: imported.html },
+        model: { ...defaultModel(), showClientBox: hasClient, html: bodyHtml() },
         client: draft.client,
         lang: draft.lang,
         theme: tpl.defaults.theme,
