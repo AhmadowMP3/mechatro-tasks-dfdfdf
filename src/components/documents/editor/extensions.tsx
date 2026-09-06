@@ -11,6 +11,7 @@ import { RiyalSymbol } from "@/lib/currency";
 import { computeItems, money, uid, type ItemRow } from "@/lib/docs/model";
 import { DOC_FIELDS, fieldLabel, mergeItemsData, readItemsAttr, writeItemsAttr, emptyItemsData, type ItemsData } from "@/lib/docs/rich";
 import type { DocLang } from "@/lib/docs/types";
+import { editorIsReady } from "./useStableEditor";
 
 /* ── Live editor context ──────────────────────────────────────────
  * Node views read the current language / currency from React context so a
@@ -166,10 +167,10 @@ function ItemsTableView({ node, updateAttributes, extension, editor }: NodeViewP
   const ar = ctx.lang === "ar";
   const data: ItemsData = mergeItemsData(node.attrs.data);
   const totals = computeItems(data);
-  const editable = Boolean(!editor.isDestroyed && editor.extensionManager && editor.isEditable);
+  const editable = editorIsReady(editor) && editor.isEditable;
 
   const set = (p: Partial<ItemsData>) => {
-    if (editor.isDestroyed || !editor.extensionManager) return;
+    if (!editorIsReady(editor)) return;
     updateAttributes({ data: { ...data, ...p } });
   };
   const setRow = (id: string, p: Partial<ItemRow>) =>

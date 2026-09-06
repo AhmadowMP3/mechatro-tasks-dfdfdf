@@ -12,16 +12,30 @@ import { Editor } from "@tiptap/core";
 export function useStableEditor(create: () => Editor): Editor | null {
   const createRef = useRef(create);
   createRef.current = create;
+  const instanceRef = useRef<Editor | null>(null);
+  const mountedEffectsRef = useRef(0);
   const [editor, setEditor] = useState<Editor | null>(null);
 
   useEffect(() => {
-    const instance = createRef.current();
+    mountedEffectsRef.current += 1;
+    const current = instanceRef.current;
+    const instance = editorIsReady(current) ? current : createRef.current();
+    instanceRef.current = instance;
     setEditor(instance);
 
     return () => {
-      // EditorContent checks isDestroyed while it unmounts, so destroy first
-      // and never leave asynchronous destruction queued behind React.
-      if (!instance.isDestroyed) instance.destroy();
+      mountedEffectsRef.current -= 1;
+
+      // React tears parent effects down before every nested editor portal has
+      // necessarily finished its own cleanup. Destroying synchronously here
+      // nulls TipTap's extension manager while those node views can still use
+      // it. A microtask runs after the complete React cleanup pass. The mount
+      // counter also preserves this instance across StrictMode's test cycle.
+      queueMicrotask(() => {
+        if (mountedEffectsRef.current !== 0 || instanceRef.current !== instance) return;
+        instanceRef.current = null;
+        if (!instance.isDestroyed) instance.destroy();
+      });
     };
   }, []);
 
@@ -29,5 +43,5 @@ export function useStableEditor(create: () => Editor): Editor | null {
 }
 
 export function editorIsReady(editor: Editor | null | undefined): editor is Editor {
-  return Boolean(editor && !editor.isDestroyed && editor.extensionManager);
+  return Boolean(editor && !editor.isDestroyed);
 }
