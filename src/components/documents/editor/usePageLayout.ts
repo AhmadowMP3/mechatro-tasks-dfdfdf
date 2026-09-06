@@ -307,7 +307,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     imgs().forEach((img) => img.addEventListener("load", onUpdate));
     window.addEventListener("resize", onUpdate);
     dom.addEventListener("dragover", onUpdate);
-    dom.addEventListener("drop", onUpdate);
+    dom.addEventListener("drop", onImmediate);
     dom.addEventListener("dragend", onUpdate);
     dom.addEventListener("pointerup", onUpdate);
     // Fonts and late-loading images change block heights — re-measure then.
