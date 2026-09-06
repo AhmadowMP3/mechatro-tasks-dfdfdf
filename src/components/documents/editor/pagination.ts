@@ -99,6 +99,10 @@ export function writeSpacers(editor: Editor, spacers: PageSpacer[]) {
 export function sameSpacers(a: PageSpacer[], b: PageSpacer[]) {
   if (a.length !== b.length) return false;
   return a.every(
-    (s, i) => s.pos === b[i]!.pos && s.kind === b[i]!.kind && Math.abs(s.h - b[i]!.h) < 1,
+    (s, i) =>
+      s.pos === b[i]!.pos &&
+      s.end === b[i]!.end &&
+      s.kind === b[i]!.kind &&
+      Math.abs(s.h - b[i]!.h) < 1,
   );
 }
