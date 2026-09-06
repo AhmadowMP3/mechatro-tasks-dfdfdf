@@ -21,7 +21,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
   const measure = useCallback(() => {
     const container = containerRef.current;
     if (!container || !editorIsReady(editor)) return;
-    const body = container.querySelector<HTMLElement>(".doc-page-body");
+    const body = container.querySelector<HTMLElement>(".pdf-flow");
     const flow = container.querySelector<HTMLElement>(".doc-editor-flow");
     if (!body || !flow) return;
 
