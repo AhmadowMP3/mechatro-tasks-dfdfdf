@@ -24,7 +24,7 @@ const BLOCK_CSS = [
   "text-indent", "background-color", "border-bottom",
 ];
 const CELL_CSS = [
-  "background-color", "vertical-align", "padding",
+  "background-color", "vertical-align", "padding", "width",
   "border-top", "border-bottom", "border-left", "border-right", "border",
 ];
 

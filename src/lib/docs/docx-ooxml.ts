@@ -493,7 +493,10 @@ export async function docxToStyledHtml(
           if (node.localName === "p") { const r = await renderParagraph(node); inner += r.html; }
           else if (node.localName === "tbl") inner += await renderTable(node);
         }
-        const css = cellCss(tcPr);
+        const pct = total > 0
+          ? grid.slice(col, col + span).reduce((a, b) => a + b, 0) / total
+          : 0;
+        const css = `${cellCss(tcPr)}${pct > 0 ? `;width:${Math.round(pct * 1000) / 10}%` : ""}`;
         const spanAttr = span > 1 ? ` colspan="${span}"` : "";
         // Word column widths (twips) -> the editor's own colwidth attribute,
         // so the table keeps its proportions inside the A4 sheet.
