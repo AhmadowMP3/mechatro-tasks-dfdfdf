@@ -3,7 +3,8 @@
 // output HTML as the full document editor — just a trimmed toolbar.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent } from "@tiptap/react";
+import { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
@@ -28,6 +29,7 @@ import { BlockFormat } from "./text-attrs";
 import { DOC_FIELDS, fieldLabel } from "@/lib/docs/rich";
 import { prepareImage } from "@/lib/docs/upload";
 import type { DocLang } from "@/lib/docs/types";
+import { editorIsReady, useStableEditor } from "./useStableEditor";
 
 type Props = {
   html: string;
@@ -48,6 +50,8 @@ export function SimpleDocEditor({
   const ar = lang === "ar";
   const fileRef = useRef<HTMLInputElement | null>(null);
   const lastEmitted = useRef(html);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
   const [uploading, setUploading] = useState(false);
 
   // Live language / currency, read by the extensions without a rebuild.
@@ -81,14 +85,14 @@ export function SimpleDocEditor({
           (langRef.current === "ar" ? "اكتب المحتوى الافتراضي هنا…" : "Write the default content here…"),
       }),
       PageBreak,
-      DocField.configure({ lang: langRef.current, values: {} }),
+      DocField.configure({ lang: langRef.current, values: {}, getLang: () => langRef.current }),
       ItemsTable.configure({ lang: langRef.current, currency: currencyRef.current }),
     ],
     [],
   );
 
-  const editor = useEditor(
-    {
+  const editor = useStableEditor(
+    () => new Editor({
       extensions,
       content: html || "<p></p>",
       editorProps: {
@@ -97,14 +101,13 @@ export function SimpleDocEditor({
       onUpdate: ({ editor: e }) => {
         const next = e.getHTML();
         lastEmitted.current = next;
-        onChange(next);
+        onChangeRef.current(next);
       },
-    },
-    [],
+    }),
   );
 
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
+    if (!editorIsReady(editor)) return;
     if (html === lastEmitted.current) return;
     lastEmitted.current = html;
     editor.commands.setContent(html || "<p></p>", { emitUpdate: false });
@@ -113,17 +116,7 @@ export function SimpleDocEditor({
   // Apply language / currency changes in place instead of recreating the
   // editor (recreating it used to blank the page mid-render).
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
-    const manager = editor.extensionManager;
-    if (!manager) return;
-    for (const ext of manager.extensions) {
-      if (ext.name === "docField") (ext.options as { lang: DocLang }).lang = lang;
-      if (ext.name === "itemsTable") {
-        const o = ext.options as { lang: DocLang; currency: string };
-        o.lang = lang;
-        o.currency = currency;
-      }
-    }
+    if (!editorIsReady(editor)) return;
     editor.setOptions({
       editorProps: {
         attributes: { class: "doc-rich doc-rich-editable", dir: ar ? "rtl" : "ltr", spellcheck: "false" },
@@ -133,10 +126,10 @@ export function SimpleDocEditor({
   }, [editor, lang, currency, ar]);
 
   useEffect(() => {
-    if (!editor || editor.isDestroyed || !onReady) return;
+    if (!editorIsReady(editor) || !onReady) return;
     onReady({
-      insert: (block: string) => { if (!editor.isDestroyed) editor.chain().focus().insertContent(block).run(); },
-      selectionHtml: () => (editor.isDestroyed ? "" : editor.getHTML()),
+      insert: (block: string) => { if (editorIsReady(editor)) editor.chain().focus().insertContent(block).run(); },
+      selectionHtml: () => (editorIsReady(editor) ? editor.getHTML() : ""),
     });
   }, [editor, onReady]);
 
@@ -145,7 +138,9 @@ export function SimpleDocEditor({
     try {
       setUploading(true);
       const { src } = await prepareImage(file);
-      editor?.chain().focus().setImage({ src, width: Math.round(IMAGE_MAX_WIDTH * 0.6), align: "center" } as { src: string }).run();
+      if (editorIsReady(editor)) {
+        editor.chain().focus().setImage({ src, width: Math.round(IMAGE_MAX_WIDTH * 0.6), align: "center" } as { src: string }).run();
+      }
     } catch {
       toast.error(ar ? "تعذّر إضافة الصورة (الحد 8 ميغابايت)" : "Could not add the image (8 MB max)");
     } finally {
@@ -153,9 +148,20 @@ export function SimpleDocEditor({
     }
   };
 
-  if (!editor || editor.isDestroyed) return null;
+  if (!editorIsReady(editor)) return null;
+  const run = (command: (live: Editor) => void) => {
+    if (editorIsReady(editor)) command(editor);
+  };
+  const active = (nameOrAttrs: string | Record<string, unknown>, attributes?: Record<string, unknown>) => {
+    try {
+      if (!editorIsReady(editor)) return false;
+      return typeof nameOrAttrs === "string"
+        ? editor.isActive(nameOrAttrs, attributes)
+        : editor.isActive(nameOrAttrs);
+    } catch { return false; }
+  };
   const chain = () => editor.chain().focus();
-  const isTable = editor.isActive("table");
+  const isTable = active("table");
 
   return (
     <div className="simple-doc-editor">
@@ -172,14 +178,14 @@ export function SimpleDocEditor({
       />
       <div className="doc-ribbon simple-doc-ribbon">
         <div className="doc-ribbon-group">
-          <SBtn onClick={() => chain().undo().run()} title={ar ? "تراجع" : "Undo"}><Undo2 size={15} /></SBtn>
-          <SBtn onClick={() => chain().redo().run()} title={ar ? "إعادة" : "Redo"}><Redo2 size={15} /></SBtn>
+          <SBtn onClick={() => run((e) => e.chain().focus().undo().run())} title={ar ? "تراجع" : "Undo"}><Undo2 size={15} /></SBtn>
+          <SBtn onClick={() => run((e) => e.chain().focus().redo().run())} title={ar ? "إعادة" : "Redo"}><Redo2 size={15} /></SBtn>
           <select
             className="doc-ribbon-select"
             value={
-              editor.isActive("heading", { level: 1 }) ? "h1"
-              : editor.isActive("heading", { level: 2 }) ? "h2"
-              : editor.isActive("heading", { level: 3 }) ? "h3"
+              active("heading", { level: 1 }) ? "h1"
+              : active("heading", { level: 2 }) ? "h2"
+              : active("heading", { level: 3 }) ? "h3"
               : "p"
             }
             onChange={(e) => {
@@ -196,14 +202,14 @@ export function SimpleDocEditor({
         </div>
 
         <div className="doc-ribbon-group">
-          <SBtn active={editor.isActive("bold")} onClick={() => chain().toggleBold().run()} title="Bold"><Bold size={15} /></SBtn>
-          <SBtn active={editor.isActive("italic")} onClick={() => chain().toggleItalic().run()} title="Italic"><Italic size={15} /></SBtn>
-          <SBtn active={editor.isActive("underline")} onClick={() => chain().toggleUnderline().run()} title="Underline"><UnderlineIcon size={15} /></SBtn>
-          <SBtn active={editor.isActive({ textAlign: "right" })} onClick={() => chain().setTextAlign("right").run()} title={ar ? "يمين" : "Right"}><AlignRight size={15} /></SBtn>
-          <SBtn active={editor.isActive({ textAlign: "center" })} onClick={() => chain().setTextAlign("center").run()} title={ar ? "وسط" : "Center"}><AlignCenter size={15} /></SBtn>
-          <SBtn active={editor.isActive({ textAlign: "left" })} onClick={() => chain().setTextAlign("left").run()} title={ar ? "يسار" : "Left"}><AlignLeft size={15} /></SBtn>
-          <SBtn active={editor.isActive("bulletList")} onClick={() => chain().toggleBulletList().run()} title={ar ? "قائمة نقطية" : "Bullets"}><List size={15} /></SBtn>
-          <SBtn active={editor.isActive("orderedList")} onClick={() => chain().toggleOrderedList().run()} title={ar ? "قائمة مرقمة" : "Numbered"}><ListOrdered size={15} /></SBtn>
+          <SBtn active={active("bold")} onClick={() => chain().toggleBold().run()} title="Bold"><Bold size={15} /></SBtn>
+          <SBtn active={active("italic")} onClick={() => chain().toggleItalic().run()} title="Italic"><Italic size={15} /></SBtn>
+          <SBtn active={active("underline")} onClick={() => chain().toggleUnderline().run()} title="Underline"><UnderlineIcon size={15} /></SBtn>
+          <SBtn active={active({ textAlign: "right" })} onClick={() => chain().setTextAlign("right").run()} title={ar ? "يمين" : "Right"}><AlignRight size={15} /></SBtn>
+          <SBtn active={active({ textAlign: "center" })} onClick={() => chain().setTextAlign("center").run()} title={ar ? "وسط" : "Center"}><AlignCenter size={15} /></SBtn>
+          <SBtn active={active({ textAlign: "left" })} onClick={() => chain().setTextAlign("left").run()} title={ar ? "يسار" : "Left"}><AlignLeft size={15} /></SBtn>
+          <SBtn active={active("bulletList")} onClick={() => chain().toggleBulletList().run()} title={ar ? "قائمة نقطية" : "Bullets"}><List size={15} /></SBtn>
+          <SBtn active={active("orderedList")} onClick={() => chain().toggleOrderedList().run()} title={ar ? "قائمة مرقمة" : "Numbered"}><ListOrdered size={15} /></SBtn>
         </div>
 
         <div className="doc-ribbon-group">

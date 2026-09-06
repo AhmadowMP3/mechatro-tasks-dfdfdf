@@ -3,7 +3,8 @@
 // editable body — what you type is exactly what the PDF prints.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent } from "@tiptap/react";
+import { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
@@ -28,6 +29,7 @@ import { docBlocks, blockLabel, type DocBlock } from "@/lib/docs/blocks";
 import type { DocClient, LogoVariant } from "@/lib/docs/model";
 import type { DocFooter, DocHeader, DocLang, DocTheme } from "@/lib/docs/types";
 import { toast } from "sonner";
+import { editorIsReady, useStableEditor } from "./useStableEditor";
 
 type Props = {
   html: string;
@@ -54,17 +56,14 @@ type Props = {
 
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
-/** True only while the editor instance is usable (never during teardown). */
-function alive(e: { isDestroyed: boolean } | null | undefined): boolean {
-  return Boolean(e && !e.isDestroyed);
-}
-
 export function DocEditor({
   html, onChange, lang, theme, currency, meta, showClientBox, client,
   header, footer, logoVariant, onLogoVariant, onLang, onTheme, terms, actions,
 }: Props) {
   const ar = lang === "ar";
   const lastEmitted = useRef(html);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
   const [library, setLibrary] = useState<DocBlock[]>([]);
 
   // Shared reusable blocks composed in the template settings.
@@ -89,6 +88,8 @@ export function DocEditor({
   langRef.current = lang;
   const currencyRef = useRef(currency);
   currencyRef.current = currency;
+  const fieldValuesRef = useRef(fieldValues);
+  fieldValuesRef.current = fieldValues;
 
   // The extension list is created exactly once: rebuilding it would destroy
   // the editor mid-render, which is what used to blank the page when the
@@ -114,14 +115,19 @@ export function DocEditor({
         placeholder: () => (langRef.current === "ar" ? "ابدأ الكتابة داخل المستند…" : "Start typing inside the document…"),
       }),
       PageBreak,
-      DocField.configure({ lang: langRef.current, values: {} }),
+      DocField.configure({
+        lang: langRef.current,
+        values: {},
+        getLang: () => langRef.current,
+        getValues: () => fieldValuesRef.current,
+      }),
       ItemsTable.configure({ lang: langRef.current, currency: currencyRef.current }),
     ],
     [],
   );
 
-  const editor = useEditor(
-    {
+  const editor = useStableEditor(
+    () => new Editor({
       extensions,
       content: html || "<p></p>",
       editorProps: {
@@ -134,55 +140,39 @@ export function DocEditor({
       onUpdate: ({ editor: e }) => {
         const next = e.getHTML();
         lastEmitted.current = next;
-        onChange(next);
+        onChangeRef.current(next);
       },
-    },
-    [],
+    }),
   );
 
   // Keep external resets (legacy conversion, template apply, undo from parent)
   // in sync without clobbering what is being typed.
   useEffect(() => {
-    if (!alive(editor)) return;
+    if (!editorIsReady(editor)) return;
     if (html === lastEmitted.current) return;
     lastEmitted.current = html;
-    editor!.commands.setContent(html || "<p></p>", { emitUpdate: false });
+    editor.commands.setContent(html || "<p></p>", { emitUpdate: false });
   }, [editor, html]);
 
   // Language / currency / meta changes are applied in place — no rebuild, so
   // typing, cursor position and undo history all survive the switch.
   useEffect(() => {
-    if (!alive(editor)) return;
-    const e = editor!;
-    const manager = e.extensionManager;
-    if (!manager) return;
-    for (const ext of manager.extensions) {
-      if (ext.name === "docField") {
-        const o = ext.options as { lang: DocLang; values: Record<string, string> };
-        o.lang = lang;
-        o.values = fieldValues;
-      }
-      if (ext.name === "itemsTable") {
-        const o = ext.options as { lang: DocLang; currency: string };
-        o.lang = lang;
-        o.currency = currency;
-      }
-    }
-    e.setOptions({
+    if (!editorIsReady(editor)) return;
+    editor.setOptions({
       editorProps: {
         attributes: { class: "doc-rich doc-rich-editable", dir: ar ? "rtl" : "ltr", spellcheck: "false" },
       },
     });
     // Repaint decorations (placeholder, chips) without touching undo history.
     try {
-      e.view.dispatch(e.state.tr.setMeta("addToHistory", false));
+      editor.view.dispatch(editor.state.tr.setMeta("addToHistory", false));
     } catch {
       /* the view can be gone during an unmount — nothing to repaint then */
     }
   }, [editor, lang, currency, ar, fieldValues]);
 
   const insertImage = (file: File) => {
-    if (!alive(editor)) return;
+    if (!editorIsReady(editor)) return;
     if (!file.type.startsWith("image/")) return;
     if (file.size > MAX_IMAGE_BYTES) {
       toast.error(ar ? "حجم الصورة أكبر من 3 ميغابايت" : "Image is larger than 3 MB");
@@ -191,9 +181,9 @@ export function DocEditor({
     const reader = new FileReader();
     reader.onload = () => {
       const src = String(reader.result ?? "");
-      if (!alive(editor)) return;
+      if (!editorIsReady(editor)) return;
       if (src.startsWith("data:image/")) {
-        editor!
+        editor
           .chain()
           .focus()
           .setImage({ src, width: Math.round(IMAGE_MAX_WIDTH * 0.6), align: "center" } as { src: string })
@@ -206,8 +196,8 @@ export function DocEditor({
   const templateTerms = (lang === "ar" ? terms?.ar : terms?.en) ?? "";
 
   const insert = (content: string) => {
-    if (!alive(editor) || !content) return;
-    editor!.chain().focus().insertContent(content).run();
+    if (!editorIsReady(editor) || !content) return;
+    editor.chain().focus().insertContent(content).run();
   };
 
   const insertSnippet = (id: SnippetId) => insert(snippetHtml(id, lang, templateTerms) ?? "");
@@ -215,7 +205,7 @@ export function DocEditor({
   return (
     <div className="doc-editor">
       <Ribbon
-        editor={alive(editor) ? editor : null}
+        editor={editorIsReady(editor) ? editor : null}
         lang={lang}
         theme={theme}
         onLang={onLang}
