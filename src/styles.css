@@ -1374,12 +1374,21 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   opacity: 0.45;
 }
 /* Page break inside a table: a transparent gap under the last row that fits,
-   drawn as a border so the cell background never bleeds into the gap. */
+   drawn as a border so the cell background never bleeds into the gap.
+   The table must still look closed: an inset line is painted at the end of
+   the cell content (above the gap), and the first row on the next page gets
+   a matching line on top. */
 .doc-editor-flow tr.doc-row-break > td,
 .doc-editor-flow tr.doc-row-break > th {
   border-bottom: var(--doc-row-gap, 0px) solid transparent !important;
   background-clip: padding-box;
+  box-shadow: inset 0 -1px 0 var(--doc-table-line, color-mix(in srgb, currentColor 22%, transparent));
 }
+.doc-editor-flow tr.doc-row-break + tr > td,
+.doc-editor-flow tr.doc-row-break + tr > th {
+  box-shadow: inset 0 1px 0 var(--doc-table-line, color-mix(in srgb, currentColor 22%, transparent));
+}
+
 /* Nothing inside the writing area may reach past the sheet margins. */
 .doc-editor-flow .ProseMirror table {
   max-width: 100%;
