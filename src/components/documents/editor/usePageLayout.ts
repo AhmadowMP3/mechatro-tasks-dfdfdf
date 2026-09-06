@@ -313,13 +313,14 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     // Fonts and late-loading images change block heights — re-measure then.
     void (document as Document & { fonts?: FontFaceSet }).fonts?.ready.then(() => schedule());
     return () => {
-      editor.off("update", onUpdate);
+      editor.off("update", onImmediate);
       ro.disconnect();
       mo.disconnect();
       imgs().forEach((img) => img.removeEventListener("load", onUpdate));
       window.removeEventListener("resize", onUpdate);
       dom.removeEventListener("dragover", onUpdate);
-      dom.removeEventListener("drop", onUpdate);
+      dom.removeEventListener("drop", onImmediate);
+
       dom.removeEventListener("dragend", onUpdate);
       dom.removeEventListener("pointerup", onUpdate);
       if (frame.current) cancelAnimationFrame(frame.current);
