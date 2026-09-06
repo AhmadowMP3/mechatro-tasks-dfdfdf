@@ -1348,6 +1348,10 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   width: 794px;
   margin: 0 auto;
 }
+.doc-editor-sheets {
+  pointer-events: none;
+  user-select: none;
+}
 .doc-editor-sheet-slot {
   border-radius: 6px;
   box-shadow: 0 18px 44px rgb(0 0 0 / 0.3);
