@@ -97,12 +97,13 @@ export const DocField = Node.create<DocFieldOptions>({
 
 function DocFieldView({ node, extension }: NodeViewProps) {
   const opts = extension.options as DocFieldOptions;
+  const { lang } = useDocCtx({ lang: opts.lang, currency: "" });
   const key = node.attrs.field as string;
   const value = opts.values[key];
   return (
     <NodeViewWrapper as="span">
-      <span className="doc-field-chip" contentEditable={false} title={fieldLabel(key, opts.lang)}>
-        {value || fieldLabel(key, opts.lang)}
+      <span className="doc-field-chip" contentEditable={false} title={fieldLabel(key, lang)}>
+        {value || fieldLabel(key, lang)}
       </span>
     </NodeViewWrapper>
   );
@@ -154,10 +155,11 @@ export const ItemsTable = Node.create<ItemsTableOptions>({
 
 function ItemsTableView({ node, updateAttributes, extension, editor }: NodeViewProps) {
   const opts = extension.options as ItemsTableOptions;
-  const ar = opts.lang === "ar";
+  const ctx = useDocCtx({ lang: opts.lang, currency: opts.currency });
+  const ar = ctx.lang === "ar";
   const data: ItemsData = mergeItemsData(node.attrs.data);
   const totals = computeItems(data);
-  const editable = editor.isEditable;
+  const editable = !editor.isDestroyed && editor.isEditable;
 
   const set = (p: Partial<ItemsData>) => updateAttributes({ data: { ...data, ...p } });
   const setRow = (id: string, p: Partial<ItemRow>) =>
