@@ -13,8 +13,6 @@ export type PageGeometry = { top: number; left: number; width: number; height: n
 export type HeaderRepeat = { id: string; top: number; width: number; html: string };
 
 const PITCH = A4.height + SHEET_GAP;
-const MAX_PASSES = 6;
-
 function sameRepeats(a: HeaderRepeat[], b: HeaderRepeat[]) {
   if (a.length !== b.length) return false;
   return a.every((r, i) => r.id === b[i]!.id && Math.abs(r.top - b[i]!.top) < 1 && r.html === b[i]!.html);
@@ -24,8 +22,8 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
   const [pages, setPages] = useState(1);
   const [geo, setGeo] = useState<PageGeometry | null>(null);
   const [repeats, setRepeats] = useState<HeaderRepeat[]>([]);
-  const passes = useRef(0);
   const frame = useRef<number | null>(null);
+  const measureHost = useRef<HTMLDivElement | null>(null);
 
   const measure = useCallback(() => {
     const container = containerRef.current;
@@ -53,8 +51,34 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     if (H < 120) return;
 
     const dom = editor.view.dom as HTMLElement;
-    const flowTop = flow.getBoundingClientRect().top;
-    const blocks = Array.from(dom.children).filter((el): el is HTMLElement => el instanceof HTMLElement);
+    const flowRect = flow.getBoundingClientRect();
+    const editorOffset = dom.getBoundingClientRect().top - flowRect.top;
+
+    // Always measure a clean clone. Measuring the live editor would include
+    // the spacers from the previous pass, making rows oscillate between pages.
+    let host = measureHost.current;
+    if (!host) {
+      host = document.createElement("div");
+      host.className = "doc-pagination-measure doc-paper-body";
+      host.setAttribute("aria-hidden", "true");
+      document.body.appendChild(host);
+      measureHost.current = host;
+    }
+    host.style.width = `${next.width}px`;
+    host.style.fontSize = getComputedStyle(flow).fontSize;
+    host.style.lineHeight = getComputedStyle(flow).lineHeight;
+    host.style.fontFamily = getComputedStyle(flow).fontFamily;
+    host.style.direction = getComputedStyle(flow).direction;
+    host.innerHTML = dom.innerHTML;
+    host.querySelectorAll(".doc-page-spacer, .doc-row-head-repeat").forEach((el) => el.remove());
+    host.querySelectorAll<HTMLElement>(".doc-row-break").forEach((el) => {
+      el.classList.remove("doc-row-break");
+      el.style.removeProperty("--doc-row-gap");
+    });
+
+    const blocks = Array.from(host.children).filter((el): el is HTMLElement => el instanceof HTMLElement);
+    const liveBlocks = Array.from(dom.children).filter((el): el is HTMLElement => el instanceof HTMLElement);
+    const hostTop = host.getBoundingClientRect().top;
 
     // Map each rendered top-level block to its document position.
     const positions: number[] = [];
@@ -125,11 +149,11 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       originTop: number,
       baseShift: number,
       out: PageSpacer[],
+      liveTable: HTMLTableElement | null,
     ): number => {
       const rows = Array.from(table.rows);
       const head = headerMarkup(table);
       const headH = head ? head.height : 0;
-      const tableLeft = table.getBoundingClientRect().left - flow.getBoundingClientRect().left;
       const tableW = table.getBoundingClientRect().width;
       let rowShift = 0;
       let page = startPage;
@@ -146,7 +170,8 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
           const target = (page + 1) * PITCH + headH;
           const need = target - rTop;
           if (need > 0.5 && need < PITCH + headH) {
-            const span = rowSpan(prev);
+             const livePrev = liveTable?.rows[idx - 1];
+             const span = livePrev ? rowSpan(livePrev) : null;
             if (span) {
               out.push({ pos: span.from, end: span.to, h: need, kind: "row" });
               rowShift += need;
@@ -167,7 +192,6 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         prev = row;
       });
 
-      void tableLeft;
       return rowShift;
     };
 
@@ -177,9 +201,8 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     let lastBottom = 0;
 
     blocks.forEach((el, i) => {
-      if (el.classList.contains("doc-page-spacer")) return;
       const r = el.getBoundingClientRect();
-      let top = r.top - flowTop + shift;
+      let top = editorOffset + r.top - hostTop + shift;
       const h = r.height;
       const p = positions[i];
 
@@ -202,12 +225,16 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       }
 
       const table = el.tagName === "TABLE" ? (el as HTMLTableElement) : el.querySelector("table");
+      const liveBlock = liveBlocks[i];
+      const liveTable = liveBlock?.tagName === "TABLE"
+        ? (liveBlock as HTMLTableElement)
+        : liveBlock?.querySelector<HTMLTableElement>("table") ?? null;
       const crosses = top + h > k * PITCH + H + 0.5;
 
       let added = 0;
       if (crosses && table && table.rows.length > 1) {
         // Long table: break between rows instead of moving the whole thing.
-        added = splitRows(table, k, H, flowTop, shift, spacers);
+        added = splitRows(table, k, H, hostTop - editorOffset, shift, spacers, liveTable);
         shift += added;
       } else if (crosses && h <= H && top > k * PITCH + 1) {
         // Would be cut by the sheet edge — move the whole block down.
@@ -225,18 +252,11 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
 
     if (!sameSpacers(readSpacers(editor), spacers)) {
       writeSpacers(editor, spacers);
-      if (passes.current < MAX_PASSES) {
-        passes.current += 1;
-        frame.current = requestAnimationFrame(measure);
-        return;
-      }
     }
-    passes.current = 0;
   }, [editor, containerRef]);
 
   const schedule = useCallback(() => {
     if (frame.current) cancelAnimationFrame(frame.current);
-    passes.current = 0;
     frame.current = requestAnimationFrame(measure);
   }, [measure]);
 
@@ -262,6 +282,8 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       imgs().forEach((img) => img.removeEventListener("load", onUpdate));
       window.removeEventListener("resize", onUpdate);
       if (frame.current) cancelAnimationFrame(frame.current);
+      measureHost.current?.remove();
+      measureHost.current = null;
     };
   }, [editor, schedule]);
 

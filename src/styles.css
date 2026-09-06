@@ -1408,6 +1408,32 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   border-collapse: collapse;
   max-width: 100%;
 }
+.doc-pagination-measure {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  height: auto;
+  padding: 0;
+  visibility: hidden;
+  pointer-events: none;
+  contain: layout style;
+  overflow-wrap: anywhere;
+}
+.doc-pagination-measure table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.doc-pagination-measure td,
+.doc-pagination-measure th {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.doc-pagination-measure img,
+.doc-pagination-measure pre {
+  max-width: 100%;
+}
 .doc-page-spacer {
   width: 100%;
   pointer-events: none;
