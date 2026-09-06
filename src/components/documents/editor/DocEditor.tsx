@@ -280,11 +280,9 @@ export function DocEditor({
               visibility: geo ? "visible" : "hidden",
               WebkitMaskImage: bodyMask,
               maskImage: bodyMask,
-              WebkitMaskRepeat: "no-repeat",
-              maskRepeat: "no-repeat",
             }}
-
           >
+
             {showClientBox && (
               <div style={{ marginBottom: 14 }}>
                 <DocClientCard client={client} lang={lang} theme={theme} />
