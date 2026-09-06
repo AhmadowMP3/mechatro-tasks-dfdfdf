@@ -495,8 +495,12 @@ export async function docxToStyledHtml(
         }
         const css = cellCss(tcPr);
         const spanAttr = span > 1 ? ` colspan="${span}"` : "";
+        // Word column widths (twips) -> the editor's own colwidth attribute,
+        // so the table keeps its proportions inside the A4 sheet.
+        const widths = grid.slice(col, col + span).map((w) => Math.round(w / 15)).filter((n) => n > 0);
+        const widthAttr = widths.length === span ? ` data-colwidth="${widths.join(",")}"` : "";
         cells.push({
-          html: `<td style="${css}"${spanAttr}%ROWSPAN%>${inner || "<p><br></p>"}</td>`,
+          html: `<td style="${css}"${spanAttr}${widthAttr}%ROWSPAN%>${inner || "<p><br></p>"}</td>`,
           restart: !!vMerge && !cont,
           cont,
           col,
