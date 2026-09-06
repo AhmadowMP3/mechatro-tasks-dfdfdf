@@ -1,17 +1,17 @@
 // Word-style ribbon for the document editor.
 
 import { useEffect, useRef, useState } from "react";
-import type { Editor } from "@tiptap/react";
+import { useEditorState, type Editor } from "@tiptap/react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Table as TableIcon, Image as ImageIcon, Link2, Minus, SeparatorHorizontal,
   Undo2, Redo2, Rows3, Columns3, Trash2, Type, Highlighter, Baseline, Braces,
-  Grid2x2X, RowsIcon, Eraser, Library, ImagePlus,
+  Grid2x2X, RowsIcon, Eraser, Library, ImagePlus, Sun, Moon,
 } from "lucide-react";
 import { DOC_FIELDS, fieldLabel } from "@/lib/docs/rich";
 import { DOC_SNIPPETS, type SnippetId } from "@/lib/docs/snippets";
 import type { LogoVariant } from "@/lib/docs/model";
-import type { DocLang } from "@/lib/docs/types";
+import type { DocLang, DocTheme } from "@/lib/docs/types";
 
 const FONTS = [
   { v: "'Montserrat Arabic','Almarai',sans-serif", l: "Montserrat Arabic" },
