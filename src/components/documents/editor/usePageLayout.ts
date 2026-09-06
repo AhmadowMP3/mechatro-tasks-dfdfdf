@@ -245,7 +245,8 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       const liveTable = liveBlock?.tagName === "TABLE"
         ? (liveBlock as HTMLTableElement)
         : liveBlock?.querySelector<HTMLTableElement>("table") ?? null;
-    const crosses = top + h > k * PITCH + H + 0.5;
+      const crosses = top + h > k * PITCH + H + 0.5;
+
 
       let added = 0;
       if (crosses && table && table.rows.length > 1) {
