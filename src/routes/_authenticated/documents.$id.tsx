@@ -180,9 +180,20 @@ function DocumentEditorPage() {
 
   const ribbonActions = (
     <>
+      <span
+        style={{
+          fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, whiteSpace: "nowrap",
+          color: dirty ? "#F5B301" : "var(--muted-foreground)",
+          border: `1px solid ${dirty ? "#F5B30155" : "var(--border)"}`,
+          background: dirty ? "#F5B30118" : "transparent",
+        }}
+      >
+        {saving ? (ar ? "جارٍ الحفظ…" : "Saving…") : dirty ? (ar ? "تغييرات غير محفوظة" : "Unsaved changes") : (ar ? "محفوظ" : "Saved")}
+      </span>
       <button className="btn-ghost" onClick={() => setPreviewOpen(true)}>
         <Eye size={15} /> {ar ? "معاينة" : "Preview"}
       </button>
+
       <button className="btn-ghost" onClick={() => exportAs("pdf")} disabled={!!exporting}>
         {exporting === "pdf" ? <Loader2 size={15} className="spin" /> : <FileDown size={15} />} PDF
       </button>
