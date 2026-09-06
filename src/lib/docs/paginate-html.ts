@@ -130,6 +130,8 @@ export function paginateHtmlBody(opts: {
   bodyHeight: number;
   clientBoxHeight?: number;
   showClientBox?: boolean;
+  /** Real side padding of the printed sheet, so measuring matches printing. */
+  sidePadding?: number;
 }): HtmlPage[] {
   const { html, lang, bodyHeight } = opts;
   const avail = Math.max(200, bodyHeight);
