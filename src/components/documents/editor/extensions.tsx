@@ -67,7 +67,12 @@ function PageBreakView() {
 
 /* ── Auto field ───────────────────────────────────────────────── */
 
-export type DocFieldOptions = { lang: DocLang; values: Record<string, string> };
+export type DocFieldOptions = {
+  lang: DocLang;
+  values: Record<string, string>;
+  getLang?: () => DocLang;
+  getValues?: () => Record<string, string>;
+};
 
 export const DocField = Node.create<DocFieldOptions>({
   name: "docField",
@@ -75,7 +80,7 @@ export const DocField = Node.create<DocFieldOptions>({
   inline: true,
   atom: true,
   addOptions() {
-    return { lang: "ar", values: {} };
+    return { lang: "ar", values: {}, getLang: undefined, getValues: undefined };
   },
   addAttributes() {
     return { field: { default: "number" } };
@@ -84,10 +89,12 @@ export const DocField = Node.create<DocFieldOptions>({
     return [{ tag: "span[data-doc-field]", getAttrs: (el) => ({ field: (el as HTMLElement).getAttribute("data-doc-field") ?? "number" }) }];
   },
   renderHTML({ HTMLAttributes, node }) {
+    const lang = this.options.getLang?.() ?? this.options.lang;
+    const values = this.options.getValues?.() ?? this.options.values;
     return [
       "span",
       mergeAttributes({ "data-doc-field": node.attrs.field as string }, HTMLAttributes),
-      String(this.options.values[node.attrs.field as string] ?? fieldLabel(node.attrs.field as string, this.options.lang)),
+      String(values[node.attrs.field as string] ?? fieldLabel(node.attrs.field as string, lang)),
     ];
   },
   addNodeView() {
@@ -97,9 +104,9 @@ export const DocField = Node.create<DocFieldOptions>({
 
 function DocFieldView({ node, extension }: NodeViewProps) {
   const opts = extension.options as DocFieldOptions;
-  const { lang } = useDocCtx({ lang: opts.lang, currency: "" });
+  const { lang } = useDocCtx({ lang: opts.getLang?.() ?? opts.lang, currency: "" });
   const key = node.attrs.field as string;
-  const value = opts.values[key];
+  const value = (opts.getValues?.() ?? opts.values)[key];
   return (
     <NodeViewWrapper as="span">
       <span className="doc-field-chip" contentEditable={false} title={fieldLabel(key, lang)}>
@@ -159,9 +166,12 @@ function ItemsTableView({ node, updateAttributes, extension, editor }: NodeViewP
   const ar = ctx.lang === "ar";
   const data: ItemsData = mergeItemsData(node.attrs.data);
   const totals = computeItems(data);
-  const editable = !editor.isDestroyed && editor.isEditable;
+  const editable = Boolean(!editor.isDestroyed && editor.extensionManager && editor.isEditable);
 
-  const set = (p: Partial<ItemsData>) => updateAttributes({ data: { ...data, ...p } });
+  const set = (p: Partial<ItemsData>) => {
+    if (editor.isDestroyed || !editor.extensionManager) return;
+    updateAttributes({ data: { ...data, ...p } });
+  };
   const setRow = (id: string, p: Partial<ItemRow>) =>
     set({ rows: data.rows.map((r) => (r.id === id ? { ...r, ...p } : r)) });
   const addRow = () =>

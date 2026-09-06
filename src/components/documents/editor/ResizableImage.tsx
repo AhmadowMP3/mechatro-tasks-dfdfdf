@@ -62,7 +62,7 @@ export const ResizableImage = Image.extend({
 function ResizableImageView({ node, updateAttributes, selected, editor, deleteNode }: NodeViewProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [live, setLive] = useState<number | null>(null);
-  const editable = editor.isEditable;
+  const editable = Boolean(!editor.isDestroyed && editor.extensionManager && editor.isEditable);
   const align = ((node.attrs.align as ImgAlign) || "center") as ImgAlign;
   const width = (node.attrs.width as number | null) ?? null;
 
@@ -87,15 +87,18 @@ function ResizableImageView({ node, updateAttributes, selected, editor, deleteNo
         window.removeEventListener("pointerup", onUp);
         const next = Math.max(MIN_W, Math.min(MAX_W, Math.round(startW + (ev.clientX - startX) * dir)));
         setLive(null);
-        updateAttributes({ width: next });
+        if (!editor.isDestroyed && editor.extensionManager) updateAttributes({ width: next });
       };
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
-    [editable, updateAttributes],
+    [editable, editor, updateAttributes],
   );
 
-  const setPct = (pct: number) => updateAttributes({ width: Math.round((MAX_W * pct) / 100) });
+  const update = (attrs: Record<string, unknown>) => {
+    if (!editor.isDestroyed && editor.extensionManager) updateAttributes(attrs);
+  };
+  const setPct = (pct: number) => update({ width: Math.round((MAX_W * pct) / 100) });
 
   return (
     <NodeViewWrapper
@@ -127,17 +130,17 @@ function ResizableImageView({ node, updateAttributes, selected, editor, deleteNo
                 </button>
               ))}
               <i />
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => updateAttributes({ align: "left" })}>
+              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => update({ align: "left" })}>
                 <AlignLeft size={13} />
               </button>
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => updateAttributes({ align: "center" })}>
+              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => update({ align: "center" })}>
                 <AlignCenter size={13} />
               </button>
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => updateAttributes({ align: "right" })}>
+              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => update({ align: "right" })}>
                 <AlignRight size={13} />
               </button>
               <i />
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => deleteNode()}>
+              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { if (!editor.isDestroyed && editor.extensionManager) deleteNode(); }}>
                 <Trash2 size={13} />
               </button>
             </div>
