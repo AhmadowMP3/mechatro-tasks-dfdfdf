@@ -9,12 +9,21 @@ import { SHEET_GAP, readSpacers, sameSpacers, writeSpacers, type PageSpacer } fr
 
 export type PageGeometry = { top: number; left: number; width: number; height: number };
 
+/** A table header row repainted at the top of a continuation page. */
+export type HeaderRepeat = { id: string; top: number; width: number; html: string };
+
 const PITCH = A4.height + SHEET_GAP;
 const MAX_PASSES = 6;
+
+function sameRepeats(a: HeaderRepeat[], b: HeaderRepeat[]) {
+  if (a.length !== b.length) return false;
+  return a.every((r, i) => r.id === b[i]!.id && Math.abs(r.top - b[i]!.top) < 1 && r.html === b[i]!.html);
+}
 
 export function usePageLayout(editor: Editor | null, containerRef: React.RefObject<HTMLDivElement | null>) {
   const [pages, setPages] = useState(1);
   const [geo, setGeo] = useState<PageGeometry | null>(null);
+  const [repeats, setRepeats] = useState<HeaderRepeat[]>([]);
   const passes = useRef(0);
   const frame = useRef<number | null>(null);
 
@@ -55,50 +64,11 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       pos += node.nodeSize;
     });
 
-    // Break a long table between rows: the last row that still fits on the
-    // page is padded out so the next row starts at the top of the next sheet.
-    const splitRows = (
-      table: HTMLTableElement,
-      startPage: number,
-      bodyH: number,
-      originTop: number,
-      baseShift: number,
-      out: PageSpacer[],
-    ): number => {
-      const rows = Array.from(table.rows);
-      let rowShift = 0;
-      let page = startPage;
-      let prev: HTMLTableRowElement | null = null;
-
-      for (const row of rows) {
-        const rr = row.getBoundingClientRect();
-        const rTop = rr.top - originTop + baseShift + rowShift;
-        const rBottom = rTop + rr.height;
-        const pageBottom = page * PITCH + bodyH;
-
-        if (rBottom > pageBottom + 0.5 && prev && rr.height <= bodyH) {
-          const need = (page + 1) * PITCH - rTop;
-          if (need > 0.5) {
-            const span = rowSpan(prev);
-            if (span) {
-              out.push({ pos: span.from, end: span.to, h: need, kind: "row" });
-              rowShift += need;
-            }
-          }
-          page += 1;
-        } else if (rBottom > pageBottom + 0.5) {
-          page += 1;
-        }
-        prev = row;
-      }
-      return rowShift;
-    };
-
     // Document range of a rendered table row.
     const rowSpan = (row: HTMLTableRowElement): { from: number; to: number } | null => {
       try {
-        const pos = editor.view.posAtDOM(row, 0);
-        const $p = editor.state.doc.resolve(Math.max(0, pos));
+        const rowPos = editor.view.posAtDOM(row, 0);
+        const $p = editor.state.doc.resolve(Math.max(0, rowPos));
         for (let d = $p.depth; d > 0; d--) {
           const node = $p.node(d);
           if (node.type.name.toLowerCase().includes("row")) {
@@ -109,6 +79,96 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         /* the row can be gone between measure passes */
       }
       return null;
+    };
+
+    // A frozen copy of the table's first row, drawn on top of continuation
+    // pages so a split table keeps its column titles.
+    const headerMarkup = (table: HTMLTableElement): { html: string; height: number } | null => {
+      const head = table.rows[0];
+      if (!head) return null;
+      const cells = Array.from(head.cells);
+      const isHead = cells.length > 0 && cells.every((c) => c.tagName === "TH");
+      if (!isHead) return null;
+      const clone = table.cloneNode(false) as HTMLTableElement;
+      clone.removeAttribute("style");
+      const tbody = document.createElement("tbody");
+      const rowClone = head.cloneNode(true) as HTMLTableRowElement;
+      rowClone.classList.remove("doc-row-break");
+      rowClone.removeAttribute("style");
+      Array.from(rowClone.cells).forEach((c) => {
+        c.style.removeProperty("--doc-row-gap");
+        c.removeAttribute("contenteditable");
+      });
+      tbody.appendChild(rowClone);
+      // Preserve the measured column widths so the repeat lines up exactly.
+      const colgroup = document.createElement("colgroup");
+      cells.forEach((c) => {
+        const col = document.createElement("col");
+        col.style.width = `${c.getBoundingClientRect().width}px`;
+        colgroup.appendChild(col);
+      });
+      clone.appendChild(colgroup);
+      clone.appendChild(tbody);
+      clone.style.width = `${table.getBoundingClientRect().width}px`;
+      clone.style.tableLayout = "fixed";
+      return { html: clone.outerHTML, height: head.getBoundingClientRect().height };
+    };
+
+    const pendingRepeats: HeaderRepeat[] = [];
+
+    // Break a long table between rows: the last row that still fits on the
+    // page grows a transparent gap so the next row starts on the next sheet.
+    const splitRows = (
+      table: HTMLTableElement,
+      startPage: number,
+      bodyH: number,
+      originTop: number,
+      baseShift: number,
+      out: PageSpacer[],
+    ): number => {
+      const rows = Array.from(table.rows);
+      const head = headerMarkup(table);
+      const headH = head ? head.height : 0;
+      const tableLeft = table.getBoundingClientRect().left - flow.getBoundingClientRect().left;
+      const tableW = table.getBoundingClientRect().width;
+      let rowShift = 0;
+      let page = startPage;
+      let prev: HTMLTableRowElement | null = null;
+
+      rows.forEach((row, idx) => {
+        const rr = row.getBoundingClientRect();
+        const rTop = rr.top - originTop + baseShift + rowShift;
+        const rBottom = rTop + rr.height;
+        const pageBottom = page * PITCH + bodyH;
+
+        if (rBottom > pageBottom + 0.5 && prev && idx > 0 && rr.height + headH <= bodyH) {
+          // Start of the next sheet, leaving room for the repeated header.
+          const target = (page + 1) * PITCH + headH;
+          const need = target - rTop;
+          if (need > 0.5 && need < PITCH + headH) {
+            const span = rowSpan(prev);
+            if (span) {
+              out.push({ pos: span.from, end: span.to, h: need, kind: "row" });
+              rowShift += need;
+              if (head) {
+                pendingRepeats.push({
+                  id: `${span.from}-${page + 1}`,
+                  top: (page + 1) * PITCH,
+                  width: tableW,
+                  html: head.html,
+                });
+              }
+            }
+          }
+          page += 1;
+        } else if (rBottom > pageBottom + 0.5) {
+          page += 1;
+        }
+        prev = row;
+      });
+
+      void tableLeft;
+      return rowShift;
     };
 
     const spacers: PageSpacer[] = [];
@@ -161,6 +221,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
 
     const needed = Math.max(1, Math.floor(Math.max(0, lastBottom - 1) / PITCH) + 1);
     setPages((prev) => (prev === needed ? prev : needed));
+    setRepeats((prev) => (sameRepeats(prev, pendingRepeats) ? prev : pendingRepeats));
 
     if (!sameSpacers(readSpacers(editor), spacers)) {
       writeSpacers(editor, spacers);
@@ -204,5 +265,5 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     };
   }, [editor, schedule]);
 
-  return { pages, geo };
+  return { pages, geo, repeats };
 }
