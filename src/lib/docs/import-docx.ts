@@ -106,8 +106,10 @@ function cleanup(rawHtml: string): { html: string; images: number; tables: numbe
   images.forEach((img) => {
     img.removeAttribute("width");
     img.removeAttribute("height");
-    img.setAttribute("style", `max-width:${RENDER_MAX_WIDTH}px;height:auto`);
+    img.setAttribute("style", `max-width:100%;height:auto`);
   });
+
+  normalizeWidths(host);
 
   // Word sometimes emits deeply nested empty spans/divs.
   host.querySelectorAll("span, div").forEach((el) => {
@@ -180,6 +182,53 @@ export function buildDigest(html: string, limit = 40000): string {
   return joined.length > limit ? `${joined.slice(0, limit)}\n[TRUNCATED]` : joined;
 }
 
+
+/** Word carries page-sized pixel widths and big pt indents. Rescale them so
+ * imported content always fits inside our A4 body, whatever the margins are. */
+function normalizeWidths(host: HTMLElement): void {
+  const MAX_INDENT_PT = 48;
+
+  host.querySelectorAll("table").forEach((t) => {
+    t.removeAttribute("width");
+    const style = (t.getAttribute("style") ?? "").replace(/(min-|max-)?width\s*:[^;]+;?/gi, "");
+    t.setAttribute("style", `${style};width:100%;max-width:100%;table-layout:fixed`.replace(/^;/, ""));
+
+    // Fixed pixel column widths -> percentages of the table.
+    const cols = Array.from(t.querySelectorAll("col"));
+    const px = cols.map((c) => {
+      const m = /width\s*:\s*(\d+(?:\.\d+)?)px/i.exec(c.getAttribute("style") ?? "");
+      return m ? parseFloat(m[1]) : 0;
+    });
+    const total = px.reduce((a, b) => a + b, 0);
+    if (total > 0 && px.every((v) => v > 0)) {
+      cols.forEach((c, i) => c.setAttribute("style", `width:${Math.round((px[i] / total) * 1000) / 10}%`));
+    }
+
+    t.querySelectorAll("td, th").forEach((cell) => {
+      cell.removeAttribute("width");
+      cell.removeAttribute("data-colwidth");
+      const cs = (cell.getAttribute("style") ?? "").replace(/(min-|max-)?width\s*:\s*\d+(\.\d+)?px\s*;?/gi, "");
+      cell.setAttribute("style", `${cs};overflow-wrap:anywhere`.replace(/^;/, ""));
+    });
+  });
+
+  // Clamp Word's page-relative indents and strip hard pixel widths.
+  host.querySelectorAll<HTMLElement>("[style]").forEach((el) => {
+    let style = el.getAttribute("style") ?? "";
+    if (el.tagName !== "TABLE" && el.tagName !== "IMG") {
+      style = style.replace(/(^|;)\s*width\s*:\s*\d+(\.\d+)?px\s*;?/gi, "$1");
+    }
+    style = style.replace(/(padding-inline-(?:start|end)|margin-(?:left|right)|padding-(?:left|right))\s*:\s*(\d+(?:\.\d+)?)pt/gi,
+      (_m, prop: string, val: string) => `${prop}:${Math.min(parseFloat(val), MAX_INDENT_PT)}pt`);
+    el.setAttribute("style", style.replace(/^;/, ""));
+  });
+
+  host.querySelectorAll("pre").forEach((el) => {
+    const cs = (el.getAttribute("style") ?? "");
+    el.setAttribute("style", `${cs};max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere`.replace(/^;/, ""));
+  });
+}
+
 /** Light cleanup for the high-fidelity path: keep every inline style. */
 function cleanupStyled(rawHtml: string): { html: string; images: number; tables: number } {
   if (typeof document === "undefined") return { html: rawHtml, images: 0, tables: 0 };
@@ -200,9 +249,13 @@ function cleanupStyled(rawHtml: string): { html: string; images: number; tables:
   images.forEach((img) => {
     img.removeAttribute("width");
     img.removeAttribute("height");
-    const style = (img.getAttribute("style") ?? "").replace(/max-width\s*:[^;]+;?/gi, "");
-    img.setAttribute("style", `${style};max-width:${RENDER_MAX_WIDTH}px;height:auto`.replace(/^;/, ""));
+    const style = (img.getAttribute("style") ?? "")
+      .replace(/max-width\s*:[^;]+;?/gi, "")
+      .replace(/width\s*:\s*\d+(\.\d+)?px\s*;?/gi, "");
+    img.setAttribute("style", `${style};max-width:100%;height:auto`.replace(/^;/, ""));
   });
+
+  normalizeWidths(host);
 
   return { html: host.innerHTML.trim(), images: images.length, tables: host.querySelectorAll("table").length };
 }
