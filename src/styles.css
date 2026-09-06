@@ -1342,6 +1342,38 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   font-size: 12px;
 }
 
+/* Stacked A4 sheets with the continuous editable body layered on top. */
+.doc-editor-pages {
+  position: relative;
+  width: 794px;
+  margin: 0 auto;
+}
+.doc-editor-sheets {
+  pointer-events: none;
+  user-select: none;
+}
+.doc-editor-sheet-slot {
+  border-radius: 6px;
+  box-shadow: 0 18px 44px rgb(0 0 0 / 0.3);
+  overflow: hidden;
+}
+.doc-editor-flow .ProseMirror {
+  outline: none;
+  min-height: 0;
+}
+.doc-editor-flow .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: inline-start;
+  height: 0;
+  pointer-events: none;
+  opacity: 0.45;
+}
+.doc-page-spacer {
+  width: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+
 .doc-editor-canvas {
   overflow-x: auto;
   padding: clamp(6px, 2vw, 18px);

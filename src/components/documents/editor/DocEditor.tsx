@@ -30,6 +30,9 @@ import type { DocClient, LogoVariant } from "@/lib/docs/model";
 import type { DocFooter, DocHeader, DocLang, DocTheme } from "@/lib/docs/types";
 import { toast } from "sonner";
 import { editorIsReady, useStableEditor } from "./useStableEditor";
+import { PageLayout, SHEET_GAP } from "./pagination";
+import { usePageLayout } from "./usePageLayout";
+import { A4 } from "../DocPaper";
 
 type Props = {
   html: string;
@@ -115,6 +118,7 @@ export function DocEditor({
         placeholder: () => (langRef.current === "ar" ? "ابدأ الكتابة داخل المستند…" : "Start typing inside the document…"),
       }),
       PageBreak,
+      PageLayout,
       DocField.configure({
         lang: langRef.current,
         values: {},
@@ -202,6 +206,10 @@ export function DocEditor({
 
   const insertSnippet = (id: SnippetId) => insert(snippetHtml(id, lang, templateTerms) ?? "");
 
+  // Live A4 pagination: how many sheets to paint and where the body sits.
+  const pagesRef = useRef<HTMLDivElement | null>(null);
+  const { pages, geo } = usePageLayout(editor, pagesRef);
+
   return (
     <div className="doc-editor">
       <Ribbon
@@ -220,15 +228,37 @@ export function DocEditor({
         onInsertTerms={templateTerms.trim() ? () => insert(termsBlockHtml(lang, templateTerms) ?? "") : undefined}
       />
       <div className="doc-editor-canvas">
-        <div className="doc-editor-paper">
-          <DocPaper
-            header={header}
-            footer={footer}
-            lang={lang}
-            theme={theme}
-            meta={meta}
-            logoVariant={logoVariant}
-            page={{ current: 1, total: 1 }}
+        <div className="doc-editor-pages" ref={pagesRef}>
+          {/* Stacked A4 sheets painted behind the editable layer */}
+          <div className="doc-editor-sheets" aria-hidden>
+            {Array.from({ length: pages }, (_, i) => (
+              <div key={i} className="doc-editor-sheet-slot" style={{ marginBottom: i === pages - 1 ? 0 : SHEET_GAP }}>
+                <DocPaper
+                  header={header}
+                  footer={footer}
+                  lang={lang}
+                  theme={theme}
+                  meta={meta}
+                  logoVariant={logoVariant}
+                  page={{ current: i + 1, total: pages }}
+                  sizing="fixed"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* The single continuous editable body, laid over the sheets */}
+          <div
+            className="doc-editor-flow doc-paper-body"
+            style={{
+              position: "absolute",
+              top: geo?.top ?? 0,
+              insetInlineStart: geo?.left ?? 0,
+              width: geo?.width ?? A4.width - 80,
+              fontSize: 12.5,
+              lineHeight: 1.7,
+              overflowWrap: "anywhere",
+            }}
           >
             {showClientBox && (
               <div style={{ marginBottom: 14 }}>
@@ -238,7 +268,7 @@ export function DocEditor({
             <DocEditorCtxProvider value={{ lang, currency }}>
               <EditorContent editor={editor} />
             </DocEditorCtxProvider>
-          </DocPaper>
+          </div>
         </div>
       </div>
     </div>
