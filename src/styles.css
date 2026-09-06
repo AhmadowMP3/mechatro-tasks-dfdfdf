@@ -1373,6 +1373,10 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   pointer-events: none;
   opacity: 0.45;
 }
+.doc-editor-flow tr.doc-row-break > td,
+.doc-editor-flow tr.doc-row-break > th {
+  padding-bottom: calc(8px + var(--doc-row-gap, 0px)) !important;
+}
 .doc-page-spacer {
   width: 100%;
   pointer-events: none;

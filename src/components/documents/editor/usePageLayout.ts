@@ -55,6 +55,62 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       pos += node.nodeSize;
     });
 
+    // Break a long table between rows: the last row that still fits on the
+    // page is padded out so the next row starts at the top of the next sheet.
+    const splitRows = (
+      table: HTMLTableElement,
+      startPage: number,
+      bodyH: number,
+      originTop: number,
+      baseShift: number,
+      out: PageSpacer[],
+    ): number => {
+      const rows = Array.from(table.rows);
+      let rowShift = 0;
+      let page = startPage;
+      let prev: HTMLTableRowElement | null = null;
+
+      for (const row of rows) {
+        const rr = row.getBoundingClientRect();
+        const rTop = rr.top - originTop + baseShift + rowShift;
+        const rBottom = rTop + rr.height;
+        const pageBottom = page * PITCH + bodyH;
+
+        if (rBottom > pageBottom + 0.5 && prev && rr.height <= bodyH) {
+          const need = (page + 1) * PITCH - rTop;
+          if (need > 0.5) {
+            const span = rowSpan(prev);
+            if (span) {
+              out.push({ pos: span.from, end: span.to, h: need, kind: "row" });
+              rowShift += need;
+            }
+          }
+          page += 1;
+        } else if (rBottom > pageBottom + 0.5) {
+          page += 1;
+        }
+        prev = row;
+      }
+      return rowShift;
+    };
+
+    // Document range of a rendered table row.
+    const rowSpan = (row: HTMLTableRowElement): { from: number; to: number } | null => {
+      try {
+        const pos = editor.view.posAtDOM(row, 0);
+        const $p = editor.state.doc.resolve(Math.max(0, pos));
+        for (let d = $p.depth; d > 0; d--) {
+          const node = $p.node(d);
+          if (node.type.name.toLowerCase().includes("row")) {
+            return { from: $p.before(d), to: $p.after(d) };
+          }
+        }
+      } catch {
+        /* the row can be gone between measure passes */
+      }
+      return null;
+    };
+
     const spacers: PageSpacer[] = [];
     let shift = 0;
     let forceNext = false;
@@ -83,14 +139,24 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         // Landed inside the gap between two sheets.
         pushTo((k + 1) * PITCH);
         k += 1;
-      } else if (h <= H && top + h > k * PITCH + H + 0.5 && top > k * PITCH + 1) {
+      }
+
+      const table = el.tagName === "TABLE" ? (el as HTMLTableElement) : el.querySelector("table");
+      const crosses = top + h > k * PITCH + H + 0.5;
+
+      let added = 0;
+      if (crosses && table && table.rows.length > 1) {
+        // Long table: break between rows instead of moving the whole thing.
+        added = splitRows(table, k, H, flowTop, shift, spacers);
+        shift += added;
+      } else if (crosses && h <= H && top > k * PITCH + 1) {
         // Would be cut by the sheet edge — move the whole block down.
         pushTo((k + 1) * PITCH);
         k += 1;
       }
 
       forceNext = el.hasAttribute("data-page-break") || !!el.querySelector("[data-page-break], .doc-page-break-mark");
-      lastBottom = Math.max(lastBottom, top + h);
+      lastBottom = Math.max(lastBottom, top + h + added);
     });
 
     const needed = Math.max(1, Math.floor(Math.max(0, lastBottom - 1) / PITCH) + 1);
