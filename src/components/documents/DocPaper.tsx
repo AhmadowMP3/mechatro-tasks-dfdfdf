@@ -220,7 +220,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
 
 
       {/* ── Body ────────────────────────────────────────────────── */}
-      <div className="pdf-flow" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: "6px 40px 18px", fontSize: 12.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>
+      <div className="pdf-flow doc-page-body" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: "6px 40px 18px", fontSize: 12.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>
         {children}
       </div>
 
