@@ -245,18 +245,21 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       const liveTable = liveBlock?.tagName === "TABLE"
         ? (liveBlock as HTMLTableElement)
         : liveBlock?.querySelector<HTMLTableElement>("table") ?? null;
-      const crosses = top + h > k * PITCH + H + 0.5;
+    const crosses = top + h > k * PITCH + H + 0.5;
 
       let added = 0;
       if (crosses && table && table.rows.length > 1) {
         // Long table: break between rows instead of moving the whole thing.
         added = splitRows(table, k, H, hostTop - editorOffset, shift, spacers, liveTable);
         shift += added;
-      } else if (crosses && h <= H && top > k * PITCH + 1) {
-        // Would be cut by the sheet edge — move the whole block down.
+      } else if (crosses && top > k * PITCH + 1) {
+        // Would be cut by the sheet edge — move the whole block down so it
+        // starts at the top of the next sheet. Blocks taller than one page
+        // still overflow, but they never get hidden.
         pushTo((k + 1) * PITCH);
         k += 1;
       }
+
 
       forceNext = el.hasAttribute("data-page-break") || !!el.querySelector("[data-page-break], .doc-page-break-mark");
       lastBottom = Math.max(lastBottom, top + h + added);
