@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2, Sun, Moon, GitBranch, FileDown, Eye, X, ChevronDown } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sun, Moon, GitBranch, FileDown, Eye, X, ChevronDown, FileUp } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -13,6 +13,7 @@ import type { DocClient, DocModel } from "@/lib/docs/model";
 import { PaginatedDoc } from "@/components/documents/PaginatedDoc";
 import { DocEditor } from "@/components/documents/editor/DocEditor";
 import { EditorBoundary } from "@/components/documents/editor/EditorBoundary";
+import { ImportDocxDialog } from "@/components/documents/ImportDocxDialog";
 import { blocksToHtml, needsConversion } from "@/lib/docs/convert-legacy";
 import { exportDocPdf } from "@/lib/docs/export-doc";
 import { logActivity } from "@/lib/activity";
@@ -38,6 +39,7 @@ function DocumentEditorPage() {
   const { lang, isMasterAdmin, user } = useApp();
   const ar = lang === "ar";
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [pageCount, setPageCount] = useState(1);
 
   const [doc, setDoc] = useState<BusinessDoc | null>(null);
@@ -190,6 +192,9 @@ function DocumentEditorPage() {
       >
         {saving ? (ar ? "جارٍ الحفظ…" : "Saving…") : dirty ? (ar ? "تغييرات غير محفوظة" : "Unsaved changes") : (ar ? "محفوظ" : "Saved")}
       </span>
+      <button className="btn-ghost" onClick={() => setImporting(true)}>
+        <FileUp size={15} /> {ar ? "استيراد من Word" : "Import from Word"}
+      </button>
       <button className="btn-ghost" onClick={() => setPreviewOpen(true)}>
         <Eye size={15} /> {ar ? "معاينة" : "Preview"}
       </button>
@@ -329,6 +334,34 @@ function DocumentEditorPage() {
           actions={ribbonActions}
         />
       </EditorBoundary>
+
+      {/* ── Import a Word file into this document ──────────────── */}
+      {importing && (
+        <ImportDocxDialog
+          ar={ar}
+          mode="apply"
+          onClose={() => setImporting(false)}
+          onApply={(p) => {
+            setImporting(false);
+            setDoc((d) =>
+              d
+                ? {
+                    ...d,
+                    title: p.title || d.title,
+                    lang: p.lang,
+                    currency: p.currency || d.currency,
+                    issue_date: p.issueDate || d.issue_date,
+                    valid_until: p.validUntil || d.valid_until,
+                    client: p.client,
+                    model: { ...d.model, version: 2, html: p.html, showClientBox: p.showClientBox },
+                  }
+                : d,
+            );
+            setDirty(true);
+            toast.success(ar ? "تم استيراد الملف — لا تنسَ الحفظ" : "Word file imported — remember to save");
+          }}
+        />
+      )}
 
       {/* ── Paginated preview (optional) ────────────────────────── */}
       {previewOpen && (
