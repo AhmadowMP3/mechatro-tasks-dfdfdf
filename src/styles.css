@@ -1373,15 +1373,47 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   pointer-events: none;
   opacity: 0.45;
 }
+/* Page break inside a table: a transparent gap under the last row that fits,
+   drawn as a border so the cell background never bleeds into the gap. */
 .doc-editor-flow tr.doc-row-break > td,
 .doc-editor-flow tr.doc-row-break > th {
-  padding-bottom: calc(8px + var(--doc-row-gap, 0px)) !important;
+  border-bottom: var(--doc-row-gap, 0px) solid transparent !important;
+  background-clip: padding-box;
+}
+/* Nothing inside the writing area may reach past the sheet margins. */
+.doc-editor-flow .ProseMirror table {
+  max-width: 100%;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.doc-editor-flow .ProseMirror td,
+.doc-editor-flow .ProseMirror th {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.doc-editor-flow .ProseMirror img,
+.doc-editor-flow .ProseMirror pre {
+  max-width: 100%;
+}
+/* Repeated table header painted over a continuation page. */
+.doc-row-head-repeat {
+  position: absolute;
+  inset-inline-start: 0;
+  pointer-events: none;
+  user-select: none;
+  z-index: 3;
+}
+.doc-row-head-repeat table {
+  border-collapse: collapse;
+  max-width: 100%;
 }
 .doc-page-spacer {
   width: 100%;
   pointer-events: none;
   user-select: none;
 }
+
 
 .doc-editor-canvas {
   overflow-x: auto;

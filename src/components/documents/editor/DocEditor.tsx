@@ -209,7 +209,7 @@ export function DocEditor({
 
   // Live A4 pagination: how many sheets to paint and where the body sits.
   const pagesRef = useRef<HTMLDivElement | null>(null);
-  const { pages, geo } = usePageLayout(editor, pagesRef);
+  const { pages, geo, repeats } = usePageLayout(editor, pagesRef);
 
   return (
     <div className="doc-editor">
@@ -254,8 +254,9 @@ export function DocEditor({
             style={{
               position: "absolute",
               top: geo?.top ?? 0,
-              insetInlineStart: geo?.left ?? 0,
+              left: geo?.left ?? 0,
               width: geo?.width ?? A4.width - 80,
+              maxWidth: geo?.width ?? A4.width - 80,
               fontSize: 12.5,
               lineHeight: 1.7,
               overflowWrap: "anywhere",
@@ -277,7 +278,19 @@ export function DocEditor({
             <DocEditorCtxProvider value={{ lang, currency }}>
               <EditorContent editor={editor} />
             </DocEditorCtxProvider>
+
+            {/* Table headers repainted at the top of continuation sheets */}
+            {repeats.map((r) => (
+              <div
+                key={r.id}
+                className="doc-row-head-repeat doc-rich"
+                aria-hidden
+                style={{ top: r.top, width: r.width }}
+                dangerouslySetInnerHTML={{ __html: r.html }}
+              />
+            ))}
           </div>
+
         </div>
       </div>
     </div>
