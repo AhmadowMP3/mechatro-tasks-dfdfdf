@@ -70,6 +70,9 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
 
   const mode: DocLogoMode = header.logoMode ?? "inline";
   const mg = pageMarginsPx(header);
+  // Header/footer bands keep a modest inset so the title and meta box never
+  // get squeezed by a wide body margin; the body itself uses the real margin.
+  const chromeSide = Math.min(mg.side, 40);
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -126,7 +129,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
       }}
     >
       {/* ── Header band (identical on every template) ───────────── */}
-      <div ref={headerRef} style={{ padding: `${mg.top}px ${mg.side}px 12px`, flexShrink: 0, position: "relative" }}>
+      <div ref={headerRef} style={{ padding: `${mg.top}px ${chromeSide}px 12px`, flexShrink: 0, position: "relative" }}>
         {/* Logo band — full width so a tall logo never squeezes the title */}
         {header.showLogo && mode === "band" && (
           <div style={{ display: "flex", justifyContent: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? (ar ? "flex-start" : "flex-end") : (ar ? "flex-end" : "flex-start"), marginBottom: 10 }}>
@@ -153,7 +156,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
             {logoImg}
           </div>
         )}
-        <div style={{ display: "grid", gridTemplateColumns: mode === "inline" ? "auto minmax(0, 1fr) 232px" : "232px minmax(0, 1fr) 232px", alignItems: mode === "inline" ? "center" : "start", justifyItems: "stretch", gap: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: mode === "inline" ? "auto minmax(0, 1fr) minmax(0, 232px)" : "minmax(0, 232px) minmax(0, 1fr) minmax(0, 232px)", alignItems: mode === "inline" ? "center" : "start", justifyItems: "stretch", gap: 18 }}>
           {/* Brand block (with the logo beside it in inline mode) */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, maxWidth: mode === "inline" ? 300 : undefined, overflowWrap: "anywhere", alignItems: "flex-start" }}>
             {header.showLogo && mode === "inline" && (
@@ -228,11 +231,11 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
       {/* ── QR row (reserved on every page, filled on the last one) ─ */}
       <div
         data-qr-slot
-        style={{ height: QR_ROW_H, padding: `0 ${mg.side}px`, display: "flex", alignItems: "flex-end", flexShrink: 0, overflow: "hidden" }}
+        style={{ height: QR_ROW_H, padding: `0 ${chromeSide}px`, display: "flex", alignItems: "flex-end", flexShrink: 0, overflow: "hidden" }}
       />
 
       {/* ── Footer band (identical on every template) ───────────── */}
-      <div data-doc-footer style={{ padding: `10px ${mg.side}px ${mg.bottom}px`, flexShrink: 0 }}>
+      <div data-doc-footer style={{ padding: `10px ${chromeSide}px ${mg.bottom}px`, flexShrink: 0 }}>
         {(bank || signature) && (
           <div style={{ display: "flex", justifyContent: "space-between", gap: 24, marginBottom: 8, flexWrap: "wrap" }}>
             {bank ? <div style={{ fontSize: 10.5, color: c.muted, whiteSpace: "pre-wrap", flex: "1 1 240px", minWidth: 0, maxWidth: "60%", overflowWrap: "anywhere" }}>{bank}</div> : <span />}
