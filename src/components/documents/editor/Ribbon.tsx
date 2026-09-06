@@ -278,6 +278,24 @@ export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsert
         )}
       </div>
 
+      {/* Group: sheet language + theme */}
+      {(onLang || onTheme) && (
+        <div className="doc-ribbon-group">
+          {onLang && (
+            <>
+              <RBtn active={lang === "ar"} onClick={() => onLang("ar")} title="العربية"><span style={{ fontSize: 11, fontWeight: 700 }}>AR</span></RBtn>
+              <RBtn active={lang === "en"} onClick={() => onLang("en")} title="English"><span style={{ fontSize: 11, fontWeight: 700 }}>EN</span></RBtn>
+            </>
+          )}
+          {onTheme && (
+            <>
+              <RBtn active={theme === "light"} onClick={() => onTheme("light")} title={ar ? "ورقة فاتحة" : "Light paper"}><Sun size={15} /></RBtn>
+              <RBtn active={theme === "dark"} onClick={() => onTheme("dark")} title={ar ? "ورقة غامقة" : "Dark paper"}><Moon size={15} /></RBtn>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Group: brand */}
       {onLogoVariant && (
         <div className="doc-ribbon-group">
