@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2, Sun, Moon, GitBranch, FileDown, Eye, X, ChevronDown } from "lucide-react";
 
@@ -12,6 +12,7 @@ import { docTypeLabel, type DocLang, type DocStatus, type DocTemplate, type DocT
 import type { DocClient, DocModel } from "@/lib/docs/model";
 import { PaginatedDoc } from "@/components/documents/PaginatedDoc";
 import { DocEditor } from "@/components/documents/editor/DocEditor";
+import { EditorBoundary } from "@/components/documents/editor/EditorBoundary";
 import { blocksToHtml, needsConversion } from "@/lib/docs/convert-legacy";
 import { exportDocPdf } from "@/lib/docs/export-doc";
 import { logActivity } from "@/lib/activity";
@@ -93,6 +94,27 @@ function DocumentEditorPage() {
     finally { setSaving(false); }
   };
 
+  // Ctrl/Cmd+S saves, and leaving with unsaved edits asks for confirmation.
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        void saveRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  useEffect(() => {
+    if (!dirty) return;
+    const onLeave = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", onLeave);
+    return () => window.removeEventListener("beforeunload", onLeave);
+  }, [dirty]);
+
+
   const bumpRevision = async () => {
     if (!doc) return;
     try {
@@ -158,9 +180,20 @@ function DocumentEditorPage() {
 
   const ribbonActions = (
     <>
+      <span
+        style={{
+          fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, whiteSpace: "nowrap",
+          color: dirty ? "#F5B301" : "var(--muted-foreground)",
+          border: `1px solid ${dirty ? "#F5B30155" : "var(--border)"}`,
+          background: dirty ? "#F5B30118" : "transparent",
+        }}
+      >
+        {saving ? (ar ? "جارٍ الحفظ…" : "Saving…") : dirty ? (ar ? "تغييرات غير محفوظة" : "Unsaved changes") : (ar ? "محفوظ" : "Saved")}
+      </span>
       <button className="btn-ghost" onClick={() => setPreviewOpen(true)}>
         <Eye size={15} /> {ar ? "معاينة" : "Preview"}
       </button>
+
       <button className="btn-ghost" onClick={() => exportAs("pdf")} disabled={!!exporting}>
         {exporting === "pdf" ? <Loader2 size={15} className="spin" /> : <FileDown size={15} />} PDF
       </button>
@@ -276,22 +309,26 @@ function DocumentEditorPage() {
       </Accordion>
 
       {/* ── The sheet: type straight inside the letterhead ──────── */}
-      <DocEditor
-        html={doc.model.html ?? ""}
-        onChange={(html) => patchModel({ html, version: 2 })}
-        lang={doc.lang}
-        theme={doc.theme}
-        currency={doc.currency}
-        meta={meta ?? {}}
-        showClientBox={doc.model.showClientBox}
-        client={doc.client}
-        header={header}
-        footer={footer}
-        logoVariant={doc.model.logoVariant ?? "auto"}
-        onLogoVariant={(v) => patchModel({ logoVariant: v })}
-        terms={{ ar: tpl.defaults.termsAr ?? "", en: tpl.defaults.termsEn ?? "" }}
-        actions={ribbonActions}
-      />
+      <EditorBoundary ar={ar}>
+        <DocEditor
+          html={doc.model.html ?? ""}
+          onChange={(html) => patchModel({ html, version: 2 })}
+          lang={doc.lang}
+          theme={doc.theme}
+          currency={doc.currency}
+          meta={meta ?? {}}
+          showClientBox={doc.model.showClientBox}
+          client={doc.client}
+          header={header}
+          footer={footer}
+          logoVariant={doc.model.logoVariant ?? "auto"}
+          onLogoVariant={(v) => patchModel({ logoVariant: v })}
+          onLang={(v) => patch({ lang: v })}
+          onTheme={(v) => patch({ theme: v })}
+          terms={{ ar: tpl.defaults.termsAr ?? "", en: tpl.defaults.termsEn ?? "" }}
+          actions={ribbonActions}
+        />
+      </EditorBoundary>
 
       {/* ── Paginated preview (optional) ────────────────────────── */}
       {previewOpen && (

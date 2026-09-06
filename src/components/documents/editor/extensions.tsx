@@ -3,6 +3,7 @@
 //   • DocField   — inline auto field (number / date / totals …)
 //   • ItemsTable — the smart items table with automatic totals
 
+import { createContext, useContext } from "react";
 import { Node, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
 import { Plus, Trash2 } from "lucide-react";
@@ -10,6 +11,23 @@ import { RiyalSymbol } from "@/lib/currency";
 import { computeItems, money, uid, type ItemRow } from "@/lib/docs/model";
 import { DOC_FIELDS, fieldLabel, mergeItemsData, readItemsAttr, writeItemsAttr, emptyItemsData, type ItemsData } from "@/lib/docs/rich";
 import type { DocLang } from "@/lib/docs/types";
+
+/* ── Live editor context ──────────────────────────────────────────
+ * Node views read the current language / currency from React context so a
+ * language switch never has to tear the editor down and rebuild it (that
+ * teardown was the source of the "reading 'extensions'" crash). The
+ * extension options stay in sync for HTML serialisation only.            */
+
+export type DocEditorCtxValue = { lang: DocLang; currency: string };
+
+const DocEditorCtx = createContext<DocEditorCtxValue | null>(null);
+
+export const DocEditorCtxProvider = DocEditorCtx.Provider;
+
+function useDocCtx(fallback: DocEditorCtxValue): DocEditorCtxValue {
+  return useContext(DocEditorCtx) ?? fallback;
+}
+
 
 /* ── Page break ───────────────────────────────────────────────── */
 
@@ -79,12 +97,13 @@ export const DocField = Node.create<DocFieldOptions>({
 
 function DocFieldView({ node, extension }: NodeViewProps) {
   const opts = extension.options as DocFieldOptions;
+  const { lang } = useDocCtx({ lang: opts.lang, currency: "" });
   const key = node.attrs.field as string;
   const value = opts.values[key];
   return (
     <NodeViewWrapper as="span">
-      <span className="doc-field-chip" contentEditable={false} title={fieldLabel(key, opts.lang)}>
-        {value || fieldLabel(key, opts.lang)}
+      <span className="doc-field-chip" contentEditable={false} title={fieldLabel(key, lang)}>
+        {value || fieldLabel(key, lang)}
       </span>
     </NodeViewWrapper>
   );
@@ -136,10 +155,11 @@ export const ItemsTable = Node.create<ItemsTableOptions>({
 
 function ItemsTableView({ node, updateAttributes, extension, editor }: NodeViewProps) {
   const opts = extension.options as ItemsTableOptions;
-  const ar = opts.lang === "ar";
+  const ctx = useDocCtx({ lang: opts.lang, currency: opts.currency });
+  const ar = ctx.lang === "ar";
   const data: ItemsData = mergeItemsData(node.attrs.data);
   const totals = computeItems(data);
-  const editable = editor.isEditable;
+  const editable = !editor.isDestroyed && editor.isEditable;
 
   const set = (p: Partial<ItemsData>) => updateAttributes({ data: { ...data, ...p } });
   const setRow = (id: string, p: Partial<ItemRow>) =>
@@ -266,9 +286,9 @@ function ItemsTableView({ node, updateAttributes, extension, editor }: NodeViewP
 
         {data.showTotals && (
           <div className="doc-items-totals">
-            <span>{ar ? "المجموع" : "Subtotal"}: <DocMoney value={totals.subtotal} currency={opts.currency} /></span>
-            {Number(data.taxRate) > 0 && <span>{ar ? "الضريبة" : "Tax"}: <DocMoney value={totals.tax} currency={opts.currency} /></span>}
-            <strong>{ar ? "الإجمالي" : "Total"}: <DocMoney value={totals.grand} currency={opts.currency} /></strong>
+            <span>{ar ? "المجموع" : "Subtotal"}: <DocMoney value={totals.subtotal} currency={ctx.currency} /></span>
+            {Number(data.taxRate) > 0 && <span>{ar ? "الضريبة" : "Tax"}: <DocMoney value={totals.tax} currency={ctx.currency} /></span>}
+            <strong>{ar ? "الإجمالي" : "Total"}: <DocMoney value={totals.grand} currency={ctx.currency} /></strong>
           </div>
         )}
       </div>

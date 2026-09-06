@@ -6,12 +6,12 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Table as TableIcon, Image as ImageIcon, Link2, Minus, SeparatorHorizontal,
   Undo2, Redo2, Rows3, Columns3, Trash2, Type, Highlighter, Baseline, Braces,
-  Grid2x2X, RowsIcon, Eraser, Library, ImagePlus,
+  Grid2x2X, RowsIcon, Eraser, Library, ImagePlus, Sun, Moon,
 } from "lucide-react";
 import { DOC_FIELDS, fieldLabel } from "@/lib/docs/rich";
 import { DOC_SNIPPETS, type SnippetId } from "@/lib/docs/snippets";
 import type { LogoVariant } from "@/lib/docs/model";
-import type { DocLang } from "@/lib/docs/types";
+import type { DocLang, DocTheme } from "@/lib/docs/types";
 
 const FONTS = [
   { v: "'Montserrat Arabic','Almarai',sans-serif", l: "Montserrat Arabic" },
@@ -29,6 +29,10 @@ const LINE_HEIGHTS = ["1.2", "1.4", "1.6", "1.8", "2"];
 type RibbonProps = {
   editor: Editor | null;
   lang: DocLang;
+  theme?: DocTheme;
+  /** Live document language / theme switches (optional). */
+  onLang?: (v: DocLang) => void;
+  onTheme?: (v: DocTheme) => void;
   onImage: (file: File) => void;
   onInsertTerms?: () => void;
   /** Insert a ready-made snippet by id. */
@@ -42,22 +46,40 @@ type RibbonProps = {
   actions?: React.ReactNode;
 };
 
-export function Ribbon({ editor, lang, onImage, onInsertTerms, onSnippet, blocks, onBlock, logoVariant, onLogoVariant, actions }: RibbonProps) {
+export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsertTerms, onSnippet, blocks, onBlock, logoVariant, onLogoVariant, actions }: RibbonProps) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [snipOpen, setSnipOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const ar = lang === "ar";
-  if (!editor) return null;
+
+  // Keep the toolbar state in sync with the caret without ever reading a
+  // torn-down editor.
+  const [, bump] = useState(0);
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    const onTx = () => bump((n) => n + 1);
+    editor.on("transaction", onTx);
+    editor.on("selectionUpdate", onTx);
+    return () => {
+      if (editor.isDestroyed) return;
+      editor.off("transaction", onTx);
+      editor.off("selectionUpdate", onTx);
+    };
+  }, [editor]);
+
+  if (!editor || editor.isDestroyed) return null;
 
   const chain = () => editor.chain().focus();
   const isTable = editor.isActive("table");
 
   /** Delete whatever object is selected: image, items table, page break… */
   const deleteSelected = () => {
+    if (editor.isDestroyed) return;
     const c = editor.chain().focus();
     if (editor.isActive("table")) { c.deleteTable().run(); return; }
     c.deleteSelection().run();
   };
+
 
   return (
     <div className="doc-ribbon">
@@ -255,6 +277,24 @@ export function Ribbon({ editor, lang, onImage, onInsertTerms, onSnippet, blocks
           </div>
         )}
       </div>
+
+      {/* Group: sheet language + theme */}
+      {(onLang || onTheme) && (
+        <div className="doc-ribbon-group">
+          {onLang && (
+            <>
+              <RBtn active={lang === "ar"} onClick={() => onLang("ar")} title="العربية"><span style={{ fontSize: 11, fontWeight: 700 }}>AR</span></RBtn>
+              <RBtn active={lang === "en"} onClick={() => onLang("en")} title="English"><span style={{ fontSize: 11, fontWeight: 700 }}>EN</span></RBtn>
+            </>
+          )}
+          {onTheme && (
+            <>
+              <RBtn active={theme === "light"} onClick={() => onTheme("light")} title={ar ? "ورقة فاتحة" : "Light paper"}><Sun size={15} /></RBtn>
+              <RBtn active={theme === "dark"} onClick={() => onTheme("dark")} title={ar ? "ورقة غامقة" : "Dark paper"}><Moon size={15} /></RBtn>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Group: brand */}
       {onLogoVariant && (

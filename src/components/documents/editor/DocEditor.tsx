@@ -18,7 +18,7 @@ import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
 
 import { Ribbon } from "./Ribbon";
-import { PageBreak, DocField, ItemsTable } from "./extensions";
+import { PageBreak, DocField, ItemsTable, DocEditorCtxProvider } from "./extensions";
 import { BlockFormat } from "./text-attrs";
 import { DocClientCard } from "../DocBody";
 import { DocPaper } from "../DocPaper";
@@ -43,6 +43,9 @@ type Props = {
   footer: DocFooter;
   logoVariant?: LogoVariant;
   onLogoVariant?: (v: LogoVariant) => void;
+  /** Live language / theme switches shown in the ribbon. */
+  onLang?: (v: DocLang) => void;
+  onTheme?: (v: DocTheme) => void;
   /** Terms & conditions from the type template, inserted on demand. */
   terms?: { ar: string; en: string };
   /** Save / export / preview buttons pinned to the ribbon. */
@@ -51,9 +54,14 @@ type Props = {
 
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
+/** True only while the editor instance is usable (never during teardown). */
+function alive(e: { isDestroyed: boolean } | null | undefined): boolean {
+  return Boolean(e && !e.isDestroyed);
+}
+
 export function DocEditor({
   html, onChange, lang, theme, currency, meta, showClientBox, client,
-  header, footer, logoVariant, onLogoVariant, terms, actions,
+  header, footer, logoVariant, onLogoVariant, onLang, onTheme, terms, actions,
 }: Props) {
   const ar = lang === "ar";
   const lastEmitted = useRef(html);
@@ -61,11 +69,10 @@ export function DocEditor({
 
   // Shared reusable blocks composed in the template settings.
   useEffect(() => {
-    let alive = true;
-    docBlocks.list().then((b) => { if (alive && b) setLibrary(b); }).catch(() => {});
-    return () => { alive = false; };
+    let alive2 = true;
+    docBlocks.list().then((b) => { if (alive2 && b) setLibrary(b); }).catch(() => {});
+    return () => { alive2 = false; };
   }, []);
-
 
   const ctx = useMemo<RichCtx>(() => ({ lang, theme, currency, meta }), [lang, theme, currency, meta]);
   const fieldValues = useMemo(() => {
@@ -77,29 +84,45 @@ export function DocEditor({
     return out;
   }, [ctx]);
 
+  // Live values the extensions read without ever being rebuilt.
+  const langRef = useRef(lang);
+  langRef.current = lang;
+  const currencyRef = useRef(currency);
+  currencyRef.current = currency;
+
+  // The extension list is created exactly once: rebuilding it would destroy
+  // the editor mid-render, which is what used to blank the page when the
+  // document language changed.
+  const extensions = useMemo(
+    () => [
+      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
+      Underline,
+      TextStyle,
+      Color,
+      FontSize,
+      FontFamily,
+      BlockFormat,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer nofollow" } }),
+      ResizableImage.configure({ inline: false, allowBase64: true }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      Placeholder.configure({
+        placeholder: () => (langRef.current === "ar" ? "ابدأ الكتابة داخل المستند…" : "Start typing inside the document…"),
+      }),
+      PageBreak,
+      DocField.configure({ lang: langRef.current, values: {} }),
+      ItemsTable.configure({ lang: langRef.current, currency: currencyRef.current }),
+    ],
+    [],
+  );
+
   const editor = useEditor(
     {
-      extensions: [
-        StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
-        Underline,
-        TextStyle,
-        Color,
-        FontSize,
-        FontFamily,
-        BlockFormat,
-        Highlight.configure({ multicolor: true }),
-        TextAlign.configure({ types: ["heading", "paragraph"] }),
-        Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer nofollow" } }),
-        ResizableImage.configure({ inline: false, allowBase64: true }),
-        Table.configure({ resizable: true }),
-        TableRow,
-        TableHeader,
-        TableCell,
-        Placeholder.configure({ placeholder: ar ? "ابدأ الكتابة داخل المستند…" : "Start typing inside the document…" }),
-        PageBreak,
-        DocField.configure({ lang, values: fieldValues }),
-        ItemsTable.configure({ lang, currency }),
-      ],
+      extensions,
       content: html || "<p></p>",
       editorProps: {
         attributes: {
@@ -114,27 +137,52 @@ export function DocEditor({
         onChange(next);
       },
     },
-    [lang, currency],
+    [],
   );
 
   // Keep external resets (legacy conversion, template apply, undo from parent)
   // in sync without clobbering what is being typed.
   useEffect(() => {
-    if (!editor) return;
+    if (!alive(editor)) return;
     if (html === lastEmitted.current) return;
     lastEmitted.current = html;
-    editor.commands.setContent(html || "<p></p>", { emitUpdate: false });
+    editor!.commands.setContent(html || "<p></p>", { emitUpdate: false });
   }, [editor, html]);
 
-  // Refresh auto-field chips when meta/currency changes.
+  // Language / currency / meta changes are applied in place — no rebuild, so
+  // typing, cursor position and undo history all survive the switch.
   useEffect(() => {
-    if (!editor) return;
-    const ext = editor.extensionManager.extensions.find((x) => x.name === "docField");
-    if (ext) (ext.options as { lang: DocLang; values: Record<string, string> }).values = fieldValues;
-    editor.view.dispatch(editor.state.tr.setMeta("addToHistory", false));
-  }, [editor, fieldValues]);
+    if (!alive(editor)) return;
+    const e = editor!;
+    const manager = e.extensionManager;
+    if (!manager) return;
+    for (const ext of manager.extensions) {
+      if (ext.name === "docField") {
+        const o = ext.options as { lang: DocLang; values: Record<string, string> };
+        o.lang = lang;
+        o.values = fieldValues;
+      }
+      if (ext.name === "itemsTable") {
+        const o = ext.options as { lang: DocLang; currency: string };
+        o.lang = lang;
+        o.currency = currency;
+      }
+    }
+    e.setOptions({
+      editorProps: {
+        attributes: { class: "doc-rich doc-rich-editable", dir: ar ? "rtl" : "ltr", spellcheck: "false" },
+      },
+    });
+    // Repaint decorations (placeholder, chips) without touching undo history.
+    try {
+      e.view.dispatch(e.state.tr.setMeta("addToHistory", false));
+    } catch {
+      /* the view can be gone during an unmount — nothing to repaint then */
+    }
+  }, [editor, lang, currency, ar, fieldValues]);
 
   const insertImage = (file: File) => {
+    if (!alive(editor)) return;
     if (!file.type.startsWith("image/")) return;
     if (file.size > MAX_IMAGE_BYTES) {
       toast.error(ar ? "حجم الصورة أكبر من 3 ميغابايت" : "Image is larger than 3 MB");
@@ -143,9 +191,10 @@ export function DocEditor({
     const reader = new FileReader();
     reader.onload = () => {
       const src = String(reader.result ?? "");
+      if (!alive(editor)) return;
       if (src.startsWith("data:image/")) {
-        editor
-          ?.chain()
+        editor!
+          .chain()
           .focus()
           .setImage({ src, width: Math.round(IMAGE_MAX_WIDTH * 0.6), align: "center" } as { src: string })
           .run();
@@ -156,31 +205,29 @@ export function DocEditor({
 
   const templateTerms = (lang === "ar" ? terms?.ar : terms?.en) ?? "";
 
-  const insertSnippet = (id: SnippetId) => {
-    const block = snippetHtml(id, lang, templateTerms);
-    if (block) editor?.chain().focus().insertContent(block).run();
+  const insert = (content: string) => {
+    if (!alive(editor) || !content) return;
+    editor!.chain().focus().insertContent(content).run();
   };
+
+  const insertSnippet = (id: SnippetId) => insert(snippetHtml(id, lang, templateTerms) ?? "");
 
   return (
     <div className="doc-editor">
       <Ribbon
-        editor={editor}
+        editor={alive(editor) ? editor : null}
         lang={lang}
+        theme={theme}
+        onLang={onLang}
+        onTheme={onTheme}
         onImage={insertImage}
         onSnippet={insertSnippet}
         blocks={library.map((b) => ({ id: b.id, label: blockLabel(b, lang), html: b.html }))}
-        onBlock={(blockHtml) => editor?.chain().focus().insertContent(blockHtml).run()}
+        onBlock={(blockHtml) => insert(blockHtml)}
         logoVariant={logoVariant}
         onLogoVariant={onLogoVariant}
         actions={actions}
-        onInsertTerms={
-          templateTerms.trim()
-            ? () => {
-                const block = termsBlockHtml(lang, templateTerms);
-                if (block) editor?.chain().focus().insertContent(block).run();
-              }
-            : undefined
-        }
+        onInsertTerms={templateTerms.trim() ? () => insert(termsBlockHtml(lang, templateTerms) ?? "") : undefined}
       />
       <div className="doc-editor-canvas">
         <div className="doc-editor-paper">
@@ -198,7 +245,9 @@ export function DocEditor({
                 <DocClientCard client={client} lang={lang} theme={theme} />
               </div>
             )}
-            <EditorContent editor={editor} />
+            <DocEditorCtxProvider value={{ lang, currency }}>
+              <EditorContent editor={editor} />
+            </DocEditorCtxProvider>
           </DocPaper>
         </div>
       </div>

@@ -2,7 +2,7 @@
 // document content) and by the reusable-blocks library. Same engine and same
 // output HTML as the full document editor — just a trimmed toolbar.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner";
 
 import { ResizableImage, IMAGE_MAX_WIDTH } from "./ResizableImage";
-import { PageBreak, DocField, ItemsTable } from "./extensions";
+import { PageBreak, DocField, ItemsTable, DocEditorCtxProvider } from "./extensions";
 import { BlockFormat } from "./text-attrs";
 import { DOC_FIELDS, fieldLabel } from "@/lib/docs/rich";
 import { prepareImage } from "@/lib/docs/upload";
@@ -50,31 +50,46 @@ export function SimpleDocEditor({
   const lastEmitted = useRef(html);
   const [uploading, setUploading] = useState(false);
 
+  // Live language / currency, read by the extensions without a rebuild.
+  const langRef = useRef(lang);
+  langRef.current = lang;
+  const currencyRef = useRef(currency);
+  currencyRef.current = currency;
+  const placeholderRef = useRef(placeholder);
+  placeholderRef.current = placeholder;
+
+  const extensions = useMemo(
+    () => [
+      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
+      Underline,
+      TextStyle,
+      Color,
+      FontSize,
+      FontFamily,
+      BlockFormat,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer nofollow" } }),
+      ResizableImage.configure({ inline: false, allowBase64: true }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      Placeholder.configure({
+        placeholder: () =>
+          placeholderRef.current ??
+          (langRef.current === "ar" ? "اكتب المحتوى الافتراضي هنا…" : "Write the default content here…"),
+      }),
+      PageBreak,
+      DocField.configure({ lang: langRef.current, values: {} }),
+      ItemsTable.configure({ lang: langRef.current, currency: currencyRef.current }),
+    ],
+    [],
+  );
+
   const editor = useEditor(
     {
-      extensions: [
-        StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
-        Underline,
-        TextStyle,
-        Color,
-        FontSize,
-        FontFamily,
-        BlockFormat,
-        Highlight.configure({ multicolor: true }),
-        TextAlign.configure({ types: ["heading", "paragraph"] }),
-        Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer nofollow" } }),
-        ResizableImage.configure({ inline: false, allowBase64: true }),
-        Table.configure({ resizable: true }),
-        TableRow,
-        TableHeader,
-        TableCell,
-        Placeholder.configure({
-          placeholder: placeholder ?? (ar ? "اكتب المحتوى الافتراضي هنا…" : "Write the default content here…"),
-        }),
-        PageBreak,
-        DocField.configure({ lang, values: {} }),
-        ItemsTable.configure({ lang, currency }),
-      ],
+      extensions,
       content: html || "<p></p>",
       editorProps: {
         attributes: { class: "doc-rich doc-rich-editable", dir: ar ? "rtl" : "ltr", spellcheck: "false" },
@@ -85,23 +100,46 @@ export function SimpleDocEditor({
         onChange(next);
       },
     },
-    [lang, currency],
+    [],
   );
 
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed) return;
     if (html === lastEmitted.current) return;
     lastEmitted.current = html;
     editor.commands.setContent(html || "<p></p>", { emitUpdate: false });
   }, [editor, html]);
 
+  // Apply language / currency changes in place instead of recreating the
+  // editor (recreating it used to blank the page mid-render).
   useEffect(() => {
-    if (!editor || !onReady) return;
+    if (!editor || editor.isDestroyed) return;
+    const manager = editor.extensionManager;
+    if (!manager) return;
+    for (const ext of manager.extensions) {
+      if (ext.name === "docField") (ext.options as { lang: DocLang }).lang = lang;
+      if (ext.name === "itemsTable") {
+        const o = ext.options as { lang: DocLang; currency: string };
+        o.lang = lang;
+        o.currency = currency;
+      }
+    }
+    editor.setOptions({
+      editorProps: {
+        attributes: { class: "doc-rich doc-rich-editable", dir: ar ? "rtl" : "ltr", spellcheck: "false" },
+      },
+    });
+    try { editor.view.dispatch(editor.state.tr.setMeta("addToHistory", false)); } catch { /* view gone */ }
+  }, [editor, lang, currency, ar]);
+
+  useEffect(() => {
+    if (!editor || editor.isDestroyed || !onReady) return;
     onReady({
-      insert: (block: string) => editor.chain().focus().insertContent(block).run(),
-      selectionHtml: () => editor.getHTML(),
+      insert: (block: string) => { if (!editor.isDestroyed) editor.chain().focus().insertContent(block).run(); },
+      selectionHtml: () => (editor.isDestroyed ? "" : editor.getHTML()),
     });
   }, [editor, onReady]);
+
 
   const pickImage = async (file: File) => {
     try {
@@ -115,7 +153,7 @@ export function SimpleDocEditor({
     }
   };
 
-  if (!editor) return null;
+  if (!editor || editor.isDestroyed) return null;
   const chain = () => editor.chain().focus();
   const isTable = editor.isActive("table");
 
@@ -205,7 +243,7 @@ export function SimpleDocEditor({
       </div>
 
       <div className="simple-doc-surface" style={{ minHeight }}>
-        <EditorContent editor={editor} />
+        <DocEditorCtxProvider value={{ lang, currency }}><EditorContent editor={editor} /></DocEditorCtxProvider>
       </div>
     </div>
   );
