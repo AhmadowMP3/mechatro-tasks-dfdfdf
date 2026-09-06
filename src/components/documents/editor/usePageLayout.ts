@@ -286,21 +286,35 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     const dom = editor.view.dom as HTMLElement;
     const ro = new ResizeObserver(() => schedule());
     ro.observe(dom);
+    // Dragging a table or a block reflows the body without an editor update —
+    // watch the DOM and the drag gestures so the sheets keep up.
+    const mo = new MutationObserver(() => schedule());
+    mo.observe(dom, { childList: true, subtree: true, attributes: true, characterData: true });
     const imgs = () => dom.querySelectorAll("img");
     imgs().forEach((img) => img.addEventListener("load", onUpdate));
     window.addEventListener("resize", onUpdate);
+    dom.addEventListener("dragover", onUpdate);
+    dom.addEventListener("drop", onUpdate);
+    dom.addEventListener("dragend", onUpdate);
+    dom.addEventListener("pointerup", onUpdate);
     // Fonts and late-loading images change block heights — re-measure then.
     void (document as Document & { fonts?: FontFaceSet }).fonts?.ready.then(() => schedule());
     return () => {
       editor.off("update", onUpdate);
       ro.disconnect();
+      mo.disconnect();
       imgs().forEach((img) => img.removeEventListener("load", onUpdate));
       window.removeEventListener("resize", onUpdate);
+      dom.removeEventListener("dragover", onUpdate);
+      dom.removeEventListener("drop", onUpdate);
+      dom.removeEventListener("dragend", onUpdate);
+      dom.removeEventListener("pointerup", onUpdate);
       if (frame.current) cancelAnimationFrame(frame.current);
       measureHost.current?.remove();
       measureHost.current = null;
     };
   }, [editor, schedule]);
+
 
   return { pages, geo, repeats };
 }
