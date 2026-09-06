@@ -27,7 +27,7 @@ import { fieldValue, termsBlockHtml, type RichCtx } from "@/lib/docs/rich";
 import { snippetHtml, type SnippetId } from "@/lib/docs/snippets";
 import { docBlocks, blockLabel, type DocBlock } from "@/lib/docs/blocks";
 import type { DocClient, LogoVariant } from "@/lib/docs/model";
-import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
+import { PAPER, pageMarginsPx, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
 import { toast } from "sonner";
 import { editorIsReady, useStableEditor } from "./useStableEditor";
 import { PageLayout, SHEET_GAP } from "./pagination";
