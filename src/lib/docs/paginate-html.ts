@@ -138,7 +138,7 @@ export function paginateHtmlBody(opts: {
 
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
-  host.style.cssText = hostStyle(lang);
+  host.style.cssText = hostStyle(lang, opts.sidePadding);
   document.body.appendChild(host);
 
   const source = document.createElement("div");
