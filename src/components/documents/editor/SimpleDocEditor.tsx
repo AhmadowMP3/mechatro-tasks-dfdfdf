@@ -2,7 +2,7 @@
 // document content) and by the reusable-blocks library. Same engine and same
 // output HTML as the full document editor — just a trimmed toolbar.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -153,7 +153,7 @@ export function SimpleDocEditor({
     }
   };
 
-  if (!editor) return null;
+  if (!editor || editor.isDestroyed) return null;
   const chain = () => editor.chain().focus();
   const isTable = editor.isActive("table");
 
