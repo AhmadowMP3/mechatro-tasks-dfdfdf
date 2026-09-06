@@ -27,7 +27,7 @@ import { fieldValue, termsBlockHtml, type RichCtx } from "@/lib/docs/rich";
 import { snippetHtml, type SnippetId } from "@/lib/docs/snippets";
 import { docBlocks, blockLabel, type DocBlock } from "@/lib/docs/blocks";
 import type { DocClient, LogoVariant } from "@/lib/docs/model";
-import type { DocFooter, DocHeader, DocLang, DocTheme } from "@/lib/docs/types";
+import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
 import { toast } from "sonner";
 import { editorIsReady, useStableEditor } from "./useStableEditor";
 import { PageLayout, SHEET_GAP } from "./pagination";
@@ -64,6 +64,7 @@ export function DocEditor({
   header, footer, logoVariant, onLogoVariant, onLang, onTheme, terms, actions,
 }: Props) {
   const ar = lang === "ar";
+  const paper = PAPER[theme];
   const lastEmitted = useRef(html);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -258,6 +259,14 @@ export function DocEditor({
               fontSize: 12.5,
               lineHeight: 1.7,
               overflowWrap: "anywhere",
+              // Same ink, font and direction as the printed sheet body.
+              color: paper.ink,
+              caretColor: paper.ink,
+              direction: ar ? "rtl" : "ltr",
+              textAlign: ar ? "right" : "left",
+              fontFamily: "'Montserrat Arabic', 'Almarai', 'Montserrat', system-ui, sans-serif",
+              zIndex: 2,
+              visibility: geo ? "visible" : "hidden",
             }}
           >
             {showClientBox && (
