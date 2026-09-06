@@ -1,7 +1,7 @@
 // Word-style ribbon for the document editor.
 
 import { useEffect, useRef, useState } from "react";
-import { useEditorState, type Editor } from "@tiptap/react";
+import type { Editor } from "@tiptap/react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Table as TableIcon, Image as ImageIcon, Link2, Minus, SeparatorHorizontal,
