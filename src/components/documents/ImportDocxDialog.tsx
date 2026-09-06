@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Loader2, Check, X, Sparkles, FileText, AlertTriangle } from "lucide-react";
+import { Upload, Loader2, Check, X, Sparkles, FileText, AlertTriangle, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 import { convertDocx, guessLang, isDocxFile, isLegacyDoc, type DocxImport } from "@/lib/docs/import-docx";
 import { analyzeImportedDoc, type DocxExtraction, type DocxItem } from "@/lib/docs/import-ai.functions";
@@ -434,16 +434,9 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
             </div>
 
             {/* Preview */}
-            <div style={{ borderInlineStart: "1px solid var(--border)", background: "var(--surface-2, var(--background))", padding: 16, maxHeight: "72vh", overflow: "auto" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", marginBottom: 10 }}>
-                {ar ? "المعاينة على القالب الرسمي" : "Preview on the official template"}
-              </div>
-              <div style={{ width: 794 * 0.44, height: "auto" }}>
-                <div style={{ transform: "scale(0.44)", transformOrigin: ar ? "top right" : "top left", width: 794 }}>
-                  <PaginatedDoc input={previewInput} gap={14} />
-                </div>
-              </div>
-            </div>
+            <ZoomablePreview ar={ar}>
+              <PaginatedDoc input={previewInput} gap={14} />
+            </ZoomablePreview>
           </div>
         )}
 
@@ -531,5 +524,104 @@ function Field({ label, children, aiFilled, ar }: { label: string; children: Rea
       </span>
       {children}
     </label>
+  );
+}
+
+/* ── Zoomable preview pane ────────────────────────────────────── */
+
+const PAGE_W = 794;
+const FIT_ZOOM = 0.44;
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 2;
+const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+
+function ZoomablePreview({ ar, children }: { ar: boolean; children: React.ReactNode }) {
+  const [zoom, setZoom] = useState(FIT_ZOOM);
+  const [contentH, setContentH] = useState(0);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+
+  // Track the unscaled height so the scroll area matches the zoomed sheet.
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const measure = () => setContentH(el.getBoundingClientRect().height / zoomRef.current);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Zoom around a point, keeping it visually anchored.
+  const zoomAt = (next: number, px: number, py: number) => {
+    const box = scrollRef.current;
+    const prev = zoomRef.current;
+    const z = clampZoom(next);
+    if (!box || z === prev) return;
+    const k = z / prev;
+    const left = box.scrollLeft, top = box.scrollTop;
+    setZoom(z);
+    requestAnimationFrame(() => {
+      box.scrollLeft = (left + px) * k - px;
+      box.scrollTop = (top + py) * k - py;
+    });
+  };
+
+  useEffect(() => {
+    const box = scrollRef.current;
+    if (!box) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return; // plain wheel keeps normal scrolling
+      e.preventDefault();
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+      const rect = box.getBoundingClientRect();
+      zoomAt(zoomRef.current * Math.exp(-dy * 0.0015), e.clientX - rect.left, e.clientY - rect.top);
+    };
+    box.addEventListener("wheel", onWheel, { passive: false });
+    return () => box.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const step = (factor: number) => {
+    const box = scrollRef.current;
+    if (!box) return;
+    zoomAt(zoomRef.current * factor, box.clientWidth / 2, box.clientHeight / 2);
+  };
+
+  const btn: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    width: 28, height: 28, borderRadius: 8, border: "1px solid var(--border)",
+    background: "transparent", color: "inherit", cursor: "pointer",
+  };
+
+  return (
+    <div style={{ borderInlineStart: "1px solid var(--border)", background: "var(--surface-2, var(--background))", display: "flex", flexDirection: "column", maxHeight: "72vh", minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", marginInlineEnd: "auto" }}>
+          {ar ? "المعاينة على القالب الرسمي" : "Preview on the official template"}
+        </div>
+        <button type="button" style={btn} onClick={() => step(1 / 1.2)} title={ar ? "تصغير" : "Zoom out"} aria-label={ar ? "تصغير" : "Zoom out"}>
+          <ZoomOut size={14} />
+        </button>
+        <span style={{ fontSize: 12, fontVariantNumeric: "tabular-nums", minWidth: 40, textAlign: "center" }}>{Math.round(zoom * 100)}%</span>
+        <button type="button" style={btn} onClick={() => step(1.2)} title={ar ? "تكبير" : "Zoom in"} aria-label={ar ? "تكبير" : "Zoom in"}>
+          <ZoomIn size={14} />
+        </button>
+        <button type="button" style={btn} onClick={() => setZoom(FIT_ZOOM)} title={ar ? "ملائمة العرض" : "Fit width"} aria-label={ar ? "ملائمة العرض" : "Fit width"}>
+          <Maximize2 size={14} />
+        </button>
+      </div>
+      <div ref={scrollRef} style={{ overflow: "auto", padding: 16, flex: 1 }}>
+        <div style={{ width: PAGE_W * zoom, height: contentH * zoom, marginInlineStart: ar ? "auto" : 0 }}>
+          <div
+            ref={contentRef}
+            style={{ transform: `scale(${zoom})`, transformOrigin: ar ? "top right" : "top left", width: PAGE_W }}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
