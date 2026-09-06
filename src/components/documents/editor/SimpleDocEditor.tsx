@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner";
 
 import { ResizableImage, IMAGE_MAX_WIDTH } from "./ResizableImage";
-import { PageBreak, DocField, ItemsTable } from "./extensions";
+import { PageBreak, DocField, ItemsTable, DocEditorCtxProvider } from "./extensions";
 import { BlockFormat } from "./text-attrs";
 import { DOC_FIELDS, fieldLabel } from "@/lib/docs/rich";
 import { prepareImage } from "@/lib/docs/upload";
