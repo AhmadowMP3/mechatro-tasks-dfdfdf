@@ -212,6 +212,15 @@ export function DocEditor({
   const { pages, geo, repeats } = usePageLayout(editor, pagesRef);
   const fallbackWidth = A4.width - 2 * pageMarginsPx(header).side;
 
+  // Clip the writing layer to the body band of every sheet, so nothing can
+  // ever be painted over the letterhead, the footer or the gap between pages
+  // (which used to happen while a table was being dragged across a break).
+  const pitch = A4.height + SHEET_GAP;
+  const bodyMask = geo && geo.height > 0
+    ? `repeating-linear-gradient(to bottom, #000 0px, #000 ${geo.height}px, transparent ${geo.height}px, transparent ${pitch}px)`
+    : undefined;
+
+
   return (
     <div className="doc-editor">
       <Ribbon
@@ -269,8 +278,11 @@ export function DocEditor({
               fontFamily: "'Montserrat Arabic', 'Almarai', 'Montserrat', system-ui, sans-serif",
               zIndex: 2,
               visibility: geo ? "visible" : "hidden",
+              WebkitMaskImage: bodyMask,
+              maskImage: bodyMask,
             }}
           >
+
             {showClientBox && (
               <div style={{ marginBottom: 14 }}>
                 <DocClientCard client={client} lang={lang} theme={theme} />
