@@ -8,14 +8,19 @@
 
 export const BODY_PAD_X = 40;
 export const A4_HTML = { width: 794, height: 1123 } as const;
-const BODY_WIDTH = A4_HTML.width - BODY_PAD_X * 2;
 
-function hostStyle(lang: "ar" | "en"): string {
+/** Body width for a given side padding (defaults to the legacy 40px inset). */
+function bodyWidth(sidePadding?: number): number {
+  const pad = Number.isFinite(sidePadding) && (sidePadding as number) >= 0 ? (sidePadding as number) : BODY_PAD_X;
+  return Math.max(240, A4_HTML.width - pad * 2);
+}
+
+function hostStyle(lang: "ar" | "en", sidePadding?: number): string {
   return [
     "position:fixed",
     "top:0",
     "left:-10000px",
-    `width:${BODY_WIDTH}px`,
+    `width:${bodyWidth(sidePadding)}px`,
     "visibility:hidden",
     "pointer-events:none",
     "contain:layout style",
