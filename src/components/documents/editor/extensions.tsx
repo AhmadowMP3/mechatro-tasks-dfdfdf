@@ -286,9 +286,9 @@ function ItemsTableView({ node, updateAttributes, extension, editor }: NodeViewP
 
         {data.showTotals && (
           <div className="doc-items-totals">
-            <span>{ar ? "المجموع" : "Subtotal"}: <DocMoney value={totals.subtotal} currency={opts.currency} /></span>
-            {Number(data.taxRate) > 0 && <span>{ar ? "الضريبة" : "Tax"}: <DocMoney value={totals.tax} currency={opts.currency} /></span>}
-            <strong>{ar ? "الإجمالي" : "Total"}: <DocMoney value={totals.grand} currency={opts.currency} /></strong>
+            <span>{ar ? "المجموع" : "Subtotal"}: <DocMoney value={totals.subtotal} currency={ctx.currency} /></span>
+            {Number(data.taxRate) > 0 && <span>{ar ? "الضريبة" : "Tax"}: <DocMoney value={totals.tax} currency={ctx.currency} /></span>}
+            <strong>{ar ? "الإجمالي" : "Total"}: <DocMoney value={totals.grand} currency={ctx.currency} /></strong>
           </div>
         )}
       </div>
