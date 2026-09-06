@@ -11,7 +11,7 @@ import { paginateHtmlBody } from "@/lib/docs/paginate-html";
 import { resolveDocHtml } from "@/lib/docs/rich";
 import { A4_SIZE, waitForPaperAssets, type DocPage } from "@/lib/docs/paginate";
 import type { DocClient, DocModel } from "@/lib/docs/model";
-import type { DocFooter, DocHeader, DocLang, DocTheme } from "@/lib/docs/types";
+import { pageMarginsPx, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
 
 
 export type PaginatedDocInput = {
@@ -72,7 +72,7 @@ async function measureClientBox(input: PaginatedDocInput): Promise<number> {
   const { flushSync } = await import("react-dom");
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
-  host.style.cssText = `position:fixed;top:0;left:-10000px;visibility:hidden;pointer-events:none;width:${A4_SIZE.width - 80}px`;
+  host.style.cssText = `position:fixed;top:0;left:-10000px;visibility:hidden;pointer-events:none;width:${A4_SIZE.width - 2 * pageMarginsPx(input.header).side}px`;
   document.body.appendChild(host);
   const root = createRoot(host);
   let h = 0;

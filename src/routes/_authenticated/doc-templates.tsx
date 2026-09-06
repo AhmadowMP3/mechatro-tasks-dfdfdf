@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { requireMaster } from "@/lib/route-guards";
 import { docTemplates } from "@/lib/docs/api";
 import { BASE_HEADER, defaultFooter, defaultHeader } from "@/lib/docs/defaults";
-import { DOC_TYPES, docTypeLabel, type DocFooter, type DocHeader, type DocLang, type DocTemplate, type DocTheme, type DocType } from "@/lib/docs/types";
+import { DEFAULT_MARGINS, DOC_TYPES, docTypeLabel, type DocFooter, type DocHeader, type DocLang, type DocTemplate, type DocTheme, type DocType } from "@/lib/docs/types";
 import { DocPaper } from "@/components/documents/DocPaper";
 import { DocRichBody } from "@/components/documents/DocRichBody";
 import { TemplateContentSection } from "@/components/documents/TemplateContentSection";
@@ -254,6 +254,12 @@ function DocTemplatesPage() {
                   </div>
                 </div>
               )}
+
+              <Row>
+                <Num label={ar ? "الهامش العلوي (مم)" : "Top margin (mm)"} value={tpl.header.marginTop ?? DEFAULT_MARGINS.top} min={5} max={40} onChange={(v) => setHeader({ marginTop: v })} />
+                <Num label={ar ? "الهامش السفلي (مم)" : "Bottom margin (mm)"} value={tpl.header.marginBottom ?? DEFAULT_MARGINS.bottom} min={5} max={40} onChange={(v) => setHeader({ marginBottom: v })} />
+                <Num label={ar ? "الهامش الجانبي (مم)" : "Side margins (mm)"} value={tpl.header.marginSide ?? DEFAULT_MARGINS.side} min={5} max={45} onChange={(v) => setHeader({ marginSide: v })} />
+              </Row>
 
               <Row>
                 <Text label={ar ? "العنوان (عربي)" : "Title (AR)"} value={tpl.header.titleAr} onChange={(v) => setHeader({ titleAr: v })} />

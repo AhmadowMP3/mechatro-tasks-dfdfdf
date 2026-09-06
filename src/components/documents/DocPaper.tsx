@@ -5,7 +5,7 @@
 import { useRef, useState } from "react";
 
 import { logoFor } from "@/lib/brand/logo";
-import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocTheme } from "@/lib/docs/types";
+import { PAPER, pageMarginsPx, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
 import type { LogoVariant } from "@/lib/docs/model";
 
@@ -69,6 +69,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
     .filter(Boolean);
 
   const mode: DocLogoMode = header.logoMode ?? "inline";
+  const mg = pageMarginsPx(header);
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -125,7 +126,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
       }}
     >
       {/* ── Header band (identical on every template) ───────────── */}
-      <div ref={headerRef} style={{ padding: "24px 40px 12px", flexShrink: 0, position: "relative" }}>
+      <div ref={headerRef} style={{ padding: `${mg.top}px ${mg.side}px 12px`, flexShrink: 0, position: "relative" }}>
         {/* Logo band — full width so a tall logo never squeezes the title */}
         {header.showLogo && mode === "band" && (
           <div style={{ display: "flex", justifyContent: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? (ar ? "flex-start" : "flex-end") : (ar ? "flex-end" : "flex-start"), marginBottom: 10 }}>
@@ -220,18 +221,18 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
 
 
       {/* ── Body ────────────────────────────────────────────────── */}
-      <div className="pdf-flow doc-page-body" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: "6px 40px 18px", fontSize: 12.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>
+      <div className="pdf-flow doc-page-body" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: `6px ${mg.side}px 18px`, fontSize: 12.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>
         {children}
       </div>
 
       {/* ── QR row (reserved on every page, filled on the last one) ─ */}
       <div
         data-qr-slot
-        style={{ height: QR_ROW_H, padding: "0 40px", display: "flex", alignItems: "flex-end", flexShrink: 0, overflow: "hidden" }}
+        style={{ height: QR_ROW_H, padding: `0 ${mg.side}px`, display: "flex", alignItems: "flex-end", flexShrink: 0, overflow: "hidden" }}
       />
 
       {/* ── Footer band (identical on every template) ───────────── */}
-      <div data-doc-footer style={{ padding: "10px 40px 20px", flexShrink: 0 }}>
+      <div data-doc-footer style={{ padding: `10px ${mg.side}px ${mg.bottom}px`, flexShrink: 0 }}>
         {(bank || signature) && (
           <div style={{ display: "flex", justifyContent: "space-between", gap: 24, marginBottom: 8, flexWrap: "wrap" }}>
             {bank ? <div style={{ fontSize: 10.5, color: c.muted, whiteSpace: "pre-wrap", flex: "1 1 240px", minWidth: 0, maxWidth: "60%", overflowWrap: "anywhere" }}>{bank}</div> : <span />}
