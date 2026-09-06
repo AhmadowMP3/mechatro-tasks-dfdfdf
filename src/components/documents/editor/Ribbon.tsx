@@ -74,8 +74,13 @@ export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsert
     command(editor);
   };
   const chain = () => editor.chain().focus();
-  const active = (...args: Parameters<Editor["isActive"]>) => {
-    try { return editorIsReady(editor) && editor.isActive(...args); } catch { return false; }
+  const active = (nameOrAttrs: string | Record<string, unknown>, attributes?: Record<string, unknown>) => {
+    try {
+      if (!editorIsReady(editor)) return false;
+      return typeof nameOrAttrs === "string"
+        ? editor.isActive(nameOrAttrs, attributes)
+        : editor.isActive(nameOrAttrs);
+    } catch { return false; }
   };
   const attrs = (name: string) => {
     try { return editorIsReady(editor) ? editor.getAttributes(name) : {}; } catch { return {}; }

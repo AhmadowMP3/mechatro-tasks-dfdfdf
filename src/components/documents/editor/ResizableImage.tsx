@@ -1,7 +1,7 @@
 // Word-like resizable image node: keeps width + alignment on the node so the
 // same size shows in the editor, the A4 preview, PDF, Word and the QR viewer.
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "@tiptap/extension-image";
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
 import { AlignCenter, AlignLeft, AlignRight, Trash2 } from "lucide-react";
@@ -61,10 +61,13 @@ export const ResizableImage = Image.extend({
 
 function ResizableImageView({ node, updateAttributes, selected, editor, deleteNode }: NodeViewProps) {
   const imgRef = useRef<HTMLImageElement>(null);
+  const dragAbortRef = useRef<AbortController | null>(null);
   const [live, setLive] = useState<number | null>(null);
   const editable = Boolean(!editor.isDestroyed && editor.extensionManager && editor.isEditable);
   const align = ((node.attrs.align as ImgAlign) || "center") as ImgAlign;
   const width = (node.attrs.width as number | null) ?? null;
+
+  useEffect(() => () => dragAbortRef.current?.abort(), []);
 
   const startDrag = useCallback(
     (e: React.PointerEvent, dir: 1 | -1) => {
@@ -75,22 +78,27 @@ function ResizableImageView({ node, updateAttributes, selected, editor, deleteNo
       if (!el) return;
       const startX = e.clientX;
       const startW = el.getBoundingClientRect().width;
+      dragAbortRef.current?.abort();
+      const dragAbort = new AbortController();
+      dragAbortRef.current = dragAbort;
       setLive(Math.round(startW));
 
       const onMove = (ev: PointerEvent) => {
+        if (editor.isDestroyed || !editor.extensionManager) return;
         const next = Math.max(MIN_W, Math.min(MAX_W, Math.round(startW + (ev.clientX - startX) * dir)));
         setLive(next);
         el.style.width = `${next}px`;
       };
       const onUp = (ev: PointerEvent) => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
+        dragAbort.abort();
+        if (dragAbortRef.current === dragAbort) dragAbortRef.current = null;
+        if (editor.isDestroyed || !editor.extensionManager) return;
         const next = Math.max(MIN_W, Math.min(MAX_W, Math.round(startW + (ev.clientX - startX) * dir)));
         setLive(null);
         if (!editor.isDestroyed && editor.extensionManager) updateAttributes({ width: next });
       };
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointermove", onMove, { signal: dragAbort.signal });
+      window.addEventListener("pointerup", onUp, { signal: dragAbort.signal });
     },
     [editable, editor, updateAttributes],
   );

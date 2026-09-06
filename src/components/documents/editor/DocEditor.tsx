@@ -181,7 +181,7 @@ export function DocEditor({
     const reader = new FileReader();
     reader.onload = () => {
       const src = String(reader.result ?? "");
-      if (!alive(editor)) return;
+      if (!editorIsReady(editor)) return;
       if (src.startsWith("data:image/")) {
         editor
           .chain()

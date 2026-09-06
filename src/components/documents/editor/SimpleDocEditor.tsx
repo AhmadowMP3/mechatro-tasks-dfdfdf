@@ -85,7 +85,7 @@ export function SimpleDocEditor({
           (langRef.current === "ar" ? "اكتب المحتوى الافتراضي هنا…" : "Write the default content here…"),
       }),
       PageBreak,
-      DocField.configure({ lang: langRef.current, values: {} }),
+      DocField.configure({ lang: langRef.current, values: {}, getLang: () => langRef.current }),
       ItemsTable.configure({ lang: langRef.current, currency: currencyRef.current }),
     ],
     [],
@@ -149,8 +149,19 @@ export function SimpleDocEditor({
   };
 
   if (!editorIsReady(editor)) return null;
+  const run = (command: (live: Editor) => void) => {
+    if (editorIsReady(editor)) command(editor);
+  };
+  const active = (nameOrAttrs: string | Record<string, unknown>, attributes?: Record<string, unknown>) => {
+    try {
+      if (!editorIsReady(editor)) return false;
+      return typeof nameOrAttrs === "string"
+        ? editor.isActive(nameOrAttrs, attributes)
+        : editor.isActive(nameOrAttrs);
+    } catch { return false; }
+  };
   const chain = () => editor.chain().focus();
-  const isTable = editor.isActive("table");
+  const isTable = active("table");
 
   return (
     <div className="simple-doc-editor">
@@ -167,14 +178,14 @@ export function SimpleDocEditor({
       />
       <div className="doc-ribbon simple-doc-ribbon">
         <div className="doc-ribbon-group">
-          <SBtn onClick={() => chain().undo().run()} title={ar ? "تراجع" : "Undo"}><Undo2 size={15} /></SBtn>
-          <SBtn onClick={() => chain().redo().run()} title={ar ? "إعادة" : "Redo"}><Redo2 size={15} /></SBtn>
+          <SBtn onClick={() => run((e) => e.chain().focus().undo().run())} title={ar ? "تراجع" : "Undo"}><Undo2 size={15} /></SBtn>
+          <SBtn onClick={() => run((e) => e.chain().focus().redo().run())} title={ar ? "إعادة" : "Redo"}><Redo2 size={15} /></SBtn>
           <select
             className="doc-ribbon-select"
             value={
-              editor.isActive("heading", { level: 1 }) ? "h1"
-              : editor.isActive("heading", { level: 2 }) ? "h2"
-              : editor.isActive("heading", { level: 3 }) ? "h3"
+              active("heading", { level: 1 }) ? "h1"
+              : active("heading", { level: 2 }) ? "h2"
+              : active("heading", { level: 3 }) ? "h3"
               : "p"
             }
             onChange={(e) => {
@@ -191,14 +202,14 @@ export function SimpleDocEditor({
         </div>
 
         <div className="doc-ribbon-group">
-          <SBtn active={editor.isActive("bold")} onClick={() => chain().toggleBold().run()} title="Bold"><Bold size={15} /></SBtn>
-          <SBtn active={editor.isActive("italic")} onClick={() => chain().toggleItalic().run()} title="Italic"><Italic size={15} /></SBtn>
-          <SBtn active={editor.isActive("underline")} onClick={() => chain().toggleUnderline().run()} title="Underline"><UnderlineIcon size={15} /></SBtn>
-          <SBtn active={editor.isActive({ textAlign: "right" })} onClick={() => chain().setTextAlign("right").run()} title={ar ? "يمين" : "Right"}><AlignRight size={15} /></SBtn>
-          <SBtn active={editor.isActive({ textAlign: "center" })} onClick={() => chain().setTextAlign("center").run()} title={ar ? "وسط" : "Center"}><AlignCenter size={15} /></SBtn>
-          <SBtn active={editor.isActive({ textAlign: "left" })} onClick={() => chain().setTextAlign("left").run()} title={ar ? "يسار" : "Left"}><AlignLeft size={15} /></SBtn>
-          <SBtn active={editor.isActive("bulletList")} onClick={() => chain().toggleBulletList().run()} title={ar ? "قائمة نقطية" : "Bullets"}><List size={15} /></SBtn>
-          <SBtn active={editor.isActive("orderedList")} onClick={() => chain().toggleOrderedList().run()} title={ar ? "قائمة مرقمة" : "Numbered"}><ListOrdered size={15} /></SBtn>
+          <SBtn active={active("bold")} onClick={() => chain().toggleBold().run()} title="Bold"><Bold size={15} /></SBtn>
+          <SBtn active={active("italic")} onClick={() => chain().toggleItalic().run()} title="Italic"><Italic size={15} /></SBtn>
+          <SBtn active={active("underline")} onClick={() => chain().toggleUnderline().run()} title="Underline"><UnderlineIcon size={15} /></SBtn>
+          <SBtn active={active({ textAlign: "right" })} onClick={() => chain().setTextAlign("right").run()} title={ar ? "يمين" : "Right"}><AlignRight size={15} /></SBtn>
+          <SBtn active={active({ textAlign: "center" })} onClick={() => chain().setTextAlign("center").run()} title={ar ? "وسط" : "Center"}><AlignCenter size={15} /></SBtn>
+          <SBtn active={active({ textAlign: "left" })} onClick={() => chain().setTextAlign("left").run()} title={ar ? "يسار" : "Left"}><AlignLeft size={15} /></SBtn>
+          <SBtn active={active("bulletList")} onClick={() => chain().toggleBulletList().run()} title={ar ? "قائمة نقطية" : "Bullets"}><List size={15} /></SBtn>
+          <SBtn active={active("orderedList")} onClick={() => chain().toggleOrderedList().run()} title={ar ? "قائمة مرقمة" : "Numbered"}><ListOrdered size={15} /></SBtn>
         </div>
 
         <div className="doc-ribbon-group">
