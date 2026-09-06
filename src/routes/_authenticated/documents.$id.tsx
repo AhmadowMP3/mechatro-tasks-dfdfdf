@@ -12,6 +12,7 @@ import { docTypeLabel, type DocLang, type DocStatus, type DocTemplate, type DocT
 import type { DocClient, DocModel } from "@/lib/docs/model";
 import { PaginatedDoc } from "@/components/documents/PaginatedDoc";
 import { DocEditor } from "@/components/documents/editor/DocEditor";
+import { EditorBoundary } from "@/components/documents/editor/EditorBoundary";
 import { blocksToHtml, needsConversion } from "@/lib/docs/convert-legacy";
 import { exportDocPdf } from "@/lib/docs/export-doc";
 import { logActivity } from "@/lib/activity";
