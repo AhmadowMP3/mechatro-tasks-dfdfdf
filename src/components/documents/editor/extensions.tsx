@@ -3,6 +3,7 @@
 //   • DocField   — inline auto field (number / date / totals …)
 //   • ItemsTable — the smart items table with automatic totals
 
+import { createContext, useContext } from "react";
 import { Node, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
 import { Plus, Trash2 } from "lucide-react";
@@ -10,6 +11,23 @@ import { RiyalSymbol } from "@/lib/currency";
 import { computeItems, money, uid, type ItemRow } from "@/lib/docs/model";
 import { DOC_FIELDS, fieldLabel, mergeItemsData, readItemsAttr, writeItemsAttr, emptyItemsData, type ItemsData } from "@/lib/docs/rich";
 import type { DocLang } from "@/lib/docs/types";
+
+/* ── Live editor context ──────────────────────────────────────────
+ * Node views read the current language / currency from React context so a
+ * language switch never has to tear the editor down and rebuild it (that
+ * teardown was the source of the "reading 'extensions'" crash). The
+ * extension options stay in sync for HTML serialisation only.            */
+
+export type DocEditorCtxValue = { lang: DocLang; currency: string };
+
+const DocEditorCtx = createContext<DocEditorCtxValue | null>(null);
+
+export const DocEditorCtxProvider = DocEditorCtx.Provider;
+
+function useDocCtx(fallback: DocEditorCtxValue): DocEditorCtxValue {
+  return useContext(DocEditorCtx) ?? fallback;
+}
+
 
 /* ── Page break ───────────────────────────────────────────────── */
 
