@@ -110,6 +110,7 @@ export async function paginateDocument(input: PaginatedDocInput): Promise<DocPag
       bodyHeight,
       clientBoxHeight,
       showClientBox: input.model.showClientBox,
+      sidePadding: pageMarginsPx(input.header).side,
     }).map((p) => ({ showClientBox: p.showClientBox, html: p.html }));
   }
 }
