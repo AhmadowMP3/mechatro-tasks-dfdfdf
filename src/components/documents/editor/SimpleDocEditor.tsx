@@ -3,7 +3,8 @@
 // output HTML as the full document editor — just a trimmed toolbar.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent } from "@tiptap/react";
+import { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
@@ -28,6 +29,7 @@ import { BlockFormat } from "./text-attrs";
 import { DOC_FIELDS, fieldLabel } from "@/lib/docs/rich";
 import { prepareImage } from "@/lib/docs/upload";
 import type { DocLang } from "@/lib/docs/types";
+import { editorIsReady, useStableEditor } from "./useStableEditor";
 
 type Props = {
   html: string;
@@ -48,6 +50,8 @@ export function SimpleDocEditor({
   const ar = lang === "ar";
   const fileRef = useRef<HTMLInputElement | null>(null);
   const lastEmitted = useRef(html);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
   const [uploading, setUploading] = useState(false);
 
   // Live language / currency, read by the extensions without a rebuild.
@@ -87,8 +91,8 @@ export function SimpleDocEditor({
     [],
   );
 
-  const editor = useEditor(
-    {
+  const editor = useStableEditor(
+    () => new Editor({
       extensions,
       content: html || "<p></p>",
       editorProps: {
@@ -97,14 +101,13 @@ export function SimpleDocEditor({
       onUpdate: ({ editor: e }) => {
         const next = e.getHTML();
         lastEmitted.current = next;
-        onChange(next);
+        onChangeRef.current(next);
       },
-    },
-    [],
+    }),
   );
 
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
+    if (!editorIsReady(editor)) return;
     if (html === lastEmitted.current) return;
     lastEmitted.current = html;
     editor.commands.setContent(html || "<p></p>", { emitUpdate: false });
@@ -113,17 +116,7 @@ export function SimpleDocEditor({
   // Apply language / currency changes in place instead of recreating the
   // editor (recreating it used to blank the page mid-render).
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
-    const manager = editor.extensionManager;
-    if (!manager) return;
-    for (const ext of manager.extensions) {
-      if (ext.name === "docField") (ext.options as { lang: DocLang }).lang = lang;
-      if (ext.name === "itemsTable") {
-        const o = ext.options as { lang: DocLang; currency: string };
-        o.lang = lang;
-        o.currency = currency;
-      }
-    }
+    if (!editorIsReady(editor)) return;
     editor.setOptions({
       editorProps: {
         attributes: { class: "doc-rich doc-rich-editable", dir: ar ? "rtl" : "ltr", spellcheck: "false" },
@@ -133,10 +126,10 @@ export function SimpleDocEditor({
   }, [editor, lang, currency, ar]);
 
   useEffect(() => {
-    if (!editor || editor.isDestroyed || !onReady) return;
+    if (!editorIsReady(editor) || !onReady) return;
     onReady({
-      insert: (block: string) => { if (!editor.isDestroyed) editor.chain().focus().insertContent(block).run(); },
-      selectionHtml: () => (editor.isDestroyed ? "" : editor.getHTML()),
+      insert: (block: string) => { if (editorIsReady(editor)) editor.chain().focus().insertContent(block).run(); },
+      selectionHtml: () => (editorIsReady(editor) ? editor.getHTML() : ""),
     });
   }, [editor, onReady]);
 
@@ -145,7 +138,9 @@ export function SimpleDocEditor({
     try {
       setUploading(true);
       const { src } = await prepareImage(file);
-      editor?.chain().focus().setImage({ src, width: Math.round(IMAGE_MAX_WIDTH * 0.6), align: "center" } as { src: string }).run();
+      if (editorIsReady(editor)) {
+        editor.chain().focus().setImage({ src, width: Math.round(IMAGE_MAX_WIDTH * 0.6), align: "center" } as { src: string }).run();
+      }
     } catch {
       toast.error(ar ? "تعذّر إضافة الصورة (الحد 8 ميغابايت)" : "Could not add the image (8 MB max)");
     } finally {
@@ -153,7 +148,7 @@ export function SimpleDocEditor({
     }
   };
 
-  if (!editor || editor.isDestroyed) return null;
+  if (!editorIsReady(editor)) return null;
   const chain = () => editor.chain().focus();
   const isTable = editor.isActive("table");
 

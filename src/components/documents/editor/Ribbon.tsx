@@ -12,6 +12,7 @@ import { DOC_FIELDS, fieldLabel } from "@/lib/docs/rich";
 import { DOC_SNIPPETS, type SnippetId } from "@/lib/docs/snippets";
 import type { LogoVariant } from "@/lib/docs/model";
 import type { DocLang, DocTheme } from "@/lib/docs/types";
+import { editorIsReady } from "./useStableEditor";
 
 const FONTS = [
   { v: "'Montserrat Arabic','Almarai',sans-serif", l: "Montserrat Arabic" },
@@ -56,27 +57,36 @@ export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsert
   // torn-down editor.
   const [, bump] = useState(0);
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
+    if (!editorIsReady(editor)) return;
     const onTx = () => bump((n) => n + 1);
     editor.on("transaction", onTx);
     editor.on("selectionUpdate", onTx);
     return () => {
-      if (editor.isDestroyed) return;
       editor.off("transaction", onTx);
       editor.off("selectionUpdate", onTx);
     };
   }, [editor]);
 
-  if (!editor || editor.isDestroyed) return null;
+  if (!editorIsReady(editor)) return null;
 
+  const run = (command: (live: Editor) => void) => {
+    if (!editorIsReady(editor)) return;
+    command(editor);
+  };
   const chain = () => editor.chain().focus();
-  const isTable = editor.isActive("table");
+  const active = (...args: Parameters<Editor["isActive"]>) => {
+    try { return editorIsReady(editor) && editor.isActive(...args); } catch { return false; }
+  };
+  const attrs = (name: string) => {
+    try { return editorIsReady(editor) ? editor.getAttributes(name) : {}; } catch { return {}; }
+  };
+  const isTable = active("table");
 
   /** Delete whatever object is selected: image, items table, page break… */
   const deleteSelected = () => {
-    if (editor.isDestroyed) return;
+    if (!editorIsReady(editor)) return;
     const c = editor.chain().focus();
-    if (editor.isActive("table")) { c.deleteTable().run(); return; }
+    if (active("table")) { c.deleteTable().run(); return; }
     c.deleteSelection().run();
   };
 
@@ -97,14 +107,14 @@ export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsert
 
       {/* Group: history + block type */}
       <div className="doc-ribbon-group">
-        <RBtn onClick={() => chain().undo().run()} title={ar ? "تراجع" : "Undo"}><Undo2 size={15} /></RBtn>
-        <RBtn onClick={() => chain().redo().run()} title={ar ? "إعادة" : "Redo"}><Redo2 size={15} /></RBtn>
+        <RBtn onClick={() => run((e) => e.chain().focus().undo().run())} title={ar ? "تراجع" : "Undo"}><Undo2 size={15} /></RBtn>
+        <RBtn onClick={() => run((e) => e.chain().focus().redo().run())} title={ar ? "إعادة" : "Redo"}><Redo2 size={15} /></RBtn>
         <select
           className="doc-ribbon-select"
           value={
-            editor.isActive("heading", { level: 1 }) ? "h1"
-            : editor.isActive("heading", { level: 2 }) ? "h2"
-            : editor.isActive("heading", { level: 3 }) ? "h3"
+            active("heading", { level: 1 }) ? "h1"
+            : active("heading", { level: 2 }) ? "h2"
+            : active("heading", { level: 3 }) ? "h3"
             : "p"
           }
           onChange={(e) => {
@@ -124,7 +134,7 @@ export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsert
       <div className="doc-ribbon-group">
         <select
           className="doc-ribbon-select"
-          value={(editor.getAttributes("textStyle").fontFamily as string) ?? ""}
+          value={(attrs("textStyle").fontFamily as string) ?? ""}
           onChange={(e) => (e.target.value ? chain().setFontFamily(e.target.value).run() : chain().unsetFontFamily().run())}
           title={ar ? "الخط" : "Font"}
         >
@@ -133,7 +143,7 @@ export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsert
         </select>
         <select
           className="doc-ribbon-select doc-ribbon-select-sm"
-          value={((editor.getAttributes("textStyle").fontSize as string) ?? "").replace("px", "")}
+          value={((attrs("textStyle").fontSize as string) ?? "").replace("px", "")}
           onChange={(e) => (e.target.value ? chain().setFontSize(`${e.target.value}px`).run() : chain().unsetFontSize().run())}
           title={ar ? "الحجم" : "Size"}
         >
@@ -144,14 +154,14 @@ export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsert
 
       {/* Group: marks */}
       <div className="doc-ribbon-group">
-        <RBtn active={editor.isActive("bold")} onClick={() => chain().toggleBold().run()} title="Bold"><Bold size={15} /></RBtn>
-        <RBtn active={editor.isActive("italic")} onClick={() => chain().toggleItalic().run()} title="Italic"><Italic size={15} /></RBtn>
-        <RBtn active={editor.isActive("underline")} onClick={() => chain().toggleUnderline().run()} title="Underline"><UnderlineIcon size={15} /></RBtn>
-        <RBtn active={editor.isActive("strike")} onClick={() => chain().toggleStrike().run()} title="Strike"><Strikethrough size={15} /></RBtn>
+        <RBtn active={active("bold")} onClick={() => chain().toggleBold().run()} title="Bold"><Bold size={15} /></RBtn>
+        <RBtn active={active("italic")} onClick={() => chain().toggleItalic().run()} title="Italic"><Italic size={15} /></RBtn>
+        <RBtn active={active("underline")} onClick={() => chain().toggleUnderline().run()} title="Underline"><UnderlineIcon size={15} /></RBtn>
+        <RBtn active={active("strike")} onClick={() => chain().toggleStrike().run()} title="Strike"><Strikethrough size={15} /></RBtn>
         <Palette
           icon={<Baseline size={15} />}
           colors={COLORS}
-          current={(editor.getAttributes("textStyle").color as string) ?? undefined}
+          current={(attrs("textStyle").color as string) ?? undefined}
           onPick={(c) => chain().setColor(c).run()}
           onClear={() => chain().unsetColor().run()}
           title={ar ? "لون النص" : "Text color"}
@@ -159,7 +169,7 @@ export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsert
         <Palette
           icon={<Highlighter size={15} />}
           colors={HIGHLIGHTS}
-          current={(editor.getAttributes("highlight").color as string) ?? undefined}
+          current={(attrs("highlight").color as string) ?? undefined}
           onPick={(c) => chain().setHighlight({ color: c }).run()}
           onClear={() => chain().unsetHighlight().run()}
           title={ar ? "تمييز" : "Highlight"}
@@ -168,15 +178,15 @@ export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsert
 
       {/* Group: paragraph */}
       <div className="doc-ribbon-group">
-        <RBtn active={editor.isActive({ textAlign: "right" })} onClick={() => chain().setTextAlign("right").run()} title={ar ? "يمين" : "Right"}><AlignRight size={15} /></RBtn>
-        <RBtn active={editor.isActive({ textAlign: "center" })} onClick={() => chain().setTextAlign("center").run()} title={ar ? "وسط" : "Center"}><AlignCenter size={15} /></RBtn>
-        <RBtn active={editor.isActive({ textAlign: "left" })} onClick={() => chain().setTextAlign("left").run()} title={ar ? "يسار" : "Left"}><AlignLeft size={15} /></RBtn>
-        <RBtn active={editor.isActive({ textAlign: "justify" })} onClick={() => chain().setTextAlign("justify").run()} title={ar ? "ضبط" : "Justify"}><AlignJustify size={15} /></RBtn>
-        <RBtn active={editor.isActive("bulletList")} onClick={() => chain().toggleBulletList().run()} title={ar ? "قائمة نقطية" : "Bullets"}><List size={15} /></RBtn>
-        <RBtn active={editor.isActive("orderedList")} onClick={() => chain().toggleOrderedList().run()} title={ar ? "قائمة مرقمة" : "Numbered"}><ListOrdered size={15} /></RBtn>
+        <RBtn active={active({ textAlign: "right" })} onClick={() => chain().setTextAlign("right").run()} title={ar ? "يمين" : "Right"}><AlignRight size={15} /></RBtn>
+        <RBtn active={active({ textAlign: "center" })} onClick={() => chain().setTextAlign("center").run()} title={ar ? "وسط" : "Center"}><AlignCenter size={15} /></RBtn>
+        <RBtn active={active({ textAlign: "left" })} onClick={() => chain().setTextAlign("left").run()} title={ar ? "يسار" : "Left"}><AlignLeft size={15} /></RBtn>
+        <RBtn active={active({ textAlign: "justify" })} onClick={() => chain().setTextAlign("justify").run()} title={ar ? "ضبط" : "Justify"}><AlignJustify size={15} /></RBtn>
+        <RBtn active={active("bulletList")} onClick={() => chain().toggleBulletList().run()} title={ar ? "قائمة نقطية" : "Bullets"}><List size={15} /></RBtn>
+        <RBtn active={active("orderedList")} onClick={() => chain().toggleOrderedList().run()} title={ar ? "قائمة مرقمة" : "Numbered"}><ListOrdered size={15} /></RBtn>
         <select
           className="doc-ribbon-select doc-ribbon-select-sm"
-          value={(editor.getAttributes("paragraph").lineHeight as string) ?? ""}
+          value={(attrs("paragraph").lineHeight as string) ?? ""}
           onChange={(e) => (e.target.value ? chain().setLineHeight(e.target.value).run() : chain().unsetLineHeight().run())}
           title={ar ? "تباعد الأسطر" : "Line height"}
         >
