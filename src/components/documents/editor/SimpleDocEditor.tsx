@@ -243,7 +243,7 @@ export function SimpleDocEditor({
       </div>
 
       <div className="simple-doc-surface" style={{ minHeight }}>
-        <EditorContent editor={editor} />
+        <DocEditorCtxProvider value={{ lang, currency }}><EditorContent editor={editor} /></DocEditorCtxProvider>
       </div>
     </div>
   );
