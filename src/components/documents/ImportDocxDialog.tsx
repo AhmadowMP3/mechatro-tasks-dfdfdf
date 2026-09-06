@@ -38,10 +38,24 @@ function isoOrEmpty(v: string | null | undefined): string {
   return m ? v.trim() : "";
 }
 
-export function ImportDocxDialog({ ar, onClose, onCreated }: {
+export type DocxApplyPayload = {
+  html: string;
+  title: string;
+  lang: DocLang;
+  currency: string;
+  issueDate: string;
+  validUntil: string;
+  client: DocClient;
+  showClientBox: boolean;
+};
+
+export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onApply }: {
   ar: boolean;
   onClose: () => void;
-  onCreated: (doc: BusinessDoc) => void;
+  onCreated?: (doc: BusinessDoc) => void;
+  /** "create" makes a new document; "apply" replaces the open document body. */
+  mode?: "create" | "apply";
+  onApply?: (payload: DocxApplyPayload) => void;
 }) {
   const [stage, setStage] = useState<Stage>("pick");
   const [step, setStep] = useState("");
@@ -192,6 +206,21 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
 
   const approve = async () => {
     if (!draft || !imported) return;
+    // Apply mode: hand the imported body and confirmed fields back to the
+    // open document — nothing is written until the admin saves there.
+    if (mode === "apply") {
+      onApply?.({
+        html: bodyHtml(),
+        title: draft.title,
+        lang: draft.lang,
+        currency: draft.currency,
+        issueDate: draft.issueDate,
+        validUntil: draft.validUntil,
+        client: draft.client,
+        showClientBox: hasClient,
+      });
+      return;
+    }
     try {
       setStage("saving");
       const created = await businessDocs.create(draft.docType);
@@ -206,7 +235,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
         model: { ...defaultModel(), showClientBox: hasClient, html: bodyHtml() },
       });
       toast.success(ar ? `تم إنشاء ${saved.number} من ملف Word` : `Created ${saved.number} from Word`);
-      onCreated(saved);
+      onCreated?.(saved);
     } catch (e) {
       toast.error((e as Error).message);
       setStage("review");
@@ -425,8 +454,17 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
               {ar ? "ملف آخر" : "Another file"}
             </button>
             <button className="btn-ghost" onClick={onClose}>{ar ? "إلغاء" : "Cancel"}</button>
+            {mode === "apply" && (
+              <span style={{ marginInlineEnd: "auto", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#F5B301" }}>
+                <AlertTriangle size={14} />
+                {ar ? "سيُستبدل محتوى الورقة الحالي" : "The current sheet content will be replaced"}
+              </span>
+            )}
             <button className="btn-primary" onClick={approve}>
-              <Check size={15} /> {ar ? "اعتماد وإنشاء المستند" : "Approve & create document"}
+              <Check size={15} />{" "}
+              {mode === "apply"
+                ? (ar ? "تطبيق على هذا المستند" : "Apply to this document")
+                : (ar ? "اعتماد وإنشاء المستند" : "Approve & create document")}
             </button>
           </div>
         )}
