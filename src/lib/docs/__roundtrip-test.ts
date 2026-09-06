@@ -17,7 +17,7 @@ export function roundtrip(html: string): string {
     Underline, TextStyle, Color, FontSize, FontFamily, BlockFormat,
     Highlight.configure({ multicolor: true }),
     TextAlign.configure({ types: ["heading", "paragraph"] }),
-    Table, TableRow, TableHeader, TableCell,
+    Table.configure({ resizable: true }), TableRow, TableHeader, TableCell,
   ];
   const el = document.createElement("div");
   const e = new Editor({ element: el, extensions: ext, content: html });
