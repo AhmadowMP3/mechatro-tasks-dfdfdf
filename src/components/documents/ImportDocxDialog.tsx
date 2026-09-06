@@ -54,7 +54,10 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
   const [aiFields, setAiFields] = useState<Set<string>>(new Set());
   const [items, setItems] = useState<DocxItem[]>([]);
   const [insertItems, setInsertItems] = useState(false);
+  const [keepFormat, setKeepFormat] = useState(true);
+  const [reconverting, setReconverting] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const fileRef = useRef<File | null>(null);
 
   // Reload the template whenever the admin changes the detected type.
   useEffect(() => {
@@ -82,12 +85,13 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
       return;
     }
 
+    fileRef.current = file;
     setFileName(file.name);
     setStage("working");
     setAiError(null);
     try {
       setStep(ar ? "جارٍ قراءة ملف Word…" : "Reading the Word file…");
-      const res = await convertDocx(file);
+      const res = await convertDocx(file, { keepFormatting: keepFormat });
       setImported(res);
 
       const lang = guessLang(res.text);
@@ -139,6 +143,22 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
     } catch (e) {
       toast.error((e as Error).message || (ar ? "تعذّر قراءة الملف" : "Could not read the file"));
       setStage("pick");
+    }
+  };
+
+  // Re-run the conversion when the admin flips the formatting switch.
+  const toggleFormatting = async (next: boolean) => {
+    setKeepFormat(next);
+    const file = fileRef.current;
+    if (!file) return;
+    try {
+      setReconverting(true);
+      const res = await convertDocx(file, { keepFormatting: next });
+      setImported(res);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setReconverting(false);
     }
   };
 
@@ -267,10 +287,17 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
               </div>
               <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted-foreground)" }}>
                 {ar
-                  ? "النصوص والجداول والصور تُستورد كما هي — الهيدر والفوتر والشعار تبقى من القالب. الحد 20 ميغابايت."
-                  : "Text, tables and images are imported as-is — header, footer and logo stay from the template. 20 MB max."}
+                  ? "الألوان والخطوط والمحاذاة والجداول والصور تُستورد كما هي في الوورد — الهيدر والفوتر والشعار تبقى من القالب. الحد 20 ميغابايت."
+                  : "Colours, fonts, alignment, tables and images come across exactly as in Word — header, footer and logo stay from the template. 20 MB max."}
               </div>
             </div>
+            <label
+              onClick={(e) => e.stopPropagation()}
+              style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
+            >
+              <input type="checkbox" checked={keepFormat} onChange={(e) => setKeepFormat(e.target.checked)} />
+              {ar ? "حافظ على تنسيق الوورد (الألوان والخطوط والجداول)" : "Keep the Word formatting (colours, fonts, tables)"}
+            </label>
             <input
               ref={inputRef}
               type="file"
@@ -295,6 +322,17 @@ export function ImportDocxDialog({ ar, onClose, onCreated }: {
             {/* Fields */}
             <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14, maxHeight: "72vh", overflowY: "auto" }}>
               <Summary ar={ar} ai={ai} aiError={aiError} imported={imported} />
+
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={keepFormat}
+                  disabled={reconverting}
+                  onChange={(e) => void toggleFormatting(e.target.checked)}
+                />
+                {ar ? "حافظ على تنسيق الوورد" : "Keep the Word formatting"}
+                {reconverting && <Loader2 size={13} className="spin" />}
+              </label>
 
               <FieldGroup title={ar ? "المستند" : "Document"}>
                 <Field label={ar ? "نوع المستند" : "Document type"} aiFilled={aiFields.has("docType")} ar={ar}>
