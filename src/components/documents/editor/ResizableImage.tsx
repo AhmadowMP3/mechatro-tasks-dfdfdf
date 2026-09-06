@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "@tiptap/extension-image";
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
 import { AlignCenter, AlignLeft, AlignRight, Trash2 } from "lucide-react";
+import { editorIsReady } from "./useStableEditor";
 
 export type ImgAlign = "left" | "center" | "right";
 
@@ -63,7 +64,7 @@ function ResizableImageView({ node, updateAttributes, selected, editor, deleteNo
   const imgRef = useRef<HTMLImageElement>(null);
   const dragAbortRef = useRef<AbortController | null>(null);
   const [live, setLive] = useState<number | null>(null);
-  const editable = Boolean(!editor.isDestroyed && editor.extensionManager && editor.isEditable);
+  const editable = editorIsReady(editor) && editor.isEditable;
   const align = ((node.attrs.align as ImgAlign) || "center") as ImgAlign;
   const width = (node.attrs.width as number | null) ?? null;
 
@@ -84,7 +85,7 @@ function ResizableImageView({ node, updateAttributes, selected, editor, deleteNo
       setLive(Math.round(startW));
 
       const onMove = (ev: PointerEvent) => {
-        if (editor.isDestroyed || !editor.extensionManager) return;
+        if (!editorIsReady(editor)) return;
         const next = Math.max(MIN_W, Math.min(MAX_W, Math.round(startW + (ev.clientX - startX) * dir)));
         setLive(next);
         el.style.width = `${next}px`;
@@ -92,10 +93,10 @@ function ResizableImageView({ node, updateAttributes, selected, editor, deleteNo
       const onUp = (ev: PointerEvent) => {
         dragAbort.abort();
         if (dragAbortRef.current === dragAbort) dragAbortRef.current = null;
-        if (editor.isDestroyed || !editor.extensionManager) return;
+        if (!editorIsReady(editor)) return;
         const next = Math.max(MIN_W, Math.min(MAX_W, Math.round(startW + (ev.clientX - startX) * dir)));
         setLive(null);
-        if (!editor.isDestroyed && editor.extensionManager) updateAttributes({ width: next });
+        if (editorIsReady(editor)) updateAttributes({ width: next });
       };
       window.addEventListener("pointermove", onMove, { signal: dragAbort.signal });
       window.addEventListener("pointerup", onUp, { signal: dragAbort.signal });
@@ -104,7 +105,7 @@ function ResizableImageView({ node, updateAttributes, selected, editor, deleteNo
   );
 
   const update = (attrs: Record<string, unknown>) => {
-    if (!editor.isDestroyed && editor.extensionManager) updateAttributes(attrs);
+    if (editorIsReady(editor)) updateAttributes(attrs);
   };
   const setPct = (pct: number) => update({ width: Math.round((MAX_W * pct) / 100) });
 
@@ -148,7 +149,7 @@ function ResizableImageView({ node, updateAttributes, selected, editor, deleteNo
                 <AlignRight size={13} />
               </button>
               <i />
-              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { if (!editor.isDestroyed && editor.extensionManager) deleteNode(); }}>
+              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { if (editorIsReady(editor)) deleteNode(); }}>
                 <Trash2 size={13} />
               </button>
             </div>
