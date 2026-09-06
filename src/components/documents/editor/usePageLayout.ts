@@ -177,9 +177,11 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         const rBottom = rTop + rr.height;
         const pageBottom = page * PITCH + bodyH;
 
-        if (rBottom > pageBottom + 0.5 && prev && idx > 0 && rr.height + headH <= bodyH) {
-          // Start of the next sheet, leaving room for the repeated header.
-          const target = (page + 1) * PITCH + headH;
+        if (rBottom > pageBottom + 0.5 && prev && idx > 0 && rr.height <= bodyH) {
+          // Start of the next sheet, leaving room for the repeated header
+          // only when the row still fits underneath it.
+          const reserve = rr.height + headH <= bodyH ? headH : 0;
+          const target = (page + 1) * PITCH + reserve;
           const need = target - rTop;
           if (need > 0.5 && need < PITCH + headH) {
             const livePrev = liveTable?.rows[idx - 1];
@@ -187,7 +189,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
             if (span) {
               out.push({ pos: span.from, end: span.to, h: need, kind: "row" });
               rowShift += need;
-              if (head) {
+              if (head && reserve > 0) {
                 pendingRepeats.push({
                   id: `${span.from}-${page + 1}`,
                   top: (page + 1) * PITCH,
@@ -203,6 +205,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         }
         prev = row;
       });
+
 
       return rowShift;
     };
