@@ -210,6 +210,7 @@ export function DocEditor({
   // Live A4 pagination: how many sheets to paint and where the body sits.
   const pagesRef = useRef<HTMLDivElement | null>(null);
   const { pages, geo, repeats } = usePageLayout(editor, pagesRef);
+  const fallbackWidth = A4.width - 2 * pageMarginsPx(header).side;
 
   return (
     <div className="doc-editor">
@@ -255,8 +256,8 @@ export function DocEditor({
               position: "absolute",
               top: geo?.top ?? 0,
               left: geo?.left ?? 0,
-              width: geo?.width ?? A4.width - 80,
-              maxWidth: geo?.width ?? A4.width - 80,
+              width: geo?.width ?? fallbackWidth,
+              maxWidth: geo?.width ?? fallbackWidth,
               fontSize: 12.5,
               lineHeight: 1.7,
               overflowWrap: "anywhere",
