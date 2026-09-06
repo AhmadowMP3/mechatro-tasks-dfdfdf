@@ -93,7 +93,18 @@ export function mergeHeader(type: DocType, raw: unknown): DocHeader {
   if (stored && !stored.logoMode) merged.logoMode = "band";
   merged.logoX = clampPct(merged.logoX);
   merged.logoY = clampPct(merged.logoY);
+  // Older documents/templates stored no margins (or out-of-range ones) — normalise
+  // them so every existing document renders with the standard page margins.
+  merged.marginTop = clampMargin(merged.marginTop, DEFAULT_MARGINS.top);
+  merged.marginBottom = clampMargin(merged.marginBottom, DEFAULT_MARGINS.bottom);
+  merged.marginSide = clampMargin(merged.marginSide, DEFAULT_MARGINS.side);
   return merged;
+}
+
+function clampMargin(n: unknown, fallback: number): number {
+  const v = typeof n === "number" && Number.isFinite(n) ? n : NaN;
+  if (!Number.isFinite(v) || v < 5 || v > 45) return fallback;
+  return Math.round(v * 10) / 10;
 }
 
 function clampPct(n: unknown): number {
