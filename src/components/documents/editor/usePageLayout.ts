@@ -287,8 +287,16 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
   useEffect(() => {
     if (!editorIsReady(editor)) return;
     const onUpdate = () => schedule();
-    editor.on("update", onUpdate);
+    // Typing (Enter especially) must re-paginate in the same frame, otherwise
+    // the new line renders past the sheet edge before the next measure pass.
+    const onImmediate = () => {
+      if (frame.current) cancelAnimationFrame(frame.current);
+      frame.current = null;
+      measure();
+    };
+    editor.on("update", onImmediate);
     const dom = editor.view.dom as HTMLElement;
+
     const ro = new ResizeObserver(() => schedule());
     ro.observe(dom);
     // Dragging a table or a block reflows the body without an editor update —
