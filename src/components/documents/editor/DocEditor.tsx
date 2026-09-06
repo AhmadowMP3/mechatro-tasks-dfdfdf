@@ -278,7 +278,12 @@ export function DocEditor({
               fontFamily: "'Montserrat Arabic', 'Almarai', 'Montserrat', system-ui, sans-serif",
               zIndex: 2,
               visibility: geo ? "visible" : "hidden",
+              WebkitMaskImage: bodyMask,
+              maskImage: bodyMask,
+              WebkitMaskRepeat: "no-repeat",
+              maskRepeat: "no-repeat",
             }}
+
           >
             {showClientBox && (
               <div style={{ marginBottom: 14 }}>
