@@ -258,6 +258,14 @@ export function DocEditor({
               fontSize: 12.5,
               lineHeight: 1.7,
               overflowWrap: "anywhere",
+              // Same ink, font and direction as the printed sheet body.
+              color: paper.ink,
+              caretColor: paper.ink,
+              direction: ar ? "rtl" : "ltr",
+              textAlign: ar ? "right" : "left",
+              fontFamily: "'Montserrat Arabic', 'Almarai', 'Montserrat', system-ui, sans-serif",
+              zIndex: 2,
+              visibility: geo ? "visible" : "hidden",
             }}
           >
             {showClientBox && (
