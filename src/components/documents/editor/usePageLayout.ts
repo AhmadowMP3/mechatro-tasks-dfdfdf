@@ -28,18 +28,28 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
   const measure = useCallback(() => {
     const container = containerRef.current;
     if (!container || !editorIsReady(editor)) return;
-    const body = container.querySelector<HTMLElement>(".pdf-flow");
+    // Prefer the padding-free content box so the writing layer lands exactly
+    // inside the page margins; fall back to the padded body element.
+    const content = container.querySelector<HTMLElement>("[data-doc-body-content]");
+    const body = content ?? container.querySelector<HTMLElement>(".pdf-flow");
     const flow = container.querySelector<HTMLElement>(".doc-editor-flow");
     if (!body || !flow) return;
 
     const cRect = container.getBoundingClientRect();
     const bRect = body.getBoundingClientRect();
+    // Without the inner content box, strip the padding from the border box.
+    const cs = content ? null : getComputedStyle(body);
+    const padL = cs ? parseFloat(cs.paddingLeft) || 0 : 0;
+    const padR = cs ? parseFloat(cs.paddingRight) || 0 : 0;
+    const padT = cs ? parseFloat(cs.paddingTop) || 0 : 0;
+    const padB = cs ? parseFloat(cs.paddingBottom) || 0 : 0;
     const next: PageGeometry = {
-      top: bRect.top - cRect.top,
-      left: bRect.left - cRect.left,
-      width: bRect.width,
-      height: bRect.height,
+      top: bRect.top - cRect.top + padT,
+      left: bRect.left - cRect.left + padL,
+      width: Math.max(0, bRect.width - padL - padR),
+      height: Math.max(0, bRect.height - padT - padB),
     };
+
     setGeo((prev) =>
       prev && Math.abs(prev.top - next.top) < 0.5 && Math.abs(prev.left - next.left) < 0.5 &&
       Math.abs(prev.width - next.width) < 0.5 && Math.abs(prev.height - next.height) < 0.5
