@@ -335,6 +335,34 @@ function DocumentEditorPage() {
         />
       </EditorBoundary>
 
+      {/* ── Import a Word file into this document ──────────────── */}
+      {importing && (
+        <ImportDocxDialog
+          ar={ar}
+          mode="apply"
+          onClose={() => setImporting(false)}
+          onApply={(p) => {
+            setImporting(false);
+            setDoc((d) =>
+              d
+                ? {
+                    ...d,
+                    title: p.title || d.title,
+                    lang: p.lang,
+                    currency: p.currency || d.currency,
+                    issue_date: p.issueDate || d.issue_date,
+                    valid_until: p.validUntil || d.valid_until,
+                    client: p.client,
+                    model: { ...d.model, version: 2, html: p.html, showClientBox: p.showClientBox },
+                  }
+                : d,
+            );
+            setDirty(true);
+            toast.success(ar ? "تم استيراد الملف — لا تنسَ الحفظ" : "Word file imported — remember to save");
+          }}
+        />
+      )}
+
       {/* ── Paginated preview (optional) ────────────────────────── */}
       {previewOpen && (
         <div
