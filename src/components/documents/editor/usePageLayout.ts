@@ -127,6 +127,8 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     const imgs = () => dom.querySelectorAll("img");
     imgs().forEach((img) => img.addEventListener("load", onUpdate));
     window.addEventListener("resize", onUpdate);
+    // Fonts and late-loading images change block heights — re-measure then.
+    void (document as Document & { fonts?: FontFaceSet }).fonts?.ready.then(() => schedule());
     return () => {
       editor.off("update", onUpdate);
       ro.disconnect();
