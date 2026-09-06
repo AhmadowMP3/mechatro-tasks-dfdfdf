@@ -43,8 +43,9 @@ export type DocHeader = {
 /** Millimetre → CSS pixel (96 dpi). */
 export const MM_TO_PX = 96 / 25.4;
 
-/** Default page margins in millimetres (Word-like side margins). */
-export const DEFAULT_MARGINS = { top: 12, bottom: 12, side: 25 } as const;
+/** Default page margins in millimetres — Word "Narrow" (0.5 in = 12.7 mm). */
+export const DEFAULT_MARGINS = { top: 12.7, bottom: 12.7, side: 12.7 } as const;
+
 
 /** Resolved page margins in CSS pixels for an A4 sheet. */
 export function pageMarginsPx(header?: Partial<DocHeader> | null): { top: number; bottom: number; side: number } {

@@ -256,9 +256,10 @@ function DocTemplatesPage() {
               )}
 
               <Row>
-                <Num label={ar ? "الهامش العلوي (مم)" : "Top margin (mm)"} value={tpl.header.marginTop ?? DEFAULT_MARGINS.top} min={5} max={40} onChange={(v) => setHeader({ marginTop: v })} />
-                <Num label={ar ? "الهامش السفلي (مم)" : "Bottom margin (mm)"} value={tpl.header.marginBottom ?? DEFAULT_MARGINS.bottom} min={5} max={40} onChange={(v) => setHeader({ marginBottom: v })} />
-                <Num label={ar ? "الهامش الجانبي (مم)" : "Side margins (mm)"} value={tpl.header.marginSide ?? DEFAULT_MARGINS.side} min={5} max={45} onChange={(v) => setHeader({ marginSide: v })} />
+                <Num label={ar ? "الهامش العلوي (مم) — افتراضي Narrow 12.7" : "Top margin (mm) — Narrow 12.7"} value={tpl.header.marginTop ?? DEFAULT_MARGINS.top} min={5} max={40} onChange={(v) => setHeader({ marginTop: v })} />
+                <Num label={ar ? "الهامش السفلي (مم) — افتراضي Narrow 12.7" : "Bottom margin (mm) — Narrow 12.7"} value={tpl.header.marginBottom ?? DEFAULT_MARGINS.bottom} min={5} max={40} onChange={(v) => setHeader({ marginBottom: v })} />
+                <Num label={ar ? "الهامش الجانبي (مم) — افتراضي Narrow 12.7" : "Side margins (mm) — Narrow 12.7"} value={tpl.header.marginSide ?? DEFAULT_MARGINS.side} min={5} max={45} onChange={(v) => setHeader({ marginSide: v })} />
+
               </Row>
 
               <Row>
