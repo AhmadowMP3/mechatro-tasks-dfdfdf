@@ -59,7 +59,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     let host = measureHost.current;
     if (!host) {
       host = document.createElement("div");
-      host.className = "doc-pagination-measure doc-paper-body";
+      host.className = "doc-pagination-measure doc-paper-body doc-rich doc-rich-editable";
       host.setAttribute("aria-hidden", "true");
       document.body.appendChild(host);
       measureHost.current = host;
@@ -77,7 +77,9 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     });
 
     const blocks = Array.from(host.children).filter((el): el is HTMLElement => el instanceof HTMLElement);
-    const liveBlocks = Array.from(dom.children).filter((el): el is HTMLElement => el instanceof HTMLElement);
+    const liveBlocks = Array.from(dom.children).filter(
+      (el): el is HTMLElement => el instanceof HTMLElement && !el.classList.contains("doc-page-spacer"),
+    );
     const hostTop = host.getBoundingClientRect().top;
 
     // Map each rendered top-level block to its document position.
@@ -170,8 +172,8 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
           const target = (page + 1) * PITCH + headH;
           const need = target - rTop;
           if (need > 0.5 && need < PITCH + headH) {
-             const livePrev = liveTable?.rows[idx - 1];
-             const span = livePrev ? rowSpan(livePrev) : null;
+            const livePrev = liveTable?.rows[idx - 1];
+            const span = livePrev ? rowSpan(livePrev) : null;
             if (span) {
               out.push({ pos: span.from, end: span.to, h: need, kind: "row" });
               rowShift += need;
