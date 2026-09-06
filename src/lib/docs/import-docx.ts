@@ -84,6 +84,7 @@ function cleanup(rawHtml: string): { html: string; images: number; tables: numbe
     const hasMedia = p.querySelector("img, table");
     if (hasMedia) return;
     if (!text) { p.remove(); return; }
+    if (p.closest("table")) return;
     if (/^(page\s*)?\d+\s*(\/|of|من)?\s*\d*$/i.test(text) && text.length <= 12) p.remove();
   });
 
@@ -179,9 +180,65 @@ export function buildDigest(html: string, limit = 40000): string {
   return joined.length > limit ? `${joined.slice(0, limit)}\n[TRUNCATED]` : joined;
 }
 
-export async function convertDocx(file: File): Promise<DocxImport> {
-  const mammoth = await import("mammoth/mammoth.browser.js");
+/** Light cleanup for the high-fidelity path: keep every inline style. */
+function cleanupStyled(rawHtml: string): { html: string; images: number; tables: number } {
+  if (typeof document === "undefined") return { html: rawHtml, images: 0, tables: 0 };
+  const host = document.createElement("div");
+  host.innerHTML = rawHtml;
+
+  // Word page numbers / running header leftovers.
+  host.querySelectorAll("p").forEach((p) => {
+    const text = (p.textContent ?? "").replace(/\u00a0/g, " ").trim();
+    if (!text || p.querySelector("img, table")) return;
+    // Never touch numbers living inside a table — those are real data.
+    if (p.closest("table")) return;
+    if (/^(page\s*)?\d+\s*(\/|of|من)?\s*\d*$/i.test(text) && text.length <= 12) p.remove();
+  });
+
+  // Never let a Word image overflow the A4 body.
+  const images = host.querySelectorAll("img");
+  images.forEach((img) => {
+    img.removeAttribute("width");
+    img.removeAttribute("height");
+    const style = (img.getAttribute("style") ?? "").replace(/max-width\s*:[^;]+;?/gi, "");
+    img.setAttribute("style", `${style};max-width:${RENDER_MAX_WIDTH}px;height:auto`.replace(/^;/, ""));
+  });
+
+  return { html: host.innerHTML.trim(), images: images.length, tables: host.querySelectorAll("table").length };
+}
+
+export async function convertDocx(file: File, opts?: { keepFormatting?: boolean }): Promise<DocxImport> {
   const arrayBuffer = await file.arrayBuffer();
+  const keep = opts?.keepFormatting !== false;
+  const warnings: string[] = [];
+
+  // ── High-fidelity path: read the OOXML directly so colours, fonts,
+  // alignment, spacing, table borders and shading survive the import.
+  if (keep) {
+    try {
+      const { docxToStyledHtml } = await import("./docx-ooxml");
+      const styled = await docxToStyledHtml(arrayBuffer, { shrink, maxImageWidth: RENDER_MAX_WIDTH });
+      const cleaned = cleanupStyled(styled.html);
+      const html = sanitizeHtml(cleaned.html);
+      const text = htmlToText(html);
+      if (text.trim().length > 0 || cleaned.images > 0) {
+        return {
+          html,
+          text,
+          digest: buildDigest(html) || text,
+          warnings,
+          images: cleaned.images,
+          tables: cleaned.tables,
+        };
+      }
+      warnings.push("Styled import produced no content — fell back to plain import.");
+    } catch (e) {
+      warnings.push(`Styled import unavailable: ${(e as Error).message}`);
+    }
+  }
+
+  // ── Fallback: mammoth's clean semantic conversion.
+  const mammoth = await import("mammoth/mammoth.browser.js");
 
   const convertImage = mammoth.images.imgElement(async (image: {
     contentType: string;
@@ -203,11 +260,24 @@ export async function convertDocx(file: File): Promise<DocxImport> {
     html,
     text,
     digest: buildDigest(html) || text,
-    warnings: (result.messages ?? []).map((m: { message?: string }) => String(m.message ?? "")).filter(Boolean).slice(0, 8),
+    warnings: [
+      ...warnings,
+      ...(result.messages ?? []).map((m: { message?: string }) => String(m.message ?? "")).filter(Boolean),
+    ].slice(0, 8),
     images: cleaned.images,
     tables: cleaned.tables,
   };
 }
+
+/** Plain text of the converted HTML (used for AI extraction + language guess). */
+function htmlToText(html: string): string {
+  if (typeof document === "undefined") return "";
+  const host = document.createElement("div");
+  host.innerHTML = html;
+  host.querySelectorAll("p, div, li, tr, h1, h2, h3, br").forEach((el) => el.append("\n"));
+  return (host.textContent ?? "").replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 
 /** Rough language guess used to pre-set the document language. */
 export function guessLang(text: string): "ar" | "en" {

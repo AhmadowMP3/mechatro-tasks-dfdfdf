@@ -80,6 +80,7 @@ const HTML_CONFIG: Record<string, unknown> = {
     // Business-document rich body markers (smart items table, auto fields,
     // manual page breaks, sliced table continuations).
     "data-items", "data-doc-field", "data-page-break", "data-continued", "data-align",
+    "data-colwidth", "data-color", "data-background-color",
   ],
   ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|data:image\/(?:png|jpe?g|gif|webp|svg\+xml);base64,|#|\/)/i,
   FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "link", "meta", "base"],

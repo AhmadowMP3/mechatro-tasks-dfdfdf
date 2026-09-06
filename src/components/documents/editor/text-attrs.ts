@@ -14,6 +14,30 @@ declare module "@tiptap/core" {
 }
 
 const BLOCKS = ["paragraph", "heading", "listItem", "blockquote"];
+const CELLS = ["tableCell", "tableHeader"];
+
+/* Inline CSS we keep verbatim on blocks and table cells. Imported Word
+ * documents carry their spacing, indentation, shading and borders here, so
+ * the page looks exactly like the original file and stays editable. */
+const BLOCK_CSS = [
+  "margin-top", "margin-bottom", "padding-inline-start", "padding-inline-end",
+  "text-indent", "background-color", "border-bottom",
+];
+const CELL_CSS = [
+  "background-color", "vertical-align", "padding", "width",
+  "border-top", "border-bottom", "border-left", "border-right", "border",
+];
+
+const pickCss = (el: HTMLElement, props: string[]): string | null => {
+  const out = props
+    .map((p) => {
+      const v = el.style.getPropertyValue(p);
+      return v ? `${p}:${v}` : "";
+    })
+    .filter(Boolean)
+    .join(";");
+  return out || null;
+};
 
 export const BlockFormat = Extension.create({
   name: "blockFormat",
@@ -31,6 +55,21 @@ export const BlockFormat = Extension.create({
             default: null,
             parseHTML: (el) => (el as HTMLElement).getAttribute("dir"),
             renderHTML: (attrs) => (attrs.dir ? { dir: attrs.dir } : {}),
+          },
+          blockStyle: {
+            default: null,
+            parseHTML: (el) => pickCss(el as HTMLElement, BLOCK_CSS),
+            renderHTML: (attrs) => (attrs.blockStyle ? { style: String(attrs.blockStyle) } : {}),
+          },
+        },
+      },
+      {
+        types: CELLS,
+        attributes: {
+          cellStyle: {
+            default: null,
+            parseHTML: (el) => pickCss(el as HTMLElement, CELL_CSS),
+            renderHTML: (attrs) => (attrs.cellStyle ? { style: String(attrs.cellStyle) } : {}),
           },
         },
       },
