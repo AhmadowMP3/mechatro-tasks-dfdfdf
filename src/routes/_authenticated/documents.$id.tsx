@@ -276,22 +276,26 @@ function DocumentEditorPage() {
       </Accordion>
 
       {/* ── The sheet: type straight inside the letterhead ──────── */}
-      <DocEditor
-        html={doc.model.html ?? ""}
-        onChange={(html) => patchModel({ html, version: 2 })}
-        lang={doc.lang}
-        theme={doc.theme}
-        currency={doc.currency}
-        meta={meta ?? {}}
-        showClientBox={doc.model.showClientBox}
-        client={doc.client}
-        header={header}
-        footer={footer}
-        logoVariant={doc.model.logoVariant ?? "auto"}
-        onLogoVariant={(v) => patchModel({ logoVariant: v })}
-        terms={{ ar: tpl.defaults.termsAr ?? "", en: tpl.defaults.termsEn ?? "" }}
-        actions={ribbonActions}
-      />
+      <EditorBoundary ar={ar}>
+        <DocEditor
+          html={doc.model.html ?? ""}
+          onChange={(html) => patchModel({ html, version: 2 })}
+          lang={doc.lang}
+          theme={doc.theme}
+          currency={doc.currency}
+          meta={meta ?? {}}
+          showClientBox={doc.model.showClientBox}
+          client={doc.client}
+          header={header}
+          footer={footer}
+          logoVariant={doc.model.logoVariant ?? "auto"}
+          onLogoVariant={(v) => patchModel({ logoVariant: v })}
+          onLang={(v) => patch({ lang: v })}
+          onTheme={(v) => patch({ theme: v })}
+          terms={{ ar: tpl.defaults.termsAr ?? "", en: tpl.defaults.termsEn ?? "" }}
+          actions={ribbonActions}
+        />
+      </EditorBoundary>
 
       {/* ── Paginated preview (optional) ────────────────────────── */}
       {previewOpen && (
