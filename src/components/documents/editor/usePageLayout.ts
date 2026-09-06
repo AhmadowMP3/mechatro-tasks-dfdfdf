@@ -177,13 +177,14 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         const rBottom = rTop + rr.height;
         const pageBottom = page * PITCH + bodyH;
 
-        if (rBottom > pageBottom + 0.5 && prev && idx > 0 && rr.height <= bodyH) {
+        if (rBottom > pageBottom + 0.5 && prev && idx > 0) {
           // Start of the next sheet, leaving room for the repeated header
           // only when the row still fits underneath it.
           const reserve = rr.height + headH <= bodyH ? headH : 0;
           const target = (page + 1) * PITCH + reserve;
           const need = target - rTop;
-          if (need > 0.5 && need < PITCH + headH) {
+          if (need > 0.5) {
+
             const livePrev = liveTable?.rows[idx - 1];
             const span = livePrev ? rowSpan(livePrev) : null;
             if (span) {
@@ -246,16 +247,20 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         : liveBlock?.querySelector<HTMLTableElement>("table") ?? null;
       const crosses = top + h > k * PITCH + H + 0.5;
 
+
       let added = 0;
       if (crosses && table && table.rows.length > 1) {
         // Long table: break between rows instead of moving the whole thing.
         added = splitRows(table, k, H, hostTop - editorOffset, shift, spacers, liveTable);
         shift += added;
-      } else if (crosses && h <= H && top > k * PITCH + 1) {
-        // Would be cut by the sheet edge — move the whole block down.
+      } else if (crosses && top > k * PITCH + 1) {
+        // Would be cut by the sheet edge — move the whole block down so it
+        // starts at the top of the next sheet. Blocks taller than one page
+        // still overflow, but they never get hidden.
         pushTo((k + 1) * PITCH);
         k += 1;
       }
+
 
       forceNext = el.hasAttribute("data-page-break") || !!el.querySelector("[data-page-break], .doc-page-break-mark");
       lastBottom = Math.max(lastBottom, top + h + added);
@@ -282,8 +287,16 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
   useEffect(() => {
     if (!editorIsReady(editor)) return;
     const onUpdate = () => schedule();
-    editor.on("update", onUpdate);
+    // Typing (Enter especially) must re-paginate in the same frame, otherwise
+    // the new line renders past the sheet edge before the next measure pass.
+    const onImmediate = () => {
+      if (frame.current) cancelAnimationFrame(frame.current);
+      frame.current = null;
+      measure();
+    };
+    editor.on("update", onImmediate);
     const dom = editor.view.dom as HTMLElement;
+
     const ro = new ResizeObserver(() => schedule());
     ro.observe(dom);
     // Dragging a table or a block reflows the body without an editor update —
@@ -294,19 +307,20 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     imgs().forEach((img) => img.addEventListener("load", onUpdate));
     window.addEventListener("resize", onUpdate);
     dom.addEventListener("dragover", onUpdate);
-    dom.addEventListener("drop", onUpdate);
+    dom.addEventListener("drop", onImmediate);
     dom.addEventListener("dragend", onUpdate);
     dom.addEventListener("pointerup", onUpdate);
     // Fonts and late-loading images change block heights — re-measure then.
     void (document as Document & { fonts?: FontFaceSet }).fonts?.ready.then(() => schedule());
     return () => {
-      editor.off("update", onUpdate);
+      editor.off("update", onImmediate);
       ro.disconnect();
       mo.disconnect();
       imgs().forEach((img) => img.removeEventListener("load", onUpdate));
       window.removeEventListener("resize", onUpdate);
       dom.removeEventListener("dragover", onUpdate);
-      dom.removeEventListener("drop", onUpdate);
+      dom.removeEventListener("drop", onImmediate);
+
       dom.removeEventListener("dragend", onUpdate);
       dom.removeEventListener("pointerup", onUpdate);
       if (frame.current) cancelAnimationFrame(frame.current);
