@@ -209,7 +209,7 @@ export function DocEditor({
 
   // Live A4 pagination: how many sheets to paint and where the body sits.
   const pagesRef = useRef<HTMLDivElement | null>(null);
-  const { pages, geo } = usePageLayout(editor, pagesRef);
+  const { pages, geo, repeats } = usePageLayout(editor, pagesRef);
 
   return (
     <div className="doc-editor">
