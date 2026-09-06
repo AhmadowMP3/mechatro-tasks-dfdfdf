@@ -34,7 +34,29 @@ export type DocHeader = {
   showMetaBox: boolean;        // number / date / validity box
   extraAr: string;
   extraEn: string;
+  /** Page margins in millimetres (optional — legacy templates fall back). */
+  marginTop?: number;
+  marginBottom?: number;
+  marginSide?: number;
 };
+
+/** Millimetre → CSS pixel (96 dpi). */
+export const MM_TO_PX = 96 / 25.4;
+
+/** Default page margins in millimetres (Word-like side margins). */
+export const DEFAULT_MARGINS = { top: 12, bottom: 12, side: 25 } as const;
+
+/** Resolved page margins in CSS pixels for an A4 sheet. */
+export function pageMarginsPx(header?: Partial<DocHeader> | null): { top: number; bottom: number; side: number } {
+  const mm = (v: number | undefined, fallback: number) =>
+    Number.isFinite(v) && (v as number) >= 0 && (v as number) <= 60 ? (v as number) : fallback;
+  return {
+    top: Math.round(mm(header?.marginTop, DEFAULT_MARGINS.top) * MM_TO_PX),
+    bottom: Math.round(mm(header?.marginBottom, DEFAULT_MARGINS.bottom) * MM_TO_PX),
+    side: Math.round(mm(header?.marginSide, DEFAULT_MARGINS.side) * MM_TO_PX),
+  };
+}
+
 
 /** One bilingual footer line: English on the left, Arabic on the right. */
 export type DocFooterRow = { en: string; ar: string };
