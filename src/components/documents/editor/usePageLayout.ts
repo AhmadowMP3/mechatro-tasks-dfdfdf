@@ -177,13 +177,14 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         const rBottom = rTop + rr.height;
         const pageBottom = page * PITCH + bodyH;
 
-        if (rBottom > pageBottom + 0.5 && prev && idx > 0 && rr.height <= bodyH) {
+        if (rBottom > pageBottom + 0.5 && prev && idx > 0) {
           // Start of the next sheet, leaving room for the repeated header
           // only when the row still fits underneath it.
           const reserve = rr.height + headH <= bodyH ? headH : 0;
           const target = (page + 1) * PITCH + reserve;
           const need = target - rTop;
-          if (need > 0.5 && need < PITCH + headH) {
+          if (need > 0.5) {
+
             const livePrev = liveTable?.rows[idx - 1];
             const span = livePrev ? rowSpan(livePrev) : null;
             if (span) {
