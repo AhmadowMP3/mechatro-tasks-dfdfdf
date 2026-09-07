@@ -335,7 +335,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
             <input
               ref={inputRef}
               type="file"
-              accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
+              accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               style={{ display: "none" }}
               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void handleFile(f); }}
             />
