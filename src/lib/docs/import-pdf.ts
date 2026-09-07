@@ -83,6 +83,7 @@ function fitCanvas(w: number, h: number): { canvas: HTMLCanvasElement; scale: nu
 
 type Frag = { text: string; x: number; endX: number; size: number; bold: boolean; italic: boolean };
 type Line = { y: number; height: number; x: number; endX: number; frags: Frag[]; text: string; rtl: boolean };
+type PdfShape = { x0: number; y0: number; x1: number; y1: number; fill: string | null };
 type Block =
   | { kind: "para"; y: number; lines: Line[] }
   | { kind: "table"; y: number; rows: Line[][] }
@@ -287,55 +288,150 @@ function paraHtml(lines: Line[], baseSize: number, pageWidth: number): string {
 
 /** Columns are derived from where cells start across *all* rows, so a row with
  * an empty or merged cell still lands in the right column. */
-function tableHtml(rows: Line[][], baseSize: number): string {
-  const rtl = isRtl(rows.map((r) => r[0].text).join(" "));
-  const rowCells = rows.map((r) =>
-    lineCells(r[0]).map((c) => ({
-      x: Math.min(...c.map((f) => f.x)),
-      text: joinFrags(c, rtl),
-      bold: c.every((f) => f.bold),
-      size: Math.max(...c.map((f) => f.size)),
-    })),
-  );
-
-  // Cluster the cell start positions into column anchors.
-  const starts = rowCells.flat().map((c) => c.x).sort((a, b) => a - b);
-  const anchors: number[] = [];
-  for (const x of starts) {
-    const last = anchors[anchors.length - 1];
-    if (last === undefined || x - last > 14) anchors.push(x);
+const snapValues = (values: number[], tolerance = 1.5): number[] => {
+  const sorted = values.slice().sort((a, b) => a - b);
+  const groups: number[][] = [];
+  for (const value of sorted) {
+    const group = groups[groups.length - 1];
+    if (!group || Math.abs(value - group[group.length - 1]) > tolerance) groups.push([value]);
+    else group.push(value);
   }
-  const width = Math.max(1, anchors.length);
+  return groups.map((group) => group.reduce((sum, value) => sum + value, 0) / group.length);
+};
 
-  const grid = rowCells.map((cells) => {
-    const row: string[] = new Array(width).fill("");
-    for (const c of cells) {
-      let idx = 0;
-      let best = Infinity;
-      anchors.forEach((a, i) => {
-        const d = Math.abs(a - c.x);
-        if (d < best) { best = d; idx = i; }
-      });
-      row[idx] = row[idx] ? `${row[idx]} ${c.text}` : c.text;
+function cellVisualHtml(frags: Frag[], rtl: boolean, baseSize: number): string {
+  const ordered = orderedFrags(frags, rtl);
+  let html = "";
+  let previous: Frag | null = null;
+  for (const frag of ordered) {
+    if (previous) {
+      const gap = rtl ? previous.x - frag.endX : frag.x - previous.endX;
+      if (gap > Math.max(1, frag.size * 0.18)) html += " ";
     }
-    return rtl ? row.slice().reverse() : row;
+    html += fragHtml(frag, baseSize);
+    previous = frag;
+  }
+  return html || "&nbsp;";
+}
+
+/** Rebuild a table from its vector ruling lines when available. PDF files do
+ * not contain table objects; the borders/fills are independent drawing paths.
+ * Matching those paths with the text preserves empty cells, column widths and
+ * cell colours while keeping the result editable. */
+function tableHtml(rows: Line[][], baseSize: number, shapes: PdfShape[]): string {
+  const rtl = isRtl(rows.map((r) => r[0].text).join(" "));
+  const tableLines = rows.map((row) => row[0]);
+  const textLeft = Math.min(...tableLines.map((line) => line.x));
+  const textRight = Math.max(...tableLines.map((line) => line.endX));
+  const tableBottom = Math.min(...tableLines.map((line) => line.y - line.height * 0.65));
+  const tableTop = Math.max(...tableLines.map((line) => line.y + line.height * 1.15));
+  const tableHeight = Math.max(1, tableTop - tableBottom);
+
+  const verticals = shapes.filter((shape) => {
+    const width = shape.x1 - shape.x0;
+    const overlap = Math.min(shape.y1, tableTop + 4) - Math.max(shape.y0, tableBottom - 4);
+    return width <= 2.5 && shape.y1 - shape.y0 >= 5 && overlap > Math.min(4, tableHeight * 0.2)
+      && shape.x1 >= textLeft - 90 && shape.x0 <= textRight + 90;
+  });
+  let boundaries = snapValues(verticals.map((shape) => (shape.x0 + shape.x1) / 2));
+  if (boundaries.length >= 2) {
+    const relevant = boundaries.filter((x) => x <= textRight + 40 && x >= textLeft - 40);
+    if (relevant.length >= 2) boundaries = relevant;
+  }
+
+  const fallbackCells = tableLines.flatMap((line) => lineCells(line));
+  if (boundaries.length < 3 || boundaries.length > 16) {
+    const starts = fallbackCells.map((cell) => Math.min(...cell.map((frag) => frag.x)));
+    const anchors = snapValues(starts, 14);
+    const right = Math.max(textRight, anchors[anchors.length - 1] ?? textRight);
+    boundaries = anchors.length > 1
+      ? [...anchors, right + Math.max(18, (right - anchors[0]) / anchors.length)]
+      : [textLeft, textRight];
+  }
+  boundaries = boundaries.slice().sort((a, b) => a - b);
+  const columnCount = Math.max(1, boundaries.length - 1);
+  const tableWidth = Math.max(1, boundaries[boundaries.length - 1] - boundaries[0]);
+
+  const borderShapes = shapes.filter((shape) => {
+    const w = shape.x1 - shape.x0;
+    const h = shape.y1 - shape.y0;
+    return Boolean(shape.fill) && (w <= 2.5 || h <= 2.5)
+      && shape.x1 >= boundaries[0] && shape.x0 <= boundaries[boundaries.length - 1]
+      && shape.y1 >= tableBottom - 4 && shape.y0 <= tableTop + 4;
+  });
+  const borderCounts = new Map<string, number>();
+  for (const shape of borderShapes) {
+    if (!shape.fill) continue;
+    borderCounts.set(shape.fill, (borderCounts.get(shape.fill) ?? 0) + 1);
+  }
+  const borderColor = [...borderCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "#b7b7b7";
+
+  const rowCells = tableLines.map((line) => {
+    const cells: Frag[][] = Array.from({ length: columnCount }, () => []);
+    for (const frag of line.frags) {
+      const center = (frag.x + frag.endX) / 2;
+      let index = boundaries.findIndex((edge, i) => i < columnCount && center >= edge && center < boundaries[i + 1]);
+      if (index < 0) index = center < boundaries[0] ? 0 : columnCount - 1;
+      cells[index].push(frag);
+    }
+    return cells;
   });
 
   const firstRow = rowCells[0] ?? [];
   const headerish =
     firstRow.length > 1 &&
-    (firstRow.every((c) => c.bold) || firstRow.every((c) => c.size > baseSize * 1.05));
+    (firstRow.filter((cell) => cell.length).every((cell) => cell.every((frag) => frag.bold))
+      || firstRow.filter((cell) => cell.length).every((cell) => cell.every((frag) => frag.size > baseSize * 1.05)));
 
-  const body = grid
+  const body = rowCells
     .map((cells, idx) => {
       const tag = idx === 0 && headerish ? "th" : "td";
-      const tds = cells
-        .map((c) => `<${tag} style="border:1px solid rgba(128,128,128,.45);padding:6px 8px;overflow-wrap:anywhere">${esc(c) || "&nbsp;"}</${tag}>`)
+      const line = tableLines[idx];
+      const rowBottom = line.y - line.height * 0.65;
+      const rowTop = line.y + line.height * 1.15;
+      const visualCells = rtl ? cells.slice().reverse() : cells;
+      const visualIndexes = rtl
+        ? Array.from({ length: columnCount }, (_, i) => columnCount - 1 - i)
+        : Array.from({ length: columnCount }, (_, i) => i);
+      const tds = visualCells
+        .map((cell, visualIndex) => {
+          const logicalIndex = visualIndexes[visualIndex];
+          const left = boundaries[logicalIndex];
+          const right = boundaries[logicalIndex + 1];
+          const centerX = (left + right) / 2;
+          const centerY = (rowBottom + rowTop) / 2;
+          const fills = shapes.filter((shape) => {
+            const w = shape.x1 - shape.x0;
+            const h = shape.y1 - shape.y0;
+            return Boolean(shape.fill) && w > 3 && h > 3
+              && centerX >= shape.x0 - 1 && centerX <= shape.x1 + 1
+              && centerY >= shape.y0 - 1 && centerY <= shape.y1 + 1;
+          }).sort((a, b) => (a.x1 - a.x0) * (a.y1 - a.y0) - (b.x1 - b.x0) * (b.y1 - b.y0));
+          const background = fills[0]?.fill;
+          const fragLeft = cell.length ? Math.min(...cell.map((frag) => frag.x)) : centerX;
+          const fragRight = cell.length ? Math.max(...cell.map((frag) => frag.endX)) : centerX;
+          const leftGap = fragLeft - left;
+          const rightGap = right - fragRight;
+          const align = Math.abs(leftGap - rightGap) < Math.max(3, (right - left) * 0.1)
+            ? "center"
+            : rtl ? "right" : "left";
+          const style = [
+            `border:1px solid ${borderColor}`,
+            "padding:6px 8px",
+            "overflow-wrap:anywhere",
+            `text-align:${align}`,
+            background ? `background-color:${background}` : "",
+          ].filter(Boolean).join(";");
+          return `<${tag} style="${style}">${cellVisualHtml(cell, rtl, baseSize)}</${tag}>`;
+        })
         .join("");
       return `<tr>${tds}</tr>`;
     })
     .join("");
-  return `<table style="width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed;direction:${rtl ? "rtl" : "ltr"}"><tbody>${body}</tbody></table>`;
+  const colgroup = (rtl ? boundaries.slice(0, -1).map((_, i) => columnCount - 1 - i) : boundaries.slice(0, -1).map((_, i) => i))
+    .map((index) => `<col style="width:${Math.round(((boundaries[index + 1] - boundaries[index]) / tableWidth) * 10000) / 100}%" />`)
+    .join("");
+  return `<table style="width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed;direction:${rtl ? "rtl" : "ltr"}"><colgroup>${colgroup}</colgroup><tbody>${body}</tbody></table>`;
 }
 
 
@@ -353,6 +449,58 @@ function mul(a: Matrix, b: Matrix): Matrix {
     a[0] * b[4] + a[2] * b[5] + a[4],
     a[1] * b[4] + a[3] * b[5] + a[5],
   ];
+}
+
+function pdfColor(args: any): string | null {
+  const value = Array.isArray(args) ? args[0] : args?.[0];
+  if (typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)) return value.toLowerCase();
+  if (typeof value === "number") {
+    const channel = Math.max(0, Math.min(255, Math.round(value <= 1 ? value * 255 : value)));
+    return `#${channel.toString(16).padStart(2, "0").repeat(3)}`;
+  }
+  return null;
+}
+
+/** Collect vector rectangles used by PDF generators for cell backgrounds and
+ * hairline borders. pdf.js exposes their already-transformed page bounds in
+ * constructPath's third argument, which is much more reliable than replaying
+ * every path command ourselves. */
+async function pageShapes(page: any): Promise<PdfShape[]> {
+  try {
+    const pdfjs = await loadPdfjs();
+    const OPS = pdfjs.OPS;
+    const ops = await page.getOperatorList();
+    const fills: Array<string | null> = [];
+    let fill: string | null = "#000000";
+    const shapes: PdfShape[] = [];
+    for (let i = 0; i < ops.fnArray.length; i += 1) {
+      const fn = ops.fnArray[i];
+      const args = ops.argsArray[i];
+      if (fn === OPS.save) fills.push(fill);
+      else if (fn === OPS.restore) fill = fills.pop() ?? "#000000";
+      else if (fn === OPS.setFillRGBColor || fn === OPS.setFillGray || fn === OPS.setFillColor) {
+        fill = pdfColor(args) ?? fill;
+      } else if (fn === OPS.constructPath) {
+        const bounds = args?.[2];
+        if (!bounds || bounds.length < 4) continue;
+        const x0 = Number(bounds[0]);
+        const y0 = Number(bounds[1]);
+        const x1 = Number(bounds[2]);
+        const y1 = Number(bounds[3]);
+        const width = x1 - x0;
+        const height = y1 - y0;
+        if (![x0, y0, x1, y1].every(Number.isFinite) || width <= 0 || height <= 0) continue;
+        // Ignore page/image clipping paths. Table geometry is made of thin
+        // rules or modest cell-sized fills, never an almost full-page box.
+        if (width > 560 && height > 780) continue;
+        if (width > 520 && height > 80) continue;
+        shapes.push({ x0, y0, x1, y1, fill });
+      }
+    }
+    return shapes;
+  } catch {
+    return [];
+  }
 }
 
 /** Where each drawn image sits on the page, in PDF units (origin bottom-left). */
@@ -501,7 +649,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
   const doc = await pdfjs.getDocument({ data, isEvalSupported: false, useSystemFonts: true }).promise;
 
   type Candidate = { key: string; size: number };
-  type PageData = { blocks: Block[]; chrome: Candidate[]; local: Set<string>; height: number; width: number };
+  type PageData = { blocks: Block[]; chrome: Candidate[]; local: Set<string>; height: number; width: number; shapes: PdfShape[] };
   const pages: PageData[] = [];
   let scanned = 0;
   let baseSizes: number[] = [];
@@ -521,6 +669,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
         local: new Set<string>(),
         height: viewport.height,
         width: viewport.width,
+        shapes: [],
       });
       page.cleanup?.();
       continue;
@@ -541,6 +690,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
       bandLines.filter((l) => looksLikeLetterhead(l.text) || isPageNumber(l.text)).map((l) => chromeKey(l.text)),
     );
 
+    const shapes = keep ? await pageShapes(page) : [];
     const blocks = groupBlocks(lines);
     if (keep) {
       const imgs = await pageImages(page);
@@ -548,7 +698,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
     }
     blocks.sort((a, b) => b.y - a.y);
 
-    pages.push({ blocks, chrome: chromeLines, local, height: viewport.height, width: viewport.width });
+    pages.push({ blocks, chrome: chromeLines, local, height: viewport.height, width: viewport.width, shapes });
     page.cleanup?.();
   }
 
@@ -590,7 +740,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
       if (b.kind === "table") {
         const rows = b.rows.filter((r) => !drop(r[0].text));
         if (!rows.length) continue;
-        parts.push(tableHtml(rows, baseSize));
+        parts.push(tableHtml(rows, baseSize, pg.shapes));
         continue;
       }
       const lines = b.lines.filter((l) => !drop(l.text));
