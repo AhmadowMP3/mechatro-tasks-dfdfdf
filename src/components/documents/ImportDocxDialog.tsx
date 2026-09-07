@@ -317,7 +317,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
             >
               <Upload size={26} style={{ color: "var(--primary)" }} />
               <div style={{ marginTop: 10, fontSize: 14, fontWeight: 700 }}>
-                {ar ? "اسحب ملف .docx أو .pdf هنا أو اضغط للاختيار" : "Drop a .docx or .pdf here, or click to choose"}
+                {ar ? "اسحب ملف .docx هنا أو اضغط للاختيار" : "Drop a .docx here, or click to choose"}
               </div>
               <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted-foreground)" }}>
                 {ar
