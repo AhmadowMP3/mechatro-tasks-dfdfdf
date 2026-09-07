@@ -83,7 +83,7 @@ function fitCanvas(w: number, h: number): { canvas: HTMLCanvasElement; scale: nu
 
 type Frag = { text: string; x: number; endX: number; size: number; bold: boolean; italic: boolean; color: string | null };
 type Line = { y: number; height: number; x: number; endX: number; frags: Frag[]; text: string; rtl: boolean };
-type PdfShape = { x0: number; y0: number; x1: number; y1: number; fill: string | null };
+type PdfShape = { x0: number; y0: number; x1: number; y1: number; fill: string | null; stroke?: string | null };
 type Block =
   | { kind: "para"; y: number; lines: Line[] }
   | { kind: "table"; y: number; rows: Line[][] }
