@@ -575,8 +575,9 @@ async function pageVectors(page: any): Promise<{ shapes: PdfShape[]; textColors:
     const pdfjs = await loadPdfjs();
     const OPS = pdfjs.OPS;
     const ops = await page.getOperatorList();
-    const stack: Array<{ fill: string; ctm: Matrix }> = [];
+    const stack: Array<{ fill: string; stroke: string; ctm: Matrix }> = [];
     let fill = "#000000";
+    let stroke = "#000000";
     let ctm: Matrix = IDENTITY;
     const shapes: PdfShape[] = [];
     const textColors: Array<string | null> = [];
@@ -587,10 +588,11 @@ async function pageVectors(page: any): Promise<{ shapes: PdfShape[]; textColors:
     for (let i = 0; i < ops.fnArray.length; i += 1) {
       const fn = ops.fnArray[i];
       const args = ops.argsArray[i];
-      if (fn === OPS.save) stack.push({ fill, ctm });
+      if (fn === OPS.save) stack.push({ fill, stroke, ctm });
       else if (fn === OPS.restore) {
         const prev = stack.pop();
         fill = prev?.fill ?? "#000000";
+        stroke = prev?.stroke ?? "#000000";
         ctm = prev?.ctm ?? IDENTITY;
       } else if (fn === OPS.transform) {
         ctm = mul(ctm, args as Matrix);
@@ -599,6 +601,11 @@ async function pageVectors(page: any): Promise<{ shapes: PdfShape[]; textColors:
         fn === OPS.setFillCMYKColor || fn === OPS.setFillColorN
       ) {
         fill = pdfColor(args) ?? fill;
+      } else if (
+        fn === OPS.setStrokeRGBColor || fn === OPS.setStrokeGray || fn === OPS.setStrokeColor ||
+        fn === OPS.setStrokeCMYKColor || fn === OPS.setStrokeColorN
+      ) {
+        stroke = pdfColor(args) ?? stroke;
       } else if (showOps.has(fn)) {
         textColors.push(fill);
       } else if (fn === OPS.constructPath) {
@@ -621,7 +628,7 @@ async function pageVectors(page: any): Promise<{ shapes: PdfShape[]; textColors:
         // rules or modest cell-sized fills, never an almost full-page box.
         if (width > 560 && height > 780) continue;
         if (width > 520 && height > 80) continue;
-        shapes.push({ x0, y0, x1, y1, fill });
+        shapes.push({ x0, y0, x1, y1, fill, stroke });
       }
 
     }
