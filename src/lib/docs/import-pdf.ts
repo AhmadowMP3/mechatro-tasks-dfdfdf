@@ -233,14 +233,29 @@ function groupBlocks(lines: Line[]): Block[] {
 
 /* ── HTML rendering ──────────────────────────────────────── */
 
-function fragHtml(f: Frag, baseSize: number): string {
+/** Pick a readable colour: keep the source colour unless it would vanish on
+ * the cell background it sits on. */
+function readableColor(color: string | null, background: string | null): string | null {
+  const bg = background ? colorLuminance(background) : 1;
+  if (!color) return bg < 0.45 ? "#ffffff" : null;
+  const fg = colorLuminance(color);
+  if (Math.abs(fg - bg) < 0.22) return bg < 0.5 ? "#ffffff" : "#000000";
+  if (fg > 0.92 && bg > 0.9) return "#000000";
+  return color;
+}
+
+function fragHtml(f: Frag, baseSize: number, background: string | null = null): string {
   let html = esc(f.text);
   if (f.bold) html = `<strong>${html}</strong>`;
   if (f.italic) html = `<em>${html}</em>`;
   const ratio = f.size / baseSize;
+  const styles: string[] = [];
   if (ratio >= 1.15 || ratio <= 0.85) {
-    html = `<span style="font-size:${Math.round(Math.min(28, Math.max(8, f.size)) * 10) / 10}pt">${html}</span>`;
+    styles.push(`font-size:${Math.round(Math.min(28, Math.max(8, f.size)) * 10) / 10}pt`);
   }
+  const color = readableColor(f.color, background);
+  if (color && color !== "#000000") styles.push(`color:${color}`);
+  if (styles.length) html = `<span style="${styles.join(";")}">${html}</span>`;
   return html;
 }
 
