@@ -1167,11 +1167,12 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 }
 
 .doc-ribbon {
-  position: sticky;
+  position: -webkit-sticky;
+  position: sticky !important;
   /* Pinned to the very top of the scrolling work area so the toolbar and the
      save / PDF actions stay reachable while writing long documents. */
   top: 0;
-  z-index: 40;
+  z-index: 55;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -1194,10 +1195,15 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
     padding: 7px;
   }
 }
-/* Sticky only works when no ancestor clips or transforms it. */
-.doc-editor {
-  overflow: visible;
+/* Sticky only works when no ancestor clips, transforms or contains it. */
+.doc-editor,
+.doc-editor-boundary {
+  overflow: visible !important;
+  transform: none !important;
+  filter: none !important;
+  contain: none !important;
 }
+
 .doc-ribbon-group {
   display: flex;
   align-items: center;
