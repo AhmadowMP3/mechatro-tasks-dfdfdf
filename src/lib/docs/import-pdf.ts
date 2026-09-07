@@ -24,6 +24,16 @@ const esc = (s: string) =>
 
 const norm = (s: string) => s.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
 
+/** Arabic in PDFs arrives as presentation forms (isolated / initial / medial /
+ * final shapes) plus invisible bidi controls. NFKC folds every shape back to
+ * the plain letter and splits the لا ligature, so the text is real Arabic
+ * again — searchable, editable and correctly shaped by the browser. */
+function normalizeText(s: string): string {
+  return s
+    .normalize("NFKC")
+    .replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u00ad\ufeff]/g, "");
+}
+
 function isRtl(text: string): boolean {
   const ar = (text.match(/[\u0600-\u06FF]/g) ?? []).length;
   const la = (text.match(/[A-Za-z]/g) ?? []).length;
@@ -37,6 +47,22 @@ function isPageNumber(text: string): boolean {
   const t = norm(text);
   return t.length <= 24 && /^(page|صفحة)?\s*\d+\s*(\/|of|من|-)?\s*\d*$/i.test(t);
 }
+
+/** Letterhead lines (contacts, site, generated-on stamp): our own template
+ * prints these, so they never belong in the imported body — even in a
+ * single-page file where cross-page repetition can't be measured. */
+function looksLikeLetterhead(text: string): boolean {
+  const t = norm(text);
+  if (!t) return true;
+  if (t.length > 160) return false;
+  return (
+    /[\w.+-]+@[\w-]+\.[\w.]+/.test(t) ||
+    /(https?:\/\/|www\.)/i.test(t) ||
+    /\+?\d[\d\s()-]{7,}/.test(t) ||
+    /(هاتف|جوال|الهاتف|البريد الإلكتروني|العنوان|أنشئ في|الصفحة|mechatro|tel|mobile|e-?mail|address)/i.test(t)
+  );
+}
+
 
 async function canvasToDataUrl(canvas: HTMLCanvasElement): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.86);
