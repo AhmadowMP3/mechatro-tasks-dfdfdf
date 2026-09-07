@@ -762,8 +762,9 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
   for (let p = 1; p <= doc.numPages; p += 1) {
     const page = await doc.getPage(p);
     const viewport = page.getViewport({ scale: 1 });
+    const vectors = keep ? await pageVectors(page) : { shapes: [], textColors: [] };
     const content = await page.getTextContent();
-    const lines = fragsToLines(content.items ?? [], content.styles ?? {});
+    const lines = fragsToLines(content.items ?? [], content.styles ?? {}, vectors.textColors);
 
     if (!lines.length) {
       scanned += 1;
@@ -789,13 +790,12 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
       key: chromeKey(l.text),
       size: Math.max(...l.frags.map((f) => f.size)),
     }));
-    // Contact / address / page-stamp lines in the letterhead bands are dropped
-    // even in a one-page file, where repetition can't be measured.
-    const local = new Set<string>(
-      bandLines.filter((l) => looksLikeLetterhead(l.text) || isPageNumber(l.text)).map((l) => chromeKey(l.text)),
-    );
+    // The source file's own header/footer band never belongs in the body: our
+    // template prints the logo, contact strip, footer and page number itself.
+    const local = new Set<string>(bandLines.map((l) => chromeKey(l.text)));
 
-    const shapes = keep ? await pageShapes(page) : [];
+    const shapes = vectors.shapes;
+
     const blocks = groupBlocks(lines);
     if (keep) {
       const imgs = await pageImages(page);
