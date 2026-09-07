@@ -79,16 +79,40 @@ function fitCanvas(w: number, h: number): { canvas: HTMLCanvasElement; scale: nu
 /* ── line / block model ──────────────────────────────────── */
 
 type Frag = { text: string; x: number; endX: number; size: number; bold: boolean; italic: boolean };
-type Line = { y: number; height: number; x: number; endX: number; frags: Frag[]; text: string };
+type Line = { y: number; height: number; x: number; endX: number; frags: Frag[]; text: string; rtl: boolean };
 type Block =
   | { kind: "para"; y: number; lines: Line[] }
   | { kind: "table"; y: number; rows: Line[][] }
-  | { kind: "image"; y: number; src: string; width: number };
+  | { kind: "image"; y: number; src: string; width: number; key: string };
+
+/** Visual order is left→right; Arabic reads right→left, so the pieces of an
+ * Arabic line have to be walked backwards. A space is inserted only where the
+ * page really leaves one, so letters never drift apart mid-word. */
+function orderedFrags(frags: Frag[], rtl: boolean): Frag[] {
+  const sorted = frags.slice().sort((a, b) => a.x - b.x);
+  return rtl ? sorted.reverse() : sorted;
+}
+
+function joinFrags(frags: Frag[], rtl: boolean): string {
+  const ordered = orderedFrags(frags, rtl);
+  let out = "";
+  let prev: Frag | null = null;
+  for (const f of ordered) {
+    if (prev) {
+      const gap = rtl ? prev.x - f.endX : f.x - prev.endX;
+      const needsSpace = gap > Math.max(1, f.size * 0.18) && !/\s$/.test(out) && !/^\s/.test(f.text);
+      if (needsSpace) out += " ";
+    }
+    out += f.text;
+    prev = f;
+  }
+  return norm(out);
+}
 
 function fragsToLines(items: any[], styles: Record<string, any>): Line[] {
   const raw: Array<Frag & { y: number; h: number }> = [];
   for (const it of items) {
-    const str = String(it.str ?? "");
+    const str = normalizeText(String(it.str ?? ""));
     if (!str.trim()) continue;
     const t = it.transform as number[];
     const size = Math.abs(t?.[3] ?? 10) || 10;
@@ -117,14 +141,15 @@ function fragsToLines(items: any[], styles: Record<string, any>): Line[] {
       last.frags.push(f);
       last.height = Math.max(last.height, f.h);
     } else {
-      lines.push({ y: f.y, height: f.h, x: f.x, endX: f.endX, frags: [f], text: "" });
+      lines.push({ y: f.y, height: f.h, x: f.x, endX: f.endX, frags: [f], text: "", rtl: false });
     }
   }
   for (const l of lines) {
     l.frags.sort((a, b) => a.x - b.x);
     l.x = l.frags[0].x;
     l.endX = Math.max(...l.frags.map((f) => f.endX));
-    l.text = norm(l.frags.map((f) => f.text).join(" "));
+    l.rtl = isRtl(l.frags.map((f) => f.text).join(" "));
+    l.text = joinFrags(l.frags, l.rtl);
   }
   return lines.filter((l) => l.text.length > 0);
 }
@@ -146,6 +171,7 @@ function lineCells(line: Line): Frag[][] {
   if (current.length) cells.push(current);
   return cells;
 }
+
 
 function cellsText(cells: Frag[][]): string[] {
   return cells.map((c) => norm(c.map((f) => f.text).join(" ")));
