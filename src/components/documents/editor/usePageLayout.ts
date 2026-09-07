@@ -94,11 +94,71 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
 
     // Map each rendered top-level block to its document position.
     const positions: number[] = [];
+    const ends: number[] = [];
     let pos = 0;
     editor.state.doc.forEach((node) => {
       positions.push(pos);
       pos += node.nodeSize;
+      ends.push(pos);
     });
+
+    // ── Page-start normalisation ────────────────────────────────────
+    // Word documents open (and resume after every page break) with empty
+    // spacer paragraphs and fat top margins. The preview strips them; the
+    // writing layer used to keep them, which is the blank band under the
+    // header. Collapse them in the measured clone AND paint the matching
+    // display classes on the live nodes, so both agree.
+    const classMarks: PageSpacer[] = [];
+    const isBlank = (el: HTMLElement) =>
+      !el.querySelector("img,table,hr,svg,canvas") &&
+      el.tagName !== "IMG" &&
+      el.tagName !== "TABLE" &&
+      el.tagName !== "HR" &&
+      (el.textContent ?? "").trim() === "";
+    const isBreak = (el: HTMLElement) =>
+      el.hasAttribute("data-page-break") ||
+      el.classList.contains("doc-page-break-anchor") ||
+      !!el.querySelector("[data-page-break], .doc-page-break-mark");
+
+    const mark = (i: number, cls: string) => {
+      const from = positions[i];
+      const to = ends[i];
+      if (from === undefined || to === undefined) return;
+      classMarks.push({ pos: from, end: to, h: 0, kind: "class", cls });
+    };
+    /** Zero the top spacing of an element and the wrappers it starts. */
+    const zeroTopChain = (el: HTMLElement) => {
+      let node: HTMLElement | null = el;
+      let guard = 0;
+      while (node && guard++ < 6) {
+        node.style.marginTop = "0";
+        node.style.paddingTop = "0";
+        const first = node.firstElementChild;
+        node = first instanceof HTMLElement ? first : null;
+      }
+    };
+
+    let atPageStart = true;
+    blocks.forEach((el, i) => {
+      if (isBreak(el)) {
+        atPageStart = true;
+        return;
+      }
+      if (isBlank(el)) {
+        if (atPageStart) {
+          el.style.display = "none";
+          mark(i, "doc-blank-collapsed");
+        }
+        return;
+      }
+      if (atPageStart) {
+        zeroTopChain(el);
+        mark(i, "doc-page-first-block");
+        atPageStart = false;
+      }
+    });
+
+
 
     // Document range of a rendered table row.
     const rowSpan = (row: HTMLTableRowElement): { from: number; to: number } | null => {
