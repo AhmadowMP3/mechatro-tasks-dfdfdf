@@ -621,14 +621,19 @@ async function pageVectors(page: any): Promise<{ shapes: PdfShape[]; textColors:
         const x1 = Math.max(corners[0][0], corners[1][0]);
         const y0 = Math.min(corners[0][1], corners[1][1]);
         const y1 = Math.max(corners[0][1], corners[1][1]);
-        const width = x1 - x0;
-        const height = y1 - y0;
-        if (![x0, y0, x1, y1].every(Number.isFinite) || width <= 0 || height <= 0) continue;
+        if (![x0, y0, x1, y1].every(Number.isFinite)) continue;
+        // Ruling lines are drawn as zero-thickness strokes; give them a hair
+        // of thickness so they still count as table geometry.
+        let width = x1 - x0;
+        let height = y1 - y0;
+        if (width <= 0 && height <= 0) continue;
+        if (width <= 0) width = 0.6;
+        if (height <= 0) height = 0.6;
         // Ignore page/image clipping paths. Table geometry is made of thin
         // rules or modest cell-sized fills, never an almost full-page box.
         if (width > 560 && height > 780) continue;
         if (width > 520 && height > 80) continue;
-        shapes.push({ x0, y0, x1, y1, fill, stroke });
+        shapes.push({ x0, y0, x1: x0 + width, y1: y0 + height, fill, stroke });
       }
 
     }
