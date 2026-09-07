@@ -24,6 +24,9 @@ export type DocxImport = {
 const MAX_IMAGE_WIDTH = 1400;
 /** Rendered width cap inside the A4 sheet (matches the editor's own cap). */
 const RENDER_MAX_WIDTH = 700;
+/** Usable A4 body width (Word Narrow margins) — used to turn Word's column
+ *  percentages into the pixel widths the editor's table schema stores. */
+const BODY_WIDTH_PX = 698;
 
 const STYLE_MAP = [
   "p[style-name='Title'] => h1:fresh",
