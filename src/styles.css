@@ -1476,6 +1476,24 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   margin-top: 0 !important;
   padding-top: 0 !important;
 }
+/* Empty Word spacer paragraphs that would open a page: kept in the document,
+   drawn with no height so the page starts right under the header. */
+.doc-rich-editable .doc-blank-collapsed {
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+  overflow: hidden;
+}
+/* First real block of every page hugs the top margin, like the preview. */
+.doc-rich-editable .doc-page-first-block,
+.doc-rich-editable .doc-page-first-block > :first-child,
+.doc-rich-editable .doc-page-first-block > :first-child > :first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
 
 
 .doc-editor-canvas {

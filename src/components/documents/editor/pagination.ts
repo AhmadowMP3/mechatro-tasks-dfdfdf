@@ -14,10 +14,14 @@ import type { Editor } from "@tiptap/core";
 export type PageSpacer = {
   pos: number;
   h: number;
-  /** "block" inserts a widget before pos; "row" pads the table row at pos..end. */
-  kind?: "block" | "row";
+  /** "block" inserts a widget before pos; "row" pads the table row at pos..end;
+   *  "class" only paints a display class on the node at pos..end. */
+  kind?: "block" | "row" | "class";
   end?: number;
+  /** Display class for kind === "class". */
+  cls?: string;
 };
+
 
 export const pageLayoutKey = new PluginKey<PageSpacer[]>("docPageLayout");
 
@@ -52,7 +56,17 @@ export const PageLayout = Extension.create({
             const decos: Decoration[] = [];
 
             for (const s of spacers) {
-              if (!(s.h > 0.5) || s.pos < 0 || s.pos > docSize) continue;
+              if (s.pos < 0 || s.pos > docSize) continue;
+
+              if (s.kind === "class") {
+                if (s.cls && s.end !== undefined && s.end > s.pos && s.end <= docSize) {
+                  decos.push(Decoration.node(s.pos, s.end, { class: s.cls }));
+                }
+                continue;
+              }
+
+              if (!(s.h > 0.5)) continue;
+
 
               if (s.kind === "row" && s.end !== undefined && s.end > s.pos && s.end <= docSize) {
                 decos.push(
@@ -103,6 +117,8 @@ export function sameSpacers(a: PageSpacer[], b: PageSpacer[]) {
       s.pos === b[i]!.pos &&
       s.end === b[i]!.end &&
       s.kind === b[i]!.kind &&
+      s.cls === b[i]!.cls &&
       Math.abs(s.h - b[i]!.h) < 1,
   );
+
 }
