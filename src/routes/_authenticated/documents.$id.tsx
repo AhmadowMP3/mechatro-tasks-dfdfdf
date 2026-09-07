@@ -193,7 +193,7 @@ function DocumentEditorPage() {
         {saving ? (ar ? "جارٍ الحفظ…" : "Saving…") : dirty ? (ar ? "تغييرات غير محفوظة" : "Unsaved changes") : (ar ? "محفوظ" : "Saved")}
       </span>
       <button className="btn-ghost" onClick={() => setImporting(true)}>
-        <FileUp size={15} /> {ar ? "استيراد من Word" : "Import from Word"}
+        <FileUp size={15} /> {ar ? "استيراد من Word أو PDF" : "Import from Word or PDF"}
       </button>
       <button className="btn-ghost" onClick={() => setPreviewOpen(true)}>
         <Eye size={15} /> {ar ? "معاينة" : "Preview"}
@@ -358,7 +358,7 @@ function DocumentEditorPage() {
                 : d,
             );
             setDirty(true);
-            toast.success(ar ? "تم استيراد الملف — لا تنسَ الحفظ" : "Word file imported — remember to save");
+            toast.success(ar ? "تم استيراد الملف — لا تنسَ الحفظ" : "File imported — remember to save");
           }}
         />
       )}

@@ -158,7 +158,7 @@ function DocumentsListPage() {
           <div style={{ fontSize: 13, fontWeight: 700 }}>{ar ? "إنشاء مستند جديد" : "Create a new document"}</div>
           <button className="btn-primary" disabled={busy} onClick={() => setImporting(true)} style={{ marginInlineStart: "auto", minHeight: 40 }}>
             <FileUp size={15} />
-            {ar ? "استيراد من Word" : "Import from Word"}
+            {ar ? "استيراد من Word أو PDF" : "Import from Word or PDF"}
           </button>
         </div>
         <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 190px), 1fr))" }}>
