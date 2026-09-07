@@ -351,20 +351,23 @@ export async function docxToStyledHtml(
   const mediaUrl = async (relId: string): Promise<string | null> => {
     const target = media.rels.get(relId);
     if (!target) return null;
-    if (media.files.has(target)) return media.files.get(target)!;
+    if (media.files.has(target)) return media.files.get(target) ?? null;
     const path = target.startsWith("word/") ? target : `word/${target}`;
     const f = zip.file(path) ?? zip.file(target);
-    if (!f) return null;
-    const ext = (target.split(".").pop() ?? "png").toLowerCase();
-    const type = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/png";
-    const base64 = await f.async("base64");
-    const url = await opts.shrink(`data:${type};base64,${base64}`, type);
+    if (!f) { media.files.set(target, null); return null; }
+    const bytes = await f.async("uint8array");
+    const type = sniffImageType(bytes);
+    if (!type) { media.files.set(target, null); return null; }
+    const raw = `data:${type};base64,${bytesToBase64(bytes)}`;
+    const url = type === "image/svg+xml" ? raw : await opts.shrink(raw, type);
     media.files.set(target, url);
     return url;
   };
 
   let images = 0;
   let tables = 0;
+  let skippedImages = 0;
+
 
   /* runs */
   const renderRun = async (r: Element, paraStyleId?: string): Promise<string> => {
