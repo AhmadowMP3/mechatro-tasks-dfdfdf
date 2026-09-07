@@ -451,35 +451,89 @@ function mul(a: Matrix, b: Matrix): Matrix {
   ];
 }
 
+const hex2 = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+const rgbHex = (r: number, g: number, b: number) => `#${hex2(r)}${hex2(g)}${hex2(b)}`;
+
+/** pdf.js colour operators carry different argument shapes: RGB comes as three
+ * 0–255 channels, gray as one 0–1 value, CMYK as four 0–1 values, and some
+ * generators emit a ready-made "#rrggbb" string. Reading only the first
+ * argument (the old behaviour) turned every coloured fill into a gray/black
+ * block, which is exactly what showed up in the imported tables. */
 function pdfColor(args: any): string | null {
-  const value = Array.isArray(args) ? args[0] : args?.[0];
-  if (typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)) return value.toLowerCase();
-  if (typeof value === "number") {
-    const channel = Math.max(0, Math.min(255, Math.round(value <= 1 ? value * 255 : value)));
-    return `#${channel.toString(16).padStart(2, "0").repeat(3)}`;
+  const a = Array.isArray(args) ? args : args ? [args] : [];
+  if (!a.length) return null;
+  const first = a[0];
+  if (typeof first === "string") {
+    const s = first.trim().toLowerCase();
+    if (/^#[0-9a-f]{6}$/.test(s)) return s;
+    if (/^#[0-9a-f]{3}$/.test(s)) return `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`;
+    const m = s.match(/rgba?\(([^)]+)\)/);
+    if (m) {
+      const p = m[1].split(",").map((v) => parseFloat(v));
+      if (p.length >= 3) return rgbHex(p[0], p[1], p[2]);
+    }
+    return null;
+  }
+  if (Array.isArray(first) && first.length >= 3) {
+    const [r, g, b] = first as number[];
+    const unit = r <= 1 && g <= 1 && b <= 1;
+    return rgbHex(unit ? r * 255 : r, unit ? g * 255 : g, unit ? b * 255 : b);
+  }
+  const nums = a.filter((v) => typeof v === "number") as number[];
+  if (nums.length >= 4) {
+    const [c, m, y, k] = nums;
+    return rgbHex(255 * (1 - Math.min(1, c + k)), 255 * (1 - Math.min(1, m + k)), 255 * (1 - Math.min(1, y + k)));
+  }
+  if (nums.length === 3) {
+    const [r, g, b] = nums;
+    const unit = r <= 1 && g <= 1 && b <= 1;
+    return rgbHex(unit ? r * 255 : r, unit ? g * 255 : g, unit ? b * 255 : b);
+  }
+  if (nums.length === 1) {
+    const v = nums[0] <= 1 ? nums[0] * 255 : nums[0];
+    return rgbHex(v, v, v);
   }
   return null;
 }
 
+export function colorLuminance(hex: string): number {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return 1;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+}
+
 /** Collect vector rectangles used by PDF generators for cell backgrounds and
- * hairline borders. pdf.js exposes their already-transformed page bounds in
- * constructPath's third argument, which is much more reliable than replaying
- * every path command ourselves. */
-async function pageShapes(page: any): Promise<PdfShape[]> {
+ * hairline borders, plus the fill colour in force at every text-showing
+ * operator so white-on-dark table text survives the import. */
+async function pageVectors(page: any): Promise<{ shapes: PdfShape[]; textColors: Array<string | null> }> {
   try {
     const pdfjs = await loadPdfjs();
     const OPS = pdfjs.OPS;
     const ops = await page.getOperatorList();
-    const fills: Array<string | null> = [];
-    let fill: string | null = "#000000";
+    const stack: string[] = [];
+    let fill = "#000000";
     const shapes: PdfShape[] = [];
+    const textColors: Array<string | null> = [];
+    const showOps = new Set(
+      [OPS.showText, OPS.showSpacedText, OPS.nextLineShowText, OPS.nextLineSetSpacingShowText]
+        .filter((v) => typeof v === "number"),
+    );
     for (let i = 0; i < ops.fnArray.length; i += 1) {
       const fn = ops.fnArray[i];
       const args = ops.argsArray[i];
-      if (fn === OPS.save) fills.push(fill);
-      else if (fn === OPS.restore) fill = fills.pop() ?? "#000000";
-      else if (fn === OPS.setFillRGBColor || fn === OPS.setFillGray || fn === OPS.setFillColor) {
+      if (fn === OPS.save) stack.push(fill);
+      else if (fn === OPS.restore) fill = stack.pop() ?? "#000000";
+      else if (
+        fn === OPS.setFillRGBColor || fn === OPS.setFillGray || fn === OPS.setFillColor ||
+        fn === OPS.setFillCMYKColor || fn === OPS.setFillColorN
+      ) {
         fill = pdfColor(args) ?? fill;
+      } else if (showOps.has(fn)) {
+        textColors.push(fill);
       } else if (fn === OPS.constructPath) {
         const bounds = args?.[2];
         if (!bounds || bounds.length < 4) continue;
@@ -497,11 +551,12 @@ async function pageShapes(page: any): Promise<PdfShape[]> {
         shapes.push({ x0, y0, x1, y1, fill });
       }
     }
-    return shapes;
+    return { shapes, textColors };
   } catch {
-    return [];
+    return { shapes: [], textColors: [] };
   }
 }
+
 
 /** Where each drawn image sits on the page, in PDF units (origin bottom-left). */
 async function imageBoxes(page: any): Promise<Array<{ x: number; y: number; w: number; h: number }>> {
