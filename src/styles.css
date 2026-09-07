@@ -1505,6 +1505,16 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 .doc-rich > * + * {
   margin-top: 8px;
 }
+/* A page always starts flush with the official top margin: imported Word/PDF
+   "space before" on the first block must never add to it. */
+.doc-rich > :first-child,
+.doc-editor-sheet .ProseMirror > :first-child {
+  margin-top: 0 !important;
+}
+.doc-rich > :last-child {
+  margin-bottom: 0 !important;
+}
+
 .doc-rich h1 { font-size: 21px; font-weight: 800; }
 .doc-rich h2 { font-size: 17px; font-weight: 750; }
 .doc-rich h3 { font-size: 14.5px; font-weight: 700; }
