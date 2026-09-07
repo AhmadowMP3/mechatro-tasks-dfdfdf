@@ -58,7 +58,7 @@ export const PageBreak = Node.create({
 
 function PageBreakView() {
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper className="doc-page-break-anchor" data-page-break="true">
       <div contentEditable={false} className="doc-page-break-mark">
         <span>— — — — — —</span>
       </div>

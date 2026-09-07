@@ -213,7 +213,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
 
     const spacers: PageSpacer[] = [];
     let shift = 0;
-    let forceNext = false;
+    let forcedPageTop: number | null = null;
     let lastBottom = 0;
 
     blocks.forEach((el, i) => {
@@ -221,6 +221,22 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       let top = editorOffset + r.top - hostTop + shift;
       const h = r.height;
       const p = positions[i];
+
+      // A manual/Word page-break is an instruction, not document content.
+      // Its visual marker is zero-height, and the next real block performs one
+      // exact jump to the following sheet's body origin.
+      const explicitBreak =
+        el.hasAttribute("data-page-break") ||
+        el.classList.contains("doc-page-break-anchor") ||
+        !!el.querySelector("[data-page-break], .doc-page-break-mark");
+      if (explicitBreak) {
+        // Remember the page after the break itself, rather than deriving it
+        // later from the following block. The latter may already be in the
+        // inter-sheet gap and used to skip a second page accidentally.
+        const breakPage = Math.max(0, Math.floor(Math.max(0, top) / PITCH));
+        forcedPageTop = (breakPage + 1) * PITCH;
+        return;
+      }
 
       const pushTo = (target: number) => {
         const need = target - top;
@@ -233,18 +249,19 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       // A blank paragraph must not open a sheet: let it sit in the page gap
       // instead of pushing it down and eating the new page's top margin.
       const blankBlock =
-        !forceNext &&
         !el.querySelector("img,table,hr,svg,canvas") &&
         (el.textContent ?? "").trim() === "";
 
       let k = Math.max(0, Math.floor(top / PITCH));
       if (blankBlock) {
-        lastBottom = Math.max(lastBottom, top + h);
+        // In particular, ignore blank Word paragraphs after an explicit page
+        // break; they must not consume the top of the next page.
         return;
       }
-      if (forceNext && top > k * PITCH + 1) {
-        pushTo((k + 1) * PITCH);
-        k += 1;
+      if (forcedPageTop !== null) {
+        pushTo(forcedPageTop);
+        k = Math.max(0, Math.floor(top / PITCH));
+        forcedPageTop = null;
       } else if (top > k * PITCH + H - 1) {
         // Landed inside the gap between two sheets.
         pushTo((k + 1) * PITCH);
@@ -273,7 +290,6 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       }
 
 
-      forceNext = el.hasAttribute("data-page-break") || !!el.querySelector("[data-page-break], .doc-page-break-mark");
       lastBottom = Math.max(lastBottom, top + h + added);
     });
 
