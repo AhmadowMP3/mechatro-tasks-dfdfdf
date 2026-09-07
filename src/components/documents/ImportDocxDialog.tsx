@@ -107,7 +107,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     setAiError(null);
     try {
       setStep(pdf
-        ? (ar ? "جارٍ قراءة ملف PDF…" : "Reading the PDF file…")
+        ? (ar ? "جارٍ تحويل صفحات PDF إلى صور…" : "Converting the PDF pages to images…")
         : (ar ? "جارٍ قراءة ملف Word…" : "Reading the Word file…"));
       const res = pdf
         ? await convertPdf(file, { keepFormatting: keepFormat })
