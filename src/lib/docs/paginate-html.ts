@@ -35,9 +35,25 @@ function hostStyle(lang: "ar" | "en", sidePadding?: number): string {
 
 const isBreak = (el: Element): boolean => el.hasAttribute?.("data-page-break");
 
+/** A paragraph carrying nothing but a <br> or whitespace — Word leaves plenty
+ *  of these behind and they would open a page with a blank line. */
+function isEmptyBlock(el: Element | null): boolean {
+  if (!el) return false;
+  if (el.hasAttribute?.("data-page-break")) return false;
+  if (el.querySelector("img,table,hr,svg,canvas,input")) return false;
+  return (el.textContent ?? "").trim() === "";
+}
+
+/** Drop blank paragraphs from the start and the end of a page. */
+function trimEdges(page: HTMLElement): void {
+  while (isEmptyBlock(page.firstElementChild)) page.firstElementChild!.remove();
+  while (isEmptyBlock(page.lastElementChild)) page.lastElementChild!.remove();
+}
+
 function height(el: HTMLElement): number {
   return Math.ceil(Math.max(el.getBoundingClientRect().height, el.scrollHeight));
 }
+
 
 /** Split a table: as many body rows as fit stay, the rest go to a clone. */
 function splitTable(table: HTMLTableElement, page: HTMLElement, avail: number): HTMLElement | null {
