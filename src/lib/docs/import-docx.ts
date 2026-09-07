@@ -69,7 +69,72 @@ async function shrink(dataUrl: string, contentType: string): Promise<string> {
   }
 }
 
+/** Word ships empty spacer paragraphs and page-sized top margins at the start
+ * of every section. Under our own header they read as a huge blank band, so we
+ * strip them and clamp any oversized vertical spacing. */
+const MAX_SPACE_PT = 24;
+
+function isBlankBlock(el: Element): boolean {
+  if (el.querySelector("img, table")) return false;
+  const tag = el.tagName;
+  if (tag === "IMG" || tag === "TABLE" || tag === "HR") return false;
+  if ((el as HTMLElement).hasAttribute?.("data-page-break")) return false;
+  return !(el.textContent ?? "").replace(/\u00a0/g, " ").trim();
+}
+
+function zeroTopSpace(el: Element): void {
+  const style = (el.getAttribute("style") ?? "")
+    .replace(/(^|;)\s*(margin-top|padding-top|margin-block-start|padding-block-start)\s*:[^;]*;?/gi, "$1");
+  el.setAttribute("style", `${style};margin-top:0;padding-top:0`.replace(/^;/, ""));
+}
+
+function trimVerticalSpace(host: HTMLElement): void {
+  // 1. Empty spacer blocks with fixed heights lose their height.
+  host.querySelectorAll<HTMLElement>("p, div").forEach((el) => {
+    if (!isBlankBlock(el)) return;
+    const style = (el.getAttribute("style") ?? "")
+      .replace(/(^|;)\s*(min-)?height\s*:[^;]*;?/gi, "$1");
+    el.setAttribute("style", style.replace(/^;/, ""));
+  });
+
+  // 2. Clamp any oversized top/bottom spacing anywhere in the document.
+  host.querySelectorAll<HTMLElement>("[style]").forEach((el) => {
+    const style = (el.getAttribute("style") ?? "").replace(
+      /(margin-top|margin-bottom|padding-top|padding-bottom|margin-block-start|margin-block-end)\s*:\s*(\d+(?:\.\d+)?)(pt|px)/gi,
+      (_m, prop: string, val: string, unit: string) => {
+        const max = unit.toLowerCase() === "px" ? MAX_SPACE_PT * 1.333 : MAX_SPACE_PT;
+        const num = parseFloat(val);
+        return `${prop}:${Math.min(num, max)}${unit}`;
+      },
+    );
+    el.setAttribute("style", style);
+  });
+
+  // 3. Drop blank blocks at the very start, at the very end, and around every
+  //    page break, then flatten the top spacing of whatever begins a page.
+  const dropBlanksFrom = (start: Element | null, dir: "next" | "prev") => {
+    let node = start;
+    while (node && isBlankBlock(node)) {
+      const following = dir === "next" ? node.nextElementSibling : node.previousElementSibling;
+      node.remove();
+      node = following;
+    }
+    return node;
+  };
+
+  const first = dropBlanksFrom(host.firstElementChild, "next");
+  if (first) zeroTopSpace(first);
+  dropBlanksFrom(host.lastElementChild, "prev");
+
+  Array.from(host.querySelectorAll<HTMLElement>("[data-page-break]")).forEach((brk) => {
+    dropBlanksFrom(brk.previousElementSibling, "prev");
+    const after = dropBlanksFrom(brk.nextElementSibling, "next");
+    if (after) zeroTopSpace(after);
+  });
+}
+
 /** Remove Word chrome and normalise the markup for our editor. */
+
 function cleanup(rawHtml: string): { html: string; images: number; tables: number } {
   if (typeof document === "undefined") return { html: rawHtml, images: 0, tables: 0 };
   const host = document.createElement("div");
@@ -114,8 +179,12 @@ function cleanup(rawHtml: string): { html: string; images: number; tables: numbe
 
   // Word sometimes emits deeply nested empty spans/divs.
   host.querySelectorAll("span, div").forEach((el) => {
+    if ((el as HTMLElement).hasAttribute?.("data-page-break")) return;
     if (!el.textContent?.trim() && !el.querySelector("img, table")) el.remove();
   });
+
+  trimVerticalSpace(host);
+
 
   return { html: host.innerHTML.trim(), images: host.querySelectorAll("img").length, tables: tables.length };
 
@@ -260,6 +329,8 @@ function cleanupStyled(rawHtml: string): { html: string; images: number; tables:
   });
 
   normalizeWidths(host);
+  trimVerticalSpace(host);
+
 
   return { html: host.innerHTML.trim(), images: host.querySelectorAll("img").length, tables: host.querySelectorAll("table").length };
 
