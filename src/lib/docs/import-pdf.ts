@@ -833,7 +833,15 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
   const seenImages = new Set<string>();
   pages.forEach((pg, idx) => {
     if (idx > 0) parts.push('<div data-page-break="true"></div>');
-    const drop = (t: string) => chrome.has(chromeKey(t)) || pg.local.has(chromeKey(t)) || isPageNumber(t);
+    const drop = (t: string, inTable = false) => {
+      const key = chromeKey(t);
+      if (isPageNumber(t)) return true;
+      if (chrome.has(key)) return true;
+      // Real table rows can reach into the band area; only obvious letterhead
+      // lines are removed there, everything else in the band always goes.
+      if (pg.local.has(key)) return inTable ? looksLikeLetterhead(t) : true;
+      return false;
+    };
     for (const b of pg.blocks) {
       if (b.kind === "image") {
         // The same artwork in the same spot on several pages is letterhead.
@@ -843,7 +851,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
         continue;
       }
       if (b.kind === "table") {
-        const rows = b.rows.filter((r) => !drop(r[0].text));
+        const rows = b.rows.filter((r) => !drop(r[0].text, true));
         if (!rows.length) continue;
         parts.push(tableHtml(rows, baseSize, pg.shapes));
         continue;
