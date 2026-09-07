@@ -317,7 +317,8 @@ async function pageImages(page: any): Promise<Block[]> {
       });
     }
     return out;
-  } catch {
+  } catch (e) {
+    (globalThis as any).__imgErr = String((e as Error)?.stack || e);
     return [];
   }
 }
