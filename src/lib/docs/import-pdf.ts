@@ -81,9 +81,9 @@ function fitCanvas(w: number, h: number): { canvas: HTMLCanvasElement; scale: nu
 
 /* ── line / block model ──────────────────────────────────── */
 
-type Frag = { text: string; x: number; endX: number; size: number; bold: boolean; italic: boolean };
+type Frag = { text: string; x: number; endX: number; size: number; bold: boolean; italic: boolean; color: string | null };
 type Line = { y: number; height: number; x: number; endX: number; frags: Frag[]; text: string; rtl: boolean };
-type PdfShape = { x0: number; y0: number; x1: number; y1: number; fill: string | null };
+type PdfShape = { x0: number; y0: number; x1: number; y1: number; fill: string | null; stroke?: string | null };
 type Block =
   | { kind: "para"; y: number; lines: Line[] }
   | { kind: "table"; y: number; rows: Line[][] }
@@ -113,9 +113,13 @@ function joinFrags(frags: Frag[], rtl: boolean): string {
   return norm(out);
 }
 
-function fragsToLines(items: any[], styles: Record<string, any>): Line[] {
+function fragsToLines(items: any[], styles: Record<string, any>, textColors: Array<string | null> = []): Line[] {
   const raw: Array<Frag & { y: number; h: number }> = [];
+  let textIndex = -1;
   for (const it of items) {
+    if (typeof it?.str !== "string") continue;
+    textIndex += 1;
+    const color = textColors[textIndex] ?? null;
     const str = normalizeText(String(it.str ?? ""));
     if (!str.trim()) continue;
     const t = it.transform as number[];
@@ -131,6 +135,7 @@ function fragsToLines(items: any[], styles: Record<string, any>): Line[] {
       size,
       bold: /bold|black|heavy|semibold/i.test(fname),
       italic: /italic|oblique/i.test(fname),
+      color,
       y,
       h: it.height || size,
     });
@@ -228,14 +233,33 @@ function groupBlocks(lines: Line[]): Block[] {
 
 /* ── HTML rendering ──────────────────────────────────────── */
 
-function fragHtml(f: Frag, baseSize: number): string {
+/** Pick a readable colour: keep the source colour unless it would vanish on
+ * the cell background it sits on. */
+function readableColor(color: string | null, background: string | null): string | null {
+  const bg = background ? colorLuminance(background) : 1;
+  if (!color) return bg < 0.45 ? "#ffffff" : null;
+  const fg = colorLuminance(color);
+  // Dark text on a dark cell fill is unreadable even when the raw luminance
+  // gap looks acceptable, so flip it to white.
+  if (bg < 0.45 && fg < 0.5) return "#ffffff";
+  if (Math.abs(fg - bg) < 0.22) return bg < 0.5 ? "#ffffff" : "#000000";
+  if (fg > 0.92 && bg > 0.9) return "#000000";
+  return color;
+}
+
+
+function fragHtml(f: Frag, baseSize: number, background: string | null = null): string {
   let html = esc(f.text);
   if (f.bold) html = `<strong>${html}</strong>`;
   if (f.italic) html = `<em>${html}</em>`;
   const ratio = f.size / baseSize;
+  const styles: string[] = [];
   if (ratio >= 1.15 || ratio <= 0.85) {
-    html = `<span style="font-size:${Math.round(Math.min(28, Math.max(8, f.size)) * 10) / 10}pt">${html}</span>`;
+    styles.push(`font-size:${Math.round(Math.min(28, Math.max(8, f.size)) * 10) / 10}pt`);
   }
+  const color = readableColor(f.color, background);
+  if (color && color !== "#000000") styles.push(`color:${color}`);
+  if (styles.length) html = `<span style="${styles.join(";")}">${html}</span>`;
   return html;
 }
 
@@ -299,7 +323,7 @@ const snapValues = (values: number[], tolerance = 1.5): number[] => {
   return groups.map((group) => group.reduce((sum, value) => sum + value, 0) / group.length);
 };
 
-function cellVisualHtml(frags: Frag[], rtl: boolean, baseSize: number): string {
+function cellVisualHtml(frags: Frag[], rtl: boolean, baseSize: number, background: string | null = null): string {
   const ordered = orderedFrags(frags, rtl);
   let html = "";
   let previous: Frag | null = null;
@@ -308,7 +332,7 @@ function cellVisualHtml(frags: Frag[], rtl: boolean, baseSize: number): string {
       const gap = rtl ? previous.x - frag.endX : frag.x - previous.endX;
       if (gap > Math.max(1, frag.size * 0.18)) html += " ";
     }
-    html += fragHtml(frag, baseSize);
+    html += fragHtml(frag, baseSize, background);
     previous = frag;
   }
   return html || "&nbsp;";
@@ -361,18 +385,30 @@ function tableHtml(rows: Line[][], baseSize: number, shapes: PdfShape[]): string
   });
   const borderCounts = new Map<string, number>();
   for (const shape of borderShapes) {
-    if (!shape.fill) continue;
-    borderCounts.set(shape.fill, (borderCounts.get(shape.fill) ?? 0) + 1);
+    const color = shape.stroke ?? shape.fill;
+    if (!color) continue;
+    borderCounts.set(color, (borderCounts.get(color) ?? 0) + 1);
   }
-  const borderColor = [...borderCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "#b7b7b7";
+  const ranked = [...borderCounts.entries()].sort((a, b) => b[1] - a[1]).map(([color]) => color);
+  const borderColor = ranked.find((color) => colorLuminance(color) < 0.93) ?? "#b7b7b7";
 
+  // Assign each fragment to the column it overlaps the most, so a value that
+  // starts slightly before a ruling line still lands in its own cell instead
+  // of leaving the column empty.
   const rowCells = tableLines.map((line) => {
     const cells: Frag[][] = Array.from({ length: columnCount }, () => []);
     for (const frag of line.frags) {
-      const center = (frag.x + frag.endX) / 2;
-      let index = boundaries.findIndex((edge, i) => i < columnCount && center >= edge && center < boundaries[i + 1]);
-      if (index < 0) index = center < boundaries[0] ? 0 : columnCount - 1;
-      cells[index].push(frag);
+      let best = -1;
+      let bestOverlap = -1;
+      for (let i = 0; i < columnCount; i += 1) {
+        const overlap = Math.min(frag.endX, boundaries[i + 1]) - Math.max(frag.x, boundaries[i]);
+        if (overlap > bestOverlap) { bestOverlap = overlap; best = i; }
+      }
+      if (best < 0 || bestOverlap <= 0) {
+        const center = (frag.x + frag.endX) / 2;
+        best = center < boundaries[0] ? 0 : columnCount - 1;
+      }
+      cells[best].push(frag);
     }
     return cells;
   });
@@ -383,23 +419,40 @@ function tableHtml(rows: Line[][], baseSize: number, shapes: PdfShape[]): string
     (firstRow.filter((cell) => cell.length).every((cell) => cell.every((frag) => frag.bold))
       || firstRow.filter((cell) => cell.length).every((cell) => cell.every((frag) => frag.size > baseSize * 1.05)));
 
+  type Merged = { start: number; span: number; frags: Frag[] };
+
   const body = rowCells
     .map((cells, idx) => {
       const tag = idx === 0 && headerish ? "th" : "td";
       const line = tableLines[idx];
       const rowBottom = line.y - line.height * 0.65;
       const rowTop = line.y + line.height * 1.15;
-      const visualCells = rtl ? cells.slice().reverse() : cells;
-      const visualIndexes = rtl
-        ? Array.from({ length: columnCount }, (_, i) => columnCount - 1 - i)
-        : Array.from({ length: columnCount }, (_, i) => i);
-      const tds = visualCells
-        .map((cell, visualIndex) => {
-          const logicalIndex = visualIndexes[visualIndex];
-          const left = boundaries[logicalIndex];
-          const right = boundaries[logicalIndex + 1];
+      const centerY = (rowBottom + rowTop) / 2;
+
+      // A wide value that visually crosses ruling lines with empty neighbours
+      // is a merged cell in the source table.
+      const merged: Merged[] = [];
+      for (let i = 0; i < columnCount; i += 1) {
+        const cell = cells[i];
+        let span = 1;
+        if (cell.length) {
+          const right = Math.max(...cell.map((f) => f.endX));
+          while (
+            i + span < columnCount &&
+            !cells[i + span].length &&
+            right > boundaries[i + span] + 2
+          ) span += 1;
+        }
+        merged.push({ start: i, span, frags: cell });
+        i += span - 1;
+      }
+
+      const visual = rtl ? merged.slice().reverse() : merged;
+      const tds = visual
+        .map((cell) => {
+          const left = boundaries[cell.start];
+          const right = boundaries[cell.start + cell.span];
           const centerX = (left + right) / 2;
-          const centerY = (rowBottom + rowTop) / 2;
           const fills = shapes.filter((shape) => {
             const w = shape.x1 - shape.x0;
             const h = shape.y1 - shape.y0;
@@ -407,9 +460,9 @@ function tableHtml(rows: Line[][], baseSize: number, shapes: PdfShape[]): string
               && centerX >= shape.x0 - 1 && centerX <= shape.x1 + 1
               && centerY >= shape.y0 - 1 && centerY <= shape.y1 + 1;
           }).sort((a, b) => (a.x1 - a.x0) * (a.y1 - a.y0) - (b.x1 - b.x0) * (b.y1 - b.y0));
-          const background = fills[0]?.fill;
-          const fragLeft = cell.length ? Math.min(...cell.map((frag) => frag.x)) : centerX;
-          const fragRight = cell.length ? Math.max(...cell.map((frag) => frag.endX)) : centerX;
+          const background = fills[0]?.fill ?? null;
+          const fragLeft = cell.frags.length ? Math.min(...cell.frags.map((f) => f.x)) : centerX;
+          const fragRight = cell.frags.length ? Math.max(...cell.frags.map((f) => f.endX)) : centerX;
           const leftGap = fragLeft - left;
           const rightGap = right - fragRight;
           const align = Math.abs(leftGap - rightGap) < Math.max(3, (right - left) * 0.1)
@@ -422,12 +475,14 @@ function tableHtml(rows: Line[][], baseSize: number, shapes: PdfShape[]): string
             `text-align:${align}`,
             background ? `background-color:${background}` : "",
           ].filter(Boolean).join(";");
-          return `<${tag} style="${style}">${cellVisualHtml(cell, rtl, baseSize)}</${tag}>`;
+          const spanAttr = cell.span > 1 ? ` colspan="${cell.span}"` : "";
+          return `<${tag}${spanAttr} style="${style}">${cellVisualHtml(cell.frags, rtl, baseSize, background)}</${tag}>`;
         })
         .join("");
       return `<tr>${tds}</tr>`;
     })
     .join("");
+
   const colgroup = (rtl ? boundaries.slice(0, -1).map((_, i) => columnCount - 1 - i) : boundaries.slice(0, -1).map((_, i) => i))
     .map((index) => `<col style="width:${Math.round(((boundaries[index + 1] - boundaries[index]) / tableWidth) * 10000) / 100}%" />`)
     .join("");
@@ -451,57 +506,143 @@ function mul(a: Matrix, b: Matrix): Matrix {
   ];
 }
 
+/** Map a point from the current transform space back to page units. */
+function apply(m: Matrix, x: number, y: number): [number, number] {
+  return [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+}
+
+
+const hex2 = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+const rgbHex = (r: number, g: number, b: number) => `#${hex2(r)}${hex2(g)}${hex2(b)}`;
+
+/** pdf.js colour operators carry different argument shapes: RGB comes as three
+ * 0–255 channels, gray as one 0–1 value, CMYK as four 0–1 values, and some
+ * generators emit a ready-made "#rrggbb" string. Reading only the first
+ * argument (the old behaviour) turned every coloured fill into a gray/black
+ * block, which is exactly what showed up in the imported tables. */
 function pdfColor(args: any): string | null {
-  const value = Array.isArray(args) ? args[0] : args?.[0];
-  if (typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)) return value.toLowerCase();
-  if (typeof value === "number") {
-    const channel = Math.max(0, Math.min(255, Math.round(value <= 1 ? value * 255 : value)));
-    return `#${channel.toString(16).padStart(2, "0").repeat(3)}`;
+  const a = Array.isArray(args) ? args : args ? [args] : [];
+  if (!a.length) return null;
+  const first = a[0];
+  if (typeof first === "string") {
+    const s = first.trim().toLowerCase();
+    if (/^#[0-9a-f]{6}$/.test(s)) return s;
+    if (/^#[0-9a-f]{3}$/.test(s)) return `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`;
+    const m = s.match(/rgba?\(([^)]+)\)/);
+    if (m) {
+      const p = m[1].split(",").map((v) => parseFloat(v));
+      if (p.length >= 3) return rgbHex(p[0], p[1], p[2]);
+    }
+    return null;
+  }
+  if (Array.isArray(first) && first.length >= 3) {
+    const [r, g, b] = first as number[];
+    const unit = r <= 1 && g <= 1 && b <= 1;
+    return rgbHex(unit ? r * 255 : r, unit ? g * 255 : g, unit ? b * 255 : b);
+  }
+  const nums = a.filter((v) => typeof v === "number") as number[];
+  if (nums.length >= 4) {
+    const [c, m, y, k] = nums;
+    return rgbHex(255 * (1 - Math.min(1, c + k)), 255 * (1 - Math.min(1, m + k)), 255 * (1 - Math.min(1, y + k)));
+  }
+  if (nums.length === 3) {
+    const [r, g, b] = nums;
+    const unit = r <= 1 && g <= 1 && b <= 1;
+    return rgbHex(unit ? r * 255 : r, unit ? g * 255 : g, unit ? b * 255 : b);
+  }
+  if (nums.length === 1) {
+    const v = nums[0] <= 1 ? nums[0] * 255 : nums[0];
+    return rgbHex(v, v, v);
   }
   return null;
 }
 
+export function colorLuminance(hex: string): number {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return 1;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+}
+
 /** Collect vector rectangles used by PDF generators for cell backgrounds and
- * hairline borders. pdf.js exposes their already-transformed page bounds in
- * constructPath's third argument, which is much more reliable than replaying
- * every path command ourselves. */
-async function pageShapes(page: any): Promise<PdfShape[]> {
+ * hairline borders, plus the fill colour in force at every text-showing
+ * operator so white-on-dark table text survives the import. */
+async function pageVectors(page: any): Promise<{ shapes: PdfShape[]; textColors: Array<string | null> }> {
   try {
     const pdfjs = await loadPdfjs();
     const OPS = pdfjs.OPS;
     const ops = await page.getOperatorList();
-    const fills: Array<string | null> = [];
-    let fill: string | null = "#000000";
+    const stack: Array<{ fill: string; stroke: string; ctm: Matrix }> = [];
+    let fill = "#000000";
+    let stroke = "#000000";
+    let ctm: Matrix = IDENTITY;
     const shapes: PdfShape[] = [];
+    const textColors: Array<string | null> = [];
+    const showOps = new Set(
+      [OPS.showText, OPS.showSpacedText, OPS.nextLineShowText, OPS.nextLineSetSpacingShowText]
+        .filter((v) => typeof v === "number"),
+    );
     for (let i = 0; i < ops.fnArray.length; i += 1) {
       const fn = ops.fnArray[i];
       const args = ops.argsArray[i];
-      if (fn === OPS.save) fills.push(fill);
-      else if (fn === OPS.restore) fill = fills.pop() ?? "#000000";
-      else if (fn === OPS.setFillRGBColor || fn === OPS.setFillGray || fn === OPS.setFillColor) {
+      if (fn === OPS.save) stack.push({ fill, stroke, ctm });
+      else if (fn === OPS.restore) {
+        const prev = stack.pop();
+        fill = prev?.fill ?? "#000000";
+        stroke = prev?.stroke ?? "#000000";
+        ctm = prev?.ctm ?? IDENTITY;
+      } else if (fn === OPS.transform) {
+        ctm = mul(ctm, args as Matrix);
+      } else if (
+        fn === OPS.setFillRGBColor || fn === OPS.setFillGray || fn === OPS.setFillColor ||
+        fn === OPS.setFillCMYKColor || fn === OPS.setFillColorN
+      ) {
         fill = pdfColor(args) ?? fill;
+      } else if (
+        fn === OPS.setStrokeRGBColor || fn === OPS.setStrokeGray || fn === OPS.setStrokeColor ||
+        fn === OPS.setStrokeCMYKColor || fn === OPS.setStrokeColorN
+      ) {
+        stroke = pdfColor(args) ?? stroke;
+      } else if (showOps.has(fn)) {
+        textColors.push(fill);
       } else if (fn === OPS.constructPath) {
         const bounds = args?.[2];
         if (!bounds || bounds.length < 4) continue;
-        const x0 = Number(bounds[0]);
-        const y0 = Number(bounds[1]);
-        const x1 = Number(bounds[2]);
-        const y1 = Number(bounds[3]);
-        const width = x1 - x0;
-        const height = y1 - y0;
-        if (![x0, y0, x1, y1].every(Number.isFinite) || width <= 0 || height <= 0) continue;
+        // Path coordinates live in the current transform's space, so map the
+        // corners back to page units before comparing them with text.
+        const corners = [
+          apply(ctm, Number(bounds[0]), Number(bounds[1])),
+          apply(ctm, Number(bounds[2]), Number(bounds[3])),
+        ];
+        const x0 = Math.min(corners[0][0], corners[1][0]);
+        const x1 = Math.max(corners[0][0], corners[1][0]);
+        const y0 = Math.min(corners[0][1], corners[1][1]);
+        const y1 = Math.max(corners[0][1], corners[1][1]);
+        if (![x0, y0, x1, y1].every(Number.isFinite)) continue;
+        // Ruling lines are drawn as zero-thickness strokes; give them a hair
+        // of thickness so they still count as table geometry.
+        let width = x1 - x0;
+        let height = y1 - y0;
+        if (width <= 0 && height <= 0) continue;
+        if (width <= 0) width = 0.6;
+        if (height <= 0) height = 0.6;
         // Ignore page/image clipping paths. Table geometry is made of thin
         // rules or modest cell-sized fills, never an almost full-page box.
         if (width > 560 && height > 780) continue;
         if (width > 520 && height > 80) continue;
-        shapes.push({ x0, y0, x1, y1, fill });
+        shapes.push({ x0, y0, x1: x0 + width, y1: y0 + height, fill, stroke });
       }
+
     }
-    return shapes;
+    return { shapes, textColors };
   } catch {
-    return [];
+    return { shapes: [], textColors: [] };
   }
 }
+
 
 /** Where each drawn image sits on the page, in PDF units (origin bottom-left). */
 async function imageBoxes(page: any): Promise<Array<{ x: number; y: number; w: number; h: number }>> {
@@ -657,8 +798,9 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
   for (let p = 1; p <= doc.numPages; p += 1) {
     const page = await doc.getPage(p);
     const viewport = page.getViewport({ scale: 1 });
+    const vectors = keep ? await pageVectors(page) : { shapes: [], textColors: [] };
     const content = await page.getTextContent();
-    const lines = fragsToLines(content.items ?? [], content.styles ?? {});
+    const lines = fragsToLines(content.items ?? [], content.styles ?? {}, vectors.textColors);
 
     if (!lines.length) {
       scanned += 1;
@@ -684,13 +826,12 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
       key: chromeKey(l.text),
       size: Math.max(...l.frags.map((f) => f.size)),
     }));
-    // Contact / address / page-stamp lines in the letterhead bands are dropped
-    // even in a one-page file, where repetition can't be measured.
-    const local = new Set<string>(
-      bandLines.filter((l) => looksLikeLetterhead(l.text) || isPageNumber(l.text)).map((l) => chromeKey(l.text)),
-    );
+    // The source file's own header/footer band never belongs in the body: our
+    // template prints the logo, contact strip, footer and page number itself.
+    const local = new Set<string>(bandLines.map((l) => chromeKey(l.text)));
 
-    const shapes = keep ? await pageShapes(page) : [];
+    const shapes = vectors.shapes;
+
     const blocks = groupBlocks(lines);
     if (keep) {
       const imgs = await pageImages(page);
@@ -728,7 +869,15 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
   const seenImages = new Set<string>();
   pages.forEach((pg, idx) => {
     if (idx > 0) parts.push('<div data-page-break="true"></div>');
-    const drop = (t: string) => chrome.has(chromeKey(t)) || pg.local.has(chromeKey(t)) || isPageNumber(t);
+    const drop = (t: string, inTable = false) => {
+      const key = chromeKey(t);
+      if (isPageNumber(t)) return true;
+      if (chrome.has(key)) return true;
+      // Real table rows can reach into the band area; only obvious letterhead
+      // lines are removed there, everything else in the band always goes.
+      if (pg.local.has(key)) return inTable ? looksLikeLetterhead(t) : true;
+      return false;
+    };
     for (const b of pg.blocks) {
       if (b.kind === "image") {
         // The same artwork in the same spot on several pages is letterhead.
@@ -738,7 +887,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
         continue;
       }
       if (b.kind === "table") {
-        const rows = b.rows.filter((r) => !drop(r[0].text));
+        const rows = b.rows.filter((r) => !drop(r[0].text, true));
         if (!rows.length) continue;
         parts.push(tableHtml(rows, baseSize, pg.shapes));
         continue;
