@@ -387,7 +387,8 @@ export async function docxToStyledHtml(
         case "br":
           inner += attr(node, "type") === "page" ? "\u0000PAGEBREAK\u0000" : "<br>";
           break;
-        case "drawing":
+        case "object":
+        case "AlternateContent":
         case "pict": {
           const html = await renderDrawing(node);
           if (html) { inner += html; images += 1; }
