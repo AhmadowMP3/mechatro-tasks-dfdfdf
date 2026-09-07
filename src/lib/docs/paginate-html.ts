@@ -145,6 +145,8 @@ export function paginateHtmlBody(opts: {
   source.innerHTML = html ?? "";
 
   const page = document.createElement("div");
+  // Measure with the same typography/spacing rules the sheet paints with.
+  page.className = "doc-rich";
   host.appendChild(page);
 
   const pages: HtmlPage[] = [];
@@ -152,11 +154,13 @@ export function paginateHtmlBody(opts: {
   let reserve = opts.showClientBox ? Math.max(0, opts.clientBoxHeight ?? 0) + 14 : 0;
 
   const flush = () => {
+    trimEdges(page);
     pages.push({ html: page.innerHTML, showClientBox: first && !!opts.showClientBox });
     first = false;
     reserve = 0;
     page.innerHTML = "";
   };
+
 
   try {
     const queue: HTMLElement[] = Array.from(source.children) as HTMLElement[];
