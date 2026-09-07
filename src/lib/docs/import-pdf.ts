@@ -410,6 +410,8 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
     for (const [t, n] of counts) if (n >= threshold) chrome.add(t);
   }
 
+  (globalThis as any).__pdfDebug = { baseSize, chrome: [...chrome], pages: pages.map((pg) => ({ chrome: pg.chrome, blocks: pg.blocks.map((b) => b.kind === "para" ? ["para", b.lines.map((l) => l.text), b.y] : b.kind === "table" ? ["table", b.rows.map((r) => r[0].text)] : ["image"]) })) };
+
   const parts: string[] = [];
   pages.forEach((pg, idx) => {
     if (idx > 0) parts.push('<div data-page-break="true"></div>');
