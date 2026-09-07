@@ -319,7 +319,7 @@ const snapValues = (values: number[], tolerance = 1.5): number[] => {
   return groups.map((group) => group.reduce((sum, value) => sum + value, 0) / group.length);
 };
 
-function cellVisualHtml(frags: Frag[], rtl: boolean, baseSize: number): string {
+function cellVisualHtml(frags: Frag[], rtl: boolean, baseSize: number, background: string | null = null): string {
   const ordered = orderedFrags(frags, rtl);
   let html = "";
   let previous: Frag | null = null;
@@ -328,7 +328,7 @@ function cellVisualHtml(frags: Frag[], rtl: boolean, baseSize: number): string {
       const gap = rtl ? previous.x - frag.endX : frag.x - previous.endX;
       if (gap > Math.max(1, frag.size * 0.18)) html += " ";
     }
-    html += fragHtml(frag, baseSize);
+    html += fragHtml(frag, baseSize, background);
     previous = frag;
   }
   return html || "&nbsp;";
