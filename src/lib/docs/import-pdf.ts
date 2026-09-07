@@ -451,6 +451,58 @@ function mul(a: Matrix, b: Matrix): Matrix {
   ];
 }
 
+function pdfColor(args: any): string | null {
+  const value = Array.isArray(args) ? args[0] : args?.[0];
+  if (typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)) return value.toLowerCase();
+  if (typeof value === "number") {
+    const channel = Math.max(0, Math.min(255, Math.round(value <= 1 ? value * 255 : value)));
+    return `#${channel.toString(16).padStart(2, "0").repeat(3)}`;
+  }
+  return null;
+}
+
+/** Collect vector rectangles used by PDF generators for cell backgrounds and
+ * hairline borders. pdf.js exposes their already-transformed page bounds in
+ * constructPath's third argument, which is much more reliable than replaying
+ * every path command ourselves. */
+async function pageShapes(page: any): Promise<PdfShape[]> {
+  try {
+    const pdfjs = await loadPdfjs();
+    const OPS = pdfjs.OPS;
+    const ops = await page.getOperatorList();
+    const fills: Array<string | null> = [];
+    let fill: string | null = "#000000";
+    const shapes: PdfShape[] = [];
+    for (let i = 0; i < ops.fnArray.length; i += 1) {
+      const fn = ops.fnArray[i];
+      const args = ops.argsArray[i];
+      if (fn === OPS.save) fills.push(fill);
+      else if (fn === OPS.restore) fill = fills.pop() ?? "#000000";
+      else if (fn === OPS.setFillRGBColor || fn === OPS.setFillGray || fn === OPS.setFillColor) {
+        fill = pdfColor(args) ?? fill;
+      } else if (fn === OPS.constructPath) {
+        const bounds = args?.[2];
+        if (!bounds || bounds.length < 4) continue;
+        const x0 = Number(bounds[0]);
+        const y0 = Number(bounds[1]);
+        const x1 = Number(bounds[2]);
+        const y1 = Number(bounds[3]);
+        const width = x1 - x0;
+        const height = y1 - y0;
+        if (![x0, y0, x1, y1].every(Number.isFinite) || width <= 0 || height <= 0) continue;
+        // Ignore page/image clipping paths. Table geometry is made of thin
+        // rules or modest cell-sized fills, never an almost full-page box.
+        if (width > 560 && height > 780) continue;
+        if (width > 520 && height > 80) continue;
+        shapes.push({ x0, y0, x1, y1, fill });
+      }
+    }
+    return shapes;
+  } catch {
+    return [];
+  }
+}
+
 /** Where each drawn image sits on the page, in PDF units (origin bottom-left). */
 async function imageBoxes(page: any): Promise<Array<{ x: number; y: number; w: number; h: number }>> {
   const boxes: Array<{ x: number; y: number; w: number; h: number }> = [];
@@ -597,7 +649,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
   const doc = await pdfjs.getDocument({ data, isEvalSupported: false, useSystemFonts: true }).promise;
 
   type Candidate = { key: string; size: number };
-  type PageData = { blocks: Block[]; chrome: Candidate[]; local: Set<string>; height: number; width: number };
+  type PageData = { blocks: Block[]; chrome: Candidate[]; local: Set<string>; height: number; width: number; shapes: PdfShape[] };
   const pages: PageData[] = [];
   let scanned = 0;
   let baseSizes: number[] = [];
@@ -617,6 +669,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
         local: new Set<string>(),
         height: viewport.height,
         width: viewport.width,
+        shapes: [],
       });
       page.cleanup?.();
       continue;
@@ -637,6 +690,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
       bandLines.filter((l) => looksLikeLetterhead(l.text) || isPageNumber(l.text)).map((l) => chromeKey(l.text)),
     );
 
+    const shapes = keep ? await pageShapes(page) : [];
     const blocks = groupBlocks(lines);
     if (keep) {
       const imgs = await pageImages(page);
@@ -644,7 +698,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
     }
     blocks.sort((a, b) => b.y - a.y);
 
-    pages.push({ blocks, chrome: chromeLines, local, height: viewport.height, width: viewport.width });
+    pages.push({ blocks, chrome: chromeLines, local, height: viewport.height, width: viewport.width, shapes });
     page.cleanup?.();
   }
 
@@ -686,7 +740,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
       if (b.kind === "table") {
         const rows = b.rows.filter((r) => !drop(r[0].text));
         if (!rows.length) continue;
-        parts.push(tableHtml(rows, baseSize));
+        parts.push(tableHtml(rows, baseSize, pg.shapes));
         continue;
       }
       const lines = b.lines.filter((l) => !drop(l.text));
