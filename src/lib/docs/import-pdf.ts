@@ -516,8 +516,9 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
       scanned += 1;
       const src = await renderPage(page);
       pages.push({
-        blocks: src ? [{ kind: "image", y: 0, src, width: RENDER_MAX_WIDTH }] : [],
+        blocks: src ? [{ kind: "image", y: 0, src, width: RENDER_MAX_WIDTH, key: `scan-${pages.length}` }] : [],
         chrome: [],
+        local: new Set<string>(),
         height: viewport.height,
         width: viewport.width,
       });
@@ -529,9 +530,16 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
 
     const topLimit = viewport.height * (1 - CHROME_BAND);
     const bottomLimit = viewport.height * CHROME_BAND;
-    const chromeLines: Candidate[] = lines
-      .filter((l) => l.y >= topLimit || l.y <= bottomLimit)
-      .map((l) => ({ key: chromeKey(l.text), size: Math.max(...l.frags.map((f) => f.size)) }));
+    const bandLines = lines.filter((l) => l.y >= topLimit || l.y <= bottomLimit);
+    const chromeLines: Candidate[] = bandLines.map((l) => ({
+      key: chromeKey(l.text),
+      size: Math.max(...l.frags.map((f) => f.size)),
+    }));
+    // Contact / address / page-stamp lines in the letterhead bands are dropped
+    // even in a one-page file, where repetition can't be measured.
+    const local = new Set<string>(
+      bandLines.filter((l) => looksLikeLetterhead(l.text) || isPageNumber(l.text)).map((l) => chromeKey(l.text)),
+    );
 
     const blocks = groupBlocks(lines);
     if (keep) {
@@ -540,9 +548,10 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
     }
     blocks.sort((a, b) => b.y - a.y);
 
-    pages.push({ blocks, chrome: chromeLines, height: viewport.height, width: viewport.width });
+    pages.push({ blocks, chrome: chromeLines, local, height: viewport.height, width: viewport.width });
     page.cleanup?.();
   }
+
 
   const sizes = baseSizes.slice().sort((a, b) => a - b);
   const baseSize = sizes.length ? sizes[Math.floor(sizes.length / 2)] : 11;
