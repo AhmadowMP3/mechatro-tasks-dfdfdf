@@ -284,8 +284,10 @@ async function imageBoxes(page: any): Promise<Array<{ x: number; y: number; w: n
 /** Crop each image region out of a rendered page — works for photos,
  * logos and vector artwork alike. */
 async function pageImages(page: any): Promise<Block[]> {
+  console.log("[pdfimp] pageImages start");
   try {
     const boxes = await imageBoxes(page);
+    console.log("[pdfimp] boxes", JSON.stringify(boxes));
     if (!boxes.length) return [];
     const scale = 2;
     const viewport = page.getViewport({ scale });
@@ -318,7 +320,7 @@ async function pageImages(page: any): Promise<Block[]> {
     }
     return out;
   } catch (e) {
-    (globalThis as any).__imgErr = String((e as Error)?.stack || e);
+    console.log("[pdfimp] error", String((e as Error)?.stack || e));
     return [];
   }
 }
