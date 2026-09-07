@@ -11,7 +11,7 @@ const RENDER_MAX_WIDTH = 700;
 /** Raster cap for extracted / rendered images. */
 const MAX_IMAGE_WIDTH = 1400;
 /** Band (fraction of page height) scanned for running headers/footers. */
-const CHROME_BAND = 0.12;
+const CHROME_BAND = 0.08;
 
 export function isPdfFile(file: File): boolean {
   return /\.pdf$/i.test(file.name) || file.type === "application/pdf";
@@ -29,6 +29,9 @@ function isRtl(text: string): boolean {
   const la = (text.match(/[A-Za-z]/g) ?? []).length;
   return ar > la;
 }
+
+/** Chrome lines repeat with only the page number changing. */
+const chromeKey = (s: string) => norm(s).replace(/\d+/g, "#").toLowerCase();
 
 function isPageNumber(text: string): boolean {
   const t = norm(text);
@@ -342,7 +345,8 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
   const data = new Uint8Array(await file.arrayBuffer());
   const doc = await pdfjs.getDocument({ data, isEvalSupported: false, useSystemFonts: true }).promise;
 
-  type PageData = { blocks: Block[]; top: string[]; bottom: string[]; height: number; width: number };
+  type Candidate = { key: string; size: number };
+  type PageData = { blocks: Block[]; chrome: Candidate[]; height: number; width: number };
   const pages: PageData[] = [];
   let scanned = 0;
   let baseSizes: number[] = [];
@@ -358,8 +362,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
       const src = await renderPage(page);
       pages.push({
         blocks: src ? [{ kind: "image", y: 0, src, width: RENDER_MAX_WIDTH }] : [],
-        top: [],
-        bottom: [],
+        chrome: [],
         height: viewport.height,
         width: viewport.width,
       });
@@ -371,8 +374,9 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
 
     const topLimit = viewport.height * (1 - CHROME_BAND);
     const bottomLimit = viewport.height * CHROME_BAND;
-    const top = lines.filter((l) => l.y >= topLimit).map((l) => norm(l.text));
-    const bottom = lines.filter((l) => l.y <= bottomLimit).map((l) => norm(l.text));
+    const chromeLines: Candidate[] = lines
+      .filter((l) => l.y >= topLimit || l.y <= bottomLimit)
+      .map((l) => ({ key: chromeKey(l.text), size: Math.max(...l.frags.map((f) => f.size)) }));
 
     const blocks = groupBlocks(lines);
     if (keep) {
@@ -381,26 +385,30 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
     }
     blocks.sort((a, b) => b.y - a.y);
 
-    pages.push({ blocks, top, bottom, height: viewport.height, width: viewport.width });
+    pages.push({ blocks, chrome: chromeLines, height: viewport.height, width: viewport.width });
     page.cleanup?.();
   }
 
+  const sizes = baseSizes.slice().sort((a, b) => a - b);
+  const baseSize = sizes.length ? sizes[Math.floor(sizes.length / 2)] : 11;
+
   // Repeated running header / footer lines across pages -> template chrome.
+  // Titles are excluded: only body-sized (or smaller) short lines qualify.
   const chrome = new Set<string>();
   if (pages.length >= 2) {
     const counts = new Map<string, number>();
     for (const pg of pages) {
-      for (const t of new Set([...pg.top, ...pg.bottom])) {
-        if (!t) continue;
-        counts.set(t, (counts.get(t) ?? 0) + 1);
+      const seen = new Set<string>();
+      for (const c of pg.chrome) {
+        if (!c.key || seen.has(c.key)) continue;
+        if (c.size > baseSize * 1.15 || c.key.length > 140) continue;
+        seen.add(c.key);
+        counts.set(c.key, (counts.get(c.key) ?? 0) + 1);
       }
     }
     const threshold = Math.max(2, Math.ceil(pages.length * 0.6));
     for (const [t, n] of counts) if (n >= threshold) chrome.add(t);
   }
-
-  const sizes = baseSizes.slice().sort((a, b) => a - b);
-  const baseSize = sizes.length ? sizes[Math.floor(sizes.length / 2)] : 11;
 
   const parts: string[] = [];
   pages.forEach((pg, idx) => {
@@ -411,12 +419,12 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
         continue;
       }
       if (b.kind === "table") {
-        const rows = b.rows.filter((r) => !chrome.has(norm(r[0].text)));
+        const rows = b.rows.filter((r) => !chrome.has(chromeKey(r[0].text)));
         if (!rows.length) continue;
         parts.push(tableHtml(rows, baseSize));
         continue;
       }
-      const lines = b.lines.filter((l) => !chrome.has(l.text) && !isPageNumber(l.text));
+      const lines = b.lines.filter((l) => !chrome.has(chromeKey(l.text)) && !isPageNumber(l.text));
       if (!lines.length) continue;
       parts.push(paraHtml(lines, baseSize, pg.width));
     }
