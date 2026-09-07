@@ -393,7 +393,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
 
     const blocks = groupBlocks(lines);
     if (keep) {
-      const imgs = await pageImages(page, viewport.height);
+      const imgs = await pageImages(page);
       blocks.push(...imgs);
     }
     blocks.sort((a, b) => b.y - a.y);
