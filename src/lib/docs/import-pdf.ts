@@ -12,6 +12,9 @@ const RENDER_MAX_WIDTH = 700;
 const MAX_IMAGE_WIDTH = 1400;
 /** Band (fraction of page height) scanned for running headers/footers. */
 const CHROME_BAND = 0.08;
+/** Wider band for artwork: letterhead logos sit a little below the very top. */
+const IMAGE_CHROME_BAND = 0.16;
+
 
 export function isPdfFile(file: File): boolean {
   return /\.pdf$/i.test(file.name) || file.type === "application/pdf";
@@ -23,6 +26,16 @@ const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 const norm = (s: string) => s.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+
+/** Arabic in PDFs arrives as presentation forms (isolated / initial / medial /
+ * final shapes) plus invisible bidi controls. NFKC folds every shape back to
+ * the plain letter and splits the لا ligature, so the text is real Arabic
+ * again — searchable, editable and correctly shaped by the browser. */
+function normalizeText(s: string): string {
+  return s
+    .normalize("NFKC")
+    .replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u00ad\ufeff]/g, "");
+}
 
 function isRtl(text: string): boolean {
   const ar = (text.match(/[\u0600-\u06FF]/g) ?? []).length;
@@ -37,6 +50,22 @@ function isPageNumber(text: string): boolean {
   const t = norm(text);
   return t.length <= 24 && /^(page|صفحة)?\s*\d+\s*(\/|of|من|-)?\s*\d*$/i.test(t);
 }
+
+/** Letterhead lines (contacts, site, generated-on stamp): our own template
+ * prints these, so they never belong in the imported body — even in a
+ * single-page file where cross-page repetition can't be measured. */
+function looksLikeLetterhead(text: string): boolean {
+  const t = norm(text);
+  if (!t) return true;
+  if (t.length > 160) return false;
+  return (
+    /[\w.+-]+@[\w-]+\.[\w.]+/.test(t) ||
+    /(https?:\/\/|www\.)/i.test(t) ||
+    /\+?\d[\d\s()-]{7,}/.test(t) ||
+    /(هاتف|جوال|الهاتف|البريد الإلكتروني|العنوان|أنشئ في|الصفحة|mechatro|tel|mobile|e-?mail|address)/i.test(t)
+  );
+}
+
 
 async function canvasToDataUrl(canvas: HTMLCanvasElement): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.86);
@@ -53,16 +82,40 @@ function fitCanvas(w: number, h: number): { canvas: HTMLCanvasElement; scale: nu
 /* ── line / block model ──────────────────────────────────── */
 
 type Frag = { text: string; x: number; endX: number; size: number; bold: boolean; italic: boolean };
-type Line = { y: number; height: number; x: number; endX: number; frags: Frag[]; text: string };
+type Line = { y: number; height: number; x: number; endX: number; frags: Frag[]; text: string; rtl: boolean };
 type Block =
   | { kind: "para"; y: number; lines: Line[] }
   | { kind: "table"; y: number; rows: Line[][] }
-  | { kind: "image"; y: number; src: string; width: number };
+  | { kind: "image"; y: number; src: string; width: number; key: string };
+
+/** Visual order is left→right; Arabic reads right→left, so the pieces of an
+ * Arabic line have to be walked backwards. A space is inserted only where the
+ * page really leaves one, so letters never drift apart mid-word. */
+function orderedFrags(frags: Frag[], rtl: boolean): Frag[] {
+  const sorted = frags.slice().sort((a, b) => a.x - b.x);
+  return rtl ? sorted.reverse() : sorted;
+}
+
+function joinFrags(frags: Frag[], rtl: boolean): string {
+  const ordered = orderedFrags(frags, rtl);
+  let out = "";
+  let prev: Frag | null = null;
+  for (const f of ordered) {
+    if (prev) {
+      const gap = rtl ? prev.x - f.endX : f.x - prev.endX;
+      const needsSpace = gap > Math.max(1, f.size * 0.18) && !/\s$/.test(out) && !/^\s/.test(f.text);
+      if (needsSpace) out += " ";
+    }
+    out += f.text;
+    prev = f;
+  }
+  return norm(out);
+}
 
 function fragsToLines(items: any[], styles: Record<string, any>): Line[] {
   const raw: Array<Frag & { y: number; h: number }> = [];
   for (const it of items) {
-    const str = String(it.str ?? "");
+    const str = normalizeText(String(it.str ?? ""));
     if (!str.trim()) continue;
     const t = it.transform as number[];
     const size = Math.abs(t?.[3] ?? 10) || 10;
@@ -91,14 +144,15 @@ function fragsToLines(items: any[], styles: Record<string, any>): Line[] {
       last.frags.push(f);
       last.height = Math.max(last.height, f.h);
     } else {
-      lines.push({ y: f.y, height: f.h, x: f.x, endX: f.endX, frags: [f], text: "" });
+      lines.push({ y: f.y, height: f.h, x: f.x, endX: f.endX, frags: [f], text: "", rtl: false });
     }
   }
   for (const l of lines) {
     l.frags.sort((a, b) => a.x - b.x);
     l.x = l.frags[0].x;
     l.endX = Math.max(...l.frags.map((f) => f.endX));
-    l.text = norm(l.frags.map((f) => f.text).join(" "));
+    l.rtl = isRtl(l.frags.map((f) => f.text).join(" "));
+    l.text = joinFrags(l.frags, l.rtl);
   }
   return lines.filter((l) => l.text.length > 0);
 }
@@ -121,9 +175,11 @@ function lineCells(line: Line): Frag[][] {
   return cells;
 }
 
-function cellsText(cells: Frag[][]): string[] {
-  return cells.map((c) => norm(c.map((f) => f.text).join(" ")));
+
+function cellsText(cells: Frag[][], rtl: boolean): string[] {
+  return cells.map((c) => joinFrags(c, rtl));
 }
+
 
 /** Group lines into paragraphs and tables. */
 function groupBlocks(lines: Line[]): Block[] {
@@ -182,6 +238,22 @@ function fragHtml(f: Frag, baseSize: number): string {
   return html;
 }
 
+/** One source line rendered in reading order, with real spacing. */
+function lineHtml(line: Line, baseSize: number): string {
+  const ordered = orderedFrags(line.frags, line.rtl);
+  let out = "";
+  let prev: Frag | null = null;
+  for (const f of ordered) {
+    if (prev) {
+      const gap = line.rtl ? prev.x - f.endX : f.x - prev.endX;
+      if (gap > Math.max(1, f.size * 0.18)) out += " ";
+    }
+    out += fragHtml(f, baseSize);
+    prev = f;
+  }
+  return out;
+}
+
 function paraHtml(lines: Line[], baseSize: number, pageWidth: number): string {
   const text = lines.map((l) => l.text).join(" ");
   const rtl = isRtl(text);
@@ -196,9 +268,7 @@ function paraHtml(lines: Line[], baseSize: number, pageWidth: number): string {
   if (Math.abs(left - right) < pageWidth * 0.04 && left > pageWidth * 0.12) align = "center";
   else if (rtl) align = "right";
 
-  const inner = lines
-    .map((l) => l.frags.map((f) => fragHtml(f, baseSize)).join(" "))
-    .join(" ");
+  const inner = lines.map((l) => lineHtml(l, baseSize)).join(" ");
 
   const style = [
     align ? `text-align:${align}` : "",
@@ -215,24 +285,59 @@ function paraHtml(lines: Line[], baseSize: number, pageWidth: number): string {
   return `<p style="${style}">${inner}</p>`;
 }
 
+/** Columns are derived from where cells start across *all* rows, so a row with
+ * an empty or merged cell still lands in the right column. */
 function tableHtml(rows: Line[][], baseSize: number): string {
-  const grid = rows.map((r) => cellsText(lineCells(r[0])));
-  const width = Math.max(...grid.map((r) => r.length));
-  const rtl = isRtl(grid.flat().join(" "));
+  const rtl = isRtl(rows.map((r) => r[0].text).join(" "));
+  const rowCells = rows.map((r) =>
+    lineCells(r[0]).map((c) => ({
+      x: Math.min(...c.map((f) => f.x)),
+      text: joinFrags(c, rtl),
+      bold: c.every((f) => f.bold),
+      size: Math.max(...c.map((f) => f.size)),
+    })),
+  );
+
+  // Cluster the cell start positions into column anchors.
+  const starts = rowCells.flat().map((c) => c.x).sort((a, b) => a - b);
+  const anchors: number[] = [];
+  for (const x of starts) {
+    const last = anchors[anchors.length - 1];
+    if (last === undefined || x - last > 14) anchors.push(x);
+  }
+  const width = Math.max(1, anchors.length);
+
+  const grid = rowCells.map((cells) => {
+    const row: string[] = new Array(width).fill("");
+    for (const c of cells) {
+      let idx = 0;
+      let best = Infinity;
+      anchors.forEach((a, i) => {
+        const d = Math.abs(a - c.x);
+        if (d < best) { best = d; idx = i; }
+      });
+      row[idx] = row[idx] ? `${row[idx]} ${c.text}` : c.text;
+    }
+    return rtl ? row.slice().reverse() : row;
+  });
+
+  const firstRow = rowCells[0] ?? [];
+  const headerish =
+    firstRow.length > 1 &&
+    (firstRow.every((c) => c.bold) || firstRow.every((c) => c.size > baseSize * 1.05));
+
   const body = grid
     .map((cells, idx) => {
-      const padded = [...cells];
-      while (padded.length < width) padded.push("");
-      const tag = idx === 0 ? "th" : "td";
-      const tds = padded
+      const tag = idx === 0 && headerish ? "th" : "td";
+      const tds = cells
         .map((c) => `<${tag} style="border:1px solid rgba(128,128,128,.45);padding:6px 8px;overflow-wrap:anywhere">${esc(c) || "&nbsp;"}</${tag}>`)
         .join("");
       return `<tr>${tds}</tr>`;
     })
     .join("");
-  void baseSize;
   return `<table style="width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed;direction:${rtl ? "rtl" : "ltr"}"><tbody>${body}</tbody></table>`;
 }
+
 
 /* ── images ──────────────────────────────────────────────── */
 
@@ -279,13 +384,22 @@ async function imageBoxes(page: any): Promise<Array<{ x: number; y: number; w: n
 }
 
 /** Crop each image region out of a rendered page — works for photos,
- * logos and vector artwork alike. */
+ * logos and vector artwork alike. Artwork sitting in the letterhead bands is
+ * skipped: our own template already prints the logo, footer and QR. */
 async function pageImages(page: any): Promise<Block[]> {
   try {
     const boxes = await imageBoxes(page);
     if (!boxes.length) return [];
     const scale = 2;
     const viewport = page.getViewport({ scale });
+    const pageHeight = viewport.height / scale;
+    const topBand = pageHeight * (1 - IMAGE_CHROME_BAND);
+    const bottomBand = pageHeight * IMAGE_CHROME_BAND;
+    const body = boxes.filter((b) => {
+      const mid = b.y + b.h / 2;
+      return mid < topBand && mid > bottomBand;
+    });
+    if (!body.length) return [];
     const full = document.createElement("canvas");
     full.width = Math.round(viewport.width);
     full.height = Math.round(viewport.height);
@@ -296,7 +410,7 @@ async function pageImages(page: any): Promise<Block[]> {
     await page.render({ canvasContext: fctx, viewport, canvas: full }).promise;
 
     const out: Block[] = [];
-    for (const b of boxes) {
+    for (const b of body) {
       const sw = Math.round(b.w * scale);
       const sh = Math.round(b.h * scale);
       const sx = Math.round(b.x * scale);
@@ -311,9 +425,11 @@ async function pageImages(page: any): Promise<Block[]> {
         y: b.y + b.h,
         src: await canvasToDataUrl(canvas),
         width: Math.min(RENDER_MAX_WIDTH, canvas.width),
+        key: [Math.round(b.x), Math.round(b.y), Math.round(b.w), Math.round(b.h)].join(":"),
       });
     }
     return out;
+
   } catch {
     return [];
   }
@@ -385,7 +501,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
   const doc = await pdfjs.getDocument({ data, isEvalSupported: false, useSystemFonts: true }).promise;
 
   type Candidate = { key: string; size: number };
-  type PageData = { blocks: Block[]; chrome: Candidate[]; height: number; width: number };
+  type PageData = { blocks: Block[]; chrome: Candidate[]; local: Set<string>; height: number; width: number };
   const pages: PageData[] = [];
   let scanned = 0;
   let baseSizes: number[] = [];
@@ -400,8 +516,9 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
       scanned += 1;
       const src = await renderPage(page);
       pages.push({
-        blocks: src ? [{ kind: "image", y: 0, src, width: RENDER_MAX_WIDTH }] : [],
+        blocks: src ? [{ kind: "image", y: 0, src, width: RENDER_MAX_WIDTH, key: `scan-${pages.length}` }] : [],
         chrome: [],
+        local: new Set<string>(),
         height: viewport.height,
         width: viewport.width,
       });
@@ -413,9 +530,16 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
 
     const topLimit = viewport.height * (1 - CHROME_BAND);
     const bottomLimit = viewport.height * CHROME_BAND;
-    const chromeLines: Candidate[] = lines
-      .filter((l) => l.y >= topLimit || l.y <= bottomLimit)
-      .map((l) => ({ key: chromeKey(l.text), size: Math.max(...l.frags.map((f) => f.size)) }));
+    const bandLines = lines.filter((l) => l.y >= topLimit || l.y <= bottomLimit);
+    const chromeLines: Candidate[] = bandLines.map((l) => ({
+      key: chromeKey(l.text),
+      size: Math.max(...l.frags.map((f) => f.size)),
+    }));
+    // Contact / address / page-stamp lines in the letterhead bands are dropped
+    // even in a one-page file, where repetition can't be measured.
+    const local = new Set<string>(
+      bandLines.filter((l) => looksLikeLetterhead(l.text) || isPageNumber(l.text)).map((l) => chromeKey(l.text)),
+    );
 
     const blocks = groupBlocks(lines);
     if (keep) {
@@ -424,9 +548,10 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
     }
     blocks.sort((a, b) => b.y - a.y);
 
-    pages.push({ blocks, chrome: chromeLines, height: viewport.height, width: viewport.width });
+    pages.push({ blocks, chrome: chromeLines, local, height: viewport.height, width: viewport.width });
     page.cleanup?.();
   }
+
 
   const sizes = baseSizes.slice().sort((a, b) => a - b);
   const baseSize = sizes.length ? sizes[Math.floor(sizes.length / 2)] : 11;
@@ -450,24 +575,30 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
   }
 
   const parts: string[] = [];
+  const seenImages = new Set<string>();
   pages.forEach((pg, idx) => {
     if (idx > 0) parts.push('<div data-page-break="true"></div>');
+    const drop = (t: string) => chrome.has(chromeKey(t)) || pg.local.has(chromeKey(t)) || isPageNumber(t);
     for (const b of pg.blocks) {
       if (b.kind === "image") {
+        // The same artwork in the same spot on several pages is letterhead.
+        if (seenImages.has(b.key)) continue;
+        seenImages.add(b.key);
         parts.push(`<p style="text-align:center"><img src="${b.src}" style="max-width:100%;height:auto" /></p>`);
         continue;
       }
       if (b.kind === "table") {
-        const rows = b.rows.filter((r) => !chrome.has(chromeKey(r[0].text)));
+        const rows = b.rows.filter((r) => !drop(r[0].text));
         if (!rows.length) continue;
         parts.push(tableHtml(rows, baseSize));
         continue;
       }
-      const lines = b.lines.filter((l) => !chrome.has(chromeKey(l.text)) && !isPageNumber(l.text));
+      const lines = b.lines.filter((l) => !drop(l.text));
       if (!lines.length) continue;
       parts.push(paraHtml(lines, baseSize, pg.width));
     }
   });
+
 
   const html = sanitizeHtml(parts.join("\n"));
   const text = htmlToText(html);
