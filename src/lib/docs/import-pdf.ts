@@ -173,9 +173,10 @@ function lineCells(line: Line): Frag[][] {
 }
 
 
-function cellsText(cells: Frag[][]): string[] {
-  return cells.map((c) => norm(c.map((f) => f.text).join(" ")));
+function cellsText(cells: Frag[][], rtl: boolean): string[] {
+  return cells.map((c) => joinFrags(c, rtl));
 }
+
 
 /** Group lines into paragraphs and tables. */
 function groupBlocks(lines: Line[]): Block[] {
