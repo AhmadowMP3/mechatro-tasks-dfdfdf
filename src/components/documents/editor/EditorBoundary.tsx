@@ -44,6 +44,6 @@ export class EditorBoundary extends Component<Props, State> {
         </div>
       );
     }
-    return <div key={this.state.key} style={{ minWidth: 0 }}>{children}</div>;
+    return <div key={this.state.key} className="doc-editor-boundary" style={{ minWidth: 0 }}>{children}</div>;
   }
 }
