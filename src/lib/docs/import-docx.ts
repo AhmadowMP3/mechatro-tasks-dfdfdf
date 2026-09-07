@@ -179,8 +179,12 @@ function cleanup(rawHtml: string): { html: string; images: number; tables: numbe
 
   // Word sometimes emits deeply nested empty spans/divs.
   host.querySelectorAll("span, div").forEach((el) => {
+    if ((el as HTMLElement).hasAttribute?.("data-page-break")) return;
     if (!el.textContent?.trim() && !el.querySelector("img, table")) el.remove();
   });
+
+  trimVerticalSpace(host);
+
 
   return { html: host.innerHTML.trim(), images: host.querySelectorAll("img").length, tables: tables.length };
 
