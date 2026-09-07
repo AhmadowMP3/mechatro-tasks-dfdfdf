@@ -130,22 +130,71 @@ async function chromeCrop(page: any, height: number): Promise<{ top: number; bot
 
 /* ── page rendering ──────────────────────────────────────── */
 
+/** Row range that actually carries ink, so the blank space a source page
+ * leaves under its own letterhead never becomes a gap in our document. */
+function inkBounds(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  y0: number,
+  h: number,
+): { top: number; bottom: number } | null {
+  try {
+    const data = ctx.getImageData(0, y0, w, h).data;
+    const minInk = Math.max(2, Math.round(w * 0.002));
+    let top = -1;
+    let bottom = -1;
+    for (let row = 0; row < h; row += 1) {
+      let ink = 0;
+      const base = row * w * 4;
+      for (let col = 0; col < w; col += 2) {
+        const i = base + col * 4;
+        if (data[i + 3] < 16) continue;
+        if (data[i] < 246 || data[i + 1] < 246 || data[i + 2] < 246) {
+          ink += 1;
+          if (ink >= minInk) break;
+        }
+      }
+      if (ink >= minInk) {
+        if (top < 0) top = row;
+        bottom = row;
+      }
+    }
+    if (top < 0 || bottom <= top) return null;
+    return { top: y0 + top, bottom: y0 + bottom };
+  } catch {
+    return null;
+  }
+}
+
 /** Render one page and return it as a JPEG data URL, minus the source
- * header / footer bands. */
+ * header / footer bands and the blank space around the real content. */
 async function renderPage(page: any, crop: { top: number; bottom: number }): Promise<string | null> {
   try {
     const viewport = page.getViewport({ scale: 2 });
     const full = document.createElement("canvas");
     full.width = Math.round(viewport.width);
     full.height = Math.round(viewport.height);
-    const fctx = full.getContext("2d");
+    const fctx = full.getContext("2d", { willReadFrequently: true });
     if (!fctx) return null;
     fctx.fillStyle = "#ffffff";
     fctx.fillRect(0, 0, full.width, full.height);
     await page.render({ canvasContext: fctx, viewport, canvas: full }).promise;
 
-    const sy = Math.round(full.height * crop.top);
-    const sh = Math.max(1, Math.round(full.height * (1 - crop.top - crop.bottom)));
+    let sy = Math.round(full.height * crop.top);
+    let sh = Math.max(1, Math.round(full.height * (1 - crop.top - crop.bottom)));
+
+    // Trim the white space the source page leaves above / below its content.
+    const ink = inkBounds(fctx, full.width, sy, sh);
+    if (ink) {
+      const pad = Math.round(full.height * 0.006);
+      const top = Math.max(sy, ink.top - pad);
+      const bottom = Math.min(sy + sh, ink.bottom + pad);
+      if (bottom - top > full.height * 0.02) {
+        sy = top;
+        sh = bottom - top;
+      }
+    }
+
     const out = fitCanvas(full.width, sh);
     const ctx = out.getContext("2d");
     if (!ctx) return null;
@@ -157,6 +206,7 @@ async function renderPage(page: any, crop: { top: number; bottom: number }): Pro
     return null;
   }
 }
+
 
 /** Plain text of a page — used for the digest the AI reads, never rendered. */
 async function pageText(page: any): Promise<string> {
