@@ -169,9 +169,8 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     if (!file) return;
     try {
       setReconverting(true);
-      const res = isPdfFile(file)
-        ? await convertPdf(file, { keepFormatting: next })
-        : await convertDocx(file, { keepFormatting: next });
+      const res = await convertDocx(file, { keepFormatting: next });
+
       setImported(res);
     } catch (e) {
       toast.error((e as Error).message);
