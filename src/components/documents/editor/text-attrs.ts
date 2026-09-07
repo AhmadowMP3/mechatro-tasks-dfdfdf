@@ -144,7 +144,19 @@ export const Subscript = Mark.create({
   },
 });
 
-/** Inline `style` on <span> that TextStyle does not already cover. */
+/** Inline `style` on <span> that TextStyle does not already cover.
+ *  Colour, size and family already travel on TextStyle — keeping them here as
+ *  well would nest a second identical <span> on every export. */
+const OWNED_BY_TEXTSTYLE = /^\s*(color|font-size|font-family|background-color)\s*:/i;
+
+const inlineRest = (el: HTMLElement): string | null => {
+  const rest = (safeStyle(el.getAttribute("style")) ?? "")
+    .split(";")
+    .filter((d) => d.trim() && !OWNED_BY_TEXTSTYLE.test(d))
+    .join(";");
+  return rest || null;
+};
+
 export const InlineStyle = Mark.create({
   name: "inlineStyle",
   priority: 90,
@@ -152,7 +164,7 @@ export const InlineStyle = Mark.create({
     return {
       keepStyle: {
         default: null,
-        parseHTML: (el) => safeStyle((el as HTMLElement).getAttribute("style")),
+        parseHTML: (el) => inlineRest(el as HTMLElement),
         renderHTML: (attrs) => (attrs.keepStyle ? { style: String(attrs.keepStyle) } : {}),
       },
     };
@@ -161,15 +173,7 @@ export const InlineStyle = Mark.create({
     return [
       {
         tag: "span[style]",
-        getAttrs: (el) => {
-          // Colour, size and family already travel on TextStyle — keeping them
-          // here too would nest a second identical <span> on every export.
-          const rest = safeStyle((el as HTMLElement).getAttribute("style"))
-            ?.split(";")
-            .filter((d) => !/^\s*(color|font-size|font-family|background-color)\s*:/i.test(d))
-            .join(";");
-          return rest ? { keepStyle: rest } : false;
-        },
+        getAttrs: (el) => (inlineRest(el as HTMLElement) ? {} : false),
       },
     ];
   },
