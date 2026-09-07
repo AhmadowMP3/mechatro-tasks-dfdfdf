@@ -290,10 +290,36 @@ class Numbering {
 }
 
 /* ── image resolution ─────────────────────────────────────────── */
-type Media = { rels: Map<string, string>; files: Map<string, string> };
+type Media = { rels: Map<string, string>; files: Map<string, string | null> };
+
+/** Word stores EMF/WMF/TIFF fallbacks that no browser can decode. Detect the
+ * real format from the file signature instead of trusting the extension. */
+function sniffImageType(bytes: Uint8Array): string | null {
+  const b = bytes;
+  if (b.length < 12) return null;
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return "image/gif";
+  if (b[0] === 0x42 && b[1] === 0x4d) return "image/bmp";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+      b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+  const head = new TextDecoder().decode(b.slice(0, 200)).trim().toLowerCase();
+  if (head.startsWith("<?xml") ? head.includes("<svg") : head.startsWith("<svg")) return "image/svg+xml";
+  return null; // emf, wmf, tiff, unknown -> not renderable in the editor
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
 
 /* ── main converter ───────────────────────────────────────────── */
-export type OoxmlResult = { html: string; images: number; tables: number };
+export type OoxmlResult = { html: string; images: number; tables: number; skippedImages: number };
+
 
 export async function docxToStyledHtml(
   arrayBuffer: ArrayBuffer,
@@ -325,20 +351,23 @@ export async function docxToStyledHtml(
   const mediaUrl = async (relId: string): Promise<string | null> => {
     const target = media.rels.get(relId);
     if (!target) return null;
-    if (media.files.has(target)) return media.files.get(target)!;
+    if (media.files.has(target)) return media.files.get(target) ?? null;
     const path = target.startsWith("word/") ? target : `word/${target}`;
     const f = zip.file(path) ?? zip.file(target);
-    if (!f) return null;
-    const ext = (target.split(".").pop() ?? "png").toLowerCase();
-    const type = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/png";
-    const base64 = await f.async("base64");
-    const url = await opts.shrink(`data:${type};base64,${base64}`, type);
+    if (!f) { media.files.set(target, null); return null; }
+    const bytes = await f.async("uint8array");
+    const type = sniffImageType(bytes);
+    if (!type) { media.files.set(target, null); return null; }
+    const raw = `data:${type};base64,${bytesToBase64(bytes)}`;
+    const url = type === "image/svg+xml" ? raw : await opts.shrink(raw, type);
     media.files.set(target, url);
     return url;
   };
 
   let images = 0;
   let tables = 0;
+  let skippedImages = 0;
+
 
   /* runs */
   const renderRun = async (r: Element, paraStyleId?: string): Promise<string> => {
@@ -359,6 +388,8 @@ export async function docxToStyledHtml(
           inner += attr(node, "type") === "page" ? "\u0000PAGEBREAK\u0000" : "<br>";
           break;
         case "drawing":
+        case "object":
+        case "AlternateContent":
         case "pict": {
           const html = await renderDrawing(node);
           if (html) { inner += html; images += 1; }
@@ -385,29 +416,39 @@ export async function docxToStyledHtml(
   };
 
   const renderDrawing = async (node: Element): Promise<string> => {
-    // <a:blip r:embed="rIdN"> anywhere below, plus wp:extent for the size.
-    const blip = node.getElementsByTagName("*");
-    let relId: string | null = null;
+    // Collect every candidate relationship below this node: modern <a:blip>,
+    // legacy <v:imagedata>, and the raster fallbacks Word keeps beside EMF/WMF.
+    const REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+    const candidates: string[] = [];
     let widthPx = 0;
-    for (const el of Array.from(blip)) {
+    for (const el of Array.from(node.getElementsByTagName("*"))) {
       if (el.localName === "blip") {
-        relId = el.getAttribute("r:embed") ?? el.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "embed");
+        const id = el.getAttribute("r:embed") ?? el.getAttributeNS(REL_NS, "embed")
+          ?? el.getAttribute("r:link") ?? el.getAttributeNS(REL_NS, "link");
+        if (id) candidates.push(id);
       }
-      if (el.localName === "extent") {
+      if (el.localName === "imagedata") {
+        const id = el.getAttribute("r:id") ?? el.getAttributeNS(REL_NS, "id");
+        if (id) candidates.push(id);
+      }
+      if (el.localName === "extent" && !widthPx) {
         const cx = Number(el.getAttribute("cx") ?? 0);
         if (cx) widthPx = emuToPx(cx);
       }
-      if (el.localName === "imagedata") {
-        relId = el.getAttribute("r:id") ?? el.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
-      }
     }
-    if (!relId) return "";
-    const url = await mediaUrl(relId);
-    if (!url) return "";
+    if (!candidates.length) return "";
+
+    let url: string | null = null;
+    for (const id of candidates) {
+      url = await mediaUrl(id);
+      if (url) break;
+    }
+    if (!url) { skippedImages += 1; return ""; }
     const w = widthPx ? Math.min(widthPx, opts.maxImageWidth) : 0;
     const style = w ? `width:${w}px;max-width:100%;height:auto` : `max-width:100%;height:auto`;
     return `<img src="${url}" style="${style}">`;
   };
+
 
   /* paragraphs */
   const renderParagraph = async (p: Element): Promise<{ html: string; props: ParaProps; empty: boolean }> => {
@@ -578,5 +619,5 @@ export async function docxToStyledHtml(
 
   // Collapse runs of blank paragraphs left over from Word spacing tricks.
   const html = out.join("").replace(/(<p><br><\/p>){3,}/g, "<p><br></p><p><br></p>");
-  return { html, images, tables };
+  return { html, images, tables, skippedImages };
 }

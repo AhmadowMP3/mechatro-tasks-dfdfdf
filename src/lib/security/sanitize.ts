@@ -82,7 +82,7 @@ const HTML_CONFIG: Record<string, unknown> = {
     "data-items", "data-doc-field", "data-page-break", "data-continued", "data-align",
     "data-colwidth", "data-color", "data-background-color",
   ],
-  ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|data:image\/(?:png|jpe?g|gif|webp|svg\+xml);base64,|#|\/)/i,
+  ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|data:image\/(?:png|jpe?g|gif|webp|bmp|svg\+xml);base64,|#|\/)/i,
   FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "link", "meta", "base"],
   FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "formaction", "srcdoc", "xlink:href"],
 };
