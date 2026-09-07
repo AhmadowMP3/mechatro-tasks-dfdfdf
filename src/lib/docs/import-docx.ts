@@ -115,26 +115,66 @@ function trimVerticalSpace(host: HTMLElement): void {
 
   // 3. Drop blank blocks at the very start, at the very end, and around every
   //    page break, then flatten the top spacing of whatever begins a page.
-  const dropBlanksFrom = (start: Element | null, dir: "next" | "prev") => {
+  //    Word often wraps the leading spacers in a section/div, so we descend
+  //    into the first container instead of stopping at it.
+  const CONTAINER = /^(DIV|SECTION|ARTICLE|MAIN|BODY)$/;
+
+  const dropBlanksFrom = (start: Element | null, dir: "next" | "prev"): Element | null => {
     let node = start;
-    while (node && isBlankBlock(node)) {
-      const following = dir === "next" ? node.nextElementSibling : node.previousElementSibling;
-      node.remove();
-      node = following;
+    while (node) {
+      if (isBlankBlock(node)) {
+        const following = dir === "next" ? node.nextElementSibling : node.previousElementSibling;
+        node.remove();
+        node = following;
+        continue;
+      }
+      // Real content, but it may be a wrapper whose own first children are blank.
+      if (CONTAINER.test(node.tagName) && node.firstElementChild) {
+        const inner = dropBlanksFrom(dir === "next" ? node.firstElementChild : node.lastElementChild, dir);
+        return inner ?? node;
+      }
+      return node;
     }
-    return node;
+    return null;
+  };
+
+  /** Zero the top spacing of an element and every wrapper it starts. */
+  const zeroTopChain = (el: Element | null): void => {
+    let node = el;
+    while (node && node !== host) {
+      zeroTopSpace(node);
+      const parent = node.parentElement;
+      if (!parent || parent === host || parent.firstElementChild !== node) break;
+      node = parent;
+    }
   };
 
   const first = dropBlanksFrom(host.firstElementChild, "next");
-  if (first) zeroTopSpace(first);
+  if (first) zeroTopChain(first);
   dropBlanksFrom(host.lastElementChild, "prev");
 
   Array.from(host.querySelectorAll<HTMLElement>("[data-page-break]")).forEach((brk) => {
     dropBlanksFrom(brk.previousElementSibling, "prev");
     const after = dropBlanksFrom(brk.nextElementSibling, "next");
-    if (after) zeroTopSpace(after);
+    if (after) zeroTopChain(after);
   });
+
+  // 4. Collapse runs of blank lines anywhere in the document to a single one.
+  const collapse = (parent: Element) => {
+    let run = 0;
+    Array.from(parent.children).forEach((el) => {
+      if (isBlankBlock(el)) {
+        run += 1;
+        if (run > 1) el.remove();
+        return;
+      }
+      run = 0;
+      if (el.children.length) collapse(el);
+    });
+  };
+  collapse(host);
 }
+
 
 /** Remove Word chrome and normalise the markup for our editor. */
 
