@@ -414,29 +414,39 @@ export async function docxToStyledHtml(
   };
 
   const renderDrawing = async (node: Element): Promise<string> => {
-    // <a:blip r:embed="rIdN"> anywhere below, plus wp:extent for the size.
-    const blip = node.getElementsByTagName("*");
-    let relId: string | null = null;
+    // Collect every candidate relationship below this node: modern <a:blip>,
+    // legacy <v:imagedata>, and the raster fallbacks Word keeps beside EMF/WMF.
+    const REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+    const candidates: string[] = [];
     let widthPx = 0;
-    for (const el of Array.from(blip)) {
+    for (const el of Array.from(node.getElementsByTagName("*"))) {
       if (el.localName === "blip") {
-        relId = el.getAttribute("r:embed") ?? el.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "embed");
+        const id = el.getAttribute("r:embed") ?? el.getAttributeNS(REL_NS, "embed")
+          ?? el.getAttribute("r:link") ?? el.getAttributeNS(REL_NS, "link");
+        if (id) candidates.push(id);
       }
-      if (el.localName === "extent") {
+      if (el.localName === "imagedata") {
+        const id = el.getAttribute("r:id") ?? el.getAttributeNS(REL_NS, "id");
+        if (id) candidates.push(id);
+      }
+      if (el.localName === "extent" && !widthPx) {
         const cx = Number(el.getAttribute("cx") ?? 0);
         if (cx) widthPx = emuToPx(cx);
       }
-      if (el.localName === "imagedata") {
-        relId = el.getAttribute("r:id") ?? el.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
-      }
     }
-    if (!relId) return "";
-    const url = await mediaUrl(relId);
-    if (!url) return "";
+    if (!candidates.length) return "";
+
+    let url: string | null = null;
+    for (const id of candidates) {
+      url = await mediaUrl(id);
+      if (url) break;
+    }
+    if (!url) { skippedImages += 1; return ""; }
     const w = widthPx ? Math.min(widthPx, opts.maxImageWidth) : 0;
     const style = w ? `width:${w}px;max-width:100%;height:auto` : `max-width:100%;height:auto`;
     return `<img src="${url}" style="${style}">`;
   };
+
 
   /* paragraphs */
   const renderParagraph = async (p: Element): Promise<{ html: string; props: ParaProps; empty: boolean }> => {
