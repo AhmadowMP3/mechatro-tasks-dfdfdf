@@ -133,8 +133,9 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       while (node && guard++ < 6) {
         node.style.marginTop = "0";
         node.style.paddingTop = "0";
-        const first = node.firstElementChild;
+        const first: Element | null = node.firstElementChild;
         node = first instanceof HTMLElement ? first : null;
+
       }
     };
 
