@@ -1,4 +1,4 @@
-// Import a Word (.docx) file, let the AI read it, review everything on the
+// Import a Word (.docx) or PDF file, let the AI read it, review everything on the
 // branded A4 sheet, then approve to create the real document.
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Upload, Loader2, Check, X, Sparkles, FileText, AlertTriangle, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 import { convertDocx, guessLang, isDocxFile, isLegacyDoc, type DocxImport } from "@/lib/docs/import-docx";
+import { convertPdf, isPdfFile } from "@/lib/docs/import-pdf";
 import { analyzeImportedDoc, type DocxExtraction, type DocxItem } from "@/lib/docs/import-ai.functions";
 import { docTemplates } from "@/lib/docs/api";
 import { businessDocs, type BusinessDoc } from "@/lib/docs/docs-api";
@@ -90,8 +91,9 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
       toast.error(ar ? "صيغة .doc القديمة غير مدعومة — احفظ الملف بصيغة .docx." : "Old .doc format isn't supported — save the file as .docx.");
       return;
     }
-    if (!isDocxFile(file)) {
-      toast.error(ar ? "الملف يجب أن يكون بصيغة .docx" : "Please choose a .docx file");
+    const pdf = isPdfFile(file);
+    if (!isDocxFile(file) && !pdf) {
+      toast.error(ar ? "الملف يجب أن يكون بصيغة .docx أو .pdf" : "Please choose a .docx or .pdf file");
       return;
     }
     if (file.size > MAX_BYTES) {
@@ -104,8 +106,12 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     setStage("working");
     setAiError(null);
     try {
-      setStep(ar ? "جارٍ قراءة ملف Word…" : "Reading the Word file…");
-      const res = await convertDocx(file, { keepFormatting: keepFormat });
+      setStep(pdf
+        ? (ar ? "جارٍ قراءة ملف PDF…" : "Reading the PDF file…")
+        : (ar ? "جارٍ قراءة ملف Word…" : "Reading the Word file…"));
+      const res = pdf
+        ? await convertPdf(file, { keepFormatting: keepFormat })
+        : await convertDocx(file, { keepFormatting: keepFormat });
       setImported(res);
 
       const lang = guessLang(res.text);
@@ -167,7 +173,9 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     if (!file) return;
     try {
       setReconverting(true);
-      const res = await convertDocx(file, { keepFormatting: next });
+      const res = isPdfFile(file)
+        ? await convertPdf(file, { keepFormatting: next })
+        : await convertDocx(file, { keepFormatting: next });
       setImported(res);
     } catch (e) {
       toast.error((e as Error).message);
@@ -234,7 +242,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         valid_until: draft.validUntil || null,
         model: { ...defaultModel(), showClientBox: hasClient, html: bodyHtml() },
       });
-      toast.success(ar ? `تم إنشاء ${saved.number} من ملف Word` : `Created ${saved.number} from Word`);
+      toast.success(ar ? `تم إنشاء ${saved.number} من الملف المستورد` : `Created ${saved.number} from the imported file`);
       onCreated?.(saved);
     } catch (e) {
       toast.error((e as Error).message);
@@ -283,9 +291,9 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
           <FileText size={17} style={{ color: "var(--primary)" }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800 }}>{ar ? "استيراد من Word" : "Import from Word"}</div>
+            <div style={{ fontSize: 14, fontWeight: 800 }}>{ar ? "استيراد من Word أو PDF" : "Import from Word or PDF"}</div>
             <div style={{ fontSize: 11.5, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {fileName || (ar ? "ارفع ملف .docx وسيقوم الذكاء الاصطناعي بتعبئة البيانات" : "Upload a .docx and the AI fills the fields")}
+              {fileName || (ar ? "ارفع ملف .docx أو .pdf وسيقوم الذكاء الاصطناعي بتعبئة البيانات" : "Upload a .docx or .pdf and the AI fills the fields")}
             </div>
           </div>
           <button
@@ -312,12 +320,12 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
             >
               <Upload size={26} style={{ color: "var(--primary)" }} />
               <div style={{ marginTop: 10, fontSize: 14, fontWeight: 700 }}>
-                {ar ? "اسحب ملف .docx هنا أو اضغط للاختيار" : "Drop a .docx here, or click to choose"}
+                {ar ? "اسحب ملف .docx أو .pdf هنا أو اضغط للاختيار" : "Drop a .docx or .pdf here, or click to choose"}
               </div>
               <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted-foreground)" }}>
                 {ar
-                  ? "الألوان والخطوط والمحاذاة والجداول والصور تُستورد كما هي في الوورد — الهيدر والفوتر والشعار تبقى من القالب. الحد 20 ميغابايت."
-                  : "Colours, fonts, alignment, tables and images come across exactly as in Word — header, footer and logo stay from the template. 20 MB max."}
+                  ? "النصوص والجداول والصور تُستورد بتنسيقها — الهيدر والفوتر والشعار تبقى دائماً من القالب. الحد 20 ميغابايت."
+                  : "Text, tables and images come across with their formatting — header, footer and logo always stay from the template. 20 MB max."}
               </div>
             </div>
             <label
@@ -325,12 +333,12 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
               style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
             >
               <input type="checkbox" checked={keepFormat} onChange={(e) => setKeepFormat(e.target.checked)} />
-              {ar ? "حافظ على تنسيق الوورد (الألوان والخطوط والجداول)" : "Keep the Word formatting (colours, fonts, tables)"}
+              {ar ? "حافظ على التنسيق الأصلي (الألوان والخطوط والجداول)" : "Keep the original formatting (colours, fonts, tables)"}
             </label>
             <input
               ref={inputRef}
               type="file"
-              accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
               style={{ display: "none" }}
               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void handleFile(f); }}
             />
@@ -359,7 +367,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
                   disabled={reconverting}
                   onChange={(e) => void toggleFormatting(e.target.checked)}
                 />
-                {ar ? "حافظ على تنسيق الوورد" : "Keep the Word formatting"}
+                {ar ? "حافظ على التنسيق الأصلي" : "Keep the original formatting"}
                 {reconverting && <Loader2 size={13} className="spin" />}
               </label>
 
