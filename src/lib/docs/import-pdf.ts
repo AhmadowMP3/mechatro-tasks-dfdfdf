@@ -501,7 +501,7 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
   const doc = await pdfjs.getDocument({ data, isEvalSupported: false, useSystemFonts: true }).promise;
 
   type Candidate = { key: string; size: number };
-  type PageData = { blocks: Block[]; chrome: Candidate[]; height: number; width: number };
+  type PageData = { blocks: Block[]; chrome: Candidate[]; local: Set<string>; height: number; width: number };
   const pages: PageData[] = [];
   let scanned = 0;
   let baseSizes: number[] = [];
@@ -575,24 +575,30 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
   }
 
   const parts: string[] = [];
+  const seenImages = new Set<string>();
   pages.forEach((pg, idx) => {
     if (idx > 0) parts.push('<div data-page-break="true"></div>');
+    const drop = (t: string) => chrome.has(chromeKey(t)) || pg.local.has(chromeKey(t)) || isPageNumber(t);
     for (const b of pg.blocks) {
       if (b.kind === "image") {
+        // The same artwork in the same spot on several pages is letterhead.
+        if (seenImages.has(b.key)) continue;
+        seenImages.add(b.key);
         parts.push(`<p style="text-align:center"><img src="${b.src}" style="max-width:100%;height:auto" /></p>`);
         continue;
       }
       if (b.kind === "table") {
-        const rows = b.rows.filter((r) => !chrome.has(chromeKey(r[0].text)));
+        const rows = b.rows.filter((r) => !drop(r[0].text));
         if (!rows.length) continue;
         parts.push(tableHtml(rows, baseSize));
         continue;
       }
-      const lines = b.lines.filter((l) => !chrome.has(chromeKey(l.text)) && !isPageNumber(l.text));
+      const lines = b.lines.filter((l) => !drop(l.text));
       if (!lines.length) continue;
       parts.push(paraHtml(lines, baseSize, pg.width));
     }
   });
+
 
   const html = sanitizeHtml(parts.join("\n"));
   const text = htmlToText(html);
