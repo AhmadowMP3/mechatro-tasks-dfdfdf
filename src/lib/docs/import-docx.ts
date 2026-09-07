@@ -294,7 +294,11 @@ function normalizeWidths(host: HTMLElement): void {
           const span = Math.max(1, Number(cell.getAttribute("colspan") ?? 1));
           const pct = ratios.slice(col, col + span).reduce((a, b) => a + b, 0);
           col += span;
-          if (pct > 0) cell.setAttribute("data-colwidth", String(Math.round((pct / 100) * BODY_WIDTH_PX)));
+          if (pct > 0) {
+            const w = String(Math.round((pct / 100) * BODY_WIDTH_PX));
+            cell.setAttribute("data-colwidth", w);
+            cell.setAttribute("colwidth", w);
+          }
         });
       }
     }

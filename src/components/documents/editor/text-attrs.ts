@@ -162,8 +162,13 @@ export const InlineStyle = Mark.create({
       {
         tag: "span[style]",
         getAttrs: (el) => {
-          const style = safeStyle((el as HTMLElement).getAttribute("style"));
-          return style ? { keepStyle: style } : false;
+          // Colour, size and family already travel on TextStyle — keeping them
+          // here too would nest a second identical <span> on every export.
+          const rest = safeStyle((el as HTMLElement).getAttribute("style"))
+            ?.split(";")
+            .filter((d) => !/^\s*(color|font-size|font-family|background-color)\s*:/i.test(d))
+            .join(";");
+          return rest ? { keepStyle: rest } : false;
         },
       },
     ];
