@@ -129,7 +129,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
       }}
     >
       {/* ── Header band (identical on every template) ───────────── */}
-      <div ref={headerRef} style={{ padding: `${mg.top}px ${chromeSide}px 12px`, flexShrink: 0, position: "relative" }}>
+      <div ref={headerRef} style={{ padding: `${mg.top}px ${chromeSide}px 6px`, flexShrink: 0, position: "relative" }}>
         {/* Logo band — full width so a tall logo never squeezes the title */}
         {header.showLogo && mode === "band" && (
           <div style={{ display: "flex", justifyContent: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? (ar ? "flex-start" : "flex-end") : (ar ? "flex-end" : "flex-start"), marginBottom: 10 }}>
@@ -224,7 +224,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
 
 
       {/* ── Body ────────────────────────────────────────────────── */}
-      <div className="pdf-flow doc-page-body" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: `6px ${mg.side}px 18px`, fontSize: 12.5, lineHeight: 1.7, overflowWrap: "anywhere", display: "flex", flexDirection: "column" }}>
+      <div className="pdf-flow doc-page-body" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: `0 ${mg.side}px 18px`, fontSize: 12.5, lineHeight: 1.7, overflowWrap: "anywhere", display: "flex", flexDirection: "column" }}>
         {/* Padding-free content box — the editor measures this exact rect. */}
         <div data-doc-body-content style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
           {children}

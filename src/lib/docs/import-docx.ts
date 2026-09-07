@@ -76,6 +76,8 @@ async function shrink(dataUrl: string, contentType: string): Promise<string> {
  * of every section. Under our own header they read as a huge blank band, so we
  * strip them and clamp any oversized vertical spacing. */
 const MAX_SPACE_PT = 24;
+/** Top spacing is what stacks under our own header — keep it much tighter. */
+const MAX_TOP_SPACE_PT = 10;
 
 function isBlankBlock(el: Element): boolean {
   if (el.querySelector("img, table")) return false;
@@ -105,7 +107,9 @@ function trimVerticalSpace(host: HTMLElement): void {
     const style = (el.getAttribute("style") ?? "").replace(
       /(margin-top|margin-bottom|padding-top|padding-bottom|margin-block-start|margin-block-end)\s*:\s*(\d+(?:\.\d+)?)(pt|px)/gi,
       (_m, prop: string, val: string, unit: string) => {
-        const max = unit.toLowerCase() === "px" ? MAX_SPACE_PT * 1.333 : MAX_SPACE_PT;
+        const isTop = /top|start/i.test(prop);
+        const base = isTop ? MAX_TOP_SPACE_PT : MAX_SPACE_PT;
+        const max = unit.toLowerCase() === "px" ? base * 1.333 : base;
         const num = parseFloat(val);
         return `${prop}:${Math.min(num, max)}${unit}`;
       },
