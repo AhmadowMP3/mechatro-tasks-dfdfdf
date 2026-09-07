@@ -239,10 +239,14 @@ function readableColor(color: string | null, background: string | null): string 
   const bg = background ? colorLuminance(background) : 1;
   if (!color) return bg < 0.45 ? "#ffffff" : null;
   const fg = colorLuminance(color);
+  // Dark text on a dark cell fill is unreadable even when the raw luminance
+  // gap looks acceptable, so flip it to white.
+  if (bg < 0.45 && fg < 0.5) return "#ffffff";
   if (Math.abs(fg - bg) < 0.22) return bg < 0.5 ? "#ffffff" : "#000000";
   if (fg > 0.92 && bg > 0.9) return "#000000";
   return color;
 }
+
 
 function fragHtml(f: Frag, baseSize: number, background: string | null = null): string {
   let html = esc(f.text);
