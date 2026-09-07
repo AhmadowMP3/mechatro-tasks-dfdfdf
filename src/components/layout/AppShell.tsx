@@ -91,7 +91,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const notifsActive = pathname.startsWith("/notifications");
 
   return (
-    <div style={{ display: "flex", minHeight: "100dvh", width: "100%" }}>
+    <div style={{ display: "flex", height: "100dvh", width: "100%", overflow: "hidden" }}>
       {!isMobile && (
         <>
           <Sidebar />
@@ -119,7 +119,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
         {/* Top bar */}
         <header
           style={{
@@ -307,6 +307,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             flex: 1,
             overflow: "auto",
             minWidth: 0,
+            minHeight: 0,
           }}
         >
 
