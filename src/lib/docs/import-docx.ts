@@ -329,6 +329,8 @@ function cleanupStyled(rawHtml: string): { html: string; images: number; tables:
   });
 
   normalizeWidths(host);
+  trimVerticalSpace(host);
+
 
   return { html: host.innerHTML.trim(), images: host.querySelectorAll("img").length, tables: host.querySelectorAll("table").length };
 
