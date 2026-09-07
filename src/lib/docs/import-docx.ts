@@ -279,6 +279,9 @@ export async function convertDocx(file: File, opts?: { keepFormatting?: boolean 
       const cleaned = cleanupStyled(styled.html);
       const html = sanitizeHtml(cleaned.html);
       const text = htmlToText(html);
+      if (styled.skippedImages > 0) {
+        warnings.push(`تم تخطي ${styled.skippedImages} صورة بصيغة قديمة (EMF/WMF) لا يدعمها المتصفح.`);
+      }
       if (text.trim().length > 0 || cleaned.images > 0) {
         return {
           html,
