@@ -385,8 +385,9 @@ function tableHtml(rows: Line[][], baseSize: number, shapes: PdfShape[]): string
   });
   const borderCounts = new Map<string, number>();
   for (const shape of borderShapes) {
-    if (!shape.fill) continue;
-    borderCounts.set(shape.fill, (borderCounts.get(shape.fill) ?? 0) + 1);
+    const color = shape.stroke ?? shape.fill;
+    if (!color) continue;
+    borderCounts.set(color, (borderCounts.get(color) ?? 0) + 1);
   }
   const ranked = [...borderCounts.entries()].sort((a, b) => b[1] - a[1]).map(([color]) => color);
   const borderColor = ranked.find((color) => colorLuminance(color) < 0.93) ?? "#b7b7b7";
