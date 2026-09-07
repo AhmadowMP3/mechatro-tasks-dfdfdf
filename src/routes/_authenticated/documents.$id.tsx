@@ -193,7 +193,7 @@ function DocumentEditorPage() {
         {saving ? (ar ? "جارٍ الحفظ…" : "Saving…") : dirty ? (ar ? "تغييرات غير محفوظة" : "Unsaved changes") : (ar ? "محفوظ" : "Saved")}
       </span>
       <button className="btn-ghost" onClick={() => setImporting(true)}>
-        <FileUp size={15} /> {ar ? "استيراد من Word أو PDF" : "Import from Word or PDF"}
+        <FileUp size={15} /> {ar ? "استيراد من Word" : "Import from Word"}
       </button>
       <button className="btn-ghost" onClick={() => setPreviewOpen(true)}>
         <Eye size={15} /> {ar ? "معاينة" : "Preview"}
