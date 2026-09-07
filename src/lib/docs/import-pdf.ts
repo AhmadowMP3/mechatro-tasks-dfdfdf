@@ -1,0 +1,452 @@
+// Browser-side PDF importer. Reads a .pdf entirely in the browser (pdf.js),
+// rebuilds paragraphs, tables and images as the Word-style rich HTML our
+// editor understands, and drops the file's own running header/footer because
+// our official template supplies the header, footer, logo and QR.
+
+import { sanitizeHtml } from "@/lib/security/sanitize";
+import { buildDigest, type DocxImport } from "./import-docx";
+
+/** Rendered width cap inside the A4 sheet (matches the editor's own cap). */
+const RENDER_MAX_WIDTH = 700;
+/** Raster cap for extracted / rendered images. */
+const MAX_IMAGE_WIDTH = 1400;
+/** Band (fraction of page height) scanned for running headers/footers. */
+const CHROME_BAND = 0.12;
+
+export function isPdfFile(file: File): boolean {
+  return /\.pdf$/i.test(file.name) || file.type === "application/pdf";
+}
+
+/* ── helpers ─────────────────────────────────────────────── */
+
+const esc = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const norm = (s: string) => s.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+
+function isRtl(text: string): boolean {
+  const ar = (text.match(/[\u0600-\u06FF]/g) ?? []).length;
+  const la = (text.match(/[A-Za-z]/g) ?? []).length;
+  return ar > la;
+}
+
+function isPageNumber(text: string): boolean {
+  const t = norm(text);
+  return t.length <= 24 && /^(page|صفحة)?\s*\d+\s*(\/|of|من|-)?\s*\d*$/i.test(t);
+}
+
+async function canvasToDataUrl(canvas: HTMLCanvasElement): Promise<string> {
+  return canvas.toDataURL("image/jpeg", 0.86);
+}
+
+function fitCanvas(w: number, h: number): { canvas: HTMLCanvasElement; scale: number } {
+  const scale = w > MAX_IMAGE_WIDTH ? MAX_IMAGE_WIDTH / w : 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(w * scale));
+  canvas.height = Math.max(1, Math.round(h * scale));
+  return { canvas, scale };
+}
+
+/* ── line / block model ──────────────────────────────────── */
+
+type Frag = { text: string; x: number; endX: number; size: number; bold: boolean; italic: boolean };
+type Line = { y: number; height: number; x: number; endX: number; frags: Frag[]; text: string };
+type Block =
+  | { kind: "para"; y: number; lines: Line[] }
+  | { kind: "table"; y: number; rows: Line[][] }
+  | { kind: "image"; y: number; src: string; width: number };
+
+function fragsToLines(items: any[], styles: Record<string, any>): Line[] {
+  const raw: Array<Frag & { y: number; h: number }> = [];
+  for (const it of items) {
+    const str = String(it.str ?? "");
+    if (!str.trim()) continue;
+    const t = it.transform as number[];
+    const size = Math.abs(t?.[3] ?? 10) || 10;
+    const x = t?.[4] ?? 0;
+    const y = t?.[5] ?? 0;
+    const family = String(styles?.[it.fontName]?.fontFamily ?? "");
+    const fname = `${it.fontName ?? ""} ${family}`;
+    raw.push({
+      text: str,
+      x,
+      endX: x + (it.width ?? str.length * size * 0.5),
+      size,
+      bold: /bold|black|heavy|semibold/i.test(fname),
+      italic: /italic|oblique/i.test(fname),
+      y,
+      h: it.height || size,
+    });
+  }
+  raw.sort((a, b) => b.y - a.y || a.x - b.x);
+
+  const lines: Line[] = [];
+  for (const f of raw) {
+    const last = lines[lines.length - 1];
+    const tol = Math.max(2, f.size * 0.5);
+    if (last && Math.abs(last.y - f.y) <= tol) {
+      last.frags.push(f);
+      last.height = Math.max(last.height, f.h);
+    } else {
+      lines.push({ y: f.y, height: f.h, x: f.x, endX: f.endX, frags: [f], text: "" });
+    }
+  }
+  for (const l of lines) {
+    l.frags.sort((a, b) => a.x - b.x);
+    l.x = l.frags[0].x;
+    l.endX = Math.max(...l.frags.map((f) => f.endX));
+    l.text = norm(l.frags.map((f) => f.text).join(" "));
+  }
+  return lines.filter((l) => l.text.length > 0);
+}
+
+/** Split a line into cells wherever a wide horizontal gap appears. */
+function lineCells(line: Line): Frag[][] {
+  const cells: Frag[][] = [];
+  let current: Frag[] = [];
+  let prev: Frag | null = null;
+  for (const f of line.frags) {
+    const gap = prev ? f.x - prev.endX : 0;
+    if (prev && gap > Math.max(12, f.size * 1.6)) {
+      cells.push(current);
+      current = [];
+    }
+    current.push(f);
+    prev = f;
+  }
+  if (current.length) cells.push(current);
+  return cells;
+}
+
+function cellsText(cells: Frag[][]): string[] {
+  return cells.map((c) => norm(c.map((f) => f.text).join(" ")));
+}
+
+/** Group lines into paragraphs and tables. */
+function groupBlocks(lines: Line[]): Block[] {
+  const blocks: Block[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const cols = lineCells(lines[i]).length;
+    if (cols >= 2) {
+      // Collect a run of similarly-columned lines -> one table.
+      const run: Line[] = [lines[i]];
+      let j = i + 1;
+      while (j < lines.length) {
+        const c = lineCells(lines[j]).length;
+        const gap = lines[j - 1].y - lines[j].y;
+        if (c < 2 || gap > Math.max(28, lines[j].height * 3)) break;
+        run.push(lines[j]);
+        j += 1;
+      }
+      if (run.length >= 2) {
+        blocks.push({ kind: "table", y: run[0].y, rows: run.map((l) => [l]) });
+        i = j;
+        continue;
+      }
+    }
+    // Paragraph: merge tightly-spaced following single-column lines.
+    const para: Line[] = [lines[i]];
+    let k = i + 1;
+    while (k < lines.length) {
+      const gap = lines[k - 1].y - lines[k].y;
+      const lead = Math.max(lines[k].height, lines[k - 1].height);
+      if (lineCells(lines[k]).length >= 2) break;
+      if (gap > lead * 1.7) break;
+      para.push(lines[k]);
+      k += 1;
+    }
+    blocks.push({ kind: "para", y: para[0].y, lines: para });
+    i = k;
+  }
+  return blocks;
+}
+
+/* ── HTML rendering ──────────────────────────────────────── */
+
+function fragHtml(f: Frag, baseSize: number): string {
+  let html = esc(f.text);
+  if (f.bold) html = `<strong>${html}</strong>`;
+  if (f.italic) html = `<em>${html}</em>`;
+  const ratio = f.size / baseSize;
+  if (ratio >= 1.15 || ratio <= 0.85) {
+    html = `<span style="font-size:${Math.round(Math.min(28, Math.max(8, f.size)) * 10) / 10}pt">${html}</span>`;
+  }
+  return html;
+}
+
+function paraHtml(lines: Line[], baseSize: number, pageWidth: number): string {
+  const text = lines.map((l) => l.text).join(" ");
+  const rtl = isRtl(text);
+  const size = Math.max(...lines.map((l) => Math.max(...l.frags.map((f) => f.size))));
+  const bigger = size >= baseSize * 1.35;
+  const allBold = lines.every((l) => l.frags.every((f) => f.bold));
+
+  // Centred? compare left/right slack against the page box.
+  const left = Math.min(...lines.map((l) => l.x));
+  const right = pageWidth - Math.max(...lines.map((l) => l.endX));
+  let align = "";
+  if (Math.abs(left - right) < pageWidth * 0.04 && left > pageWidth * 0.12) align = "center";
+  else if (rtl) align = "right";
+
+  const inner = lines
+    .map((l) => l.frags.map((f) => fragHtml(f, baseSize)).join(" "))
+    .join(" ");
+
+  const style = [
+    align ? `text-align:${align}` : "",
+    rtl ? "direction:rtl" : "direction:ltr",
+  ].filter(Boolean).join(";");
+
+  if ((bigger || (allBold && text.length < 90)) && text.length < 140) {
+    const level = size >= baseSize * 1.7 ? 1 : size >= baseSize * 1.35 ? 2 : 3;
+    return `<h${level} style="${style}">${inner}</h${level}>`;
+  }
+  if (/^\s*([•▪◦\-–*]|\d+[.)]|[أ-ي][.)])\s+/.test(text)) {
+    return `<p style="${style};margin-inline-start:18pt">${inner}</p>`;
+  }
+  return `<p style="${style}">${inner}</p>`;
+}
+
+function tableHtml(rows: Line[][], baseSize: number): string {
+  const grid = rows.map((r) => cellsText(lineCells(r[0])));
+  const width = Math.max(...grid.map((r) => r.length));
+  const rtl = isRtl(grid.flat().join(" "));
+  const body = grid
+    .map((cells, idx) => {
+      const padded = [...cells];
+      while (padded.length < width) padded.push("");
+      const tag = idx === 0 ? "th" : "td";
+      const tds = padded
+        .map((c) => `<${tag} style="border:1px solid rgba(128,128,128,.45);padding:6px 8px;overflow-wrap:anywhere">${esc(c) || "&nbsp;"}</${tag}>`)
+        .join("");
+      return `<tr>${tds}</tr>`;
+    })
+    .join("");
+  void baseSize;
+  return `<table style="width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed;direction:${rtl ? "rtl" : "ltr"}"><tbody>${body}</tbody></table>`;
+}
+
+/* ── images ──────────────────────────────────────────────── */
+
+async function imageToDataUrl(obj: any): Promise<{ src: string; width: number } | null> {
+  try {
+    if (!obj) return null;
+    const w = obj.width ?? obj.bitmap?.width;
+    const h = obj.height ?? obj.bitmap?.height;
+    if (!w || !h || w < 24 || h < 24) return null;
+    const { canvas } = fitCanvas(w, h);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    if (obj.bitmap) {
+      ctx.drawImage(obj.bitmap, 0, 0, canvas.width, canvas.height);
+    } else if (obj.data) {
+      const src = document.createElement("canvas");
+      src.width = w;
+      src.height = h;
+      const sctx = src.getContext("2d");
+      if (!sctx) return null;
+      const img = sctx.createImageData(w, h);
+      const data: Uint8Array | Uint8ClampedArray = obj.data;
+      if (data.length === w * h * 4) {
+        img.data.set(data);
+      } else if (data.length === w * h * 3) {
+        for (let i = 0, j = 0; i < w * h; i += 1, j += 3) {
+          img.data[i * 4] = data[j];
+          img.data[i * 4 + 1] = data[j + 1];
+          img.data[i * 4 + 2] = data[j + 2];
+          img.data[i * 4 + 3] = 255;
+        }
+      } else return null;
+      sctx.putImageData(img, 0, 0);
+      ctx.drawImage(src, 0, 0, canvas.width, canvas.height);
+    } else return null;
+
+    const url = await canvasToDataUrl(canvas);
+    return { src: url, width: Math.min(RENDER_MAX_WIDTH, canvas.width) };
+  } catch {
+    return null;
+  }
+}
+
+async function pageImages(page: any, viewportHeight: number): Promise<Block[]> {
+  const out: Block[] = [];
+  try {
+    const ops = await page.getOperatorList();
+    const OPS = (await loadPdfjs()).OPS;
+    const paint = new Set([OPS.paintImageXObject, OPS.paintJpegXObject, OPS.paintInlineImageXObject]);
+    let ctm: number[] | null = null;
+    for (let i = 0; i < ops.fnArray.length; i += 1) {
+      const fn = ops.fnArray[i];
+      if (fn === OPS.transform) ctm = ops.argsArray[i] as number[];
+      if (!paint.has(fn)) continue;
+      const name = ops.argsArray[i]?.[0];
+      let obj: any = null;
+      if (typeof name === "string") {
+        obj = await new Promise((res) => {
+          try {
+            page.objs.get(name, res);
+          } catch {
+            res(null);
+          }
+        }).catch(() => null);
+      } else if (name && typeof name === "object") {
+        obj = name;
+      }
+      const img = await imageToDataUrl(obj);
+      if (img) out.push({ kind: "image", y: ctm?.[5] ?? viewportHeight, src: img.src, width: img.width });
+      if (out.length >= 12) break;
+    }
+  } catch {
+    /* images are best-effort */
+  }
+  return out;
+}
+
+async function renderPage(page: any): Promise<string | null> {
+  try {
+    const viewport = page.getViewport({ scale: 2 });
+    const { canvas } = fitCanvas(viewport.width, viewport.height);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    const scale = canvas.width / viewport.width;
+    await page.render({ canvasContext: ctx, viewport: page.getViewport({ scale: 2 * scale }), canvas }).promise;
+    return await canvasToDataUrl(canvas);
+  } catch {
+    return null;
+  }
+}
+
+/* ── pdf.js loader ───────────────────────────────────────── */
+
+let pdfjsPromise: Promise<any> | null = null;
+async function loadPdfjs(): Promise<any> {
+  if (!pdfjsPromise) {
+    pdfjsPromise = (async () => {
+      const lib: any = await import("pdfjs-dist/build/pdf.mjs");
+      const workerUrl = (await import("pdfjs-dist/build/pdf.worker.mjs?url")).default;
+      lib.GlobalWorkerOptions.workerSrc = workerUrl;
+      return lib;
+    })();
+  }
+  return pdfjsPromise;
+}
+
+/* ── main conversion ─────────────────────────────────────── */
+
+export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }): Promise<DocxImport> {
+  const keep = opts?.keepFormatting !== false;
+  const warnings: string[] = [];
+  const pdfjs = await loadPdfjs();
+  const data = new Uint8Array(await file.arrayBuffer());
+  const doc = await pdfjs.getDocument({ data, isEvalSupported: false, useSystemFonts: true }).promise;
+
+  type PageData = { blocks: Block[]; top: string[]; bottom: string[]; height: number; width: number };
+  const pages: PageData[] = [];
+  let scanned = 0;
+  let baseSizes: number[] = [];
+
+  for (let p = 1; p <= doc.numPages; p += 1) {
+    const page = await doc.getPage(p);
+    const viewport = page.getViewport({ scale: 1 });
+    const content = await page.getTextContent();
+    const lines = fragsToLines(content.items ?? [], content.styles ?? {});
+
+    if (!lines.length) {
+      scanned += 1;
+      const src = await renderPage(page);
+      pages.push({
+        blocks: src ? [{ kind: "image", y: 0, src, width: RENDER_MAX_WIDTH }] : [],
+        top: [],
+        bottom: [],
+        height: viewport.height,
+        width: viewport.width,
+      });
+      page.cleanup?.();
+      continue;
+    }
+
+    baseSizes = baseSizes.concat(lines.flatMap((l) => l.frags.map((f) => f.size)));
+
+    const topLimit = viewport.height * (1 - CHROME_BAND);
+    const bottomLimit = viewport.height * CHROME_BAND;
+    const top = lines.filter((l) => l.y >= topLimit).map((l) => norm(l.text));
+    const bottom = lines.filter((l) => l.y <= bottomLimit).map((l) => norm(l.text));
+
+    const blocks = groupBlocks(lines);
+    if (keep) {
+      const imgs = await pageImages(page, viewport.height);
+      blocks.push(...imgs);
+    }
+    blocks.sort((a, b) => b.y - a.y);
+
+    pages.push({ blocks, top, bottom, height: viewport.height, width: viewport.width });
+    page.cleanup?.();
+  }
+
+  // Repeated running header / footer lines across pages -> template chrome.
+  const chrome = new Set<string>();
+  if (pages.length >= 2) {
+    const counts = new Map<string, number>();
+    for (const pg of pages) {
+      for (const t of new Set([...pg.top, ...pg.bottom])) {
+        if (!t) continue;
+        counts.set(t, (counts.get(t) ?? 0) + 1);
+      }
+    }
+    const threshold = Math.max(2, Math.ceil(pages.length * 0.6));
+    for (const [t, n] of counts) if (n >= threshold) chrome.add(t);
+  }
+
+  const sizes = baseSizes.slice().sort((a, b) => a - b);
+  const baseSize = sizes.length ? sizes[Math.floor(sizes.length / 2)] : 11;
+
+  const parts: string[] = [];
+  pages.forEach((pg, idx) => {
+    if (idx > 0) parts.push('<div data-page-break="true"></div>');
+    for (const b of pg.blocks) {
+      if (b.kind === "image") {
+        parts.push(`<p style="text-align:center"><img src="${b.src}" style="max-width:100%;height:auto" /></p>`);
+        continue;
+      }
+      if (b.kind === "table") {
+        const rows = b.rows.filter((r) => !chrome.has(norm(r[0].text)));
+        if (!rows.length) continue;
+        parts.push(tableHtml(rows, baseSize));
+        continue;
+      }
+      const lines = b.lines.filter((l) => !chrome.has(l.text) && !isPageNumber(l.text));
+      if (!lines.length) continue;
+      parts.push(paraHtml(lines, baseSize, pg.width));
+    }
+  });
+
+  const html = sanitizeHtml(parts.join("\n"));
+  const text = htmlToText(html);
+  const images = (html.match(/<img /g) ?? []).length;
+  const tables = (html.match(/<table/g) ?? []).length;
+
+  if (scanned > 0) {
+    warnings.push(
+      `${scanned} page(s) had no selectable text and were imported as page images.`,
+    );
+  }
+  if (!text.trim() && !images) warnings.push("No readable content was found in this PDF.");
+
+  try {
+    await doc.destroy();
+  } catch {
+    /* ignore */
+  }
+
+  return { html, text, digest: buildDigest(html) || text, warnings: warnings.slice(0, 8), images, tables };
+}
+
+function htmlToText(html: string): string {
+  if (typeof document === "undefined") return "";
+  const host = document.createElement("div");
+  host.innerHTML = html;
+  host.querySelectorAll("p, div, li, tr, h1, h2, h3, br").forEach((el) => el.append("\n"));
+  return (host.textContent ?? "").replace(/\u00a0/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
