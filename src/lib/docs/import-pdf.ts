@@ -235,6 +235,22 @@ function fragHtml(f: Frag, baseSize: number): string {
   return html;
 }
 
+/** One source line rendered in reading order, with real spacing. */
+function lineHtml(line: Line, baseSize: number): string {
+  const ordered = orderedFrags(line.frags, line.rtl);
+  let out = "";
+  let prev: Frag | null = null;
+  for (const f of ordered) {
+    if (prev) {
+      const gap = line.rtl ? prev.x - f.endX : f.x - prev.endX;
+      if (gap > Math.max(1, f.size * 0.18)) out += " ";
+    }
+    out += fragHtml(f, baseSize);
+    prev = f;
+  }
+  return out;
+}
+
 function paraHtml(lines: Line[], baseSize: number, pageWidth: number): string {
   const text = lines.map((l) => l.text).join(" ");
   const rtl = isRtl(text);
@@ -249,9 +265,7 @@ function paraHtml(lines: Line[], baseSize: number, pageWidth: number): string {
   if (Math.abs(left - right) < pageWidth * 0.04 && left > pageWidth * 0.12) align = "center";
   else if (rtl) align = "right";
 
-  const inner = lines
-    .map((l) => l.frags.map((f) => fragHtml(f, baseSize)).join(" "))
-    .join(" ");
+  const inner = lines.map((l) => lineHtml(l, baseSize)).join(" ");
 
   const style = [
     align ? `text-align:${align}` : "",
@@ -268,24 +282,59 @@ function paraHtml(lines: Line[], baseSize: number, pageWidth: number): string {
   return `<p style="${style}">${inner}</p>`;
 }
 
+/** Columns are derived from where cells start across *all* rows, so a row with
+ * an empty or merged cell still lands in the right column. */
 function tableHtml(rows: Line[][], baseSize: number): string {
-  const grid = rows.map((r) => cellsText(lineCells(r[0])));
-  const width = Math.max(...grid.map((r) => r.length));
-  const rtl = isRtl(grid.flat().join(" "));
+  const rtl = isRtl(rows.map((r) => r[0].text).join(" "));
+  const rowCells = rows.map((r) =>
+    lineCells(r[0]).map((c) => ({
+      x: Math.min(...c.map((f) => f.x)),
+      text: joinFrags(c, rtl),
+      bold: c.every((f) => f.bold),
+      size: Math.max(...c.map((f) => f.size)),
+    })),
+  );
+
+  // Cluster the cell start positions into column anchors.
+  const starts = rowCells.flat().map((c) => c.x).sort((a, b) => a - b);
+  const anchors: number[] = [];
+  for (const x of starts) {
+    const last = anchors[anchors.length - 1];
+    if (last === undefined || x - last > 14) anchors.push(x);
+  }
+  const width = Math.max(1, anchors.length);
+
+  const grid = rowCells.map((cells) => {
+    const row: string[] = new Array(width).fill("");
+    for (const c of cells) {
+      let idx = 0;
+      let best = Infinity;
+      anchors.forEach((a, i) => {
+        const d = Math.abs(a - c.x);
+        if (d < best) { best = d; idx = i; }
+      });
+      row[idx] = row[idx] ? `${row[idx]} ${c.text}` : c.text;
+    }
+    return rtl ? row.slice().reverse() : row;
+  });
+
+  const firstRow = rowCells[0] ?? [];
+  const headerish =
+    firstRow.length > 1 &&
+    (firstRow.every((c) => c.bold) || firstRow.every((c) => c.size > baseSize * 1.05));
+
   const body = grid
     .map((cells, idx) => {
-      const padded = [...cells];
-      while (padded.length < width) padded.push("");
-      const tag = idx === 0 ? "th" : "td";
-      const tds = padded
+      const tag = idx === 0 && headerish ? "th" : "td";
+      const tds = cells
         .map((c) => `<${tag} style="border:1px solid rgba(128,128,128,.45);padding:6px 8px;overflow-wrap:anywhere">${esc(c) || "&nbsp;"}</${tag}>`)
         .join("");
       return `<tr>${tds}</tr>`;
     })
     .join("");
-  void baseSize;
   return `<table style="width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed;direction:${rtl ? "rtl" : "ltr"}"><tbody>${body}</tbody></table>`;
 }
+
 
 /* ── images ──────────────────────────────────────────────── */
 
