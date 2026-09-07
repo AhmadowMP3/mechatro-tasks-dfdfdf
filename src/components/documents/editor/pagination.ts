@@ -56,7 +56,17 @@ export const PageLayout = Extension.create({
             const decos: Decoration[] = [];
 
             for (const s of spacers) {
-              if (!(s.h > 0.5) || s.pos < 0 || s.pos > docSize) continue;
+              if (s.pos < 0 || s.pos > docSize) continue;
+
+              if (s.kind === "class") {
+                if (s.cls && s.end !== undefined && s.end > s.pos && s.end <= docSize) {
+                  decos.push(Decoration.node(s.pos, s.end, { class: s.cls }));
+                }
+                continue;
+              }
+
+              if (!(s.h > 0.5)) continue;
+
 
               if (s.kind === "row" && s.end !== undefined && s.end > s.pos && s.end <= docSize) {
                 decos.push(
