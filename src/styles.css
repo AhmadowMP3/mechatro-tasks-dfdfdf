@@ -1168,17 +1168,35 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 
 .doc-ribbon {
   position: sticky;
-  top: 8px;
-  z-index: 5;
+  /* Pinned to the very top of the scrolling work area so the toolbar and the
+     save / PDF actions stay reachable while writing long documents. */
+  top: 0;
+  z-index: 40;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   padding: 8px;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--card) 92%, transparent);
-  backdrop-filter: blur(10px);
+  /* Opaque: the A4 sheets must never show through the pinned bar. */
+  background: var(--card);
+  box-shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.8);
   direction: ltr;
+  /* Never let the bar eat the screen on short viewports. */
+  max-height: 45vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 767px) {
+  .doc-ribbon {
+    max-height: 40vh;
+    gap: 5px;
+    padding: 7px;
+  }
+}
+/* Sticky only works when no ancestor clips or transforms it. */
+.doc-editor {
+  overflow: visible;
 }
 .doc-ribbon-group {
   display: flex;
