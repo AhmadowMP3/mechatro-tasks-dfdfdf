@@ -91,9 +91,8 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
       toast.error(ar ? "صيغة .doc القديمة غير مدعومة — احفظ الملف بصيغة .docx." : "Old .doc format isn't supported — save the file as .docx.");
       return;
     }
-    const pdf = isPdfFile(file);
-    if (!isDocxFile(file) && !pdf) {
-      toast.error(ar ? "الملف يجب أن يكون بصيغة .docx أو .pdf" : "Please choose a .docx or .pdf file");
+    if (!isDocxFile(file)) {
+      toast.error(ar ? "الملف يجب أن يكون بصيغة .docx" : "Please choose a .docx file");
       return;
     }
     if (file.size > MAX_BYTES) {
@@ -106,12 +105,9 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     setStage("working");
     setAiError(null);
     try {
-      setStep(pdf
-        ? (ar ? "جارٍ تحويل صفحات PDF إلى صور…" : "Converting the PDF pages to images…")
-        : (ar ? "جارٍ قراءة ملف Word…" : "Reading the Word file…"));
-      const res = pdf
-        ? await convertPdf(file, { keepFormatting: keepFormat })
-        : await convertDocx(file, { keepFormatting: keepFormat });
+      setStep(ar ? "جارٍ قراءة ملف Word…" : "Reading the Word file…");
+      const res = await convertDocx(file, { keepFormatting: keepFormat });
+
       setImported(res);
 
       const lang = guessLang(res.text);
