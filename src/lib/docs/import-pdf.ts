@@ -381,13 +381,22 @@ async function imageBoxes(page: any): Promise<Array<{ x: number; y: number; w: n
 }
 
 /** Crop each image region out of a rendered page — works for photos,
- * logos and vector artwork alike. */
+ * logos and vector artwork alike. Artwork sitting in the letterhead bands is
+ * skipped: our own template already prints the logo, footer and QR. */
 async function pageImages(page: any): Promise<Block[]> {
   try {
     const boxes = await imageBoxes(page);
     if (!boxes.length) return [];
     const scale = 2;
     const viewport = page.getViewport({ scale });
+    const pageHeight = viewport.height / scale;
+    const topBand = pageHeight * (1 - IMAGE_CHROME_BAND);
+    const bottomBand = pageHeight * IMAGE_CHROME_BAND;
+    const body = boxes.filter((b) => {
+      const mid = b.y + b.h / 2;
+      return mid < topBand && mid > bottomBand;
+    });
+    if (!body.length) return [];
     const full = document.createElement("canvas");
     full.width = Math.round(viewport.width);
     full.height = Math.round(viewport.height);
@@ -398,7 +407,7 @@ async function pageImages(page: any): Promise<Block[]> {
     await page.render({ canvasContext: fctx, viewport, canvas: full }).promise;
 
     const out: Block[] = [];
-    for (const b of boxes) {
+    for (const b of body) {
       const sw = Math.round(b.w * scale);
       const sh = Math.round(b.h * scale);
       const sx = Math.round(b.x * scale);
@@ -413,9 +422,11 @@ async function pageImages(page: any): Promise<Block[]> {
         y: b.y + b.h,
         src: await canvasToDataUrl(canvas),
         width: Math.min(RENDER_MAX_WIDTH, canvas.width),
+        key: [Math.round(b.x), Math.round(b.y), Math.round(b.w), Math.round(b.h)].join(":"),
       });
     }
     return out;
+
   } catch {
     return [];
   }
