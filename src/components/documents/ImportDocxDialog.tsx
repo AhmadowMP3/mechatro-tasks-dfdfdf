@@ -1,4 +1,4 @@
-// Import a Word (.docx) or PDF file, let the AI read it, review everything on the
+// Import a Word (.docx) file, let the AI read it, review everything on the
 // branded A4 sheet, then approve to create the real document.
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Upload, Loader2, Check, X, Sparkles, FileText, AlertTriangle, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 import { convertDocx, guessLang, isDocxFile, isLegacyDoc, type DocxImport } from "@/lib/docs/import-docx";
-import { convertPdf, isPdfFile } from "@/lib/docs/import-pdf";
+
 import { analyzeImportedDoc, type DocxExtraction, type DocxItem } from "@/lib/docs/import-ai.functions";
 import { docTemplates } from "@/lib/docs/api";
 import { businessDocs, type BusinessDoc } from "@/lib/docs/docs-api";
