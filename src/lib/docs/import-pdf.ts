@@ -260,9 +260,6 @@ async function imageBoxes(page: any): Promise<Array<{ x: number; y: number; w: n
       .filter((v) => typeof v === "number"),
   );
   const ops = await page.getOperatorList();
-  const names: any = {}; for (const k in OPS) names[(OPS as any)[k]] = k;
-  const seq = ops.fnArray.map((f: number) => names[f]);
-  const g: any = globalThis; g.__imgDbg = g.__imgDbg || []; g.__imgDbg.push({ seq: seq.filter((n: string) => /image|transform|save|restore/i.test(n)).slice(0, 40), args: JSON.stringify(ops.argsArray.filter((a: any, i: number) => /image|transform/i.test(seq[i])).slice(0, 6)).slice(0, 400) });
   let ctm: Matrix = IDENTITY;
   const stack: Matrix[] = [];
   for (let i = 0; i < ops.fnArray.length; i += 1) {
@@ -284,10 +281,8 @@ async function imageBoxes(page: any): Promise<Array<{ x: number; y: number; w: n
 /** Crop each image region out of a rendered page — works for photos,
  * logos and vector artwork alike. */
 async function pageImages(page: any): Promise<Block[]> {
-  console.log("[pdfimp] pageImages start");
   try {
     const boxes = await imageBoxes(page);
-    console.log("[pdfimp] boxes", JSON.stringify(boxes));
     if (!boxes.length) return [];
     const scale = 2;
     const viewport = page.getViewport({ scale });
@@ -319,8 +314,7 @@ async function pageImages(page: any): Promise<Block[]> {
       });
     }
     return out;
-  } catch (e) {
-    console.log("[pdfimp] error", String((e as Error)?.stack || e));
+  } catch {
     return [];
   }
 }
