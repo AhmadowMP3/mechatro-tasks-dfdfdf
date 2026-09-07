@@ -14,10 +14,14 @@ import type { Editor } from "@tiptap/core";
 export type PageSpacer = {
   pos: number;
   h: number;
-  /** "block" inserts a widget before pos; "row" pads the table row at pos..end. */
-  kind?: "block" | "row";
+  /** "block" inserts a widget before pos; "row" pads the table row at pos..end;
+   *  "class" only paints a display class on the node at pos..end. */
+  kind?: "block" | "row" | "class";
   end?: number;
+  /** Display class for kind === "class". */
+  cls?: string;
 };
+
 
 export const pageLayoutKey = new PluginKey<PageSpacer[]>("docPageLayout");
 
