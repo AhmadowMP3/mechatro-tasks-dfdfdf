@@ -287,9 +287,10 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
           <FileText size={17} style={{ color: "var(--primary)" }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800 }}>{ar ? "استيراد من Word أو PDF" : "Import from Word or PDF"}</div>
+            <div style={{ fontSize: 14, fontWeight: 800 }}>{ar ? "استيراد من Word" : "Import from Word"}</div>
             <div style={{ fontSize: 11.5, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {fileName || (ar ? "ارفع ملف .docx أو .pdf وسيقوم الذكاء الاصطناعي بتعبئة البيانات" : "Upload a .docx or .pdf and the AI fills the fields")}
+              {fileName || (ar ? "ارفع ملف .docx وسيقوم الذكاء الاصطناعي بتعبئة البيانات" : "Upload a .docx and the AI fills the fields")}
+
             </div>
           </div>
           <button
