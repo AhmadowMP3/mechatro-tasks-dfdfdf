@@ -230,7 +230,18 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         top += need;
       };
 
+      // A blank paragraph must not open a sheet: let it sit in the page gap
+      // instead of pushing it down and eating the new page's top margin.
+      const blankBlock =
+        !forceNext &&
+        !el.querySelector("img,table,hr,svg,canvas") &&
+        (el.textContent ?? "").trim() === "";
+
       let k = Math.max(0, Math.floor(top / PITCH));
+      if (blankBlock) {
+        lastBottom = Math.max(lastBottom, top + h);
+        return;
+      }
       if (forceNext && top > k * PITCH + 1) {
         pushTo((k + 1) * PITCH);
         k += 1;
