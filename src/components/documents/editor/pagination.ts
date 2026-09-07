@@ -117,6 +117,8 @@ export function sameSpacers(a: PageSpacer[], b: PageSpacer[]) {
       s.pos === b[i]!.pos &&
       s.end === b[i]!.end &&
       s.kind === b[i]!.kind &&
+      s.cls === b[i]!.cls &&
       Math.abs(s.h - b[i]!.h) < 1,
   );
+
 }
