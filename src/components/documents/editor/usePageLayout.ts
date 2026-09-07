@@ -271,7 +271,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       return rowShift;
     };
 
-    const spacers: PageSpacer[] = [];
+    const spacers: PageSpacer[] = [...classMarks];
     let shift = 0;
     let forcedPageTop: number | null = null;
     let lastBottom = 0;
