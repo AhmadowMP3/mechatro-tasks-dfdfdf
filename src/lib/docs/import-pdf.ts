@@ -295,7 +295,7 @@ export async function convertPdf(file: File, _opts?: { keepFormatting?: boolean 
     if (src) {
       if (rendered > 0) parts.push('<div data-page-break="true"></div>');
       parts.push(
-        `<p style="text-align:center"><img src="${src}" style="width:100%;height:auto" /></p>`,
+        `<p style="text-align:center;margin:0"><img src="${src}" style="width:100%;height:auto;display:block" /></p>`,
       );
       rendered += 1;
     }
