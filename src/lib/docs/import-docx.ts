@@ -101,9 +101,10 @@ function cleanup(rawHtml: string): { html: string; images: number; tables: numbe
     });
   });
 
-  // Images: cap the rendered width, keep them selectable by the editor.
-  const images = host.querySelectorAll("img");
-  images.forEach((img) => {
+  // Images: cap the rendered width, drop unrenderable ones.
+  host.querySelectorAll("img").forEach((img) => {
+    const src = img.getAttribute("src") ?? "";
+    if (!/^(data:image\/|https?:)/i.test(src)) { img.remove(); return; }
     img.removeAttribute("width");
     img.removeAttribute("height");
     img.setAttribute("style", `max-width:100%;height:auto`);
@@ -116,7 +117,8 @@ function cleanup(rawHtml: string): { html: string; images: number; tables: numbe
     if (!el.textContent?.trim() && !el.querySelector("img, table")) el.remove();
   });
 
-  return { html: host.innerHTML.trim(), images: images.length, tables: tables.length };
+  return { html: host.innerHTML.trim(), images: host.querySelectorAll("img").length, tables: tables.length };
+
 }
 
 /* ── Structured digest for the AI ─────────────────────────────────
