@@ -182,6 +182,8 @@ export function paginateHtmlBody(opts: {
     const queue: HTMLElement[] = Array.from(source.children) as HTMLElement[];
     while (queue.length > 0) {
       const node = queue.shift()!;
+      // Never open a page with a blank paragraph.
+      if (page.childElementCount === 0 && isEmptyBlock(node)) continue;
       if (isBreak(node)) {
         if (page.childElementCount > 0 || first) flush();
         continue;
