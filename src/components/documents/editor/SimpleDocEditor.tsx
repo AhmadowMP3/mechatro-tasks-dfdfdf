@@ -24,8 +24,8 @@ import {
 import { toast } from "sonner";
 
 import { ResizableImage, IMAGE_MAX_WIDTH } from "./ResizableImage";
-import { PageBreak, DocField, ItemsTable, DocEditorCtxProvider } from "./extensions";
-import { BlockFormat } from "./text-attrs";
+import { PageBreak, DocField, ItemsTable, DivBlock, DocEditorCtxProvider } from "./extensions";
+import { BlockFormat, InlineStyle, Superscript, Subscript } from "./text-attrs";
 import { DOC_FIELDS, fieldLabel } from "@/lib/docs/rich";
 import { prepareImage } from "@/lib/docs/upload";
 import type { DocLang } from "@/lib/docs/types";
