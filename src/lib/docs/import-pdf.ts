@@ -156,6 +156,10 @@ function groupBlocks(lines: Line[]): Block[] {
       const lead = Math.max(lines[k].height, lines[k - 1].height);
       if (lineCells(lines[k]).length >= 2) break;
       if (gap > lead * 1.7) break;
+      // A jump in font size means a heading, not a wrapped line.
+      const prevSize = Math.max(...lines[k - 1].frags.map((f) => f.size));
+      const nextSize = Math.max(...lines[k].frags.map((f) => f.size));
+      if (Math.max(prevSize, nextSize) / Math.min(prevSize, nextSize) > 1.2) break;
       para.push(lines[k]);
       k += 1;
     }
@@ -409,8 +413,6 @@ export async function convertPdf(file: File, opts?: { keepFormatting?: boolean }
     const threshold = Math.max(2, Math.ceil(pages.length * 0.6));
     for (const [t, n] of counts) if (n >= threshold) chrome.add(t);
   }
-
-  (globalThis as any).__pdfDebug = { baseSize, chrome: [...chrome], pages: pages.map((pg) => ({ chrome: pg.chrome, blocks: pg.blocks.map((b) => b.kind === "para" ? ["para", b.lines.map((l) => l.text), b.y] : b.kind === "table" ? ["table", b.rows.map((r) => r[0].text)] : ["image"]) })) };
 
   const parts: string[] = [];
   pages.forEach((pg, idx) => {
