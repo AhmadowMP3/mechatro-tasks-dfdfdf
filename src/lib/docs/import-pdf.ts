@@ -113,9 +113,13 @@ function joinFrags(frags: Frag[], rtl: boolean): string {
   return norm(out);
 }
 
-function fragsToLines(items: any[], styles: Record<string, any>): Line[] {
+function fragsToLines(items: any[], styles: Record<string, any>, textColors: Array<string | null> = []): Line[] {
   const raw: Array<Frag & { y: number; h: number }> = [];
+  let textIndex = -1;
   for (const it of items) {
+    if (typeof it?.str !== "string") continue;
+    textIndex += 1;
+    const color = textColors[textIndex] ?? null;
     const str = normalizeText(String(it.str ?? ""));
     if (!str.trim()) continue;
     const t = it.transform as number[];
@@ -131,6 +135,7 @@ function fragsToLines(items: any[], styles: Record<string, any>): Line[] {
       size,
       bold: /bold|black|heavy|semibold/i.test(fname),
       italic: /italic|oblique/i.test(fname),
+      color,
       y,
       h: it.height || size,
     });
