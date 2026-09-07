@@ -1195,8 +1195,7 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   }
 }
 /* Sticky only works when no ancestor clips or transforms it. */
-.doc-editor,
-.doc-editor > .doc-ribbon ~ * {
+.doc-editor {
   overflow: visible;
 }
 .doc-ribbon-group {
