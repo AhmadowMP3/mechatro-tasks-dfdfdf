@@ -386,13 +386,23 @@ function tableHtml(rows: Line[][], baseSize: number, shapes: PdfShape[]): string
   }
   const borderColor = [...borderCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "#b7b7b7";
 
+  // Assign each fragment to the column it overlaps the most, so a value that
+  // starts slightly before a ruling line still lands in its own cell instead
+  // of leaving the column empty.
   const rowCells = tableLines.map((line) => {
     const cells: Frag[][] = Array.from({ length: columnCount }, () => []);
     for (const frag of line.frags) {
-      const center = (frag.x + frag.endX) / 2;
-      let index = boundaries.findIndex((edge, i) => i < columnCount && center >= edge && center < boundaries[i + 1]);
-      if (index < 0) index = center < boundaries[0] ? 0 : columnCount - 1;
-      cells[index].push(frag);
+      let best = -1;
+      let bestOverlap = -1;
+      for (let i = 0; i < columnCount; i += 1) {
+        const overlap = Math.min(frag.endX, boundaries[i + 1]) - Math.max(frag.x, boundaries[i]);
+        if (overlap > bestOverlap) { bestOverlap = overlap; best = i; }
+      }
+      if (best < 0 || bestOverlap <= 0) {
+        const center = (frag.x + frag.endX) / 2;
+        best = center < boundaries[0] ? 0 : columnCount - 1;
+      }
+      cells[best].push(frag);
     }
     return cells;
   });
@@ -403,23 +413,40 @@ function tableHtml(rows: Line[][], baseSize: number, shapes: PdfShape[]): string
     (firstRow.filter((cell) => cell.length).every((cell) => cell.every((frag) => frag.bold))
       || firstRow.filter((cell) => cell.length).every((cell) => cell.every((frag) => frag.size > baseSize * 1.05)));
 
+  type Merged = { start: number; span: number; frags: Frag[] };
+
   const body = rowCells
     .map((cells, idx) => {
       const tag = idx === 0 && headerish ? "th" : "td";
       const line = tableLines[idx];
       const rowBottom = line.y - line.height * 0.65;
       const rowTop = line.y + line.height * 1.15;
-      const visualCells = rtl ? cells.slice().reverse() : cells;
-      const visualIndexes = rtl
-        ? Array.from({ length: columnCount }, (_, i) => columnCount - 1 - i)
-        : Array.from({ length: columnCount }, (_, i) => i);
-      const tds = visualCells
-        .map((cell, visualIndex) => {
-          const logicalIndex = visualIndexes[visualIndex];
-          const left = boundaries[logicalIndex];
-          const right = boundaries[logicalIndex + 1];
+      const centerY = (rowBottom + rowTop) / 2;
+
+      // A wide value that visually crosses ruling lines with empty neighbours
+      // is a merged cell in the source table.
+      const merged: Merged[] = [];
+      for (let i = 0; i < columnCount; i += 1) {
+        const cell = cells[i];
+        let span = 1;
+        if (cell.length) {
+          const right = Math.max(...cell.map((f) => f.endX));
+          while (
+            i + span < columnCount &&
+            !cells[i + span].length &&
+            right > boundaries[i + span] + 2
+          ) span += 1;
+        }
+        merged.push({ start: i, span, frags: cell });
+        i += span - 1;
+      }
+
+      const visual = rtl ? merged.slice().reverse() : merged;
+      const tds = visual
+        .map((cell) => {
+          const left = boundaries[cell.start];
+          const right = boundaries[cell.start + cell.span];
           const centerX = (left + right) / 2;
-          const centerY = (rowBottom + rowTop) / 2;
           const fills = shapes.filter((shape) => {
             const w = shape.x1 - shape.x0;
             const h = shape.y1 - shape.y0;
@@ -427,9 +454,9 @@ function tableHtml(rows: Line[][], baseSize: number, shapes: PdfShape[]): string
               && centerX >= shape.x0 - 1 && centerX <= shape.x1 + 1
               && centerY >= shape.y0 - 1 && centerY <= shape.y1 + 1;
           }).sort((a, b) => (a.x1 - a.x0) * (a.y1 - a.y0) - (b.x1 - b.x0) * (b.y1 - b.y0));
-          const background = fills[0]?.fill;
-          const fragLeft = cell.length ? Math.min(...cell.map((frag) => frag.x)) : centerX;
-          const fragRight = cell.length ? Math.max(...cell.map((frag) => frag.endX)) : centerX;
+          const background = fills[0]?.fill ?? null;
+          const fragLeft = cell.frags.length ? Math.min(...cell.frags.map((f) => f.x)) : centerX;
+          const fragRight = cell.frags.length ? Math.max(...cell.frags.map((f) => f.endX)) : centerX;
           const leftGap = fragLeft - left;
           const rightGap = right - fragRight;
           const align = Math.abs(leftGap - rightGap) < Math.max(3, (right - left) * 0.1)
@@ -442,12 +469,14 @@ function tableHtml(rows: Line[][], baseSize: number, shapes: PdfShape[]): string
             `text-align:${align}`,
             background ? `background-color:${background}` : "",
           ].filter(Boolean).join(";");
-          return `<${tag} style="${style}">${cellVisualHtml(cell, rtl, baseSize)}</${tag}>`;
+          const spanAttr = cell.span > 1 ? ` colspan="${cell.span}"` : "";
+          return `<${tag}${spanAttr} style="${style}">${cellVisualHtml(cell.frags, rtl, baseSize, background)}</${tag}>`;
         })
         .join("");
       return `<tr>${tds}</tr>`;
     })
     .join("");
+
   const colgroup = (rtl ? boundaries.slice(0, -1).map((_, i) => columnCount - 1 - i) : boundaries.slice(0, -1).map((_, i) => i))
     .map((index) => `<col style="width:${Math.round(((boundaries[index + 1] - boundaries[index]) / tableWidth) * 10000) / 100}%" />`)
     .join("");
