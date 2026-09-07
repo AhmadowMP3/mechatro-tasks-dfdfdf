@@ -12,6 +12,9 @@ const RENDER_MAX_WIDTH = 700;
 const MAX_IMAGE_WIDTH = 1400;
 /** Band (fraction of page height) scanned for running headers/footers. */
 const CHROME_BAND = 0.08;
+/** Wider band for artwork: letterhead logos sit a little below the very top. */
+const IMAGE_CHROME_BAND = 0.16;
+
 
 export function isPdfFile(file: File): boolean {
   return /\.pdf$/i.test(file.name) || file.type === "application/pdf";
