@@ -236,80 +236,89 @@ function tableHtml(rows: Line[][], baseSize: number): string {
 
 /* ── images ──────────────────────────────────────────────── */
 
-async function imageToDataUrl(obj: any): Promise<{ src: string; width: number } | null> {
-  try {
-    if (!obj) return null;
-    const w = obj.width ?? obj.bitmap?.width;
-    const h = obj.height ?? obj.bitmap?.height;
-    if (!w || !h || w < 24 || h < 24) return null;
-    const { canvas } = fitCanvas(w, h);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
+type Matrix = [number, number, number, number, number, number];
+const IDENTITY: Matrix = [1, 0, 0, 1, 0, 0];
 
-    if (obj.bitmap) {
-      ctx.drawImage(obj.bitmap, 0, 0, canvas.width, canvas.height);
-    } else if (obj.data) {
-      const src = document.createElement("canvas");
-      src.width = w;
-      src.height = h;
-      const sctx = src.getContext("2d");
-      if (!sctx) return null;
-      const img = sctx.createImageData(w, h);
-      const data: Uint8Array | Uint8ClampedArray = obj.data;
-      if (data.length === w * h * 4) {
-        img.data.set(data);
-      } else if (data.length === w * h * 3) {
-        for (let i = 0, j = 0; i < w * h; i += 1, j += 3) {
-          img.data[i * 4] = data[j];
-          img.data[i * 4 + 1] = data[j + 1];
-          img.data[i * 4 + 2] = data[j + 2];
-          img.data[i * 4 + 3] = 255;
-        }
-      } else return null;
-      sctx.putImageData(img, 0, 0);
-      ctx.drawImage(src, 0, 0, canvas.width, canvas.height);
-    } else return null;
-
-    const url = await canvasToDataUrl(canvas);
-    return { src: url, width: Math.min(RENDER_MAX_WIDTH, canvas.width) };
-  } catch {
-    return null;
-  }
+function mul(a: Matrix, b: Matrix): Matrix {
+  return [
+    a[0] * b[0] + a[2] * b[1],
+    a[1] * b[0] + a[3] * b[1],
+    a[0] * b[2] + a[2] * b[3],
+    a[1] * b[2] + a[3] * b[3],
+    a[0] * b[4] + a[2] * b[5] + a[4],
+    a[1] * b[4] + a[3] * b[5] + a[5],
+  ];
 }
 
-async function pageImages(page: any, viewportHeight: number): Promise<Block[]> {
-  const out: Block[] = [];
-  try {
-    const ops = await page.getOperatorList();
-    const OPS = (await loadPdfjs()).OPS;
-    const paint = new Set([OPS.paintImageXObject, OPS.paintJpegXObject, OPS.paintInlineImageXObject]);
-    let ctm: number[] | null = null;
-    for (let i = 0; i < ops.fnArray.length; i += 1) {
-      const fn = ops.fnArray[i];
-      if (fn === OPS.transform) ctm = ops.argsArray[i] as number[];
-      if (!paint.has(fn)) continue;
-      const name = ops.argsArray[i]?.[0];
-      let obj: any = null;
-      if (typeof name === "string") {
-        obj = await new Promise((res) => {
-          try {
-            page.objs.get(name, res);
-          } catch {
-            res(null);
-          }
-        }).catch(() => null);
-      } else if (name && typeof name === "object") {
-        obj = name;
-      }
-      const img = await imageToDataUrl(obj);
-      if (img) out.push({ kind: "image", y: ctm?.[5] ?? viewportHeight, src: img.src, width: img.width });
-      if (out.length >= 12) break;
+/** Where each drawn image sits on the page, in PDF units (origin bottom-left). */
+async function imageBoxes(page: any): Promise<Array<{ x: number; y: number; w: number; h: number }>> {
+  const boxes: Array<{ x: number; y: number; w: number; h: number }> = [];
+  const pdfjs = await loadPdfjs();
+  const OPS = pdfjs.OPS;
+  const paint = new Set(
+    [OPS.paintImageXObject, OPS.paintImageXObjectRepeat, OPS.paintJpegXObject, OPS.paintInlineImageXObject]
+      .filter((v) => typeof v === "number"),
+  );
+  const ops = await page.getOperatorList();
+  let ctm: Matrix = IDENTITY;
+  const stack: Matrix[] = [];
+  for (let i = 0; i < ops.fnArray.length; i += 1) {
+    const fn = ops.fnArray[i];
+    if (fn === OPS.save) stack.push(ctm);
+    else if (fn === OPS.restore) ctm = stack.pop() ?? IDENTITY;
+    else if (fn === OPS.transform) ctm = mul(ctm, ops.argsArray[i] as Matrix);
+    else if (paint.has(fn)) {
+      const w = Math.abs(ctm[0]);
+      const h = Math.abs(ctm[3]);
+      if (w < 20 || h < 20) continue;
+      boxes.push({ x: ctm[4], y: Math.min(ctm[5], ctm[5] + ctm[3]), w, h });
+      if (boxes.length >= 12) break;
     }
-  } catch {
-    /* images are best-effort */
   }
-  return out;
+  return boxes;
 }
+
+/** Crop each image region out of a rendered page — works for photos,
+ * logos and vector artwork alike. */
+async function pageImages(page: any): Promise<Block[]> {
+  try {
+    const boxes = await imageBoxes(page);
+    if (!boxes.length) return [];
+    const scale = 2;
+    const viewport = page.getViewport({ scale });
+    const full = document.createElement("canvas");
+    full.width = Math.round(viewport.width);
+    full.height = Math.round(viewport.height);
+    const fctx = full.getContext("2d");
+    if (!fctx) return [];
+    fctx.fillStyle = "#ffffff";
+    fctx.fillRect(0, 0, full.width, full.height);
+    await page.render({ canvasContext: fctx, viewport, canvas: full }).promise;
+
+    const out: Block[] = [];
+    for (const b of boxes) {
+      const sw = Math.round(b.w * scale);
+      const sh = Math.round(b.h * scale);
+      const sx = Math.round(b.x * scale);
+      const sy = Math.round(full.height - (b.y + b.h) * scale);
+      if (sw < 8 || sh < 8) continue;
+      const { canvas } = fitCanvas(sw, sh);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) continue;
+      ctx.drawImage(full, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      out.push({
+        kind: "image",
+        y: b.y + b.h,
+        src: await canvasToDataUrl(canvas),
+        width: Math.min(RENDER_MAX_WIDTH, canvas.width),
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 
 async function renderPage(page: any): Promise<string | null> {
   try {
