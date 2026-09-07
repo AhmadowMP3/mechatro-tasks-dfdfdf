@@ -290,10 +290,36 @@ class Numbering {
 }
 
 /* ── image resolution ─────────────────────────────────────────── */
-type Media = { rels: Map<string, string>; files: Map<string, string> };
+type Media = { rels: Map<string, string>; files: Map<string, string | null> };
+
+/** Word stores EMF/WMF/TIFF fallbacks that no browser can decode. Detect the
+ * real format from the file signature instead of trusting the extension. */
+function sniffImageType(bytes: Uint8Array): string | null {
+  const b = bytes;
+  if (b.length < 12) return null;
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return "image/gif";
+  if (b[0] === 0x42 && b[1] === 0x4d) return "image/bmp";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+      b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+  const head = new TextDecoder().decode(b.slice(0, 200)).trim().toLowerCase();
+  if (head.startsWith("<?xml") ? head.includes("<svg") : head.startsWith("<svg")) return "image/svg+xml";
+  return null; // emf, wmf, tiff, unknown -> not renderable in the editor
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
 
 /* ── main converter ───────────────────────────────────────────── */
-export type OoxmlResult = { html: string; images: number; tables: number };
+export type OoxmlResult = { html: string; images: number; tables: number; skippedImages: number };
+
 
 export async function docxToStyledHtml(
   arrayBuffer: ArrayBuffer,
