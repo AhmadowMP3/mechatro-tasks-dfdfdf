@@ -564,8 +564,9 @@ async function pageVectors(page: any): Promise<{ shapes: PdfShape[]; textColors:
     const pdfjs = await loadPdfjs();
     const OPS = pdfjs.OPS;
     const ops = await page.getOperatorList();
-    const stack: string[] = [];
+    const stack: Array<{ fill: string; ctm: Matrix }> = [];
     let fill = "#000000";
+    let ctm: Matrix = IDENTITY;
     const shapes: PdfShape[] = [];
     const textColors: Array<string | null> = [];
     const showOps = new Set(
@@ -575,9 +576,14 @@ async function pageVectors(page: any): Promise<{ shapes: PdfShape[]; textColors:
     for (let i = 0; i < ops.fnArray.length; i += 1) {
       const fn = ops.fnArray[i];
       const args = ops.argsArray[i];
-      if (fn === OPS.save) stack.push(fill);
-      else if (fn === OPS.restore) fill = stack.pop() ?? "#000000";
-      else if (
+      if (fn === OPS.save) stack.push({ fill, ctm });
+      else if (fn === OPS.restore) {
+        const prev = stack.pop();
+        fill = prev?.fill ?? "#000000";
+        ctm = prev?.ctm ?? IDENTITY;
+      } else if (fn === OPS.transform) {
+        ctm = mul(ctm, args as Matrix);
+      } else if (
         fn === OPS.setFillRGBColor || fn === OPS.setFillGray || fn === OPS.setFillColor ||
         fn === OPS.setFillCMYKColor || fn === OPS.setFillColorN
       ) {
@@ -587,10 +593,16 @@ async function pageVectors(page: any): Promise<{ shapes: PdfShape[]; textColors:
       } else if (fn === OPS.constructPath) {
         const bounds = args?.[2];
         if (!bounds || bounds.length < 4) continue;
-        const x0 = Number(bounds[0]);
-        const y0 = Number(bounds[1]);
-        const x1 = Number(bounds[2]);
-        const y1 = Number(bounds[3]);
+        // Path coordinates live in the current transform's space, so map the
+        // corners back to page units before comparing them with text.
+        const corners = [
+          apply(ctm, Number(bounds[0]), Number(bounds[1])),
+          apply(ctm, Number(bounds[2]), Number(bounds[3])),
+        ];
+        const x0 = Math.min(corners[0][0], corners[1][0]);
+        const x1 = Math.max(corners[0][0], corners[1][0]);
+        const y0 = Math.min(corners[0][1], corners[1][1]);
+        const y1 = Math.max(corners[0][1], corners[1][1]);
         const width = x1 - x0;
         const height = y1 - y0;
         if (![x0, y0, x1, y1].every(Number.isFinite) || width <= 0 || height <= 0) continue;
@@ -600,6 +612,7 @@ async function pageVectors(page: any): Promise<{ shapes: PdfShape[]; textColors:
         if (width > 520 && height > 80) continue;
         shapes.push({ x0, y0, x1, y1, fill });
       }
+
     }
     return { shapes, textColors };
   } catch {
