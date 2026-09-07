@@ -244,20 +244,23 @@ function cleanupStyled(rawHtml: string): { html: string; images: number; tables:
     if (/^(page\s*)?\d+\s*(\/|of|من)?\s*\d*$/i.test(text) && text.length <= 12) p.remove();
   });
 
-  // Never let a Word image overflow the A4 body.
-  const images = host.querySelectorAll("img");
-  images.forEach((img) => {
+  // Drop anything that would render as a broken image, keep Word's own size.
+  host.querySelectorAll("img").forEach((img) => {
+    const src = img.getAttribute("src") ?? "";
+    if (!/^(data:image\/|https?:)/i.test(src)) { img.remove(); return; }
+    const attrW = Number(img.getAttribute("width") ?? 0);
     img.removeAttribute("width");
     img.removeAttribute("height");
-    const style = (img.getAttribute("style") ?? "")
-      .replace(/max-width\s*:[^;]+;?/gi, "")
-      .replace(/width\s*:\s*\d+(\.\d+)?px\s*;?/gi, "");
-    img.setAttribute("style", `${style};max-width:100%;height:auto`.replace(/^;/, ""));
+    const style = (img.getAttribute("style") ?? "").replace(/max-width\s*:[^;]+;?/gi, "");
+    const hasWidth = /(^|;)\s*width\s*:/i.test(style);
+    const extra = !hasWidth && attrW > 0 ? `width:${Math.min(attrW, RENDER_MAX_WIDTH)}px;` : "";
+    img.setAttribute("style", `${style};${extra}max-width:100%;height:auto`.replace(/^;/, ""));
   });
 
   normalizeWidths(host);
 
-  return { html: host.innerHTML.trim(), images: images.length, tables: host.querySelectorAll("table").length };
+  return { html: host.innerHTML.trim(), images: host.querySelectorAll("img").length, tables: host.querySelectorAll("table").length };
+
 }
 
 export async function convertDocx(file: File, opts?: { keepFormatting?: boolean }): Promise<DocxImport> {
