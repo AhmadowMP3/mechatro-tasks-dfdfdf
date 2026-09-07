@@ -319,3 +319,39 @@ function DocMoney({ value, currency }: { value: number; currency: string }) {
     </span>
   );
 }
+
+/* ── Word container blocks ────────────────────────────────────────
+ * Mammoth / OOXML output wraps sections in <div> (and friends). TipTap's
+ * default schema has no node for them, so the wrapper — and every style it
+ * carried — used to disappear the moment the imported document opened in the
+ * editor while the preview still showed it. This node keeps the wrapper and
+ * its children fully editable.                                            */
+
+export const DivBlock = Node.create({
+  name: "divBlock",
+  group: "block",
+  content: "block+",
+  defining: true,
+  priority: 20,
+  parseHTML() {
+    return [
+      {
+        tag: "div",
+        priority: 20,
+        getAttrs: (node) => {
+          const el = node as HTMLElement;
+          // Real editor nodes and layout helpers keep their own handling.
+          if (el.hasAttribute("data-page-break")) return false;
+          if (el.classList.contains("doc-page-break-mark")) return false;
+          if (el.closest("[data-items]")) return false;
+          return {};
+        },
+      },
+      { tag: "section", priority: 20 },
+      { tag: "article", priority: 20 },
+    ];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["div", mergeAttributes(HTMLAttributes), 0];
+  },
+});

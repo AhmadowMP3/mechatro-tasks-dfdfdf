@@ -24,8 +24,8 @@ import {
 import { toast } from "sonner";
 
 import { ResizableImage, IMAGE_MAX_WIDTH } from "./ResizableImage";
-import { PageBreak, DocField, ItemsTable, DocEditorCtxProvider } from "./extensions";
-import { BlockFormat } from "./text-attrs";
+import { PageBreak, DocField, ItemsTable, DivBlock, DocEditorCtxProvider } from "./extensions";
+import { BlockFormat, InlineStyle, Superscript, Subscript } from "./text-attrs";
 import { DOC_FIELDS, fieldLabel } from "@/lib/docs/rich";
 import { prepareImage } from "@/lib/docs/upload";
 import type { DocLang } from "@/lib/docs/types";
@@ -64,13 +64,17 @@ export function SimpleDocEditor({
 
   const extensions = useMemo(
     () => [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] }, link: false, underline: false }),
       Underline,
       TextStyle,
       Color,
       FontSize,
       FontFamily,
       BlockFormat,
+      InlineStyle,
+      Superscript,
+      Subscript,
+      DivBlock,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer nofollow" } }),

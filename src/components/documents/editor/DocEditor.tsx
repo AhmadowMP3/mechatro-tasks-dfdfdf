@@ -19,8 +19,8 @@ import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
 
 import { Ribbon } from "./Ribbon";
-import { PageBreak, DocField, ItemsTable, DocEditorCtxProvider } from "./extensions";
-import { BlockFormat } from "./text-attrs";
+import { PageBreak, DocField, ItemsTable, DivBlock, DocEditorCtxProvider } from "./extensions";
+import { BlockFormat, InlineStyle, Superscript, Subscript } from "./text-attrs";
 import { DocClientCard } from "../DocBody";
 import { DocPaper } from "../DocPaper";
 import { fieldValue, termsBlockHtml, type RichCtx } from "@/lib/docs/rich";
@@ -100,13 +100,17 @@ export function DocEditor({
   // document language changed.
   const extensions = useMemo(
     () => [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] }, link: false, underline: false }),
       Underline,
       TextStyle,
       Color,
       FontSize,
       FontFamily,
       BlockFormat,
+      InlineStyle,
+      Superscript,
+      Subscript,
+      DivBlock,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer nofollow" } }),

@@ -24,6 +24,9 @@ export type DocxImport = {
 const MAX_IMAGE_WIDTH = 1400;
 /** Rendered width cap inside the A4 sheet (matches the editor's own cap). */
 const RENDER_MAX_WIDTH = 700;
+/** Usable A4 body width (Word Narrow margins) — used to turn Word's column
+ *  percentages into the pixel widths the editor's table schema stores. */
+const BODY_WIDTH_PX = 698;
 
 const STYLE_MAP = [
   "p[style-name='Title'] => h1:fresh",
@@ -271,13 +274,37 @@ function normalizeWidths(host: HTMLElement): void {
       return m ? parseFloat(m[1]) : 0;
     });
     const total = px.reduce((a, b) => a + b, 0);
+    const ratios: number[] = [];
     if (total > 0 && px.every((v) => v > 0)) {
-      cols.forEach((c, i) => c.setAttribute("style", `width:${Math.round((px[i] / total) * 1000) / 10}%`));
+      cols.forEach((c, i) => {
+        const pct = Math.round((px[i] / total) * 1000) / 10;
+        ratios.push(pct);
+        c.setAttribute("style", `width:${pct}%`);
+      });
+    }
+
+    // The editor keeps column widths on the first row's cells (data-colwidth),
+    // which is how its table schema stores them — otherwise every imported
+    // table collapsed to equal columns the moment it opened for editing.
+    if (ratios.length) {
+      const firstRow = t.querySelector("tr");
+      if (firstRow) {
+        let col = 0;
+        Array.from(firstRow.children).forEach((cell) => {
+          const span = Math.max(1, Number(cell.getAttribute("colspan") ?? 1));
+          const pct = ratios.slice(col, col + span).reduce((a, b) => a + b, 0);
+          col += span;
+          if (pct > 0) {
+            const w = String(Math.round((pct / 100) * BODY_WIDTH_PX));
+            cell.setAttribute("data-colwidth", w);
+            cell.setAttribute("colwidth", w);
+          }
+        });
+      }
     }
 
     t.querySelectorAll("td, th").forEach((cell) => {
       cell.removeAttribute("width");
-      cell.removeAttribute("data-colwidth");
       const cs = (cell.getAttribute("style") ?? "").replace(/(min-|max-)?width\s*:\s*\d+(\.\d+)?px\s*;?/gi, "");
       cell.setAttribute("style", `${cs};overflow-wrap:anywhere`.replace(/^;/, ""));
     });
