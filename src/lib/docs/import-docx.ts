@@ -107,7 +107,9 @@ function trimVerticalSpace(host: HTMLElement): void {
     const style = (el.getAttribute("style") ?? "").replace(
       /(margin-top|margin-bottom|padding-top|padding-bottom|margin-block-start|margin-block-end)\s*:\s*(\d+(?:\.\d+)?)(pt|px)/gi,
       (_m, prop: string, val: string, unit: string) => {
-        const max = unit.toLowerCase() === "px" ? MAX_SPACE_PT * 1.333 : MAX_SPACE_PT;
+        const isTop = /top|start/i.test(prop);
+        const base = isTop ? MAX_TOP_SPACE_PT : MAX_SPACE_PT;
+        const max = unit.toLowerCase() === "px" ? base * 1.333 : base;
         const num = parseFloat(val);
         return `${prop}:${Math.min(num, max)}${unit}`;
       },
