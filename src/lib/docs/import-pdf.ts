@@ -342,10 +342,36 @@ async function renderPage(page: any): Promise<string | null> {
 
 /* ── pdf.js loader ───────────────────────────────────────── */
 
+/** pdf.js 6 relies on the very new Map.getOrInsert* helpers; older browsers
+ * (and current Chromium builds) still lack them. */
+function installMapPolyfills(): void {
+  const proto: any = Map.prototype;
+  if (typeof proto.getOrInsert !== "function") {
+    proto.getOrInsert = function (key: any, value: any) {
+      if (!this.has(key)) this.set(key, value);
+      return this.get(key);
+    };
+  }
+  if (typeof proto.getOrInsertComputed !== "function") {
+    proto.getOrInsertComputed = function (key: any, fn: (k: any) => any) {
+      if (!this.has(key)) this.set(key, fn(key));
+      return this.get(key);
+    };
+  }
+  const wproto: any = WeakMap.prototype;
+  if (typeof wproto.getOrInsertComputed !== "function") {
+    wproto.getOrInsertComputed = function (key: any, fn: (k: any) => any) {
+      if (!this.has(key)) this.set(key, fn(key));
+      return this.get(key);
+    };
+  }
+}
+
 let pdfjsPromise: Promise<any> | null = null;
 async function loadPdfjs(): Promise<any> {
   if (!pdfjsPromise) {
     pdfjsPromise = (async () => {
+      installMapPolyfills();
       const lib: any = await import("pdfjs-dist/build/pdf.mjs");
       const workerUrl = (await import("pdfjs-dist/build/pdf.worker.mjs?url")).default;
       lib.GlobalWorkerOptions.workerSrc = workerUrl;
