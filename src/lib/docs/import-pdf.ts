@@ -384,7 +384,8 @@ function tableHtml(rows: Line[][], baseSize: number, shapes: PdfShape[]): string
     if (!shape.fill) continue;
     borderCounts.set(shape.fill, (borderCounts.get(shape.fill) ?? 0) + 1);
   }
-  const borderColor = [...borderCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "#b7b7b7";
+  const ranked = [...borderCounts.entries()].sort((a, b) => b[1] - a[1]).map(([color]) => color);
+  const borderColor = ranked.find((color) => colorLuminance(color) < 0.93) ?? "#b7b7b7";
 
   // Assign each fragment to the column it overlaps the most, so a value that
   // starts slightly before a ruling line still lands in its own cell instead
