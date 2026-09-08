@@ -196,6 +196,18 @@ function DocumentsListPage() {
         />
       )}
 
+      {quickImport && (
+        <ImportDocxDialog
+          ar={ar}
+          quick
+          onClose={() => setQuickImport(false)}
+          onCreated={(doc) => {
+            setQuickImport(false);
+            navigate({ to: "/documents/$id_/preview", params: { id: doc.id } });
+          }}
+        />
+      )}
+
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
