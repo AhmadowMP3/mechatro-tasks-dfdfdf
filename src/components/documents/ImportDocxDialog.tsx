@@ -516,7 +516,7 @@ function Field({ label, children, aiFilled, ar }: { label: string; children: Rea
         {label}
         {aiFilled && (
           <span style={{ fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 999, background: "color-mix(in oklab, var(--primary) 18%, transparent)", color: "var(--primary)" }}>
-            {ar ? "بالذكاء" : "AI"}
+            {ar ? "من الملف" : "From file"}
           </span>
         )}
       </span>
