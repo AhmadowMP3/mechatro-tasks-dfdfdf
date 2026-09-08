@@ -22,6 +22,8 @@ export type PageSpacer = {
   cls?: string;
   /** Exact measured residual gap inside a page-start block. */
   startLift?: number;
+  /** Space kept at the top of the next sheet for a repeated table header. */
+  reserve?: number;
 };
 
 
