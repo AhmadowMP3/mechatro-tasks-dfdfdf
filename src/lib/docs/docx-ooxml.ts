@@ -421,6 +421,7 @@ export async function docxToStyledHtml(
     const REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
     const candidates: string[] = [];
     let widthPx = 0;
+    let heightPx = 0;
     for (const el of Array.from(node.getElementsByTagName("*"))) {
       if (el.localName === "blip") {
         const id = el.getAttribute("r:embed") ?? el.getAttributeNS(REL_NS, "embed")
@@ -433,7 +434,9 @@ export async function docxToStyledHtml(
       }
       if (el.localName === "extent" && !widthPx) {
         const cx = Number(el.getAttribute("cx") ?? 0);
+        const cy = Number(el.getAttribute("cy") ?? 0);
         if (cx) widthPx = emuToPx(cx);
+        if (cy) heightPx = emuToPx(cy);
       }
     }
     if (!candidates.length) return "";
@@ -444,9 +447,13 @@ export async function docxToStyledHtml(
       if (url) break;
     }
     if (!url) { skippedImages += 1; return ""; }
-    const w = widthPx ? Math.min(widthPx, opts.maxImageWidth) : 0;
-    const style = w ? `width:${w}px;max-width:100%;height:auto` : `max-width:100%;height:auto`;
-    return `<img src="${url}" style="${style}">`;
+    const scale = widthPx > opts.maxImageWidth ? opts.maxImageWidth / widthPx : 1;
+    const w = widthPx ? Math.round(widthPx * scale) : 0;
+    const h = heightPx ? Math.round(heightPx * scale) : 0;
+    const ratio = w > 0 && h > 0 ? `aspect-ratio:${w}/${h};` : "";
+    const style = w ? `width:${w}px;${ratio}max-width:100%;height:auto` : `max-width:100%;height:auto`;
+    const size = w > 0 && h > 0 ? ` width="${w}" height="${h}"` : "";
+    return `<img src="${url}"${size} style="${style}">`;
   };
 
 
