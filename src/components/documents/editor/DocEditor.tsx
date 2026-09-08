@@ -241,6 +241,24 @@ export function DocEditor({
         actions={actions}
         onInsertTerms={templateTerms.trim() ? () => insert(termsBlockHtml(lang, templateTerms) ?? "") : undefined}
       />
+      {clampedImages > 0 && (
+        <div
+          role="status"
+          style={{
+            margin: "8px 12px 0",
+            padding: "6px 10px",
+            borderRadius: 8,
+            fontSize: 12.5,
+            background: "rgba(234,179,8,.14)",
+            color: "#b45309",
+            direction: ar ? "rtl" : "ltr",
+          }}
+        >
+          {ar
+            ? `تم تصغير ${clampedImages} صورة لتتسع داخل الصفحة.`
+            : `${clampedImages} image${clampedImages > 1 ? "s were" : " was"} scaled down to fit the page.`}
+        </div>
+      )}
       <div className="doc-editor-canvas">
         <div className="doc-editor-pages" ref={pagesRef}>
           {/* Stacked A4 sheets painted behind the editable layer */}
