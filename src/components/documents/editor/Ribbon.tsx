@@ -455,8 +455,7 @@ function Palette({ icon, colors, onPick, onClear, title, current }: { icon: Reac
               ×
             </button>
           </div>
-        </div>
-      )}
+      </RibbonPopover>
     </div>
   );
 }
