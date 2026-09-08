@@ -250,14 +250,12 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       let page = startPage;
       let prev: HTMLTableRowElement | null = null;
 
-      ((window as any).__docSplitDbg ||= []).push({ start: startPage, n: rows.length, bodyH: Math.round(bodyH) });
       rows.forEach((row, idx) => {
         const rr = row.getBoundingClientRect();
         const rTop = rr.top - originTop + baseShift + rowShift;
         const rBottom = rTop + rr.height;
         const pageBottom = page * PITCH + bodyH;
 
-        ((window as any).__docSplitDbg ||= []).push({ idx, rTop: Math.round(rTop), rBottom: Math.round(rBottom), pageBottom: Math.round(pageBottom), page });
         if (rBottom > pageBottom + 0.5 && prev && idx > 0) {
           // Start of the next sheet, leaving room for the repeated header
           // only when the row still fits underneath it.
@@ -268,7 +266,6 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
 
             const livePrev = liveTable?.rows[idx - 1];
             const span = livePrev ? rowSpan(livePrev) : null;
-            ((window as any).__docRowDbg ||= []).push({ idx, need: Math.round(need), hasLive: !!liveTable, hasPrev: !!livePrev, span: span ? span.from : null });
             if (span) {
               out.push({ pos: span.from, end: span.to, h: need, kind: "row", reserve });
               rowShift += need;
@@ -296,7 +293,6 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     // Keep the same array: automatic-page analysis below can discover more
     // blank Word blocks after this point, and those class decorations must be
     // written back to the live editor in the same measurement pass.
-    (window as any).__docDbg = [];
     const spacers: PageSpacer[] = classMarks;
     let shift = 0;
     let forcedPageTop: number | null = null;
@@ -411,8 +407,20 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
 
 
       let added = 0;
-      ((window as any).__docDbg ||= []).push({ i, top: Math.round(top), h: Math.round(h), k, crosses, rows: table ? table.rows.length : 0, t: (el.textContent||'').trim().slice(0,14) });
       if (crosses && table && table.rows.length > 1) {
+        // The very first row must fit on the current page. If it does not, the
+        // table cannot be split here at all: move the whole block to the next
+        // sheet first, otherwise its rows keep running past the page edge and
+        // print over the footer and the next header.
+        const firstRow = table.rows[0];
+        if (firstRow) {
+          const fr = firstRow.getBoundingClientRect();
+          const frTop = editorOffset + fr.top - hostTop + shift;
+          if (frTop + fr.height > k * PITCH + H + 0.5 && top > k * PITCH + 1) {
+            pushTo((k + 1) * PITCH);
+            k += 1;
+          }
+        }
         // Long table: break between rows instead of moving the whole thing.
         added = splitRows(table, k, H, hostTop - editorOffset, shift, spacers, liveTable);
         shift += added;
@@ -448,7 +456,6 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     // late fonts, table layout). Verify the real result and cancel whatever
     // white band is actually left at the top of each sheet.
     if (refineFrame.current) cancelAnimationFrame(refineFrame.current);
-    (window as any).__docSpacers = spacers;
     refineFrame.current = requestAnimationFrame(() => refineRef.current?.(spacers, 0));
   }, [editor, containerRef]);
 
