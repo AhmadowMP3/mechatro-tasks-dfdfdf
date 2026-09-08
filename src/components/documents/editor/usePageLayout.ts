@@ -112,12 +112,14 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     // header. Collapse them in the measured clone AND paint the matching
     // display classes on the live nodes, so both agree.
     const classMarks: PageSpacer[] = [];
+    const visibleText = (el: HTMLElement) =>
+      (el.textContent ?? "").replace(/[\s\u00a0\u200b-\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]/g, "");
     const isBlank = (el: HTMLElement) =>
       !el.querySelector("img,table,hr,svg,canvas") &&
       el.tagName !== "IMG" &&
       el.tagName !== "TABLE" &&
       el.tagName !== "HR" &&
-      (el.textContent ?? "").trim() === "";
+      visibleText(el) === "";
     const isBreak = (el: HTMLElement) =>
       el.hasAttribute("data-page-break") ||
       el.classList.contains("doc-page-break-anchor") ||
@@ -334,6 +336,17 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     let shift = 0;
     let forcedPageTop: number | null = null;
     let lastBottom = 0;
+    let lastContentPage = -1;
+    let pendingBlankIndexes: number[] = [];
+
+    const collapsePendingPageBlanks = () => {
+      pendingBlankIndexes.forEach((index) => {
+        const el = blocks[index];
+        if (el) el.style.display = "none";
+        mark(index, "doc-blank-collapsed");
+      });
+      pendingBlankIndexes = [];
+    };
 
     blocks.forEach((el, i) => {
       const r = el.getBoundingClientRect();
@@ -376,13 +389,23 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       // instead of pushing it down and eating the new page's top margin.
       const blankBlock =
         !el.querySelector("img,table,hr,svg,canvas") &&
-        (el.textContent ?? "").trim() === "";
+        visibleText(el) === "";
 
       let k = Math.max(0, Math.floor(top / PITCH));
       if (blankBlock) {
         // In particular, ignore blank Word paragraphs after an explicit page
         // break; they must not consume the top of the next page.
+        pendingBlankIndexes.push(i);
         return;
+      }
+      // Empty Word paragraphs can contain invisible RTL controls. If such a
+      // run is the only thing between the previous page and this first visible
+      // block, collapse it and let the next measurement pass place the block
+      // at the true body origin.
+      if (pendingBlankIndexes.length > 0 && k > lastContentPage) {
+        collapsePendingPageBlanks();
+      } else {
+        pendingBlankIndexes = [];
       }
       if (forcedPageTop !== null) {
         pushTo(forcedPageTop);
@@ -417,6 +440,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
 
 
       lastBottom = Math.max(lastBottom, top + h + added);
+      lastContentPage = Math.max(lastContentPage, k);
     });
 
     const needed = Math.max(1, Math.floor(Math.max(0, lastBottom - 1) / PITCH) + 1);

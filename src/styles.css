@@ -1485,6 +1485,7 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 /* Empty Word spacer paragraphs that would open a page: kept in the document,
    drawn with no height so the page starts right under the header. */
 .doc-rich-editable .doc-blank-collapsed {
+  display: none !important;
   height: 0 !important;
   min-height: 0 !important;
   margin: 0 !important;

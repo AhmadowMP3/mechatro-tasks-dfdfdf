@@ -35,13 +35,16 @@ function hostStyle(lang: "ar" | "en", sidePadding?: number): string {
 
 const isBreak = (el: Element): boolean => el.hasAttribute?.("data-page-break");
 
+const visibleText = (el: Element): string =>
+  (el.textContent ?? "").replace(/[\s\u00a0\u200b-\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]/g, "");
+
 /** A paragraph carrying nothing but a <br> or whitespace — Word leaves plenty
  *  of these behind and they would open a page with a blank line. */
 function isEmptyBlock(el: Element | null): boolean {
   if (!el) return false;
   if (el.hasAttribute?.("data-page-break")) return false;
   if (el.querySelector("img,table,hr,svg,canvas,input")) return false;
-  return (el.textContent ?? "").trim() === "";
+  return visibleText(el) === "";
 }
 
 /** Word can wrap the first visible block in several section divs. Whenever a
