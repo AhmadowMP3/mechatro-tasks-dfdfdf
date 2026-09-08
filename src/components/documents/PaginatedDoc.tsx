@@ -12,7 +12,7 @@ import { resolveDocHtml } from "@/lib/docs/rich";
 import { A4_SIZE, waitForPaperAssets, type DocPage } from "@/lib/docs/paginate";
 import { bodyHeightPx, bodyWidthPx } from "@/lib/docs/page-metrics";
 import type { DocClient, DocModel } from "@/lib/docs/model";
-import { pageMarginsPx, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
+import { resolveMargins, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
 
 
 export type PaginatedDocInput = {
@@ -42,6 +42,7 @@ export async function measureBodyHeight(input: PaginatedDocInput): Promise<numbe
       root.render(
         <DocPaper
           header={input.header}
+          section={input.model.section}
           footer={input.footer}
           lang={input.lang}
           theme={input.theme}
@@ -73,7 +74,7 @@ async function measureClientBox(input: PaginatedDocInput): Promise<number> {
   const { flushSync } = await import("react-dom");
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
-  host.style.cssText = `position:fixed;top:0;left:-10000px;visibility:hidden;pointer-events:none;width:${bodyWidthPx(input.header)}px`;
+  host.style.cssText = `position:fixed;top:0;left:-10000px;visibility:hidden;pointer-events:none;width:${bodyWidthPx(input.header, input.model.section)}px`;
   document.body.appendChild(host);
   const root = createRoot(host);
   let h = 0;
@@ -111,7 +112,7 @@ export async function paginateDocument(input: PaginatedDocInput): Promise<DocPag
       bodyHeight,
       clientBoxHeight,
       showClientBox: input.model.showClientBox,
-      sidePadding: pageMarginsPx(input.header).side,
+      sidePadding: resolveMargins(input.header, input.model.section).side,
     }).map((p) => ({ showClientBox: p.showClientBox, html: p.html }));
   }
 }
@@ -140,6 +141,7 @@ export function DocPages({
         >
           <DocPaper
             header={input.header}
+            section={input.model.section}
             footer={input.footer}
             lang={input.lang}
             theme={input.theme}
