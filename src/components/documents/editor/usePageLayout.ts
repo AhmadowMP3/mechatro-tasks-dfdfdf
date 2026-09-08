@@ -300,6 +300,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     let forcedPageTop: number | null = null;
     let lastBottom = 0;
     let lastContentPage = -1;
+    let clamped = 0;
     let pendingBlankIndexes: number[] = [];
 
     const collapsePendingPageBlanks = () => {
