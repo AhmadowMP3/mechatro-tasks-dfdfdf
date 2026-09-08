@@ -113,7 +113,9 @@ export function snapWordPageStartBlock(root: HTMLElement, removeBlanks = false):
   const safeLift = Number.isFinite(totalLift) && totalLift > 2 && totalLift <= 600 ? totalLift : 0;
   if (safeLift > 0) {
     root.style.setProperty("--doc-page-start-lift", `${safeLift}px`);
-    root.style.setProperty("margin-top", `${-safeLift}px`, "important");
+    // No negative margin-top here: it would overflow the body padding and
+    // cancel BODY_TOP_GAP. zeroStart() already removed the inherited Word
+    // spacing; the letterhead gap is owned by DocPaper alone.
   } else {
     root.style.removeProperty("--doc-page-start-lift");
   }
@@ -172,7 +174,8 @@ export function snapPageStart(container: HTMLElement): number {
   const gap = painted.getBoundingClientRect().top - container.getBoundingClientRect().top;
   if (!Number.isFinite(gap) || gap <= 2 || gap > 600) return 0;
 
-  const current = parseFloat(target.style.marginTop || "0") || 0;
-  target.style.setProperty("margin-top", `${current - gap}px`, "important");
+  // Do not pull the block up with a negative margin — it would overflow the
+  // body padding and cancel BODY_TOP_GAP. After zeroStart() the residual is
+  // only box geometry (cell padding, borders), which is harmless.
   return gap;
 }
