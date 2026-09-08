@@ -11,6 +11,10 @@ import { resolveMargins, type DocHeader, type DocSection } from "./types";
  *  rounding must never push the last line past the sheet edge. */
 export const BODY_SAFETY = 16;
 
+/** Our letterhead's own breathing room under the header rule. This is NOT
+ *  Word spacing — page-start.ts must never normalise it away. */
+export const BODY_TOP_GAP = 16;
+
 /** Usable body width for a template's side margins (or the imported section). */
 export function bodyWidthPx(header?: Partial<DocHeader> | null, section?: DocSection | null): number {
   return Math.max(240, A4_SIZE.width - 2 * resolveMargins(header, section).side);
