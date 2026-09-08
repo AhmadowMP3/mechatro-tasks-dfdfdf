@@ -74,7 +74,7 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
   /* Pre-paginated documents: one .doc-page element == exactly one sheet. */
   .doc-page {
     width: ${A4_WIDTH_PX}px;
-    height: 1123px;
+    height: 1122.5px;
     overflow: hidden;
     break-inside: avoid;
     page-break-inside: avoid;
