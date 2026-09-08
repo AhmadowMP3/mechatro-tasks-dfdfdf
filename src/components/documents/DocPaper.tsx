@@ -7,6 +7,7 @@ import { useRef, useState } from "react";
 import { logoFor } from "@/lib/brand/logo";
 import { PAPER, resolveMargins, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocSection, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
+import { BODY_TOP_GAP } from "@/lib/docs/page-metrics";
 import type { LogoVariant } from "@/lib/docs/model";
 
 /** CSS filter that renders the brand logo light or dark on any paper. */
@@ -229,7 +230,7 @@ export function DocPaper({ header, footer, section, lang, theme, meta, page, sca
 
 
       {/* ── Body ────────────────────────────────────────────────── */}
-      <div className="pdf-flow doc-page-body" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: `0 ${mg.side}px 18px`, fontSize: 12.5, lineHeight: 1.7, overflowWrap: "anywhere", display: "flex", flexDirection: "column" }}>
+      <div className="pdf-flow doc-page-body" style={{ flex: 1, minHeight: 0, overflow: sizing === "fixed" ? "hidden" : undefined, padding: `${BODY_TOP_GAP}px ${mg.side}px 18px`, fontSize: 12.5, lineHeight: 1.7, overflowWrap: "anywhere", display: "flex", flexDirection: "column" }}>
         {/* Padding-free content box — the editor measures this exact rect. */}
         <div data-doc-body-content style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
           {children}
