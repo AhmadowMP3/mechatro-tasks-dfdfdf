@@ -38,6 +38,8 @@ function DocumentsListPage() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
+  // Fast path: upload → save → branded preview, without opening the editor.
+  const [quickImport, setQuickImport] = useState(false);
 
   const reload = () => {
     setLoading(true);
