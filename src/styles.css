@@ -1264,6 +1264,18 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   border-radius: 2px;
   border: 1px solid var(--border);
 }
+/* Ribbon dropdowns live in a body portal so the scrolling toolbar can never
+   clip them. Fixed coordinates are supplied inline by RibbonPopover. */
+.doc-ribbon-pop {
+  position: fixed !important;
+  top: 0;
+  inset-inline-start: auto;
+  z-index: 90;
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .doc-ribbon-swatches {
   position: absolute;
   top: calc(100% + 4px);
