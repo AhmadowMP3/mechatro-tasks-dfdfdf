@@ -83,10 +83,6 @@ const MAX_TOP_SPACE_PT = 10;
 /** Word uses bidi/zero-width control characters in otherwise empty Arabic
  * paragraphs. They have no visible ink, but textContent.trim() treats several
  * of them as content and leaves a full blank line on every imported page. */
-function hasVisibleText(el: Element): boolean {
-  return (el.textContent ?? "").replace(INVISIBLE_WORD_CHARS, "").length > 0;
-}
-
 function isBlankBlock(el: Element): boolean {
   return isWordBlankBlock(el);
 }

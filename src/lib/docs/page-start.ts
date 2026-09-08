@@ -41,21 +41,18 @@ function zeroStart(el: HTMLElement): void {
  * caller supplies a rendered DOM tree.
  */
 export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): number {
+  const path: HTMLElement[] = [];
   let node: HTMLElement | null = root;
   let painted: HTMLElement = root;
-  let before = root.getBoundingClientRect().top;
-  let measured = false;
   let guard = 0;
 
   while (node && guard++ < 64) {
-    zeroStart(node);
+    path.push(node);
     const children = Array.from(node.children).filter(
       (child): child is HTMLElement => child instanceof HTMLElement,
     );
     if (!children.length) {
       painted = node;
-      before = node.getBoundingClientRect().top;
-      measured = true;
       break;
     }
 
@@ -71,12 +68,12 @@ export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): 
     }
     if (!next) break;
     painted = next;
-    before = next.getBoundingClientRect().top;
-    measured = true;
     node = next;
   }
 
-  zeroStart(painted);
+  const before = painted.getBoundingClientRect().top;
+  path.forEach(zeroStart);
+  if (!path.includes(painted)) zeroStart(painted);
   const after = painted.getBoundingClientRect().top;
-  return measured ? Math.max(0, before - after) : 0;
+  return Math.max(0, before - after);
 }
