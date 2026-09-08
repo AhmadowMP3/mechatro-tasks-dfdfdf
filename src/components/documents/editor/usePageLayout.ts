@@ -7,6 +7,7 @@ import { A4 } from "../DocPaper";
 import { editorIsReady } from "./useStableEditor";
 import { SHEET_GAP, readSpacers, sameSpacers, writeSpacers, type PageSpacer } from "./pagination";
 import { BODY_SAFETY } from "@/lib/docs/page-metrics";
+import { isWordBlankBlock, normaliseWordPageStart, visibleWordText } from "@/lib/docs/page-start";
 
 export type PageGeometry = { top: number; left: number; width: number; height: number };
 
@@ -112,14 +113,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     // header. Collapse them in the measured clone AND paint the matching
     // display classes on the live nodes, so both agree.
     const classMarks: PageSpacer[] = [];
-    const visibleText = (el: HTMLElement) =>
-      (el.textContent ?? "").replace(/[\s\u00a0\u200b-\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]/g, "");
-    const isBlank = (el: HTMLElement) =>
-      !el.querySelector("img,table,hr,svg,canvas") &&
-      el.tagName !== "IMG" &&
-      el.tagName !== "TABLE" &&
-      el.tagName !== "HR" &&
-      visibleText(el) === "";
+    const isBlank = (el: HTMLElement) => isWordBlankBlock(el);
     const isBreak = (el: HTMLElement) =>
       el.hasAttribute("data-page-break") ||
       el.classList.contains("doc-page-break-anchor") ||
@@ -133,29 +127,6 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     };
     /** Return the first element that actually paints content. Word commonly
      * wraps it in several divs and leaves empty paragraphs before it. */
-    const firstPainted = (root: HTMLElement): HTMLElement => {
-      let node = root;
-      let guard = 0;
-      while (guard++ < 32) {
-        const children = Array.from(node.children).filter(
-          (child): child is HTMLElement => child instanceof HTMLElement,
-        );
-        if (!children.length) return node;
-        let next: HTMLElement | null = null;
-        for (const child of children) {
-          if (isBlank(child)) {
-            child.style.display = "none";
-            continue;
-          }
-          next = child;
-          break;
-        }
-        if (!next) return node;
-        node = next;
-      }
-      return node;
-    };
-
     /** Normalise a page start in the measurement DOM and return the *actual*
      * number of pixels by which its first painted content moved upward.
      * Measuring the delta is important: CSS margin collapsing means summing
@@ -163,40 +134,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
      * overestimate was added to the page spacer and caused the large band
      * below headers on pages 2+ of imported Word documents. */
     const normalisePageStart = (el: HTMLElement): number => {
-      const painted = firstPainted(el);
-      const before = painted.getBoundingClientRect().top;
-      let node: HTMLElement | null = el;
-      let guard = 0;
-      while (node && guard++ < 32) {
-        node.style.marginTop = "0";
-        node.style.paddingTop = "0";
-        node.style.marginBlockStart = "0";
-        node.style.paddingBlockStart = "0";
-        // Imported Word sections may carry a fixed/minimum height. Leaving it
-        // on the leading wrapper creates a real empty band below every repeated
-        // letterhead even though its margins have already been zeroed.
-        if (["DIV", "SECTION", "ARTICLE", "MAIN"].includes(node.tagName)) {
-          node.style.height = "auto";
-          node.style.minHeight = "0";
-        }
-        if (node === painted) break;
-        const children: HTMLElement[] = Array.from(node.children).filter(
-          (child): child is HTMLElement => child instanceof HTMLElement,
-        );
-        let next: HTMLElement | null = null;
-        for (const child of children) {
-          if (isBlank(child)) {
-            child.style.display = "none";
-            continue;
-          }
-          next = child;
-          break;
-        }
-        if (!next || next === node) break;
-        node = next;
-      }
-      const after = painted.getBoundingClientRect().top;
-      return Math.max(0, before - after);
+      return normaliseWordPageStart(el, false);
     };
 
     let atPageStart = true;
@@ -392,7 +330,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       // instead of pushing it down and eating the new page's top margin.
       const blankBlock =
         !el.querySelector("img,table,hr,svg,canvas") &&
-        visibleText(el) === "";
+        visibleWordText(el) === "";
 
       let k = Math.max(0, Math.floor(top / PITCH));
       if (blankBlock) {

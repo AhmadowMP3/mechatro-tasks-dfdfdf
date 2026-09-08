@@ -6,6 +6,8 @@
 // lists item-wise and paragraphs word-wise, so nothing is ever clipped.
 // Browser-only.
 
+import { isWordBlankBlock, normaliseWordPageStart } from "./page-start";
+
 export const BODY_PAD_X = 40;
 export const A4_HTML = { width: 794, height: 1123 } as const;
 
@@ -35,16 +37,10 @@ function hostStyle(lang: "ar" | "en", sidePadding?: number): string {
 
 const isBreak = (el: Element): boolean => el.hasAttribute?.("data-page-break");
 
-const visibleText = (el: Element): string =>
-  (el.textContent ?? "").replace(/[\s\u00a0\u200b-\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]/g, "");
-
 /** A paragraph carrying nothing but a <br> or whitespace — Word leaves plenty
  *  of these behind and they would open a page with a blank line. */
 function isEmptyBlock(el: Element | null): boolean {
-  if (!el) return false;
-  if (el.hasAttribute?.("data-page-break")) return false;
-  if (el.querySelector("img,table,hr,svg,canvas,input")) return false;
-  return visibleText(el) === "";
+  return isWordBlankBlock(el);
 }
 
 /** Word can wrap the first visible block in several section divs. Whenever a
@@ -52,37 +48,7 @@ function isEmptyBlock(el: Element | null): boolean {
  * and all inherited top spacing along that exact leading chain. This mirrors
  * the editor's pre-measure normalisation instead of relying on shallow CSS. */
 function normalisePageStart(root: HTMLElement): void {
-  let node: HTMLElement | null = root;
-  let guard = 0;
-  while (node && guard++ < 32) {
-    node.style.marginTop = "0";
-    node.style.paddingTop = "0";
-    node.style.marginBlockStart = "0";
-    node.style.paddingBlockStart = "0";
-
-    // Word section wrappers can retain a page-sized fixed/min height even
-    // after their blank leading paragraphs are removed. At a page boundary
-    // that height is only source-document chrome, not real body content.
-    // Reset it on the exact leading branch (never on sibling content).
-    if (["DIV", "SECTION", "ARTICLE", "MAIN"].includes(node.tagName)) {
-      node.style.height = "auto";
-      node.style.minHeight = "0";
-    }
-
-    const children: HTMLElement[] = Array.from(node.children).filter(
-      (child): child is HTMLElement => child instanceof HTMLElement,
-    );
-    let next: HTMLElement | null = null;
-    for (const child of children) {
-      if (isEmptyBlock(child)) {
-        child.remove();
-        continue;
-      }
-      next = child;
-      break;
-    }
-    node = next;
-  }
+  normaliseWordPageStart(root, true);
 }
 
 /** Drop blank paragraphs from the start and the end of a page. */

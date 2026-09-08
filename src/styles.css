@@ -1513,6 +1513,10 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   margin-block-start: 0 !important;
   padding-block-start: 0 !important;
 }
+.doc-rich-editable .doc-page-first-block {
+  justify-content: flex-start !important;
+  align-content: flex-start !important;
+}
 /* Only section-like wrappers on the leading branch lose Word's fixed page
    height. Real content (tables, rows, images and headings) keeps its size. */
 .doc-rich-editable .doc-page-first-block:is(div, section, article, main),
@@ -1595,6 +1599,8 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 .doc-rich > :first-child :is(div, section, article, main):first-child {
   height: auto !important;
   min-height: 0 !important;
+  justify-content: flex-start !important;
+  align-content: flex-start !important;
 }
 .doc-rich > :last-child {
   margin-bottom: 0 !important;
