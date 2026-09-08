@@ -1627,6 +1627,9 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   font-family: "Montserrat Arabic", "Almarai", "Montserrat", system-ui, sans-serif;
   font-size: 12.5px;
   line-height: 1.7;
+  /* Own the child margins: the measured page start and the painted page start
+     must agree, so no first-child margin may escape the body box. */
+  display: flow-root;
 }
 .doc-rich > * + * {
   margin-top: 8px;
