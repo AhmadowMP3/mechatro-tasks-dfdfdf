@@ -79,12 +79,21 @@ const MAX_SPACE_PT = 24;
 /** Top spacing is what stacks under our own header — keep it much tighter. */
 const MAX_TOP_SPACE_PT = 10;
 
+/** Word uses bidi/zero-width control characters in otherwise empty Arabic
+ * paragraphs. They have no visible ink, but textContent.trim() treats several
+ * of them as content and leaves a full blank line on every imported page. */
+const INVISIBLE_WORD_CHARS = /[\s\u00a0\u200b-\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]/g;
+
+function hasVisibleText(el: Element): boolean {
+  return (el.textContent ?? "").replace(INVISIBLE_WORD_CHARS, "").length > 0;
+}
+
 function isBlankBlock(el: Element): boolean {
   if (el.querySelector("img, table")) return false;
   const tag = el.tagName;
   if (tag === "IMG" || tag === "TABLE" || tag === "HR") return false;
   if ((el as HTMLElement).hasAttribute?.("data-page-break")) return false;
-  return !(el.textContent ?? "").replace(/\u00a0/g, " ").trim();
+  return !hasVisibleText(el);
 }
 
 function zeroTopSpace(el: Element): void {
