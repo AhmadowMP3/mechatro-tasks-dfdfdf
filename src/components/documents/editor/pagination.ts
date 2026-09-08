@@ -20,6 +20,8 @@ export type PageSpacer = {
   end?: number;
   /** Display class for kind === "class". */
   cls?: string;
+  /** Exact measured residual gap inside a page-start block. */
+  startLift?: number;
 };
 
 
@@ -60,7 +62,12 @@ export const PageLayout = Extension.create({
 
               if (s.kind === "class") {
                 if (s.cls && s.end !== undefined && s.end > s.pos && s.end <= docSize) {
-                  decos.push(Decoration.node(s.pos, s.end, { class: s.cls }));
+                  decos.push(Decoration.node(s.pos, s.end, {
+                    class: s.cls,
+                    style: s.startLift && s.startLift > 0.5
+                      ? `--doc-page-start-lift:${s.startLift}px`
+                      : undefined,
+                  }));
                 }
                 continue;
               }
@@ -118,6 +125,7 @@ export function sameSpacers(a: PageSpacer[], b: PageSpacer[]) {
       s.end === b[i]!.end &&
       s.kind === b[i]!.kind &&
       s.cls === b[i]!.cls &&
+      Math.abs((s.startLift ?? 0) - (b[i]!.startLift ?? 0)) < 1 &&
       Math.abs(s.h - b[i]!.h) < 1,
   );
 
