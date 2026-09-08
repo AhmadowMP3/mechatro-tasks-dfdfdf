@@ -5,7 +5,7 @@
 import { useRef, useState } from "react";
 
 import { logoFor } from "@/lib/brand/logo";
-import { PAPER, pageMarginsPx, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocTheme } from "@/lib/docs/types";
+import { PAPER, resolveMargins, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocSection, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
 import type { LogoVariant } from "@/lib/docs/model";
 
@@ -29,6 +29,8 @@ export const A4 = { width: 794, height: 1123 } as const;
 type Props = {
   header: DocHeader;
   footer: DocFooter;
+  /** Page setup imported from the original Word file (wins over the template). */
+  section?: DocSection | null;
   lang: DocLang;
   theme: DocTheme;
   /** Sample meta shown in the header box (number / dates). */
