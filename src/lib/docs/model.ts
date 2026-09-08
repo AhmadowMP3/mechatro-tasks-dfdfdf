@@ -2,6 +2,8 @@
 // business_docs.model.html. Legacy block documents keep their raw `blocks`
 // array as an untouched backup; it is converted to HTML once on open.
 
+import type { DocSection } from "./types";
+
 export type DocClient = {
   nameAr: string;
   nameEn: string;
@@ -36,6 +38,8 @@ export type DocModel = {
   html: string;
   /** Letterhead logo rendering: auto follows the paper theme. */
   logoVariant?: LogoVariant;
+  /** Page setup imported from the original Word file (wins over template margins). */
+  section?: DocSection;
   /** Legacy blocks of pre-Word documents, kept only as a backup. */
   blocks?: unknown[];
 };
@@ -63,11 +67,27 @@ export function mergeModel(raw: unknown): DocModel {
   const html = typeof r.html === "string" ? r.html : "";
   const blocks = Array.isArray(r.blocks) ? (r.blocks.filter(Boolean) as unknown[]) : undefined;
   const variant: LogoVariant = r.logoVariant === "light" || r.logoVariant === "dark" ? r.logoVariant : "auto";
+  const s = r.section as Partial<DocSection> | undefined;
+  const section: DocSection | undefined =
+    s && ["pageWidthPx", "pageHeightPx", "marginTopPx", "marginRightPx", "marginBottomPx", "marginLeftPx"]
+      .every((k) => Number.isFinite((s as Record<string, unknown>)[k] as number))
+      ? {
+          pageWidthPx: s.pageWidthPx as number,
+          pageHeightPx: s.pageHeightPx as number,
+          marginTopPx: s.marginTopPx as number,
+          marginRightPx: s.marginRightPx as number,
+          marginBottomPx: s.marginBottomPx as number,
+          marginLeftPx: s.marginLeftPx as number,
+          headerOffsetPx: Number.isFinite(s.headerOffsetPx) ? (s.headerOffsetPx as number) : 0,
+          footerOffsetPx: Number.isFinite(s.footerOffsetPx) ? (s.footerOffsetPx as number) : 0,
+        }
+      : undefined;
   return {
     version: 2,
     showClientBox: r.showClientBox !== false,
     html,
     logoVariant: variant,
+    ...(section ? { section } : {}),
     ...(blocks && blocks.length > 0 ? { blocks } : {}),
   };
 }

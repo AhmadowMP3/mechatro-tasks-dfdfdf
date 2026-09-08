@@ -7,6 +7,7 @@
 
 import { sanitizeHtml } from "@/lib/security/sanitize";
 import { isWordBlankBlock } from "./page-start";
+import type { DocSection } from "./types";
 
 export type DocxImport = {
   /** Sanitized rich HTML ready for the editor / model.html. */
@@ -19,6 +20,8 @@ export type DocxImport = {
   warnings: string[];
   images: number;
   tables: number;
+  /** Real Word page setup, when the file declares one. */
+  section?: DocSection;
 };
 
 /** Images wider than this are downscaled before they enter the document. */
@@ -435,6 +438,7 @@ export async function convertDocx(file: File, opts?: { keepFormatting?: boolean 
           warnings,
           images: cleaned.images,
           tables: cleaned.tables,
+          ...(styled.section ? { section: styled.section } : {}),
         };
       }
       warnings.push("Styled import produced no content — fell back to plain import.");

@@ -5,7 +5,7 @@
 import { useRef, useState } from "react";
 
 import { logoFor } from "@/lib/brand/logo";
-import { PAPER, pageMarginsPx, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocTheme } from "@/lib/docs/types";
+import { PAPER, resolveMargins, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocSection, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
 import type { LogoVariant } from "@/lib/docs/model";
 
@@ -29,6 +29,8 @@ export const A4 = { width: 794, height: 1123 } as const;
 type Props = {
   header: DocHeader;
   footer: DocFooter;
+  /** Page setup imported from the original Word file (wins over the template). */
+  section?: DocSection | null;
   lang: DocLang;
   theme: DocTheme;
   /** Sample meta shown in the header box (number / dates). */
@@ -51,7 +53,7 @@ type Props = {
   children?: React.ReactNode;
 };
 
-export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", logoVariant, draggableLogo = false, onLogoMove, children }: Props) {
+export function DocPaper({ header, footer, section, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", logoVariant, draggableLogo = false, onLogoMove, children }: Props) {
   const ar = lang === "ar";
   const c = PAPER[theme];
   const dir = ar ? "rtl" : "ltr";
@@ -69,7 +71,10 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
     .filter(Boolean);
 
   const mode: DocLogoMode = header.logoMode ?? "inline";
-  const mg = pageMarginsPx(header);
+  const mg = resolveMargins(header, section);
+  // An imported Word file also tells us how far the header sits from the sheet
+  // edge; without one we keep the template's own top margin.
+  const headerTop = section ? Math.max(0, Math.round(section.headerOffsetPx)) : mg.top;
   // Header/footer bands keep a modest inset so the title and meta box never
   // get squeezed by a wide body margin; the body itself uses the real margin.
   const chromeSide = Math.min(mg.side, 40);
@@ -129,7 +134,7 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
       }}
     >
       {/* ── Header band (identical on every template) ───────────── */}
-      <div ref={headerRef} style={{ padding: `${mg.top}px ${chromeSide}px 0`, flexShrink: 0, position: "relative" }}>
+      <div ref={headerRef} style={{ padding: `${headerTop}px ${chromeSide}px 0`, flexShrink: 0, position: "relative", zIndex: 3, background: c.bg }}>
         {/* Logo band — full width so a tall logo never squeezes the title */}
         {header.showLogo && mode === "band" && (
           <div style={{ display: "flex", justifyContent: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? (ar ? "flex-start" : "flex-end") : (ar ? "flex-end" : "flex-start"), marginBottom: 10 }}>
@@ -235,11 +240,11 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
       {/* ── QR row (reserved on every page, filled on the last one) ─ */}
       <div
         data-qr-slot
-        style={{ height: QR_ROW_H, padding: `0 ${chromeSide}px`, display: "flex", alignItems: "flex-end", flexShrink: 0, overflow: "hidden" }}
+        style={{ height: QR_ROW_H, padding: `0 ${chromeSide}px`, display: "flex", alignItems: "flex-end", flexShrink: 0, overflow: "hidden", position: "relative", zIndex: 3, background: c.bg }}
       />
 
       {/* ── Footer band (identical on every template) ───────────── */}
-      <div data-doc-footer style={{ padding: `10px ${chromeSide}px ${mg.bottom}px`, flexShrink: 0 }}>
+      <div data-doc-footer style={{ padding: `10px ${chromeSide}px ${mg.bottom}px`, flexShrink: 0, position: "relative", zIndex: 3, background: c.bg }}>
         {(bank || signature) && (
           <div style={{ display: "flex", justifyContent: "space-between", gap: 24, marginBottom: 8, flexWrap: "wrap" }}>
             {bank ? <div style={{ fontSize: 10.5, color: c.muted, whiteSpace: "pre-wrap", flex: "1 1 240px", minWidth: 0, maxWidth: "60%", overflowWrap: "anywhere" }}>{bank}</div> : <span />}

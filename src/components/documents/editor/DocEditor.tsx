@@ -27,7 +27,7 @@ import { fieldValue, termsBlockHtml, type RichCtx } from "@/lib/docs/rich";
 import { snippetHtml, type SnippetId } from "@/lib/docs/snippets";
 import { docBlocks, blockLabel, type DocBlock } from "@/lib/docs/blocks";
 import type { DocClient, LogoVariant } from "@/lib/docs/model";
-import { PAPER, pageMarginsPx, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
+import { PAPER, resolveMargins, type DocFooter, type DocHeader, type DocLang, type DocSection, type DocTheme } from "@/lib/docs/types";
 import { toast } from "sonner";
 import { editorIsReady, useStableEditor } from "./useStableEditor";
 import { PageLayout, SHEET_GAP } from "./pagination";
@@ -46,6 +46,8 @@ type Props = {
   /** Letterhead chrome drawn around the editable body. */
   header: DocHeader;
   footer: DocFooter;
+  /** Page setup imported from the original Word file (wins over the template). */
+  section?: DocSection | null;
   logoVariant?: LogoVariant;
   onLogoVariant?: (v: LogoVariant) => void;
   /** Live language / theme switches shown in the ribbon. */
@@ -61,7 +63,7 @@ const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
 export function DocEditor({
   html, onChange, lang, theme, currency, meta, showClientBox, client,
-  header, footer, logoVariant, onLogoVariant, onLang, onTheme, terms, actions,
+  header, footer, section, logoVariant, onLogoVariant, onLang, onTheme, terms, actions,
 }: Props) {
   const ar = lang === "ar";
   const paper = PAPER[theme];
@@ -213,8 +215,8 @@ export function DocEditor({
 
   // Live A4 pagination: how many sheets to paint and where the body sits.
   const pagesRef = useRef<HTMLDivElement | null>(null);
-  const { pages, geo, repeats } = usePageLayout(editor, pagesRef);
-  const fallbackWidth = A4.width - 2 * pageMarginsPx(header).side;
+  const { pages, geo, repeats, clampedImages } = usePageLayout(editor, pagesRef);
+  const fallbackWidth = A4.width - 2 * resolveMargins(header, section).side;
 
   // The writing layer is never clipped: content must always stay readable.
   // Anything that would land past the body band is pushed to the next sheet by
@@ -239,6 +241,24 @@ export function DocEditor({
         actions={actions}
         onInsertTerms={templateTerms.trim() ? () => insert(termsBlockHtml(lang, templateTerms) ?? "") : undefined}
       />
+      {clampedImages > 0 && (
+        <div
+          role="status"
+          style={{
+            margin: "8px 12px 0",
+            padding: "6px 10px",
+            borderRadius: 8,
+            fontSize: 12.5,
+            background: "rgba(234,179,8,.14)",
+            color: "#b45309",
+            direction: ar ? "rtl" : "ltr",
+          }}
+        >
+          {ar
+            ? `تم تصغير ${clampedImages} صورة لتتسع داخل الصفحة.`
+            : `${clampedImages} image${clampedImages > 1 ? "s were" : " was"} scaled down to fit the page.`}
+        </div>
+      )}
       <div className="doc-editor-canvas">
         <div className="doc-editor-pages" ref={pagesRef}>
           {/* Stacked A4 sheets painted behind the editable layer */}
@@ -247,6 +267,7 @@ export function DocEditor({
               <div key={i} className="doc-editor-sheet-slot" style={{ marginBottom: i === pages - 1 ? 0 : SHEET_GAP }}>
                 <DocPaper
                   header={header}
+                  section={section}
                   footer={footer}
                   lang={lang}
                   theme={theme}

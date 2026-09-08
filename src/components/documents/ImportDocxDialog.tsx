@@ -13,7 +13,7 @@ import { docTemplates } from "@/lib/docs/api";
 import { businessDocs, type BusinessDoc } from "@/lib/docs/docs-api";
 import { emptyClient, defaultModel, uid, type DocClient } from "@/lib/docs/model";
 import { emptyItemsData, writeItemsAttr } from "@/lib/docs/rich";
-import { DOC_TYPES, docTypeLabel, type DocLang, type DocTemplate, type DocType } from "@/lib/docs/types";
+import { DOC_TYPES, docTypeLabel, type DocLang, type DocSection, type DocTemplate, type DocType } from "@/lib/docs/types";
 import { PaginatedDoc } from "./PaginatedDoc";
 import { CURRENCIES, currencyLabel } from "@/lib/currency";
 
@@ -49,6 +49,8 @@ export type DocxApplyPayload = {
   validUntil: string;
   client: DocClient;
   showClientBox: boolean;
+  /** Real Word page setup read from the imported file. */
+  section?: DocSection;
 };
 
 export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onApply }: {
@@ -220,6 +222,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         validUntil: draft.validUntil,
         client: draft.client,
         showClientBox: hasClient,
+        ...(imported.section ? { section: imported.section as DocSection } : {}),
       });
       return;
     }
@@ -234,7 +237,12 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         currency: draft.currency,
         issue_date: draft.issueDate || created.issue_date,
         valid_until: draft.validUntil || null,
-        model: { ...defaultModel(), showClientBox: hasClient, html: bodyHtml() },
+        model: {
+          ...defaultModel(),
+          showClientBox: hasClient,
+          html: bodyHtml(),
+          ...(imported.section ? { section: imported.section } : {}),
+        },
       });
       toast.success(ar ? `تم إنشاء ${saved.number} من الملف المستورد` : `Created ${saved.number} from the imported file`);
       onCreated?.(saved);
@@ -248,7 +256,12 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     ? {
         header: tpl.header,
         footer: tpl.footer,
-        model: { ...defaultModel(), showClientBox: hasClient, html: bodyHtml() },
+        model: {
+          ...defaultModel(),
+          showClientBox: hasClient,
+          html: bodyHtml(),
+          ...(imported.section ? { section: imported.section } : {}),
+        },
         client: draft.client,
         lang: draft.lang,
         theme: tpl.defaults.theme,

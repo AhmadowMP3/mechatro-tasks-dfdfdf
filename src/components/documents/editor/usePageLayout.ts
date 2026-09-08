@@ -24,6 +24,8 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
   const [pages, setPages] = useState(1);
   const [geo, setGeo] = useState<PageGeometry | null>(null);
   const [repeats, setRepeats] = useState<HeaderRepeat[]>([]);
+  /** How many images were shrunk because they were taller than one page. */
+  const [clampedImages, setClampedImages] = useState(0);
   const frame = useRef<number | null>(null);
   const measureHost = useRef<HTMLDivElement | null>(null);
   const applyingLayout = useRef(false);
@@ -298,6 +300,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     let forcedPageTop: number | null = null;
     let lastBottom = 0;
     let lastContentPage = -1;
+    let clamped = 0;
     let pendingBlankIndexes: number[] = [];
 
     const collapsePendingPageBlanks = () => {
@@ -403,6 +406,33 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       const liveTable = liveBlock?.tagName === "TABLE"
         ? (liveBlock as HTMLTableElement)
         : liveBlock?.querySelector<HTMLTableElement>("table") ?? null;
+
+      // An image taller than the whole body box can never be split or moved
+      // anywhere safe: clamp it to the page so it can never print over the
+      // footer or the next header.
+      if (!table && h > H + 0.5) {
+        const liveImg = liveBlock?.tagName === "IMG"
+          ? (liveBlock as HTMLImageElement)
+          : liveBlock?.querySelector<HTMLImageElement>("img") ?? null;
+        const cloneImg = el.tagName === "IMG" ? (el as HTMLImageElement) : el.querySelector("img");
+        if (liveImg && cloneImg && cloneImg.getBoundingClientRect().height > H - 1) {
+          const maxH = Math.max(80, Math.floor(H - 4));
+          if (Math.round(liveImg.getBoundingClientRect().height) > maxH) {
+            liveImg.style.height = `${maxH}px`;
+            liveImg.style.width = "auto";
+            liveImg.style.maxHeight = `${maxH}px`;
+            liveImg.style.objectFit = "contain";
+            clamped += 1;
+          }
+          cloneImg.style.height = `${maxH}px`;
+          cloneImg.style.width = "auto";
+          r = el.getBoundingClientRect();
+          top = editorOffset + r.top - hostTop + shift;
+          h = r.height;
+          k = Math.max(0, Math.floor(top / PITCH));
+        }
+      }
+
       const crosses = top + h > k * PITCH + H + 0.5;
 
 
@@ -444,11 +474,20 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
 
       lastBottom = Math.max(lastBottom, top + h + added);
       lastContentPage = Math.max(lastContentPage, k);
+
+      // Development guard: nothing may end below its own page's body box.
+      if (import.meta.env.DEV && top + h + added > k * PITCH + H + 1.5) {
+        console.warn(
+          "[doc-pagination] block overflows its page body box",
+          { page: k + 1, top, height: h + added, limit: k * PITCH + H, node: el },
+        );
+      }
     });
 
     const needed = Math.max(1, Math.floor(Math.max(0, lastBottom - 1) / PITCH) + 1);
     setPages((prev) => (prev === needed ? prev : needed));
     setRepeats((prev) => (sameRepeats(prev, pendingRepeats) ? prev : pendingRepeats));
+    setClampedImages((prev) => (prev === clamped ? prev : clamped));
 
     if (!sameSpacers(readSpacers(editor), spacers)) {
       applyingLayout.current = true;
@@ -621,5 +660,5 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
   }, [editor, schedule]);
 
 
-  return { pages, geo, repeats };
+  return { pages, geo, repeats, clampedImages };
 }
