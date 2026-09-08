@@ -10,6 +10,7 @@ import { DocRichBody } from "./DocRichBody";
 import { paginateHtmlBody } from "@/lib/docs/paginate-html";
 import { resolveDocHtml } from "@/lib/docs/rich";
 import { A4_SIZE, waitForPaperAssets, type DocPage } from "@/lib/docs/paginate";
+import { bodyHeightPx, bodyWidthPx } from "@/lib/docs/page-metrics";
 import type { DocClient, DocModel } from "@/lib/docs/model";
 import { pageMarginsPx, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
 
