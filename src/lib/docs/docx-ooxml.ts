@@ -318,7 +318,55 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 /* ── main converter ───────────────────────────────────────────── */
-export type OoxmlResult = { html: string; images: number; tables: number; skippedImages: number };
+export type OoxmlSection = {
+  pageWidthPx: number; pageHeightPx: number;
+  marginTopPx: number; marginRightPx: number;
+  marginBottomPx: number; marginLeftPx: number;
+  headerOffsetPx: number; footerOffsetPx: number;
+};
+
+export type OoxmlResult = {
+  html: string; images: number; tables: number; skippedImages: number;
+  /** Real Word page setup, when the document declares one. */
+  section?: OoxmlSection;
+};
+
+/** Word twips (1/1440 in) → CSS pixels (96 dpi). */
+const twipsToPx = (v: string | null): number | null => {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.round((Math.abs(n) / 1440) * 96) : null;
+};
+
+/** Read the final <w:sectPr> of the body — the document's page setup. */
+function readSection(body: Element): OoxmlSection | undefined {
+  const sectPr = kids(body, "sectPr").slice(-1)[0];
+  if (!sectPr) return undefined;
+  const pgSz = kid(sectPr, "pgSz");
+  const pgMar = kid(sectPr, "pgMar");
+  if (!pgSz && !pgMar) return undefined;
+  const w = twipsToPx(attr(pgSz, "w"));
+  const h = twipsToPx(attr(pgSz, "h"));
+  const top = twipsToPx(attr(pgMar, "top"));
+  const right = twipsToPx(attr(pgMar, "right"));
+  const bottom = twipsToPx(attr(pgMar, "bottom"));
+  const left = twipsToPx(attr(pgMar, "left"));
+  const headerOffset = twipsToPx(attr(pgMar, "header"));
+  const footerOffset = twipsToPx(attr(pgMar, "footer"));
+  if (w === null || h === null || top === null || right === null || bottom === null || left === null) {
+    return undefined;
+  }
+  return {
+    pageWidthPx: w,
+    pageHeightPx: h,
+    marginTopPx: top,
+    marginRightPx: right,
+    marginBottomPx: bottom,
+    marginLeftPx: left,
+    headerOffsetPx: headerOffset ?? 0,
+    footerOffsetPx: footerOffset ?? 0,
+  };
+}
+
 
 
 export async function docxToStyledHtml(
