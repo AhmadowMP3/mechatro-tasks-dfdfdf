@@ -1472,7 +1472,11 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   pointer-events: none;
   user-select: none;
 }
-.doc-page-spacer + * {
+.doc-page-spacer + *,
+.doc-page-spacer + * > :first-child,
+.doc-page-spacer + * > :first-child > :first-child,
+.doc-page-spacer + * > :first-child > :first-child > :first-child,
+.doc-page-spacer + * > :first-child > :first-child > :first-child > :first-child {
   margin-top: 0 !important;
   padding-top: 0 !important;
 }
