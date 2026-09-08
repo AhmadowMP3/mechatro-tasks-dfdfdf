@@ -256,40 +256,36 @@ export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsert
         </select>
 
         {onSnippet && (
-          <div className="doc-ribbon-menu" onMouseLeave={() => setSnipOpen(false)}>
-            <button type="button" className={`doc-ribbon-btn${snipOpen ? " is-active" : ""}`} onClick={() => setSnipOpen((o) => !o)} title={ar ? "مقاطع جاهزة" : "Snippets"}>
+          <div className="doc-ribbon-menu">
+            <button ref={snipBtnRef} type="button" className={`doc-ribbon-btn${snipOpen ? " is-active" : ""}`} onClick={() => setSnipOpen((o) => !o)} title={ar ? "مقاطع جاهزة" : "Snippets"}>
               <Library size={15} /> <span style={{ fontSize: 11.5 }}>{ar ? "مقاطع" : "Snippets"}</span>
             </button>
-            {snipOpen && (
-              <div className="doc-ribbon-menu-list">
-                {DOC_SNIPPETS.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => { onSnippet(s.id); setSnipOpen(false); }}
-                  >
-                    {ar ? s.labelAr : s.labelEn}
-                  </button>
-                ))}
-              </div>
-            )}
+            <RibbonPopover open={snipOpen} anchor={snipBtnRef} onClose={() => setSnipOpen(false)} className="doc-ribbon-menu-list">
+              {DOC_SNIPPETS.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => { onSnippet(s.id); setSnipOpen(false); }}
+                >
+                  {ar ? s.labelAr : s.labelEn}
+                </button>
+              ))}
+            </RibbonPopover>
           </div>
         )}
 
         {onBlock && blocks && blocks.length > 0 && (
-          <div className="doc-ribbon-menu" onMouseLeave={() => setBlockOpen(false)}>
-            <button type="button" className={`doc-ribbon-btn${blockOpen ? " is-active" : ""}`} onClick={() => setBlockOpen((o) => !o)} title={ar ? "مكتبة المقاطع" : "Blocks library"}>
+          <div className="doc-ribbon-menu">
+            <button ref={blockBtnRef} type="button" className={`doc-ribbon-btn${blockOpen ? " is-active" : ""}`} onClick={() => setBlockOpen((o) => !o)} title={ar ? "مكتبة المقاطع" : "Blocks library"}>
               <Library size={15} /> <span style={{ fontSize: 11.5 }}>{ar ? "مكتبتي" : "Blocks"}</span>
             </button>
-            {blockOpen && (
-              <div className="doc-ribbon-menu-list">
-                {blocks.map((b) => (
-                  <button key={b.id} type="button" onClick={() => { onBlock(b.html); setBlockOpen(false); }}>
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            <RibbonPopover open={blockOpen} anchor={blockBtnRef} onClose={() => setBlockOpen(false)} className="doc-ribbon-menu-list">
+              {blocks.map((b) => (
+                <button key={b.id} type="button" onClick={() => { onBlock(b.html); setBlockOpen(false); }}>
+                  {b.label}
+                </button>
+              ))}
+            </RibbonPopover>
           </div>
         )}
       </div>
