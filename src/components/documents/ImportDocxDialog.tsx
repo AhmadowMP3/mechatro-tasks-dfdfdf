@@ -287,7 +287,11 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
           <FileText size={17} style={{ color: "var(--primary)" }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800 }}>{ar ? "استيراد من Word" : "Import from Word"}</div>
+            <div style={{ fontSize: 14, fontWeight: 800 }}>
+              {quick
+                ? (ar ? "استيراد سريع من Word" : "Quick import from Word")
+                : (ar ? "استيراد من Word" : "Import from Word")}
+            </div>
             <div style={{ fontSize: 11.5, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {fileName || (ar ? "ارفع ملف .docx وسيتم استخراج البيانات من الملف نفسه" : "Upload a .docx — the fields are read from the file itself")}
 
