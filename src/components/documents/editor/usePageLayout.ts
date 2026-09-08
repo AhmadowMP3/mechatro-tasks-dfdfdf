@@ -412,11 +412,16 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         // table cannot be split here at all: move the whole block to the next
         // sheet first, otherwise its rows keep running past the page edge and
         // print over the footer and the next header.
+        // Require the header row *and* the first body row to fit, so a table
+        // never leaves a lonely header stranded at the foot of a page.
         const firstRow = table.rows[0];
+        const secondRow = table.rows[1];
         if (firstRow) {
           const fr = firstRow.getBoundingClientRect();
+          const sr = secondRow?.getBoundingClientRect();
           const frTop = editorOffset + fr.top - hostTop + shift;
-          if (frTop + fr.height > k * PITCH + H + 0.5 && top > k * PITCH + 1) {
+          const needed = fr.height + (sr ? sr.height : 0);
+          if (frTop + needed > k * PITCH + H + 0.5 && top > k * PITCH + 1) {
             pushTo((k + 1) * PITCH);
             k += 1;
           }
