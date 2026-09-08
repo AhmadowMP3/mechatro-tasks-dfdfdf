@@ -51,13 +51,15 @@ export type DocxApplyPayload = {
   showClientBox: boolean;
 };
 
-export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onApply }: {
+export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onApply, quick = false }: {
   ar: boolean;
   onClose: () => void;
   onCreated?: (doc: BusinessDoc) => void;
   /** "create" makes a new document; "apply" replaces the open document body. */
   mode?: "create" | "apply";
   onApply?: (payload: DocxApplyPayload) => void;
+  /** Fast path: save the file and go straight to the branded preview. */
+  quick?: boolean;
 }) {
   const [stage, setStage] = useState<Stage>("pick");
   const [step, setStep] = useState("");
