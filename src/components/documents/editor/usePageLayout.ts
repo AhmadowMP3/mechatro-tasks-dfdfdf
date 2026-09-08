@@ -275,6 +275,24 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       return rowShift;
     };
 
+    // How far a block would rise once its (collapsed) top spacing is zeroed.
+    // Every block that opens a sheet gets `doc-page-first-block`, exactly like
+    // the preview, where each page is its own `.doc-rich` container.
+    const topSpaceOf = (el: HTMLElement): number => {
+      let node: HTMLElement | null = el;
+      let guard = 0;
+      let space = 0;
+      while (node && guard++ < 6) {
+        const cs = getComputedStyle(node);
+        space = Math.max(space, parseFloat(cs.marginTop) || 0);
+        space += parseFloat(cs.paddingTop) || 0;
+        if ((parseFloat(cs.borderTopWidth) || 0) > 0) break;
+        const first: Element | null = node.firstElementChild;
+        node = first instanceof HTMLElement ? first : null;
+      }
+      return space;
+    };
+
     const spacers: PageSpacer[] = [...classMarks];
     let shift = 0;
     let forcedPageTop: number | null = null;
