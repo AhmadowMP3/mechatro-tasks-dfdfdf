@@ -44,6 +44,34 @@ function isEmptyBlock(el: Element | null): boolean {
   return (el.textContent ?? "").trim() === "";
 }
 
+/** Word can wrap the first visible block in several section divs. Whenever a
+ * node is promoted to the beginning of a page, remove blank leading children
+ * and all inherited top spacing along that exact leading chain. This mirrors
+ * the editor's pre-measure normalisation instead of relying on shallow CSS. */
+function normalisePageStart(root: HTMLElement): void {
+  let node: HTMLElement | null = root;
+  let guard = 0;
+  while (node && guard++ < 32) {
+    node.style.marginTop = "0";
+    node.style.paddingTop = "0";
+    node.style.marginBlockStart = "0";
+
+    const children: HTMLElement[] = Array.from(node.children).filter(
+      (child): child is HTMLElement => child instanceof HTMLElement,
+    );
+    let next: HTMLElement | null = null;
+    for (const child of children) {
+      if (isEmptyBlock(child)) {
+        child.remove();
+        continue;
+      }
+      next = child;
+      break;
+    }
+    node = next;
+  }
+}
+
 /** Drop blank paragraphs from the start and the end of a page. */
 function trimEdges(page: HTMLElement): void {
   while (isEmptyBlock(page.firstElementChild)) page.firstElementChild!.remove();
@@ -188,6 +216,7 @@ export function paginateHtmlBody(opts: {
         if (page.childElementCount > 0 || first) flush();
         continue;
       }
+      if (page.childElementCount === 0) normalisePageStart(node);
       page.appendChild(node);
       if (height(page) <= avail - reserve) continue;
 
