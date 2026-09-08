@@ -222,6 +222,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         validUntil: draft.validUntil,
         client: draft.client,
         showClientBox: hasClient,
+        ...(imported.section ? { section: imported.section as DocSection } : {}),
       });
       return;
     }
@@ -236,7 +237,12 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         currency: draft.currency,
         issue_date: draft.issueDate || created.issue_date,
         valid_until: draft.validUntil || null,
-        model: { ...defaultModel(), showClientBox: hasClient, html: bodyHtml() },
+        model: {
+          ...defaultModel(),
+          showClientBox: hasClient,
+          html: bodyHtml(),
+          ...(imported.section ? { section: imported.section } : {}),
+        },
       });
       toast.success(ar ? `تم إنشاء ${saved.number} من الملف المستورد` : `Created ${saved.number} from the imported file`);
       onCreated?.(saved);
@@ -250,7 +256,12 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     ? {
         header: tpl.header,
         footer: tpl.footer,
-        model: { ...defaultModel(), showClientBox: hasClient, html: bodyHtml() },
+        model: {
+          ...defaultModel(),
+          showClientBox: hasClient,
+          html: bodyHtml(),
+          ...(imported.section ? { section: imported.section } : {}),
+        },
         client: draft.client,
         lang: draft.lang,
         theme: tpl.defaults.theme,
