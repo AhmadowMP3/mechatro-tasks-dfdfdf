@@ -129,17 +129,64 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       if (from === undefined || to === undefined) return;
       classMarks.push({ pos: from, end: to, h: 0, kind: "class", cls });
     };
-    /** Zero the top spacing of an element and the wrappers it starts. */
-    const zeroTopChain = (el: HTMLElement) => {
+    /** Return the first element that actually paints content. Word commonly
+     * wraps it in several divs and leaves empty paragraphs before it. */
+    const firstPainted = (root: HTMLElement): HTMLElement => {
+      let node = root;
+      let guard = 0;
+      while (guard++ < 32) {
+        const children = Array.from(node.children).filter(
+          (child): child is HTMLElement => child instanceof HTMLElement,
+        );
+        if (!children.length) return node;
+        let next: HTMLElement | null = null;
+        for (const child of children) {
+          if (isBlank(child)) {
+            child.style.display = "none";
+            continue;
+          }
+          next = child;
+          break;
+        }
+        if (!next) return node;
+        node = next;
+      }
+      return node;
+    };
+
+    /** Normalise a page start in the measurement DOM and return the *actual*
+     * number of pixels by which its first painted content moved upward.
+     * Measuring the delta is important: CSS margin collapsing means summing
+     * computed margins/padding can greatly overestimate this value. That
+     * overestimate was added to the page spacer and caused the large band
+     * below headers on pages 2+ of imported Word documents. */
+    const normalisePageStart = (el: HTMLElement): number => {
+      const painted = firstPainted(el);
+      const before = painted.getBoundingClientRect().top;
       let node: HTMLElement | null = el;
       let guard = 0;
-      while (node && guard++ < 6) {
+      while (node && guard++ < 32) {
         node.style.marginTop = "0";
         node.style.paddingTop = "0";
-        const first: Element | null = node.firstElementChild;
-        node = first instanceof HTMLElement ? first : null;
-
+        node.style.marginBlockStart = "0";
+        if (node === painted) break;
+        const children: HTMLElement[] = Array.from(node.children).filter(
+          (child): child is HTMLElement => child instanceof HTMLElement,
+        );
+        let next: HTMLElement | null = null;
+        for (const child of children) {
+          if (isBlank(child)) {
+            child.style.display = "none";
+            continue;
+          }
+          next = child;
+          break;
+        }
+        if (!next || next === node) break;
+        node = next;
       }
+      const after = painted.getBoundingClientRect().top;
+      return Math.max(0, before - after);
     };
 
     let atPageStart = true;
@@ -156,7 +203,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         return;
       }
       if (atPageStart) {
-        zeroTopChain(el);
+        normalisePageStart(el);
         mark(i, "doc-page-first-block");
         atPageStart = false;
       }
@@ -275,24 +322,6 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       return rowShift;
     };
 
-    // How far a block would rise once its (collapsed) top spacing is zeroed.
-    // Every block that opens a sheet gets `doc-page-first-block`, exactly like
-    // the preview, where each page is its own `.doc-rich` container.
-    const topSpaceOf = (el: HTMLElement): number => {
-      let node: HTMLElement | null = el;
-      let guard = 0;
-      let space = 0;
-      while (node && guard++ < 6) {
-        const cs = getComputedStyle(node);
-        space = Math.max(space, parseFloat(cs.marginTop) || 0);
-        space += parseFloat(cs.paddingTop) || 0;
-        if ((parseFloat(cs.borderTopWidth) || 0) > 0) break;
-        const first: Element | null = node.firstElementChild;
-        node = first instanceof HTMLElement ? first : null;
-      }
-      return space;
-    };
-
     const spacers: PageSpacer[] = [...classMarks];
     let shift = 0;
     let forcedPageTop: number | null = null;
@@ -322,9 +351,10 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
 
       const pushTo = (target: number) => {
         if (p === undefined) return;
-        // The spacer (and the page-start class) strip the block's inherited
-        // Word "space before", so add it back to land exactly on the margin.
-        const lift = topSpaceOf(el);
+        // Normalise first, then compensate by the measured movement. Never
+        // derive this from a sum of CSS margins: collapsed margins are not
+        // additive and caused oversized spacers in imported Word documents.
+        const lift = normalisePageStart(el);
         const need = target - top + lift;
         if (need <= 0.5) return;
         spacers.push({ pos: p, h: need });

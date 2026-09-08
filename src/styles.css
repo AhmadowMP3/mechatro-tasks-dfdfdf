@@ -1499,6 +1499,14 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 .doc-rich-editable .doc-page-first-block > :first-child > :first-child > :first-child > :first-child > :first-child {
   margin-top: 0 !important;
   padding-top: 0 !important;
+  margin-block-start: 0 !important;
+}
+/* Imported Word wrappers can be deeper than a fixed selector chain. Keep the
+   full leading branch visually identical to the DOM used for measurement. */
+.doc-rich-editable .doc-page-first-block :first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  margin-block-start: 0 !important;
 }
 
 
@@ -1561,8 +1569,14 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 /* A page always starts flush with the official top margin: imported Word/PDF
    "space before" on the first block must never add to it. */
 .doc-rich > :first-child,
+.doc-rich > :first-child > :first-child,
+.doc-rich > :first-child > :first-child > :first-child,
+.doc-rich > :first-child > :first-child > :first-child > :first-child,
+.doc-rich > :first-child > :first-child > :first-child > :first-child > :first-child,
 .doc-editor-sheet .ProseMirror > :first-child {
   margin-top: 0 !important;
+  padding-top: 0 !important;
+  margin-block-start: 0 !important;
 }
 .doc-rich > :last-child {
   margin-bottom: 0 !important;
