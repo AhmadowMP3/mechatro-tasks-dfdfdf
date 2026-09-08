@@ -169,6 +169,14 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         node.style.marginTop = "0";
         node.style.paddingTop = "0";
         node.style.marginBlockStart = "0";
+        node.style.paddingBlockStart = "0";
+        // Imported Word sections may carry a fixed/minimum height. Leaving it
+        // on the leading wrapper creates a real empty band below every repeated
+        // letterhead even though its margins have already been zeroed.
+        if (["DIV", "SECTION", "ARTICLE", "MAIN"].includes(node.tagName)) {
+          node.style.height = "auto";
+          node.style.minHeight = "0";
+        }
         if (node === painted) break;
         const children: HTMLElement[] = Array.from(node.children).filter(
           (child): child is HTMLElement => child instanceof HTMLElement,

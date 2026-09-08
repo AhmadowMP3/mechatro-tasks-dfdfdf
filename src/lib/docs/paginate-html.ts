@@ -55,6 +55,16 @@ function normalisePageStart(root: HTMLElement): void {
     node.style.marginTop = "0";
     node.style.paddingTop = "0";
     node.style.marginBlockStart = "0";
+    node.style.paddingBlockStart = "0";
+
+    // Word section wrappers can retain a page-sized fixed/min height even
+    // after their blank leading paragraphs are removed. At a page boundary
+    // that height is only source-document chrome, not real body content.
+    // Reset it on the exact leading branch (never on sibling content).
+    if (["DIV", "SECTION", "ARTICLE", "MAIN"].includes(node.tagName)) {
+      node.style.height = "auto";
+      node.style.minHeight = "0";
+    }
 
     const children: HTMLElement[] = Array.from(node.children).filter(
       (child): child is HTMLElement => child instanceof HTMLElement,
