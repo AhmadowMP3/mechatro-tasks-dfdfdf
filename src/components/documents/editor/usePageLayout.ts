@@ -332,7 +332,10 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       return rowShift;
     };
 
-    const spacers: PageSpacer[] = [...classMarks];
+    // Keep the same array: automatic-page analysis below can discover more
+    // blank Word blocks after this point, and those class decorations must be
+    // written back to the live editor in the same measurement pass.
+    const spacers: PageSpacer[] = classMarks;
     let shift = 0;
     let forcedPageTop: number | null = null;
     let lastBottom = 0;
