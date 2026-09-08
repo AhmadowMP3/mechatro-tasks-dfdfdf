@@ -6,7 +6,7 @@
 // lists item-wise and paragraphs word-wise, so nothing is ever clipped.
 // Browser-only.
 
-import { isWordBlankBlock, normaliseWordPageStart } from "./page-start";
+import { isWordBlankBlock, normaliseWordPageStart, snapPageStart } from "./page-start";
 
 export const BODY_PAD_X = 40;
 export const A4_HTML = { width: 794, height: 1123 } as const;
@@ -178,7 +178,14 @@ export function paginateHtmlBody(opts: {
 
   const flush = () => {
     trimEdges(page);
-    pages.push({ html: page.innerHTML, showClientBox: first && !!opts.showClientBox });
+    // Measure the real distance between the body box and the first painted
+    // content, then cancel it. This kills the white band under the header
+    // whatever produced it (collapsed margins, spacer rows, cell padding).
+    const withClientBox = first && !!opts.showClientBox;
+    // The client card sits above the body on page 1; snapping there would pull
+    // the content under it.
+    if (!withClientBox) snapPageStart(page);
+    pages.push({ html: page.innerHTML, showClientBox: withClientBox });
     first = false;
     reserve = 0;
     page.innerHTML = "";

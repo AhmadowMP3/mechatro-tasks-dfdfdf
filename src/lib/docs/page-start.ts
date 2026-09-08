@@ -92,3 +92,59 @@ export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): 
   const after = painted.getBoundingClientRect().top;
   return Math.max(0, before - after);
 }
+
+/** Remove empty leading rows/cells of a table that opens a page: Word keeps
+ *  spacer rows that read as a blank band under our own letterhead. */
+function trimLeadingEmptyRows(root: HTMLElement): void {
+  const table: HTMLTableElement | null =
+    root.tagName === "TABLE" ? (root as HTMLTableElement) : root.querySelector("table");
+  if (!table) return;
+  let guard = 0;
+  while (guard++ < 8) {
+    const row = table.querySelector("tr");
+    if (!row) return;
+    const cells = Array.from((row as HTMLTableRowElement).cells ?? []);
+    const painted = cells.some(
+      (cell) => visibleWordText(cell) !== "" || !!cell.querySelector(MEDIA_SELECTOR),
+    );
+    if (painted) return;
+    row.remove();
+  }
+}
+
+/**
+ * Final guarantee: whatever the remaining cause (collapsed margins, cell
+ * padding, wrapper borders), pull the first painted content of a page flush
+ * with the top of the body box. Returns the removed gap in px.
+ */
+export function snapPageStart(container: HTMLElement): number {
+  const first = Array.from(container.children).find(
+    (child): child is HTMLElement => child instanceof HTMLElement,
+  );
+  if (!first) return 0;
+
+  trimLeadingEmptyRows(first);
+  normaliseWordPageStart(container, true);
+
+  const target = Array.from(container.children).find(
+    (child): child is HTMLElement => child instanceof HTMLElement,
+  );
+  if (!target) return 0;
+
+  let painted: HTMLElement = target;
+  let depth = 0;
+  while (depth++ < 64) {
+    const next = Array.from(painted.children).find(
+      (child): child is HTMLElement => child instanceof HTMLElement && !isWordBlankBlock(child),
+    );
+    if (!next) break;
+    painted = next;
+  }
+
+  const gap = painted.getBoundingClientRect().top - container.getBoundingClientRect().top;
+  if (!Number.isFinite(gap) || gap <= 2 || gap > 600) return 0;
+
+  const current = parseFloat(target.style.marginTop || "0") || 0;
+  target.style.setProperty("margin-top", `${current - gap}px`, "important");
+  return gap;
+}
