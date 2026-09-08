@@ -1578,7 +1578,7 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 
 
 .doc-editor-canvas {
-  overflow-x: auto;
+  overflow: visible;
   padding: clamp(6px, 2vw, 18px);
   border-radius: 16px;
   background: color-mix(in srgb, var(--muted) 22%, transparent);
