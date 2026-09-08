@@ -105,16 +105,20 @@ export function snapWordPageStartBlock(root: HTMLElement, removeBlanks = false):
 
   const currentPainted = painted.isConnected ? painted : findFirstPainted(root);
   const residual = currentPainted.getBoundingClientRect().top - root.getBoundingClientRect().top;
-  const safeResidual = Number.isFinite(residual) && residual > 2 && residual <= 600 ? residual : 0;
-  if (safeResidual > 0) {
-    root.style.setProperty("--doc-page-start-lift", `${safeResidual}px`);
-    root.style.setProperty("margin-top", `${-safeResidual}px`, "important");
+  const after = currentPainted.getBoundingClientRect().top;
+  // The live editor cannot receive the clone's nested inline mutations. Carry
+  // their complete measured effect on the top-level decoration instead.
+  const movement = Math.max(0, before - after);
+  const totalLift = movement + (Number.isFinite(residual) && residual > 2 ? residual : 0);
+  const safeLift = Number.isFinite(totalLift) && totalLift > 2 && totalLift <= 600 ? totalLift : 0;
+  if (safeLift > 0) {
+    root.style.setProperty("--doc-page-start-lift", `${safeLift}px`);
+    root.style.setProperty("margin-top", `${-safeLift}px`, "important");
   } else {
     root.style.removeProperty("--doc-page-start-lift");
   }
 
-  const after = currentPainted.getBoundingClientRect().top;
-  return Math.max(0, before - after);
+  return safeLift;
 }
 
 /** Remove empty leading rows/cells of a table that opens a page: Word keeps

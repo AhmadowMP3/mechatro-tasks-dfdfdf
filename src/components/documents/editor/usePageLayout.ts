@@ -113,6 +113,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     // header. Collapse them in the measured clone AND paint the matching
     // display classes on the live nodes, so both agree.
     const classMarks: PageSpacer[] = [];
+    const pageStartLifts = new Map<HTMLElement, number>();
     const isBlank = (el: HTMLElement) => isWordBlankBlock(el);
     const isBreak = (el: HTMLElement) =>
       el.hasAttribute("data-page-break") ||
@@ -151,8 +152,8 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         return;
       }
       if (atPageStart) {
-        normalisePageStart(el);
-        const startLift = parseFloat(el.style.getPropertyValue("--doc-page-start-lift")) || 0;
+        const startLift = normalisePageStart(el);
+        pageStartLifts.set(el, startLift);
         mark(i, "doc-page-first-block", startLift);
         atPageStart = false;
       }
@@ -317,12 +318,12 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         // Normalise first, then compensate by the measured movement. Never
         // derive this from a sum of CSS margins: collapsed margins are not
         // additive and caused oversized spacers in imported Word documents.
-        const lift = normalisePageStart(el);
+        const lift = pageStartLifts.get(el) ?? normalisePageStart(el);
         const need = target - top + lift;
         if (need <= 0.5) return;
         spacers.push({ pos: p, h: need });
         const end = ends[i];
-        const startLift = parseFloat(el.style.getPropertyValue("--doc-page-start-lift")) || 0;
+        const startLift = pageStartLifts.get(el) ?? lift;
         if (end !== undefined) spacers.push({
           pos: p,
           end,
