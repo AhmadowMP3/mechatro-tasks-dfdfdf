@@ -64,7 +64,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
   const [fileName, setFileName] = useState("");
   const [imported, setImported] = useState<DocxImport | null>(null);
   const [ai, setAi] = useState<DocxExtraction | null>(null);
-  const [aiError, setAiError] = useState<string | null>(null);
+
   const [draft, setDraft] = useState<Draft | null>(null);
   const [tpl, setTpl] = useState<DocTemplate | null>(null);
   const [aiFields, setAiFields] = useState<Set<string>>(new Set());
