@@ -339,30 +339,87 @@ function RBtn({ children, onClick, active, title, danger }: { children: React.Re
   );
 }
 
-function Palette({ icon, colors, onPick, onClear, title, current }: { icon: React.ReactNode; colors: string[]; onPick: (c: string) => void; onClear: () => void; title: string; current?: string }) {
-  const [open, setOpen] = useState(false);
+/**
+ * Floating layer for every ribbon dropdown. The ribbon itself scrolls
+ * internally (max-height + overflow), so any absolutely positioned menu would
+ * be clipped inside the bar. Rendering into a body portal with fixed
+ * coordinates keeps the menus above the toolbar, flipping near screen edges.
+ */
+function RibbonPopover({
+  open, anchor, onClose, className, children, align = "start",
+}: {
+  open: boolean;
+  anchor: React.RefObject<HTMLElement | null>;
+  onClose: () => void;
+  className: string;
+  children: React.ReactNode;
+  align?: "start" | "end";
+}) {
   const boxRef = useRef<HTMLDivElement | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  const place = useCallback(() => {
+    const a = anchor.current;
+    if (!a) return;
+    const r = a.getBoundingClientRect();
+    const box = boxRef.current;
+    const w = box?.offsetWidth ?? 200;
+    const h = box?.offsetHeight ?? 180;
+    let left = align === "end" ? r.right - w : r.left;
+    left = Math.min(Math.max(8, left), Math.max(8, window.innerWidth - w - 8));
+    let top = r.bottom + 4;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4);
+    setPos({ top, left });
+  }, [anchor, align]);
+
+  useLayoutEffect(() => { if (open) place(); }, [open, place]);
 
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (boxRef.current?.contains(t) || anchor.current?.contains(t)) return;
+      onClose();
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onMove = () => place();
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onMove);
+    window.addEventListener("scroll", onMove, true);
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onMove);
+      window.removeEventListener("scroll", onMove, true);
     };
-  }, [open]);
+  }, [open, onClose, place, anchor]);
+
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      ref={boxRef}
+      className={`doc-ribbon-pop ${className}`}
+      style={{ top: pos?.top ?? 0, left: pos?.left ?? 0, visibility: pos ? "visible" : "hidden" }}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}
+
+function Palette({ icon, colors, onPick, onClear, title, current }: { icon: React.ReactNode; colors: string[]; onPick: (c: string) => void; onClear: () => void; title: string; current?: string }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
 
   // Keep the document selection alive: never let the ribbon steal focus.
   const keep = (e: React.MouseEvent) => e.preventDefault();
 
   return (
-    <div className="doc-ribbon-palette" ref={boxRef} title={title}>
+    <div className="doc-ribbon-palette" title={title}>
       <button
+        ref={btnRef}
         type="button"
         className={`doc-ribbon-btn doc-ribbon-palette-btn${open ? " is-active" : ""}`}
         onMouseDown={keep}
@@ -372,8 +429,7 @@ function Palette({ icon, colors, onPick, onClear, title, current }: { icon: Reac
         {icon}
         <span className="doc-ribbon-palette-bar" style={{ background: current || "transparent" }} />
       </button>
-      {open && (
-        <div className="doc-ribbon-swatches is-open" onMouseDown={keep}>
+      <RibbonPopover open={open} anchor={btnRef} onClose={() => setOpen(false)} className="doc-ribbon-swatches is-open">
           <div className="doc-ribbon-swatch-grid">
             {colors.map((c) => (
               <button
