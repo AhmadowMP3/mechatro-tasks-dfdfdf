@@ -466,7 +466,9 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
               <Check size={15} />{" "}
               {mode === "apply"
                 ? (ar ? "تطبيق على هذا المستند" : "Apply to this document")
-                : (ar ? "اعتماد وإنشاء المستند" : "Approve & create document")}
+                : quick
+                  ? (ar ? "حفظ ومعاينة PDF" : "Save & preview PDF")
+                  : (ar ? "اعتماد وإنشاء المستند" : "Approve & create document")}
             </button>
           </div>
         )}
