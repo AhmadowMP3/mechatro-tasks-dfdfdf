@@ -203,7 +203,7 @@ function DocumentsListPage() {
           onClose={() => setQuickImport(false)}
           onCreated={(doc) => {
             setQuickImport(false);
-            navigate({ to: "/documents/$id_/preview", params: { id: doc.id } });
+            navigate({ to: "/documents/$id/preview", params: { id: doc.id } });
           }}
         />
       )}
