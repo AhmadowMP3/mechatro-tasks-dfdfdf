@@ -674,5 +674,6 @@ export async function docxToStyledHtml(
 
   // Collapse runs of blank paragraphs left over from Word spacing tricks.
   const html = out.join("").replace(/(<p><br><\/p>){3,}/g, "<p><br></p><p><br></p>");
-  return { html, images, tables, skippedImages };
+  const section = readSection(body);
+  return { html, images, tables, skippedImages, ...(section ? { section } : {}) };
 }

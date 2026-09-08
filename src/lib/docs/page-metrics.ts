@@ -5,15 +5,15 @@
 // two views and the margins under the header look wrong in one of them.
 
 import { A4_SIZE } from "./paginate";
-import { pageMarginsPx, type DocHeader } from "./types";
+import { resolveMargins, type DocHeader, type DocSection } from "./types";
 
 /** Safety reserve: fonts settling a fraction later or Arabic line-height
  *  rounding must never push the last line past the sheet edge. */
 export const BODY_SAFETY = 16;
 
-/** Usable body width for a template's side margins. */
-export function bodyWidthPx(header?: Partial<DocHeader> | null): number {
-  return Math.max(240, A4_SIZE.width - 2 * pageMarginsPx(header).side);
+/** Usable body width for a template's side margins (or the imported section). */
+export function bodyWidthPx(header?: Partial<DocHeader> | null, section?: DocSection | null): number {
+  return Math.max(240, A4_SIZE.width - 2 * resolveMargins(header, section).side);
 }
 
 /** Usable body height given the measured header/footer chrome height. */

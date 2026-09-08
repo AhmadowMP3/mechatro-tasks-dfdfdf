@@ -36,6 +36,8 @@ export type DocModel = {
   html: string;
   /** Letterhead logo rendering: auto follows the paper theme. */
   logoVariant?: LogoVariant;
+  /** Page setup imported from the original Word file (wins over template margins). */
+  section?: DocSection;
   /** Legacy blocks of pre-Word documents, kept only as a backup. */
   blocks?: unknown[];
 };
