@@ -52,6 +52,8 @@ export function Ribbon({ editor, lang, theme, onLang, onTheme, onImage, onInsert
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [snipOpen, setSnipOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
+  const snipBtnRef = useRef<HTMLButtonElement | null>(null);
+  const blockBtnRef = useRef<HTMLButtonElement | null>(null);
   const ar = lang === "ar";
 
   // Keep the toolbar state in sync with the caret without ever reading a
