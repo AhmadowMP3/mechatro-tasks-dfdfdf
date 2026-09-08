@@ -250,12 +250,14 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       let page = startPage;
       let prev: HTMLTableRowElement | null = null;
 
+      ((window as any).__docSplitDbg ||= []).push({ start: startPage, n: rows.length, bodyH: Math.round(bodyH) });
       rows.forEach((row, idx) => {
         const rr = row.getBoundingClientRect();
         const rTop = rr.top - originTop + baseShift + rowShift;
         const rBottom = rTop + rr.height;
         const pageBottom = page * PITCH + bodyH;
 
+        ((window as any).__docSplitDbg ||= []).push({ idx, rTop: Math.round(rTop), rBottom: Math.round(rBottom), pageBottom: Math.round(pageBottom), page });
         if (rBottom > pageBottom + 0.5 && prev && idx > 0) {
           // Start of the next sheet, leaving room for the repeated header
           // only when the row still fits underneath it.
