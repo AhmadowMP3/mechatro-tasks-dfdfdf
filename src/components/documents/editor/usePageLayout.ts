@@ -405,6 +405,33 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       const liveTable = liveBlock?.tagName === "TABLE"
         ? (liveBlock as HTMLTableElement)
         : liveBlock?.querySelector<HTMLTableElement>("table") ?? null;
+
+      // An image taller than the whole body box can never be split or moved
+      // anywhere safe: clamp it to the page so it can never print over the
+      // footer or the next header.
+      if (!table && h > H + 0.5) {
+        const liveImg = liveBlock?.tagName === "IMG"
+          ? (liveBlock as HTMLImageElement)
+          : liveBlock?.querySelector<HTMLImageElement>("img") ?? null;
+        const cloneImg = el.tagName === "IMG" ? (el as HTMLImageElement) : el.querySelector("img");
+        if (liveImg && cloneImg && cloneImg.getBoundingClientRect().height > H - 1) {
+          const maxH = Math.max(80, Math.floor(H - 4));
+          if (Math.round(liveImg.getBoundingClientRect().height) > maxH) {
+            liveImg.style.height = `${maxH}px`;
+            liveImg.style.width = "auto";
+            liveImg.style.maxHeight = `${maxH}px`;
+            liveImg.style.objectFit = "contain";
+            clamped += 1;
+          }
+          cloneImg.style.height = `${maxH}px`;
+          cloneImg.style.width = "auto";
+          r = el.getBoundingClientRect();
+          top = editorOffset + r.top - hostTop + shift;
+          h = r.height;
+          k = Math.max(0, Math.floor(top / PITCH));
+        }
+      }
+
       const crosses = top + h > k * PITCH + H + 0.5;
 
 
