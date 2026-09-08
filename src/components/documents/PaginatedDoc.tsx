@@ -63,7 +63,7 @@ export async function measureBodyHeight(input: PaginatedDocInput): Promise<numbe
   }
   // Small safety reserve: fonts settling a fraction later or Arabic line
   // height rounding must never push the last row past the sheet edge.
-  return Math.max(200, A4_SIZE.height - chrome - 16);
+  return bodyHeightPx(chrome);
 
 }
 
@@ -73,7 +73,7 @@ async function measureClientBox(input: PaginatedDocInput): Promise<number> {
   const { flushSync } = await import("react-dom");
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
-  host.style.cssText = `position:fixed;top:0;left:-10000px;visibility:hidden;pointer-events:none;width:${A4_SIZE.width - 2 * pageMarginsPx(input.header).side}px`;
+  host.style.cssText = `position:fixed;top:0;left:-10000px;visibility:hidden;pointer-events:none;width:${bodyWidthPx(input.header)}px`;
   document.body.appendChild(host);
   const root = createRoot(host);
   let h = 0;
