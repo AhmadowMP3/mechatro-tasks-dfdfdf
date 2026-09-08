@@ -41,9 +41,27 @@ function zeroStart(el: HTMLElement): void {
  * caller supplies a rendered DOM tree.
  */
 export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): number {
+  // Locate the ink-bearing node before changing anything. This preserves the
+  // real movement caused by deleting leading blank siblings; callers use that
+  // delta to avoid adding the same empty space back into a page spacer.
+  const findPainted = (start: HTMLElement): HTMLElement => {
+    let current = start;
+    let depth = 0;
+    while (depth++ < 64) {
+      const children: HTMLElement[] = Array.from(current.children).filter(
+        (child): child is HTMLElement => child instanceof HTMLElement,
+      );
+      const next = children.find((child) => !isWordBlankBlock(child));
+      if (!next) return current;
+      current = next;
+    }
+    return current;
+  };
+
+  const painted = findPainted(root);
+  const before = painted.getBoundingClientRect().top;
   const path: HTMLElement[] = [];
   let node: HTMLElement | null = root;
-  let painted: HTMLElement = root;
   let guard = 0;
 
   while (node && guard++ < 64) {
@@ -52,7 +70,6 @@ export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): 
       (child): child is HTMLElement => child instanceof HTMLElement,
     );
     if (!children.length) {
-      painted = node;
       break;
     }
 
@@ -67,11 +84,9 @@ export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): 
       break;
     }
     if (!next) break;
-    painted = next;
     node = next;
   }
 
-  const before = painted.getBoundingClientRect().top;
   path.forEach(zeroStart);
   if (!path.includes(painted)) zeroStart(painted);
   const after = painted.getBoundingClientRect().top;
