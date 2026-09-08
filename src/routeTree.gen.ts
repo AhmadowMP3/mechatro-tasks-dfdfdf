@@ -47,6 +47,7 @@ import { Route as AuthenticatedFinanceInvoicesIndexRouteImport } from './routes/
 import { Route as ApiPublicHooksBackupAutoApproveRouteImport } from './routes/api/public/hooks/backup-auto-approve'
 import { Route as ApiPublicGoogleDriveCallbackRouteImport } from './routes/api/public/google/drive-callback'
 import { Route as AuthenticatedFinanceInvoicesIdRouteImport } from './routes/_authenticated/finance.invoices.$id'
+import { Route as AuthenticatedDocumentsIdPreviewRouteImport } from './routes/_authenticated/documents.$id_.preview'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -257,6 +258,12 @@ const AuthenticatedFinanceInvoicesIdRoute =
     path: '/invoices/$id',
     getParentRoute: () => AuthenticatedFinanceRoute,
   } as any)
+const AuthenticatedDocumentsIdPreviewRoute =
+  AuthenticatedDocumentsIdPreviewRouteImport.update({
+    id: '/documents/$id_/preview',
+    path: '/documents/$id/preview',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -292,6 +299,7 @@ export interface FileRoutesByFullPath {
   '/finance/': typeof AuthenticatedFinanceIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/team/': typeof AuthenticatedTeamIndexRoute
+  '/documents/$id/preview': typeof AuthenticatedDocumentsIdPreviewRoute
   '/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
   '/api/public/google/drive-callback': typeof ApiPublicGoogleDriveCallbackRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
@@ -329,6 +337,7 @@ export interface FileRoutesByTo {
   '/finance': typeof AuthenticatedFinanceIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/team': typeof AuthenticatedTeamIndexRoute
+  '/documents/$id/preview': typeof AuthenticatedDocumentsIdPreviewRoute
   '/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
   '/api/public/google/drive-callback': typeof ApiPublicGoogleDriveCallbackRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
@@ -370,6 +379,7 @@ export interface FileRoutesById {
   '/_authenticated/finance/': typeof AuthenticatedFinanceIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/team/': typeof AuthenticatedTeamIndexRoute
+  '/_authenticated/documents/$id_/preview': typeof AuthenticatedDocumentsIdPreviewRoute
   '/_authenticated/finance/invoices/$id': typeof AuthenticatedFinanceInvoicesIdRoute
   '/api/public/google/drive-callback': typeof ApiPublicGoogleDriveCallbackRoute
   '/api/public/hooks/backup-auto-approve': typeof ApiPublicHooksBackupAutoApproveRoute
@@ -411,6 +421,7 @@ export interface FileRouteTypes {
     | '/finance/'
     | '/projects/'
     | '/team/'
+    | '/documents/$id/preview'
     | '/finance/invoices/$id'
     | '/api/public/google/drive-callback'
     | '/api/public/hooks/backup-auto-approve'
@@ -448,6 +459,7 @@ export interface FileRouteTypes {
     | '/finance'
     | '/projects'
     | '/team'
+    | '/documents/$id/preview'
     | '/finance/invoices/$id'
     | '/api/public/google/drive-callback'
     | '/api/public/hooks/backup-auto-approve'
@@ -488,6 +500,7 @@ export interface FileRouteTypes {
     | '/_authenticated/finance/'
     | '/_authenticated/projects/'
     | '/_authenticated/team/'
+    | '/_authenticated/documents/$id_/preview'
     | '/_authenticated/finance/invoices/$id'
     | '/api/public/google/drive-callback'
     | '/api/public/hooks/backup-auto-approve'
@@ -772,6 +785,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinanceInvoicesIdRouteImport
       parentRoute: typeof AuthenticatedFinanceRoute
     }
+    '/_authenticated/documents/$id_/preview': {
+      id: '/_authenticated/documents/$id_/preview'
+      path: '/documents/$id/preview'
+      fullPath: '/documents/$id/preview'
+      preLoaderRoute: typeof AuthenticatedDocumentsIdPreviewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -841,6 +861,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTeamIdRoute: typeof AuthenticatedTeamIdRoute
   AuthenticatedDocumentsIndexRoute: typeof AuthenticatedDocumentsIndexRoute
   AuthenticatedTeamIndexRoute: typeof AuthenticatedTeamIndexRoute
+  AuthenticatedDocumentsIdPreviewRoute: typeof AuthenticatedDocumentsIdPreviewRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -864,6 +885,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTeamIdRoute: AuthenticatedTeamIdRoute,
   AuthenticatedDocumentsIndexRoute: AuthenticatedDocumentsIndexRoute,
   AuthenticatedTeamIndexRoute: AuthenticatedTeamIndexRoute,
+  AuthenticatedDocumentsIdPreviewRoute: AuthenticatedDocumentsIdPreviewRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

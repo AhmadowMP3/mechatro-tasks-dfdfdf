@@ -51,13 +51,15 @@ export type DocxApplyPayload = {
   showClientBox: boolean;
 };
 
-export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onApply }: {
+export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onApply, quick = false }: {
   ar: boolean;
   onClose: () => void;
   onCreated?: (doc: BusinessDoc) => void;
   /** "create" makes a new document; "apply" replaces the open document body. */
   mode?: "create" | "apply";
   onApply?: (payload: DocxApplyPayload) => void;
+  /** Fast path: save the file and go straight to the branded preview. */
+  quick?: boolean;
 }) {
   const [stage, setStage] = useState<Stage>("pick");
   const [step, setStep] = useState("");
@@ -285,7 +287,11 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
           <FileText size={17} style={{ color: "var(--primary)" }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800 }}>{ar ? "استيراد من Word" : "Import from Word"}</div>
+            <div style={{ fontSize: 14, fontWeight: 800 }}>
+              {quick
+                ? (ar ? "استيراد سريع من Word" : "Quick import from Word")
+                : (ar ? "استيراد من Word" : "Import from Word")}
+            </div>
             <div style={{ fontSize: 11.5, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {fileName || (ar ? "ارفع ملف .docx وسيتم استخراج البيانات من الملف نفسه" : "Upload a .docx — the fields are read from the file itself")}
 
@@ -460,7 +466,9 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
               <Check size={15} />{" "}
               {mode === "apply"
                 ? (ar ? "تطبيق على هذا المستند" : "Apply to this document")
-                : (ar ? "اعتماد وإنشاء المستند" : "Approve & create document")}
+                : quick
+                  ? (ar ? "حفظ ومعاينة PDF" : "Save & preview PDF")
+                  : (ar ? "اعتماد وإنشاء المستند" : "Approve & create document")}
             </button>
           </div>
         )}

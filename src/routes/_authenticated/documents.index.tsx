@@ -38,6 +38,8 @@ function DocumentsListPage() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
+  // Fast path: upload → save → branded preview, without opening the editor.
+  const [quickImport, setQuickImport] = useState(false);
 
   const reload = () => {
     setLoading(true);
@@ -156,10 +158,19 @@ function DocumentsListPage() {
       <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div style={{ fontSize: 13, fontWeight: 700 }}>{ar ? "إنشاء مستند جديد" : "Create a new document"}</div>
-          <button className="btn-primary" disabled={busy} onClick={() => setImporting(true)} style={{ marginInlineStart: "auto", minHeight: 40 }}>
+          <button className="btn-primary" disabled={busy} onClick={() => setQuickImport(true)} style={{ marginInlineStart: "auto", minHeight: 40 }}>
             <FileUp size={15} />
-            {ar ? "استيراد من Word" : "Import from Word"}
+            {ar ? "استيراد سريع من Word" : "Quick import from Word"}
           </button>
+          <button className="btn-ghost" disabled={busy} onClick={() => setImporting(true)} style={{ minHeight: 40 }}>
+            <FileUp size={15} />
+            {ar ? "استيراد وتحرير" : "Import & edit"}
+          </button>
+        </div>
+        <div style={{ fontSize: 11.5, color: "var(--muted-foreground)" }}>
+          {ar
+            ? "الاستيراد السريع: ارفع ملف Word ويُحفظ فوراً مع معاينة جاهزة بالهيدر والفوتر وزر تنزيل PDF — بدون فتح المحرر."
+            : "Quick import: upload a Word file, it is saved immediately and opens as a branded preview with a PDF download — no editor."}
         </div>
         <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 190px), 1fr))" }}>
           {DOC_TYPES.map((d) => (
@@ -181,6 +192,18 @@ function DocumentsListPage() {
           onCreated={(doc) => {
             setImporting(false);
             navigate({ to: "/documents/$id", params: { id: doc.id } });
+          }}
+        />
+      )}
+
+      {quickImport && (
+        <ImportDocxDialog
+          ar={ar}
+          quick
+          onClose={() => setQuickImport(false)}
+          onCreated={(doc) => {
+            setQuickImport(false);
+            navigate({ to: "/documents/$id/preview", params: { id: doc.id } });
           }}
         />
       )}
