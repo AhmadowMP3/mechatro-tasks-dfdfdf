@@ -169,7 +169,19 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         node.style.marginTop = "0";
         node.style.paddingTop = "0";
         node.style.marginBlockStart = "0";
-        const next: HTMLElement | null = node === painted ? null : firstPainted(node);
+        if (node === painted) break;
+        const children: HTMLElement[] = Array.from(node.children).filter(
+          (child): child is HTMLElement => child instanceof HTMLElement,
+        );
+        let next: HTMLElement | null = null;
+        for (const child of children) {
+          if (isBlank(child)) {
+            child.style.display = "none";
+            continue;
+          }
+          next = child;
+          break;
+        }
         if (!next || next === node) break;
         node = next;
       }
