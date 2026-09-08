@@ -6,6 +6,7 @@ import type { Editor } from "@tiptap/core";
 import { A4 } from "../DocPaper";
 import { editorIsReady } from "./useStableEditor";
 import { SHEET_GAP, readSpacers, sameSpacers, writeSpacers, type PageSpacer } from "./pagination";
+import { BODY_SAFETY } from "@/lib/docs/page-metrics";
 
 export type PageGeometry = { top: number; left: number; width: number; height: number };
 
@@ -57,7 +58,9 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         : next,
     );
 
-    const H = next.height;
+    // Same usable body box as the preview/PDF (identical safety reserve), so
+    // both views break the document on exactly the same line.
+    const H = Math.max(0, next.height - BODY_SAFETY);
     if (H < 120) return;
 
     const dom = editor.view.dom as HTMLElement;
@@ -272,6 +275,24 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       return rowShift;
     };
 
+    // How far a block would rise once its (collapsed) top spacing is zeroed.
+    // Every block that opens a sheet gets `doc-page-first-block`, exactly like
+    // the preview, where each page is its own `.doc-rich` container.
+    const topSpaceOf = (el: HTMLElement): number => {
+      let node: HTMLElement | null = el;
+      let guard = 0;
+      let space = 0;
+      while (node && guard++ < 6) {
+        const cs = getComputedStyle(node);
+        space = Math.max(space, parseFloat(cs.marginTop) || 0);
+        space += parseFloat(cs.paddingTop) || 0;
+        if ((parseFloat(cs.borderTopWidth) || 0) > 0) break;
+        const first: Element | null = node.firstElementChild;
+        node = first instanceof HTMLElement ? first : null;
+      }
+      return space;
+    };
+
     const spacers: PageSpacer[] = [...classMarks];
     let shift = 0;
     let forcedPageTop: number | null = null;
@@ -300,11 +321,17 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       }
 
       const pushTo = (target: number) => {
-        const need = target - top;
-        if (need <= 0.5 || p === undefined) return;
+        if (p === undefined) return;
+        // The spacer (and the page-start class) strip the block's inherited
+        // Word "space before", so add it back to land exactly on the margin.
+        const lift = topSpaceOf(el);
+        const need = target - top + lift;
+        if (need <= 0.5) return;
         spacers.push({ pos: p, h: need });
-        shift += need;
-        top += need;
+        const end = ends[i];
+        if (end !== undefined) spacers.push({ pos: p, end, h: 0, kind: "class", cls: "doc-page-first-block" });
+        shift += need - lift;
+        top = target;
       };
 
       // A blank paragraph must not open a sheet: let it sit in the page gap
