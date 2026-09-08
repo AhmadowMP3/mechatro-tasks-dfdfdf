@@ -48,7 +48,7 @@ export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): 
 
   while (node && guard++ < 64) {
     path.push(node);
-    const children = Array.from(node.children).filter(
+    const children: HTMLElement[] = Array.from(node.children).filter(
       (child): child is HTMLElement => child instanceof HTMLElement,
     );
     if (!children.length) {
@@ -57,7 +57,7 @@ export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): 
     }
 
     let next: HTMLElement | null = null;
-    for (const child of children) {
+    for (const child: HTMLElement of children) {
       if (isWordBlankBlock(child)) {
         if (removeBlanks) child.remove();
         else child.style.setProperty("display", "none", "important");

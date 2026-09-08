@@ -6,7 +6,7 @@
 // and no upload of the raw file anywhere.
 
 import { sanitizeHtml } from "@/lib/security/sanitize";
-import { INVISIBLE_WORD_CHARS, isWordBlankBlock } from "./page-start";
+import { isWordBlankBlock } from "./page-start";
 
 export type DocxImport = {
   /** Sanitized rich HTML ready for the editor / model.html. */
