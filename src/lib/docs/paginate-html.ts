@@ -181,8 +181,11 @@ export function paginateHtmlBody(opts: {
     // Measure the real distance between the body box and the first painted
     // content, then cancel it. This kills the white band under the header
     // whatever produced it (collapsed margins, spacer rows, cell padding).
-    snapPageStart(page);
-    pages.push({ html: page.innerHTML, showClientBox: first && !!opts.showClientBox });
+    const withClientBox = first && !!opts.showClientBox;
+    // The client card sits above the body on page 1; snapping there would pull
+    // the content under it.
+    if (!withClientBox) snapPageStart(page);
+    pages.push({ html: page.innerHTML, showClientBox: withClientBox });
     first = false;
     reserve = 0;
     page.innerHTML = "";

@@ -96,16 +96,16 @@ export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): 
 /** Remove empty leading rows/cells of a table that opens a page: Word keeps
  *  spacer rows that read as a blank band under our own letterhead. */
 function trimLeadingEmptyRows(root: HTMLElement): void {
-  const table = root.tagName === "TABLE" ? (root as HTMLTableElement) : root.querySelector("table");
-  if (!table || table !== (root.tagName === "TABLE" ? table : root.firstElementChild)) {
-    if (!table) return;
-  }
+  const table: HTMLTableElement | null =
+    root.tagName === "TABLE" ? (root as HTMLTableElement) : root.querySelector("table");
+  if (!table) return;
   let guard = 0;
   while (guard++ < 8) {
     const row = table.querySelector("tr");
     if (!row) return;
-    const painted = Array.from(row.cells ? row.cells : []).some(
-      (cell) => visibleWordText(cell) !== "" || cell.querySelector(MEDIA_SELECTOR),
+    const cells = Array.from((row as HTMLTableRowElement).cells ?? []);
+    const painted = cells.some(
+      (cell) => visibleWordText(cell) !== "" || !!cell.querySelector(MEDIA_SELECTOR),
     );
     if (painted) return;
     row.remove();
