@@ -217,9 +217,10 @@ function cleanup(rawHtml: string): { html: string; images: number; tables: numbe
   host.querySelectorAll("img").forEach((img) => {
     const src = img.getAttribute("src") ?? "";
     if (!/^(data:image\/|https?:)/i.test(src)) { img.remove(); return; }
-    img.removeAttribute("width");
-    img.removeAttribute("height");
-    img.setAttribute("style", `max-width:100%;height:auto`);
+    const attrW = Number(img.getAttribute("width") ?? 0);
+    const attrH = Number(img.getAttribute("height") ?? 0);
+    const ratio = attrW > 0 && attrH > 0 ? `aspect-ratio:${attrW}/${attrH};` : "";
+    img.setAttribute("style", `${ratio}max-width:100%;height:auto`);
   });
 
   normalizeWidths(host);
@@ -391,12 +392,14 @@ function cleanupStyled(rawHtml: string): { html: string; images: number; tables:
     const src = img.getAttribute("src") ?? "";
     if (!/^(data:image\/|https?:)/i.test(src)) { img.remove(); return; }
     const attrW = Number(img.getAttribute("width") ?? 0);
-    img.removeAttribute("width");
-    img.removeAttribute("height");
-    const style = (img.getAttribute("style") ?? "").replace(/max-width\s*:[^;]+;?/gi, "");
+    const attrH = Number(img.getAttribute("height") ?? 0);
+    const style = (img.getAttribute("style") ?? "")
+      .replace(/max-width\s*:[^;]+;?/gi, "")
+      .replace(/aspect-ratio\s*:[^;]+;?/gi, "");
     const hasWidth = /(^|;)\s*width\s*:/i.test(style);
     const extra = !hasWidth && attrW > 0 ? `width:${Math.min(attrW, RENDER_MAX_WIDTH)}px;` : "";
-    img.setAttribute("style", `${style};${extra}max-width:100%;height:auto`.replace(/^;/, ""));
+    const ratio = attrW > 0 && attrH > 0 ? `aspect-ratio:${attrW}/${attrH};` : "";
+    img.setAttribute("style", `${style};${extra}${ratio}max-width:100%;height:auto`.replace(/^;/, ""));
   });
 
   normalizeWidths(host);

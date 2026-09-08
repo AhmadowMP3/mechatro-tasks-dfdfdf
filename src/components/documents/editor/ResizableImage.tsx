@@ -36,6 +36,18 @@ export const ResizableImage = Image.extend({
           return { width: String(Math.round(w)) };
         },
       },
+      height: {
+        default: null as number | null,
+        parseHTML: (el) => {
+          const raw = (el as HTMLElement).getAttribute("height");
+          const n = parseInt(String(raw ?? ""), 10);
+          return Number.isFinite(n) && n > 0 ? n : null;
+        },
+        renderHTML: (attrs) => {
+          const h = attrs.height as number | null;
+          return h ? { height: String(Math.round(h)) } : {};
+        },
+      },
       align: {
         default: "center" as ImgAlign,
         parseHTML: (el) => ((el as HTMLElement).getAttribute("data-align") as ImgAlign) || "center",
@@ -46,9 +58,11 @@ export const ResizableImage = Image.extend({
         // Inline style is what PDF/Word/print consume — rebuild it on render.
         renderHTML: (attrs) => {
           const w = attrs.width as number | null;
+          const h = attrs.height as number | null;
           const align = ((attrs.align as ImgAlign) || "center") satisfies ImgAlign;
           const bits = ["display:block", `margin:${marginFor(align)}`, "height:auto", "max-width:100%"];
           if (w) bits.push(`width:${Math.round(w)}px`);
+          if (w && h) bits.push(`aspect-ratio:${Math.round(w)}/${Math.round(h)}`);
           return { style: bits.join(";") };
         },
       },
@@ -67,6 +81,7 @@ function ResizableImageView({ node, updateAttributes, selected, editor, deleteNo
   const editable = editorIsReady(editor) && editor.isEditable;
   const align = ((node.attrs.align as ImgAlign) || "center") as ImgAlign;
   const width = (node.attrs.width as number | null) ?? null;
+  const height = (node.attrs.height as number | null) ?? null;
 
   useEffect(() => () => dragAbortRef.current?.abort(), []);
 
@@ -122,7 +137,15 @@ function ResizableImageView({ node, updateAttributes, selected, editor, deleteNo
           alt={String(node.attrs.alt ?? "")}
           title={String(node.attrs.title ?? "")}
           draggable={false}
-          style={{ width: width ? `${width}px` : "60%", height: "auto", maxWidth: "100%", display: "block" }}
+          width={width ?? undefined}
+          height={height ?? undefined}
+          style={{
+            width: width ? `${width}px` : "60%",
+            height: "auto",
+            aspectRatio: width && height ? `${width} / ${height}` : undefined,
+            maxWidth: "100%",
+            display: "block",
+          }}
         />
 
         {editable && selected && (
