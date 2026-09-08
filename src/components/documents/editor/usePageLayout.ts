@@ -27,6 +27,8 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
   const frame = useRef<number | null>(null);
   const measureHost = useRef<HTMLDivElement | null>(null);
   const applyingLayout = useRef(false);
+  const refineFrame = useRef<number | null>(null);
+  const refineRef = useRef<((applied: PageSpacer[], round: number) => void) | null>(null);
 
   const measure = useCallback(() => {
     const container = containerRef.current;
@@ -74,16 +76,23 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     let host = measureHost.current;
     if (!host) {
       host = document.createElement("div");
-      host.className = "doc-pagination-measure doc-paper-body doc-rich doc-rich-editable";
       host.setAttribute("aria-hidden", "true");
-      document.body.appendChild(host);
       measureHost.current = host;
     }
+    // The clone must inherit exactly the same cascade as the writing layer
+    // (paper, flow and ProseMirror scoped rules), otherwise line heights differ
+    // by a few percent per block and every page breaks in the wrong place.
+    host.className = "doc-pagination-measure doc-paper-body doc-rich doc-rich-editable ProseMirror";
+    if (host.parentElement !== flow) flow.appendChild(host);
     host.style.width = `${next.width}px`;
-    host.style.fontSize = getComputedStyle(flow).fontSize;
-    host.style.lineHeight = getComputedStyle(flow).lineHeight;
-    host.style.fontFamily = getComputedStyle(flow).fontFamily;
-    host.style.direction = getComputedStyle(flow).direction;
+    // Typography must come from the cascade, exactly like the writing layer.
+    // Copying computed values here freezes line-height to an absolute pixel
+    // value, so nested text with a different font-size measured too short and
+    // every page took more content than it can hold.
+    host.style.removeProperty("font-size");
+    host.style.removeProperty("line-height");
+    host.style.removeProperty("font-family");
+    host.style.direction = getComputedStyle(dom).direction;
     host.innerHTML = dom.innerHTML;
     host.querySelectorAll(".doc-page-spacer, .doc-row-head-repeat").forEach((el) => el.remove());
     host.querySelectorAll<HTMLElement>(".doc-row-break").forEach((el) => {
@@ -258,7 +267,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
             const livePrev = liveTable?.rows[idx - 1];
             const span = livePrev ? rowSpan(livePrev) : null;
             if (span) {
-              out.push({ pos: span.from, end: span.to, h: need, kind: "row" });
+              out.push({ pos: span.from, end: span.to, h: need, kind: "row", reserve });
               rowShift += need;
               if (head && reserve > 0) {
                 pendingRepeats.push({
@@ -399,6 +408,28 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
 
       let added = 0;
       if (crosses && table && table.rows.length > 1) {
+        // The very first row must fit on the current page. If it does not, the
+        // table cannot be split here at all: move the whole block to the next
+        // sheet first, otherwise its rows keep running past the page edge and
+        // print over the footer and the next header.
+        // Dry run: find the first row that does not fit on this page. If that
+        // is the header row or the very first body row, the table must move to
+        // the next sheet as a whole — splitting there would either run past the
+        // page edge or strand a lonely header at the foot of the page.
+        const limit = k * PITCH + H + 0.5;
+        let firstOverflow = -1;
+        for (let r = 0; r < table.rows.length; r++) {
+          const rect = table.rows[r]!.getBoundingClientRect();
+          const rTop = editorOffset + rect.top - hostTop + shift;
+          if (rTop + rect.height > limit) {
+            firstOverflow = r;
+            break;
+          }
+        }
+        if (firstOverflow >= 0 && firstOverflow <= 1 && top > k * PITCH + 1) {
+          pushTo((k + 1) * PITCH);
+          k += 1;
+        }
         // Long table: break between rows instead of moving the whole thing.
         added = splitRows(table, k, H, hostTop - editorOffset, shift, spacers, liveTable);
         shift += added;
@@ -429,7 +460,79 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         applyingLayout.current = false;
       });
     }
+
+    // The clone can never model the live sheet perfectly (collapsed margins,
+    // late fonts, table layout). Verify the real result and cancel whatever
+    // white band is actually left at the top of each sheet.
+    if (refineFrame.current) cancelAnimationFrame(refineFrame.current);
+    refineFrame.current = requestAnimationFrame(() => refineRef.current?.(spacers, 0));
   }, [editor, containerRef]);
+
+  /** Compare the printed page starts with the sheet origins and correct the
+   * spacer heights by the measured residual. Runs at most a few frames and
+   * stops as soon as every page start sits on its margin. */
+  const refine = useCallback((applied: PageSpacer[], round: number) => {
+    if (round > 3 || !editorIsReady(editor)) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const bodies = Array.from(container.querySelectorAll<HTMLElement>("[data-doc-body-content]"));
+    const firstBody = bodies[0];
+    if (!firstBody) return;
+    const dom = editor.view.dom as HTMLElement;
+    const origin = firstBody.getBoundingClientRect().top;
+
+    const next = applied.map((s) => ({ ...s }));
+    const pageEntries = next.filter((s) => s.kind === undefined || s.kind === "block");
+    const rowEntries = next.filter((s) => s.kind === "row");
+    const spacerEls = Array.from(dom.children).filter(
+      (el): el is HTMLElement => el instanceof HTMLElement && el.classList.contains("doc-page-spacer"),
+    );
+    const rowEls = Array.from(dom.querySelectorAll<HTMLElement>("tr.doc-row-break"));
+    let changed = false;
+
+    const correct = (entry: PageSpacer, target: HTMLElement | null, reserve: number) => {
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      if (rect.height <= 0) return;
+      const top = rect.top - origin - reserve;
+      const page = Math.round(top / PITCH);
+      if (page < 1) return;
+      const residual = top - page * PITCH;
+      if (Math.abs(residual) < 1) return;
+      const h = Math.max(0, entry.h - residual);
+      if (Math.abs(h - entry.h) < 1) return;
+      entry.h = h;
+      changed = true;
+    };
+
+    spacerEls.forEach((el, i) => {
+      const entry = pageEntries[i];
+      if (!entry) return;
+      let sibling = el.nextElementSibling;
+      while (sibling instanceof HTMLElement && sibling.classList.contains("doc-page-spacer")) {
+        sibling = sibling.nextElementSibling;
+      }
+      correct(entry, sibling instanceof HTMLElement ? sibling : null, 0);
+    });
+
+    rowEls.forEach((el, i) => {
+      const entry = rowEntries[i];
+      if (!entry) return;
+      const nextRow = el.nextElementSibling;
+      correct(entry, nextRow instanceof HTMLElement ? nextRow : null, entry.reserve ?? 0);
+    });
+
+    if (!changed) return;
+    applyingLayout.current = true;
+    writeSpacers(editor, next);
+    queueMicrotask(() => {
+      applyingLayout.current = false;
+    });
+    if (refineFrame.current) cancelAnimationFrame(refineFrame.current);
+    refineFrame.current = requestAnimationFrame(() => refineRef.current?.(next, round + 1));
+  }, [editor, containerRef]);
+
+  refineRef.current = refine;
 
   const schedule = useCallback(() => {
     if (frame.current) cancelAnimationFrame(frame.current);
@@ -511,6 +614,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       dom.removeEventListener("dragend", onUpdate);
       dom.removeEventListener("pointerup", onUpdate);
       if (frame.current) cancelAnimationFrame(frame.current);
+      if (refineFrame.current) cancelAnimationFrame(refineFrame.current);
       measureHost.current?.remove();
       measureHost.current = null;
     };
