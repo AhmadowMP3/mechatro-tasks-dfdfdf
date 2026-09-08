@@ -327,7 +327,6 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         !el.querySelector("img,table,hr,svg,canvas") &&
         visibleWordText(el) === "";
 
-      let k = Math.max(0, Math.floor(top / PITCH));
       if (blankBlock) {
         // In particular, ignore blank Word paragraphs after an explicit page
         // break; they must not consume the top of the next page.
