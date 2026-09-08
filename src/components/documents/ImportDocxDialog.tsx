@@ -1,13 +1,14 @@
-// Import a Word (.docx) file, let the AI read it, review everything on the
-// branded A4 sheet, then approve to create the real document.
+// Import a Word (.docx) file, extract every field programmatically from the
+// file itself, review everything on the branded A4 sheet, then approve.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Loader2, Check, X, Sparkles, FileText, AlertTriangle, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { Upload, Loader2, Check, X, ListChecks, FileText, AlertTriangle, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 import { convertDocx, guessLang, isDocxFile, isLegacyDoc, type DocxImport } from "@/lib/docs/import-docx";
 
-import { analyzeImportedDoc, type DocxExtraction, type DocxItem } from "@/lib/docs/import-ai.functions";
+import { extractDocxFields, type DocxExtraction, type DocxItem } from "@/lib/docs/extract-docx-fields";
+
 import { docTemplates } from "@/lib/docs/api";
 import { businessDocs, type BusinessDoc } from "@/lib/docs/docs-api";
 import { emptyClient, defaultModel, uid, type DocClient } from "@/lib/docs/model";
