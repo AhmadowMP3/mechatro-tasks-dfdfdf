@@ -53,7 +53,7 @@ type Props = {
   children?: React.ReactNode;
 };
 
-export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", logoVariant, draggableLogo = false, onLogoMove, children }: Props) {
+export function DocPaper({ header, footer, section, lang, theme, meta, page, scale = 1, bare = false, sizing = "grow", logoVariant, draggableLogo = false, onLogoMove, children }: Props) {
   const ar = lang === "ar";
   const c = PAPER[theme];
   const dir = ar ? "rtl" : "ltr";
@@ -71,7 +71,10 @@ export function DocPaper({ header, footer, lang, theme, meta, page, scale = 1, b
     .filter(Boolean);
 
   const mode: DocLogoMode = header.logoMode ?? "inline";
-  const mg = pageMarginsPx(header);
+  const mg = resolveMargins(header, section);
+  // An imported Word file also tells us how far the header sits from the sheet
+  // edge; without one we keep the template's own top margin.
+  const headerTop = section ? Math.max(0, Math.round(section.headerOffsetPx)) : mg.top;
   // Header/footer bands keep a modest inset so the title and meta box never
   // get squeezed by a wide body margin; the body itself uses the real margin.
   const chromeSide = Math.min(mg.side, 40);
