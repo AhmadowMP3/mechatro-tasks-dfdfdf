@@ -27,7 +27,7 @@ import { fieldValue, termsBlockHtml, type RichCtx } from "@/lib/docs/rich";
 import { snippetHtml, type SnippetId } from "@/lib/docs/snippets";
 import { docBlocks, blockLabel, type DocBlock } from "@/lib/docs/blocks";
 import type { DocClient, LogoVariant } from "@/lib/docs/model";
-import { PAPER, pageMarginsPx, type DocFooter, type DocHeader, type DocLang, type DocTheme } from "@/lib/docs/types";
+import { PAPER, resolveMargins, type DocFooter, type DocHeader, type DocLang, type DocSection, type DocTheme } from "@/lib/docs/types";
 import { toast } from "sonner";
 import { editorIsReady, useStableEditor } from "./useStableEditor";
 import { PageLayout, SHEET_GAP } from "./pagination";
@@ -46,6 +46,8 @@ type Props = {
   /** Letterhead chrome drawn around the editable body. */
   header: DocHeader;
   footer: DocFooter;
+  /** Page setup imported from the original Word file (wins over the template). */
+  section?: DocSection | null;
   logoVariant?: LogoVariant;
   onLogoVariant?: (v: LogoVariant) => void;
   /** Live language / theme switches shown in the ribbon. */
