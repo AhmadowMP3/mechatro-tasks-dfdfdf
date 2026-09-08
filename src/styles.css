@@ -1489,7 +1489,10 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 /* First real block of every page hugs the top margin, like the preview. */
 .doc-rich-editable .doc-page-first-block,
 .doc-rich-editable .doc-page-first-block > :first-child,
-.doc-rich-editable .doc-page-first-block > :first-child > :first-child {
+.doc-rich-editable .doc-page-first-block > :first-child > :first-child,
+.doc-rich-editable .doc-page-first-block > :first-child > :first-child > :first-child,
+.doc-rich-editable .doc-page-first-block > :first-child > :first-child > :first-child > :first-child,
+.doc-rich-editable .doc-page-first-block > :first-child > :first-child > :first-child > :first-child > :first-child {
   margin-top: 0 !important;
   padding-top: 0 !important;
 }
