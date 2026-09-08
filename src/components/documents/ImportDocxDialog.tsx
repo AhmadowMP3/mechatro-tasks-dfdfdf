@@ -1,13 +1,14 @@
-// Import a Word (.docx) file, let the AI read it, review everything on the
-// branded A4 sheet, then approve to create the real document.
+// Import a Word (.docx) file, extract every field programmatically from the
+// file itself, review everything on the branded A4 sheet, then approve.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Loader2, Check, X, Sparkles, FileText, AlertTriangle, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { Upload, Loader2, Check, X, ListChecks, FileText, AlertTriangle, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 import { convertDocx, guessLang, isDocxFile, isLegacyDoc, type DocxImport } from "@/lib/docs/import-docx";
 
-import { analyzeImportedDoc, type DocxExtraction, type DocxItem } from "@/lib/docs/import-ai.functions";
+import { extractDocxFields, type DocxExtraction, type DocxItem } from "@/lib/docs/extract-docx-fields";
+
 import { docTemplates } from "@/lib/docs/api";
 import { businessDocs, type BusinessDoc } from "@/lib/docs/docs-api";
 import { emptyClient, defaultModel, uid, type DocClient } from "@/lib/docs/model";
@@ -63,7 +64,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
   const [fileName, setFileName] = useState("");
   const [imported, setImported] = useState<DocxImport | null>(null);
   const [ai, setAi] = useState<DocxExtraction | null>(null);
-  const [aiError, setAiError] = useState<string | null>(null);
+
   const [draft, setDraft] = useState<Draft | null>(null);
   const [tpl, setTpl] = useState<DocTemplate | null>(null);
   const [aiFields, setAiFields] = useState<Set<string>>(new Set());
@@ -103,7 +104,6 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     fileRef.current = file;
     setFileName(file.name);
     setStage("working");
-    setAiError(null);
     try {
       setStep(ar ? "جارٍ قراءة ملف Word…" : "Reading the Word file…");
       const res = await convertDocx(file, { keepFormatting: keepFormat });
@@ -111,19 +111,18 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
       setImported(res);
 
       const lang = guessLang(res.text);
-      const source = (res.digest || res.text).slice(0, 60000);
-      let extraction: DocxExtraction | null = null;
-      if (source.trim().length > 20) {
-        setStep(ar ? "الذكاء الاصطناعي يحلل المحتوى…" : "AI is analysing the content…");
-        try {
-          extraction = await analyzeImportedDoc({ data: { text: source, lang } });
-        } catch (e) {
-          setAiError((e as Error).message);
-        }
-      }
+      setStep(ar ? "جارٍ استخراج البيانات من الملف…" : "Extracting the fields from the file…");
+      const extraction = extractDocxFields({
+        html: res.html,
+        text: res.text,
+        digest: res.digest,
+        fileName: file.name,
+        lang,
+      });
       setAi(extraction);
-      setItems(extraction?.items ?? []);
+      setItems(extraction.items);
       setInsertItems(false);
+
 
       const marked = new Set<string>();
       const mark = (k: string, v: unknown) => { if (v) marked.add(k); return v; };
@@ -288,7 +287,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 800 }}>{ar ? "استيراد من Word" : "Import from Word"}</div>
             <div style={{ fontSize: 11.5, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {fileName || (ar ? "ارفع ملف .docx وسيقوم الذكاء الاصطناعي بتعبئة البيانات" : "Upload a .docx and the AI fills the fields")}
+              {fileName || (ar ? "ارفع ملف .docx وسيتم استخراج البيانات من الملف نفسه" : "Upload a .docx — the fields are read from the file itself")}
 
             </div>
           </div>
@@ -354,7 +353,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))", gap: 0, alignItems: "stretch" }}>
             {/* Fields */}
             <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14, maxHeight: "72vh", overflowY: "auto" }}>
-              <Summary ar={ar} ai={ai} aiError={aiError} imported={imported} />
+              <Summary ar={ar} ai={ai} imported={imported} />
 
               <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
                 <input
@@ -478,33 +477,28 @@ const inputStyle: React.CSSProperties = {
   color: "var(--foreground)", fontSize: 13,
 };
 
-function Summary({ ar, ai, aiError, imported }: { ar: boolean; ai: DocxExtraction | null; aiError: string | null; imported: DocxImport | null }) {
+function Summary({ ar, ai, imported }: { ar: boolean; ai: DocxExtraction | null; imported: DocxImport | null }) {
   const missing = ai?.missing ?? [];
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 6, background: "color-mix(in oklab, var(--primary) 6%, transparent)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800 }}>
-        <Sparkles size={14} style={{ color: "var(--primary)" }} />
-        {ar ? "ملخّص التحليل" : "Analysis summary"}
+        <ListChecks size={14} style={{ color: "var(--primary)" }} />
+        {ar ? "ملخّص الاستيراد" : "Import summary"}
       </div>
       <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
         {ar
           ? `تم استيراد المحتوى: ${imported?.tables ?? 0} جدول، ${imported?.images ?? 0} صورة.`
           : `Imported content: ${imported?.tables ?? 0} table(s), ${imported?.images ?? 0} image(s).`}
       </div>
-      {aiError && (
-        <div style={{ display: "flex", gap: 6, alignItems: "flex-start", fontSize: 12, color: "#F59E0B" }}>
-          <AlertTriangle size={13} style={{ marginTop: 2, flexShrink: 0 }} />
-          <span>{ar ? "تعذّر تحليل الحقول بالذكاء الاصطناعي — عبّئها يدويًا. " : "AI field extraction failed — fill the fields manually. "}{aiError}</span>
-        </div>
-      )}
-      {!aiError && missing.length > 0 && (
+      {missing.length > 0 && (
         <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
-          {(ar ? "لم يتم العثور على: " : "Not found: ") + missing.join("، ")}
+          {(ar ? "لم يتم العثور عليه في الملف: " : "Not found in the file: ") + missing.join("، ")}
         </div>
       )}
     </div>
   );
 }
+
 
 function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -522,7 +516,7 @@ function Field({ label, children, aiFilled, ar }: { label: string; children: Rea
         {label}
         {aiFilled && (
           <span style={{ fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 999, background: "color-mix(in oklab, var(--primary) 18%, transparent)", color: "var(--primary)" }}>
-            {ar ? "بالذكاء" : "AI"}
+            {ar ? "من الملف" : "From file"}
           </span>
         )}
       </span>
