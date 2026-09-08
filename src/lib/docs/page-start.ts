@@ -57,7 +57,7 @@ export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): 
     }
 
     let next: HTMLElement | null = null;
-    for (const child: HTMLElement of children) {
+    for (const child of children) {
       if (isWordBlankBlock(child)) {
         if (removeBlanks) child.remove();
         else child.style.setProperty("display", "none", "important");
