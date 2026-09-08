@@ -189,29 +189,10 @@ export function PaginatedDoc({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature]);
 
-  if (!pages) {
-    return (
-      <DocPaper
-        header={input.header}
-        footer={input.footer}
-        lang={input.lang}
-        theme={input.theme}
-        meta={input.meta}
-        logoVariant={input.model.logoVariant}
-        page={{ current: 1, total: 1 }}
-        bare={bare}
-      >
-        <DocRichBody
-          html={input.model.html ?? ""}
-          ctx={{ lang: input.lang, theme: input.theme, currency: input.currency, meta: input.meta ?? {} }}
-          showClientBox={input.model.showClientBox}
-          client={input.client}
-          lang={input.lang}
-          theme={input.theme}
-        />
-      </DocPaper>
-    );
-  }
+  // Never paint raw, unpaginated Word HTML while the real page split is being
+  // calculated. That temporary path bypassed page-start normalisation and was
+  // the source of a visible large white band before the paginated view settled.
+  if (!pages) return null;
 
   if (labels) {
     const ar = input.lang === "ar";
