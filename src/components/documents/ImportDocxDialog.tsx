@@ -287,7 +287,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 800 }}>{ar ? "استيراد من Word" : "Import from Word"}</div>
             <div style={{ fontSize: 11.5, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {fileName || (ar ? "ارفع ملف .docx وسيقوم الذكاء الاصطناعي بتعبئة البيانات" : "Upload a .docx and the AI fills the fields")}
+              {fileName || (ar ? "ارفع ملف .docx وسيتم استخراج البيانات من الملف نفسه" : "Upload a .docx — the fields are read from the file itself")}
 
             </div>
           </div>
@@ -353,7 +353,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))", gap: 0, alignItems: "stretch" }}>
             {/* Fields */}
             <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14, maxHeight: "72vh", overflowY: "auto" }}>
-              <Summary ar={ar} ai={ai} aiError={aiError} imported={imported} />
+              <Summary ar={ar} ai={ai} imported={imported} />
 
               <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
                 <input
@@ -477,33 +477,28 @@ const inputStyle: React.CSSProperties = {
   color: "var(--foreground)", fontSize: 13,
 };
 
-function Summary({ ar, ai, aiError, imported }: { ar: boolean; ai: DocxExtraction | null; aiError: string | null; imported: DocxImport | null }) {
+function Summary({ ar, ai, imported }: { ar: boolean; ai: DocxExtraction | null; imported: DocxImport | null }) {
   const missing = ai?.missing ?? [];
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 6, background: "color-mix(in oklab, var(--primary) 6%, transparent)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800 }}>
-        <Sparkles size={14} style={{ color: "var(--primary)" }} />
-        {ar ? "ملخّص التحليل" : "Analysis summary"}
+        <ListChecks size={14} style={{ color: "var(--primary)" }} />
+        {ar ? "ملخّص الاستيراد" : "Import summary"}
       </div>
       <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
         {ar
           ? `تم استيراد المحتوى: ${imported?.tables ?? 0} جدول، ${imported?.images ?? 0} صورة.`
           : `Imported content: ${imported?.tables ?? 0} table(s), ${imported?.images ?? 0} image(s).`}
       </div>
-      {aiError && (
-        <div style={{ display: "flex", gap: 6, alignItems: "flex-start", fontSize: 12, color: "#F59E0B" }}>
-          <AlertTriangle size={13} style={{ marginTop: 2, flexShrink: 0 }} />
-          <span>{ar ? "تعذّر تحليل الحقول بالذكاء الاصطناعي — عبّئها يدويًا. " : "AI field extraction failed — fill the fields manually. "}{aiError}</span>
-        </div>
-      )}
-      {!aiError && missing.length > 0 && (
+      {missing.length > 0 && (
         <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
-          {(ar ? "لم يتم العثور على: " : "Not found: ") + missing.join("، ")}
+          {(ar ? "لم يتم العثور عليه في الملف: " : "Not found in the file: ") + missing.join("، ")}
         </div>
       )}
     </div>
   );
 }
+
 
 function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
