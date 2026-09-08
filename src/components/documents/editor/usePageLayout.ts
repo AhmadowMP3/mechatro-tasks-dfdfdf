@@ -24,6 +24,8 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
   const [pages, setPages] = useState(1);
   const [geo, setGeo] = useState<PageGeometry | null>(null);
   const [repeats, setRepeats] = useState<HeaderRepeat[]>([]);
+  /** How many images were shrunk because they were taller than one page. */
+  const [clampedImages, setClampedImages] = useState(0);
   const frame = useRef<number | null>(null);
   const measureHost = useRef<HTMLDivElement | null>(null);
   const applyingLayout = useRef(false);
