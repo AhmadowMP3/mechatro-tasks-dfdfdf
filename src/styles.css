@@ -1563,6 +1563,7 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   padding-block-start: 0 !important;
 }
 .doc-rich-editable .doc-page-first-block {
+  margin-top: calc(-1 * var(--doc-page-start-lift, 0px)) !important;
   justify-content: flex-start !important;
   align-content: flex-start !important;
 }

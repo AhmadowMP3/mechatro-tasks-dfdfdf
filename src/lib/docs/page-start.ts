@@ -35,6 +35,20 @@ function zeroStart(el: HTMLElement): void {
   }
 }
 
+function findFirstPainted(start: HTMLElement): HTMLElement {
+  let current = start;
+  let depth = 0;
+  while (depth++ < 64) {
+    const children: HTMLElement[] = Array.from(current.children).filter(
+      (child): child is HTMLElement => child instanceof HTMLElement,
+    );
+    const next = children.find((child) => !isWordBlankBlock(child));
+    if (!next) return current;
+    current = next;
+  }
+  return current;
+}
+
 /**
  * Remove/hide every empty node on the leading branch, then make the first
  * painted branch begin at y=0. Returns its measured upward movement when the
@@ -44,21 +58,7 @@ export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): 
   // Locate the ink-bearing node before changing anything. This preserves the
   // real movement caused by deleting leading blank siblings; callers use that
   // delta to avoid adding the same empty space back into a page spacer.
-  const findPainted = (start: HTMLElement): HTMLElement => {
-    let current = start;
-    let depth = 0;
-    while (depth++ < 64) {
-      const children: HTMLElement[] = Array.from(current.children).filter(
-        (child): child is HTMLElement => child instanceof HTMLElement,
-      );
-      const next = children.find((child) => !isWordBlankBlock(child));
-      if (!next) return current;
-      current = next;
-    }
-    return current;
-  };
-
-  const painted = findPainted(root);
+  const painted = findFirstPainted(root);
   const before = painted.getBoundingClientRect().top;
   const path: HTMLElement[] = [];
   let node: HTMLElement | null = root;
@@ -91,6 +91,34 @@ export function normaliseWordPageStart(root: HTMLElement, removeBlanks = true): 
   if (!path.includes(painted)) zeroStart(painted);
   const after = painted.getBoundingClientRect().top;
   return Math.max(0, before - after);
+}
+
+/**
+ * Editor counterpart of snapPageStart. It normalises a top-level block and
+ * records the remaining measured gap as a CSS variable, allowing the live
+ * ProseMirror decoration to paint exactly the same lift as the clean clone.
+ */
+export function snapWordPageStartBlock(root: HTMLElement, removeBlanks = false): number {
+  const painted = findFirstPainted(root);
+  const before = painted.getBoundingClientRect().top;
+  normaliseWordPageStart(root, removeBlanks);
+
+  const currentPainted = painted.isConnected ? painted : findFirstPainted(root);
+  const residual = currentPainted.getBoundingClientRect().top - root.getBoundingClientRect().top;
+  const after = currentPainted.getBoundingClientRect().top;
+  // The live editor cannot receive the clone's nested inline mutations. Carry
+  // their complete measured effect on the top-level decoration instead.
+  const movement = Math.max(0, before - after);
+  const totalLift = movement + (Number.isFinite(residual) && residual > 2 ? residual : 0);
+  const safeLift = Number.isFinite(totalLift) && totalLift > 2 && totalLift <= 600 ? totalLift : 0;
+  if (safeLift > 0) {
+    root.style.setProperty("--doc-page-start-lift", `${safeLift}px`);
+    root.style.setProperty("margin-top", `${-safeLift}px`, "important");
+  } else {
+    root.style.removeProperty("--doc-page-start-lift");
+  }
+
+  return safeLift;
 }
 
 /** Remove empty leading rows/cells of a table that opens a page: Word keeps

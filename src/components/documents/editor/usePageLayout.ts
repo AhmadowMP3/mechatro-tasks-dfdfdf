@@ -7,7 +7,7 @@ import { A4 } from "../DocPaper";
 import { editorIsReady } from "./useStableEditor";
 import { SHEET_GAP, readSpacers, sameSpacers, writeSpacers, type PageSpacer } from "./pagination";
 import { BODY_SAFETY } from "@/lib/docs/page-metrics";
-import { isWordBlankBlock, normaliseWordPageStart, visibleWordText } from "@/lib/docs/page-start";
+import { isWordBlankBlock, snapWordPageStartBlock, visibleWordText } from "@/lib/docs/page-start";
 
 export type PageGeometry = { top: number; left: number; width: number; height: number };
 
@@ -113,17 +113,18 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     // header. Collapse them in the measured clone AND paint the matching
     // display classes on the live nodes, so both agree.
     const classMarks: PageSpacer[] = [];
+    const pageStartLifts = new Map<HTMLElement, number>();
     const isBlank = (el: HTMLElement) => isWordBlankBlock(el);
     const isBreak = (el: HTMLElement) =>
       el.hasAttribute("data-page-break") ||
       el.classList.contains("doc-page-break-anchor") ||
       !!el.querySelector("[data-page-break], .doc-page-break-mark");
 
-    const mark = (i: number, cls: string) => {
+    const mark = (i: number, cls: string, startLift = 0) => {
       const from = positions[i];
       const to = ends[i];
       if (from === undefined || to === undefined) return;
-      classMarks.push({ pos: from, end: to, h: 0, kind: "class", cls });
+      classMarks.push({ pos: from, end: to, h: 0, kind: "class", cls, startLift });
     };
     /** Return the first element that actually paints content. Word commonly
      * wraps it in several divs and leaves empty paragraphs before it. */
@@ -134,7 +135,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
      * overestimate was added to the page spacer and caused the large band
      * below headers on pages 2+ of imported Word documents. */
     const normalisePageStart = (el: HTMLElement): number => {
-      return normaliseWordPageStart(el, false);
+      return snapWordPageStartBlock(el, false);
     };
 
     let atPageStart = true;
@@ -151,8 +152,9 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         return;
       }
       if (atPageStart) {
-        normalisePageStart(el);
-        mark(i, "doc-page-first-block");
+        const startLift = normalisePageStart(el);
+        pageStartLifts.set(el, startLift);
+        mark(i, "doc-page-first-block", startLift);
         atPageStart = false;
       }
     });
@@ -316,12 +318,20 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         // Normalise first, then compensate by the measured movement. Never
         // derive this from a sum of CSS margins: collapsed margins are not
         // additive and caused oversized spacers in imported Word documents.
-        const lift = normalisePageStart(el);
+        const lift = pageStartLifts.get(el) ?? normalisePageStart(el);
         const need = target - top + lift;
         if (need <= 0.5) return;
         spacers.push({ pos: p, h: need });
         const end = ends[i];
-        if (end !== undefined) spacers.push({ pos: p, end, h: 0, kind: "class", cls: "doc-page-first-block" });
+        const startLift = pageStartLifts.get(el) ?? lift;
+        if (end !== undefined) spacers.push({
+          pos: p,
+          end,
+          h: 0,
+          kind: "class",
+          cls: "doc-page-first-block",
+          startLift,
+        });
         shift += need - lift;
         top = target;
       };
