@@ -354,7 +354,13 @@ function DocumentEditorPage() {
                     issue_date: p.issueDate || d.issue_date,
                     valid_until: p.validUntil || d.valid_until,
                     client: p.client,
-                    model: { ...d.model, version: 2, html: p.html, showClientBox: p.showClientBox },
+                    model: {
+                      ...d.model,
+                      version: 2,
+                      html: p.html,
+                      showClientBox: p.showClientBox,
+                      ...(p.section ? { section: p.section } : {}),
+                    },
                   }
                 : d,
             );

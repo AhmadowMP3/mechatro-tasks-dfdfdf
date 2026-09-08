@@ -438,6 +438,7 @@ export async function convertDocx(file: File, opts?: { keepFormatting?: boolean 
           warnings,
           images: cleaned.images,
           tables: cleaned.tables,
+          ...(styled.section ? { section: styled.section } : {}),
         };
       }
       warnings.push("Styled import produced no content — fell back to plain import.");
