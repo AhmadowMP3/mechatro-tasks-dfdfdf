@@ -1479,6 +1479,8 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 .doc-page-spacer + * > :first-child > :first-child > :first-child > :first-child {
   margin-top: 0 !important;
   padding-top: 0 !important;
+  margin-block-start: 0 !important;
+  padding-block-start: 0 !important;
 }
 /* Empty Word spacer paragraphs that would open a page: kept in the document,
    drawn with no height so the page starts right under the header. */
@@ -1500,6 +1502,7 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   margin-top: 0 !important;
   padding-top: 0 !important;
   margin-block-start: 0 !important;
+  padding-block-start: 0 !important;
 }
 /* Imported Word wrappers can be deeper than a fixed selector chain. Keep the
    full leading branch visually identical to the DOM used for measurement. */
@@ -1507,6 +1510,14 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   margin-top: 0 !important;
   padding-top: 0 !important;
   margin-block-start: 0 !important;
+  padding-block-start: 0 !important;
+}
+/* Only section-like wrappers on the leading branch lose Word's fixed page
+   height. Real content (tables, rows, images and headings) keeps its size. */
+.doc-rich-editable .doc-page-first-block:is(div, section, article, main),
+.doc-rich-editable .doc-page-first-block :is(div, section, article, main):first-child {
+  height: auto !important;
+  min-height: 0 !important;
 }
 
 
@@ -1577,6 +1588,12 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   margin-top: 0 !important;
   padding-top: 0 !important;
   margin-block-start: 0 !important;
+  padding-block-start: 0 !important;
+}
+.doc-rich > :first-child:is(div, section, article, main),
+.doc-rich > :first-child :is(div, section, article, main):first-child {
+  height: auto !important;
+  min-height: 0 !important;
 }
 .doc-rich > :last-child {
   margin-bottom: 0 !important;
