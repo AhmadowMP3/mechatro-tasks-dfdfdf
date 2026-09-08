@@ -474,11 +474,20 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
 
       lastBottom = Math.max(lastBottom, top + h + added);
       lastContentPage = Math.max(lastContentPage, k);
+
+      // Development guard: nothing may end below its own page's body box.
+      if (import.meta.env.DEV && top + h + added > k * PITCH + H + 1.5) {
+        console.warn(
+          "[doc-pagination] block overflows its page body box",
+          { page: k + 1, top, height: h + added, limit: k * PITCH + H, node: el },
+        );
+      }
     });
 
     const needed = Math.max(1, Math.floor(Math.max(0, lastBottom - 1) / PITCH) + 1);
     setPages((prev) => (prev === needed ? prev : needed));
     setRepeats((prev) => (sameRepeats(prev, pendingRepeats) ? prev : pendingRepeats));
+    setClampedImages((prev) => (prev === clamped ? prev : clamped));
 
     if (!sameSpacers(readSpacers(editor), spacers)) {
       applyingLayout.current = true;
