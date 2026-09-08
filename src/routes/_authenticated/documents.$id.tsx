@@ -326,6 +326,7 @@ function DocumentEditorPage() {
           client={doc.client}
           header={header}
           footer={footer}
+          section={doc.model.section}
           logoVariant={doc.model.logoVariant ?? "auto"}
           onLogoVariant={(v) => patchModel({ logoVariant: v })}
           onLang={(v) => patch({ lang: v })}

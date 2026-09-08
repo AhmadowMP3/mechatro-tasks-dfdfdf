@@ -63,7 +63,7 @@ const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
 export function DocEditor({
   html, onChange, lang, theme, currency, meta, showClientBox, client,
-  header, footer, logoVariant, onLogoVariant, onLang, onTheme, terms, actions,
+  header, footer, section, logoVariant, onLogoVariant, onLang, onTheme, terms, actions,
 }: Props) {
   const ar = lang === "ar";
   const paper = PAPER[theme];
@@ -216,7 +216,7 @@ export function DocEditor({
   // Live A4 pagination: how many sheets to paint and where the body sits.
   const pagesRef = useRef<HTMLDivElement | null>(null);
   const { pages, geo, repeats } = usePageLayout(editor, pagesRef);
-  const fallbackWidth = A4.width - 2 * pageMarginsPx(header).side;
+  const fallbackWidth = A4.width - 2 * resolveMargins(header, section).side;
 
   // The writing layer is never clipped: content must always stay readable.
   // Anything that would land past the body band is pushed to the next sheet by
@@ -249,6 +249,7 @@ export function DocEditor({
               <div key={i} className="doc-editor-sheet-slot" style={{ marginBottom: i === pages - 1 ? 0 : SHEET_GAP }}>
                 <DocPaper
                   header={header}
+                  section={section}
                   footer={footer}
                   lang={lang}
                   theme={theme}
