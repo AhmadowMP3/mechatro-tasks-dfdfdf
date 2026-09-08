@@ -134,7 +134,7 @@ export function DocPaper({ header, footer, section, lang, theme, meta, page, sca
       }}
     >
       {/* ── Header band (identical on every template) ───────────── */}
-      <div ref={headerRef} style={{ padding: `${mg.top}px ${chromeSide}px 0`, flexShrink: 0, position: "relative" }}>
+      <div ref={headerRef} style={{ padding: `${headerTop}px ${chromeSide}px 0`, flexShrink: 0, position: "relative", zIndex: 3, background: c.bg }}>
         {/* Logo band — full width so a tall logo never squeezes the title */}
         {header.showLogo && mode === "band" && (
           <div style={{ display: "flex", justifyContent: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? (ar ? "flex-start" : "flex-end") : (ar ? "flex-end" : "flex-start"), marginBottom: 10 }}>
@@ -240,11 +240,11 @@ export function DocPaper({ header, footer, section, lang, theme, meta, page, sca
       {/* ── QR row (reserved on every page, filled on the last one) ─ */}
       <div
         data-qr-slot
-        style={{ height: QR_ROW_H, padding: `0 ${chromeSide}px`, display: "flex", alignItems: "flex-end", flexShrink: 0, overflow: "hidden" }}
+        style={{ height: QR_ROW_H, padding: `0 ${chromeSide}px`, display: "flex", alignItems: "flex-end", flexShrink: 0, overflow: "hidden", position: "relative", zIndex: 3, background: c.bg }}
       />
 
       {/* ── Footer band (identical on every template) ───────────── */}
-      <div data-doc-footer style={{ padding: `10px ${chromeSide}px ${mg.bottom}px`, flexShrink: 0 }}>
+      <div data-doc-footer style={{ padding: `10px ${chromeSide}px ${mg.bottom}px`, flexShrink: 0, position: "relative", zIndex: 3, background: c.bg }}>
         {(bank || signature) && (
           <div style={{ display: "flex", justifyContent: "space-between", gap: 24, marginBottom: 8, flexWrap: "wrap" }}>
             {bank ? <div style={{ fontSize: 10.5, color: c.muted, whiteSpace: "pre-wrap", flex: "1 1 240px", minWidth: 0, maxWidth: "60%", overflowWrap: "anywhere" }}>{bank}</div> : <span />}
