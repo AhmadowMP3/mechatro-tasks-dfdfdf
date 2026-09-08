@@ -104,7 +104,6 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     fileRef.current = file;
     setFileName(file.name);
     setStage("working");
-    setAiError(null);
     try {
       setStep(ar ? "جارٍ قراءة ملف Word…" : "Reading the Word file…");
       const res = await convertDocx(file, { keepFormatting: keepFormat });
@@ -112,19 +111,18 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
       setImported(res);
 
       const lang = guessLang(res.text);
-      const source = (res.digest || res.text).slice(0, 60000);
-      let extraction: DocxExtraction | null = null;
-      if (source.trim().length > 20) {
-        setStep(ar ? "الذكاء الاصطناعي يحلل المحتوى…" : "AI is analysing the content…");
-        try {
-          extraction = await analyzeImportedDoc({ data: { text: source, lang } });
-        } catch (e) {
-          setAiError((e as Error).message);
-        }
-      }
+      setStep(ar ? "جارٍ استخراج البيانات من الملف…" : "Extracting the fields from the file…");
+      const extraction = extractDocxFields({
+        html: res.html,
+        text: res.text,
+        digest: res.digest,
+        fileName: file.name,
+        lang,
+      });
       setAi(extraction);
-      setItems(extraction?.items ?? []);
+      setItems(extraction.items);
       setInsertItems(false);
+
 
       const marked = new Set<string>();
       const mark = (k: string, v: unknown) => { if (v) marked.add(k); return v; };
