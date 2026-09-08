@@ -26,6 +26,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
   const [repeats, setRepeats] = useState<HeaderRepeat[]>([]);
   const frame = useRef<number | null>(null);
   const measureHost = useRef<HTMLDivElement | null>(null);
+  const applyingLayout = useRef(false);
 
   const measure = useCallback(() => {
     const container = containerRef.current;
@@ -88,6 +89,14 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     host.querySelectorAll<HTMLElement>(".doc-row-break").forEach((el) => {
       el.classList.remove("doc-row-break");
       el.style.removeProperty("--doc-row-gap");
+    });
+    // The source DOM already contains decorations from the previous layout
+    // pass. They are presentation-only and must never become input to the next
+    // measurement, otherwise page-start lifts are applied repeatedly and the
+    // document oscillates while scrolling.
+    host.querySelectorAll<HTMLElement>(".doc-page-first-block, .doc-blank-collapsed").forEach((el) => {
+      el.classList.remove("doc-page-first-block", "doc-blank-collapsed");
+      el.style.removeProperty("--doc-page-start-lift");
     });
 
     const blocks = Array.from(host.children).filter((el): el is HTMLElement => el instanceof HTMLElement);
@@ -399,7 +408,14 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     setRepeats((prev) => (sameRepeats(prev, pendingRepeats) ? prev : pendingRepeats));
 
     if (!sameSpacers(readSpacers(editor), spacers)) {
+      applyingLayout.current = true;
       writeSpacers(editor, spacers);
+      // MutationObserver callbacks run before this microtask. This prevents
+      // our own decorations from scheduling a competing measurement while
+      // still allowing the next genuine document change through.
+      queueMicrotask(() => {
+        applyingLayout.current = false;
+      });
     }
   }, [editor, containerRef]);
 
@@ -425,14 +441,45 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
     editor.on("update", onImmediate);
     const dom = editor.view.dom as HTMLElement;
 
-    const ro = new ResizeObserver(() => schedule());
+    // Watch the available page width, not the editor's changing height. Page
+    // spacer decorations deliberately change that height and observing it was
+    // a self-triggering layout loop.
+    let observedWidth = dom.getBoundingClientRect().width;
+    const ro = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? observedWidth;
+      if (Math.abs(width - observedWidth) < 0.5) return;
+      observedWidth = width;
+      schedule();
+    });
     ro.observe(dom);
-    // Dragging a table or a block reflows the body without an editor update —
-    // watch the DOM and the drag gestures so the sheets keep up.
-    const mo = new MutationObserver(() => schedule());
+    // Dragging or resizing a node can change presentation without changing the
+    // document. Ignore mutations made solely by our pagination decorations.
+    const paginationOnlyMutation = (record: MutationRecord) => {
+      if (record.type === "attributes") {
+        const target = record.target;
+        return target instanceof HTMLElement && (
+          target.classList.contains("doc-page-first-block") ||
+          target.classList.contains("doc-blank-collapsed") ||
+          target.classList.contains("doc-row-break")
+        );
+      }
+      if (record.type === "childList") {
+        const changed = [...Array.from(record.addedNodes), ...Array.from(record.removedNodes)];
+        return changed.length > 0 && changed.every(
+          (node) => node instanceof HTMLElement && (
+            node.classList.contains("doc-page-spacer") || node.classList.contains("doc-row-head-repeat")
+          ),
+        );
+      }
+      return false;
+    };
+    const mo = new MutationObserver((records) => {
+      if (applyingLayout.current || records.every(paginationOnlyMutation)) return;
+      schedule();
+    });
     mo.observe(dom, { childList: true, subtree: true, attributes: true, characterData: true });
-    const imgs = () => dom.querySelectorAll("img");
-    imgs().forEach((img) => img.addEventListener("load", onUpdate));
+    // Capture image loads for images inserted after this effect was installed.
+    dom.addEventListener("load", onUpdate, true);
     window.addEventListener("resize", onUpdate);
     dom.addEventListener("dragover", onUpdate);
     dom.addEventListener("drop", onImmediate);
@@ -444,7 +491,7 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       editor.off("update", onImmediate);
       ro.disconnect();
       mo.disconnect();
-      imgs().forEach((img) => img.removeEventListener("load", onUpdate));
+      dom.removeEventListener("load", onUpdate, true);
       window.removeEventListener("resize", onUpdate);
       dom.removeEventListener("dragover", onUpdate);
       dom.removeEventListener("drop", onImmediate);
