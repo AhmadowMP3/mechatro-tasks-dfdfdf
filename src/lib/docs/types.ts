@@ -47,6 +47,18 @@ export const MM_TO_PX = 96 / 25.4;
 export const DEFAULT_MARGINS = { top: 12.7, bottom: 12.7, side: 12.7 } as const;
 
 
+/** Page setup imported from a Word file's final <w:sectPr>, in CSS pixels. */
+export type DocSection = {
+  pageWidthPx: number;
+  pageHeightPx: number;
+  marginTopPx: number;
+  marginRightPx: number;
+  marginBottomPx: number;
+  marginLeftPx: number;
+  headerOffsetPx: number;
+  footerOffsetPx: number;
+};
+
 /** Resolved page margins in CSS pixels for an A4 sheet. */
 export function pageMarginsPx(header?: Partial<DocHeader> | null): { top: number; bottom: number; side: number } {
   const mm = (v: number | undefined, fallback: number) =>
@@ -57,6 +69,33 @@ export function pageMarginsPx(header?: Partial<DocHeader> | null): { top: number
     side: Math.round(mm(header?.marginSide, DEFAULT_MARGINS.side) * MM_TO_PX),
   };
 }
+
+/**
+ * Single source of truth for the page margins: an imported Word section wins,
+ * otherwise the template margins are used exactly as before. Every consumer
+ * (paper, preview paginator, live editor) must go through this function, or
+ * the same document breaks on different lines in different views.
+ */
+export function resolveMargins(
+  header?: Partial<DocHeader> | null,
+  section?: DocSection | null,
+): { top: number; bottom: number; side: number } {
+  if (section) {
+    const ok = (v: unknown) => Number.isFinite(v) && (v as number) >= 0 && (v as number) <= 400;
+    const side = ok(section.marginLeftPx) && ok(section.marginRightPx)
+      ? Math.round((section.marginLeftPx + section.marginRightPx) / 2)
+      : null;
+    if (ok(section.marginTopPx) && ok(section.marginBottomPx) && side !== null) {
+      return {
+        top: Math.round(section.marginTopPx),
+        bottom: Math.round(section.marginBottomPx),
+        side,
+      };
+    }
+  }
+  return pageMarginsPx(header);
+}
+
 
 
 /** One bilingual footer line: English on the left, Arabic on the right. */
