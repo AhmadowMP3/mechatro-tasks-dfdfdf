@@ -215,7 +215,7 @@ export function DocEditor({
 
   // Live A4 pagination: how many sheets to paint and where the body sits.
   const pagesRef = useRef<HTMLDivElement | null>(null);
-  const { pages, geo, repeats } = usePageLayout(editor, pagesRef);
+  const { pages, geo, repeats, clampedImages } = usePageLayout(editor, pagesRef);
   const fallbackWidth = A4.width - 2 * resolveMargins(header, section).side;
 
   // The writing layer is never clipped: content must always stay readable.

@@ -660,5 +660,5 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
   }, [editor, schedule]);
 
 
-  return { pages, geo, repeats };
+  return { pages, geo, repeats, clampedImages };
 }
