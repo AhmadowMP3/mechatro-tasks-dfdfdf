@@ -6,6 +6,7 @@ import type { Editor } from "@tiptap/core";
 import { A4 } from "../DocPaper";
 import { editorIsReady } from "./useStableEditor";
 import { SHEET_GAP, readSpacers, sameSpacers, writeSpacers, type PageSpacer } from "./pagination";
+import { BODY_SAFETY } from "@/lib/docs/page-metrics";
 
 export type PageGeometry = { top: number; left: number; width: number; height: number };
 
@@ -57,7 +58,9 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
         : next,
     );
 
-    const H = next.height;
+    // Same usable body box as the preview/PDF (identical safety reserve), so
+    // both views break the document on exactly the same line.
+    const H = Math.max(0, next.height - BODY_SAFETY);
     if (H < 120) return;
 
     const dom = editor.view.dom as HTMLElement;
