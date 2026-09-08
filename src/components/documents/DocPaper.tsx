@@ -7,6 +7,7 @@ import { useRef, useState } from "react";
 import { logoFor } from "@/lib/brand/logo";
 import { PAPER, resolveMargins, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocSection, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
+import { BODY_TOP_GAP } from "@/lib/docs/page-metrics";
 import type { LogoVariant } from "@/lib/docs/model";
 
 /** CSS filter that renders the brand logo light or dark on any paper. */
