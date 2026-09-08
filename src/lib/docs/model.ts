@@ -2,6 +2,8 @@
 // business_docs.model.html. Legacy block documents keep their raw `blocks`
 // array as an untouched backup; it is converted to HTML once on open.
 
+import type { DocSection } from "./types";
+
 export type DocClient = {
   nameAr: string;
   nameEn: string;
