@@ -321,11 +321,17 @@ export function usePageLayout(editor: Editor | null, containerRef: React.RefObje
       }
 
       const pushTo = (target: number) => {
-        const need = target - top;
-        if (need <= 0.5 || p === undefined) return;
+        if (p === undefined) return;
+        // The spacer (and the page-start class) strip the block's inherited
+        // Word "space before", so add it back to land exactly on the margin.
+        const lift = topSpaceOf(el);
+        const need = target - top + lift;
+        if (need <= 0.5) return;
         spacers.push({ pos: p, h: need });
-        shift += need;
-        top += need;
+        const end = ends[i];
+        if (end !== undefined) spacers.push({ pos: p, end, h: 0, kind: "class", cls: "doc-page-first-block" });
+        shift += need - lift;
+        top = target;
       };
 
       // A blank paragraph must not open a sheet: let it sit in the page gap
