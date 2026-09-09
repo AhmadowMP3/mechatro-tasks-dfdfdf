@@ -82,7 +82,10 @@ const HTML_CONFIG: Record<string, unknown> = {
     "data-items", "data-doc-field", "data-page-break", "data-continued", "data-align",
     "data-colwidth", "data-color", "data-background-color",
   ],
-  ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|data:image\/(?:png|jpe?g|gif|webp|bmp|svg\+xml);base64,|#|\/)/i,
+  // Allowed schemes, plus DOMPurify's own "not a URI at all" tail so plain
+  // attribute values (colspan="2", dir="rtl", style="…") are not rejected.
+  ALLOWED_URI_REGEXP:
+    /^(?:https?:|mailto:|tel:|data:image\/(?:png|jpe?g|gif|webp|bmp|svg\+xml);base64,|#|\/|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
   FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "link", "meta", "base"],
   FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "formaction", "srcdoc", "xlink:href"],
 };

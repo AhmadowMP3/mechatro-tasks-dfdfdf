@@ -31,7 +31,24 @@ export type DocRun = {
 export type DocParagraph = { type: "paragraph"; align: DocAlign; runs: DocRun[] };
 export type DocHeading = { type: "heading"; level: 1 | 2 | 3; align: DocAlign; runs: DocRun[] };
 export type DocList = { type: "list"; ordered: boolean; items: DocRun[][] };
-export type DocTable = { type: "table"; headerRow: boolean; columns: number; rows: DocRun[][][] };
+
+/**
+ * One table cell. A cell absorbed by another cell's rowSpan is NOT emitted —
+ * the row simply has fewer entries while `columns` stays the grid width.
+ * `fill` is the only colour the model carries, because Word table shading is
+ * structural information (it marks header and section rows), not styling.
+ */
+export type DocCell = {
+  runs: DocRun[];
+  /** >= 1 */
+  colSpan: number;
+  /** >= 1 */
+  rowSpan: number;
+  /** "#RRGGBB" from the source document, or absent. */
+  fill?: string;
+};
+
+export type DocTable = { type: "table"; headerRow: boolean; columns: number; rows: DocCell[][] };
 export type DocImage = { type: "image"; src: string; widthPx: number | null; align: DocAlign };
 export type DocPageBreak = { type: "pageBreak" };
 
@@ -81,6 +98,48 @@ export function isDocRun(value: unknown): value is DocRun {
 
 const isRunArray = (v: unknown): v is DocRun[] => Array.isArray(v) && v.every(isDocRun);
 
+export const FILL_RE = /^#[0-9A-Fa-f]{6}$/;
+
+export function isDocCell(value: unknown): value is DocCell {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const c = value as Record<string, unknown>;
+  if (!isRunArray(c.runs)) return false;
+  if (!Number.isInteger(c.colSpan) || (c.colSpan as number) < 1) return false;
+  if (!Number.isInteger(c.rowSpan) || (c.rowSpan as number) < 1) return false;
+  if ("fill" in c && c.fill !== undefined && !(typeof c.fill === "string" && FILL_RE.test(c.fill))) return false;
+  return true;
+}
+
+/** Normalise a colour to "#RRGGBB", or undefined when it is not usable. */
+export function normaliseFill(raw: string | null | undefined): string | undefined {
+  const v = (raw ?? "").trim();
+  if (!v || /^(auto|transparent|inherit|none)$/i.test(v)) return undefined;
+  if (FILL_RE.test(v)) return v.toUpperCase();
+  const short = /^#([0-9A-Fa-f]{3})$/.exec(v);
+  if (short) return `#${short[1].split("").map((c) => c + c).join("")}`.toUpperCase();
+  const bare = /^([0-9A-Fa-f]{6})$/.exec(v);
+  if (bare) return `#${v}`.toUpperCase();
+  const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/i.exec(v);
+  if (rgb) {
+    const hex = [rgb[1], rgb[2], rgb[3]]
+      .map((n) => Math.max(0, Math.min(255, Number(n))).toString(16).padStart(2, "0"))
+      .join("");
+    return `#${hex}`.toUpperCase();
+  }
+  return undefined;
+}
+
+export function makeCell(runs: DocRun[], opts: { colSpan?: number; rowSpan?: number; fill?: string | null } = {}): DocCell {
+  const cell: DocCell = {
+    runs,
+    colSpan: Math.max(1, Math.round(opts.colSpan ?? 1)),
+    rowSpan: Math.max(1, Math.round(opts.rowSpan ?? 1)),
+  };
+  const fill = normaliseFill(opts.fill);
+  if (fill) cell.fill = fill;
+  return cell;
+}
+
 export function isDocBlock(value: unknown): value is DocBlock {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const b = value as Record<string, unknown>;
@@ -98,7 +157,7 @@ export function isDocBlock(value: unknown): value is DocBlock {
         Number.isInteger(b.columns) &&
         b.columns > 0 &&
         Array.isArray(b.rows) &&
-        b.rows.every((row) => Array.isArray(row) && row.every(isRunArray))
+        b.rows.every((row) => Array.isArray(row) && row.every(isDocCell))
       );
     case "image":
       return typeof b.src === "string" && b.src !== "" && isAlign(b.align) && (b.widthPx === null || typeof b.widthPx === "number");
@@ -222,10 +281,15 @@ export function toTipTapJSON(doc: DocumentModel): JSONNode {
           type: "table",
           content: b.rows.map((row, ri) => ({
             type: "tableRow",
-            content: Array.from({ length: b.columns }, (_, ci) => ({
+            content: row.map((cell) => ({
               type: b.headerRow && ri === 0 ? "tableHeader" : "tableCell",
-              attrs: { colspan: 1, rowspan: 1, colwidth: null },
-              content: [paraJSON(row[ci] ?? [])],
+              attrs: {
+                colspan: cell.colSpan,
+                rowspan: cell.rowSpan,
+                colwidth: null,
+                backgroundColor: cell.fill ?? null,
+              },
+              content: [paraJSON(cell.runs)],
             })),
           })),
         };
@@ -265,15 +329,18 @@ export function fromTipTapJSON(json: unknown): DocumentModel {
       }
       case "table": {
         const rowNodes = n.content ?? [];
-        const rows = rowNodes.map((r) => (r.content ?? []).map((cell) => runsFromJSON(cell.content)));
-        const columns = Math.max(1, ...rows.map((r) => r.length));
+        const rows: DocCell[][] = rowNodes.map((r) =>
+          (r.content ?? []).map((cell) =>
+            makeCell(runsFromJSON(cell.content), {
+              colSpan: Number(cell.attrs?.colspan ?? 1),
+              rowSpan: Number(cell.attrs?.rowspan ?? 1),
+              fill: typeof cell.attrs?.backgroundColor === "string" ? cell.attrs.backgroundColor : null,
+            }),
+          ),
+        );
+        const columns = Math.max(1, ...rows.map((r) => r.reduce((sum, c) => sum + c.colSpan, 0)));
         const headerRow = (rowNodes[0]?.content ?? []).some((c) => c.type === "tableHeader");
-        blocks.push({
-          type: "table",
-          headerRow,
-          columns,
-          rows: rows.map((r) => Array.from({ length: columns }, (_, i) => r[i] ?? [])),
-        });
+        blocks.push({ type: "table", headerRow, columns, rows });
         return;
       }
       case "image": {
@@ -334,7 +401,14 @@ export function toHtml(doc: DocumentModel): string {
       case "table": {
         const rows = b.rows.map((row, ri) => {
           const tag = b.headerRow && ri === 0 ? "th" : "td";
-          const cells = Array.from({ length: b.columns }, (_, ci) => `<${tag}><p>${runsHtml(row[ci] ?? [])}</p></${tag}>`).join("");
+          const cells = row
+            .map((cell) => {
+              const cs = cell.colSpan > 1 ? ` colspan="${cell.colSpan}"` : "";
+              const rs = cell.rowSpan > 1 ? ` rowspan="${cell.rowSpan}"` : "";
+              const bg = cell.fill ? ` style="background-color:${cell.fill}"` : "";
+              return `<${tag}${cs}${rs}${bg}><p>${runsHtml(cell.runs)}</p></${tag}>`;
+            })
+            .join("");
           return `<tr>${cells}</tr>`;
         });
         return `<table><tbody>${rows.join("")}</tbody></table>`;

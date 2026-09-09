@@ -12,7 +12,12 @@ const para = (lines: number[]): Measured => ({
 });
 
 const table = (rows: number[], headerRow = true): Measured => ({
-  block: { type: "table", headerRow, columns: 1, rows: rows.map(() => [[{ text: "c" }]]) } as DocBlock,
+  block: {
+    type: "table",
+    headerRow,
+    columns: 1,
+    rows: rows.map(() => [{ runs: [{ text: "c" }], colSpan: 1, rowSpan: 1 }]),
+  } as DocBlock,
   heightPx: rows.reduce((a, b) => a + b, 0),
   splittable: rows.length > 1,
   rows,
