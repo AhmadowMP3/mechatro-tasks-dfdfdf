@@ -492,8 +492,30 @@ const inputStyle: React.CSSProperties = {
   color: "var(--foreground)", fontSize: 13,
 };
 
+const DROPPED_LABELS: Record<DroppedKind, { ar: string; en: string }> = {
+  pageSetup: { ar: "إعداد الصفحة والهوامش", en: "page setup and margins" },
+  headersFooters: { ar: "ترويسة وتذييل الملف الأصلي", en: "the file's own header and footer" },
+  fontsAndColours: { ar: "الخطوط والأحجام والألوان", en: "fonts, sizes and colours" },
+  spacing: { ar: "المسافات اليدوية", en: "manual spacing" },
+  emptyParagraphs: { ar: "الفقرات الفارغة", en: "empty paragraphs" },
+  shapes: { ar: "الأشكال ومربعات النص", en: "shapes and text boxes" },
+};
+
 function Summary({ ar, ai, imported }: { ar: boolean; ai: DocxExtraction | null; imported: DocxImport | null }) {
   const missing = ai?.missing ?? [];
+  const c = imported?.summary.counts;
+  const parts = c
+    ? [
+        [c.heading, ar ? "عنوان" : "heading(s)"],
+        [c.paragraph, ar ? "فقرة" : "paragraph(s)"],
+        [c.list, ar ? "قائمة" : "list(s)"],
+        [c.table, ar ? "جدول" : "table(s)"],
+        [c.image, ar ? "صورة" : "image(s)"],
+        [c.pageBreak, ar ? "فاصل صفحة" : "page break(s)"],
+      ].filter(([n]) => Number(n) > 0).map(([n, label]) => `${n} ${label}`)
+    : [];
+  const dropped = (imported?.summary.dropped ?? []).map((k) => (ar ? DROPPED_LABELS[k].ar : DROPPED_LABELS[k].en));
+
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 6, background: "color-mix(in oklab, var(--primary) 6%, transparent)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800 }}>
@@ -501,10 +523,13 @@ function Summary({ ar, ai, imported }: { ar: boolean; ai: DocxExtraction | null;
         {ar ? "ملخّص الاستيراد" : "Import summary"}
       </div>
       <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
-        {ar
-          ? `تم استيراد المحتوى: ${imported?.tables ?? 0} جدول، ${imported?.images ?? 0} صورة.`
-          : `Imported content: ${imported?.tables ?? 0} table(s), ${imported?.images ?? 0} image(s).`}
+        {(ar ? "المحتوى المنقول: " : "Content carried over: ") + (parts.length > 0 ? parts.join(ar ? "، " : ", ") : (ar ? "لا شيء" : "nothing"))}
       </div>
+      {dropped.length > 0 && (
+        <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+          {(ar ? "تم إسقاطه (القالب هو المرجع): " : "Dropped (the template owns these): ") + dropped.join(ar ? "، " : ", ")}
+        </div>
+      )}
       {missing.length > 0 && (
         <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
           {(ar ? "لم يتم العثور عليه في الملف: " : "Not found in the file: ") + missing.join("، ")}
@@ -513,6 +538,7 @@ function Summary({ ar, ai, imported }: { ar: boolean; ai: DocxExtraction | null;
     </div>
   );
 }
+
 
 
 function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
