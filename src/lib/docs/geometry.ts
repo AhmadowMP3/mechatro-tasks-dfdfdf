@@ -64,4 +64,7 @@ export const A4_SIZE = { width: PAGE.widthPx, height: 1123 } as const;
 export type DocPage = {
   showClientBox: boolean;
   html: string;
+  /** False only for the emergency fallback sheet, which must grow, not clip. */
+  fitted?: boolean;
 };
+
