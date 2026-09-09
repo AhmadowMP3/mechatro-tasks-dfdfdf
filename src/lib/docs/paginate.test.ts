@@ -38,7 +38,7 @@ describe("paginate", () => {
   test("one pixel of overflow moves to a second page", () => {
     const r = paginate([para([50]), para([51])], AVAIL);
     expect(r.pages).toHaveLength(2);
-    expect(r.pages[1]!.parts).toEqual([{ blockIndex: 1, fromLine: 0, toLine: 0 }]);
+    expect(r.pages[1]!.parts).toEqual([{ blockIndex: 1 }]);
   });
 
   test("a long table spans more than three pages and repeats its header", () => {
