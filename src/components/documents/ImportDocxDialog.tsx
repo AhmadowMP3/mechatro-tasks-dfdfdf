@@ -51,8 +51,8 @@ export type DocxApplyPayload = {
   validUntil: string;
   client: DocClient;
   showClientBox: boolean;
-  /** Canonical blocks produced from the Word file. */
-  blocks: DocBlock[];
+  /** Canonical blocks produced from the Word file (omitted when item rows are appended). */
+  blocks?: DocBlock[];
 };
 
 export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onApply }: {
@@ -205,7 +205,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         validUntil: draft.validUntil,
         client: draft.client,
         showClientBox: hasClient,
-        blocks: imported.model.blocks,
+        ...(insertItems ? {} : { blocks: imported.model.blocks }),
       });
       return;
     }
@@ -224,6 +224,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           ...defaultModel(),
           showClientBox: hasClient,
           html: bodyHtml(),
+          ...(insertItems ? {} : { blocks: imported.model.blocks }),
         },
       });
       toast.success(ar ? `تم إنشاء ${saved.number} من الملف المستورد` : `Created ${saved.number} from the imported file`);
@@ -242,6 +243,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           ...defaultModel(),
           showClientBox: hasClient,
           html: bodyHtml(),
+          ...(insertItems ? {} : { blocks: imported.model.blocks }),
         },
         client: draft.client,
         lang: draft.lang,
