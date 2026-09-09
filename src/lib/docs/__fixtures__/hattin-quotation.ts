@@ -10,7 +10,7 @@
 // margins, header/footer gaps, chrome) — change any of those and the snapshot
 // moves. It does not pretend to lock the browser's own font rendering.
 
-import type { DocBlock, InlineRun } from "../doc-model";
+import type { DocBlock, DocRun } from "../doc-model";
 import type { Measured } from "../measure";
 
 export const HATTIN_BODY_WIDTH_PX = 698;
@@ -77,7 +77,7 @@ export const HATTIN_BLOCKS: FixtureBlock[] = [
   { type: "paragraph", chars: 24, text: "محمد غياث شننمالك ومؤسسة" },
 ];
 
-const run = (text: string): InlineRun[] => [{ text }];
+const run = (text: string): DocRun[] => [{ text }];
 
 function paragraphHeight(chars: number): number {
   return Math.max(1, Math.ceil(chars / CHARS_PER_LINE)) * LINE_HEIGHT_PX;
@@ -104,7 +104,7 @@ export function hattinMeasured(): Measured[] {
     const height = paragraphHeight(b.chars);
     const block: DocBlock =
       b.type === "list"
-        ? { type: "list", ordered: false, items: [{ runs: run(b.text) }] }
+        ? { type: "list", ordered: false, items: [run(b.text)] }
         : { type: "paragraph", align: "right", runs: run(b.text) };
     void TABLE_ROW_PX;
     return { block, heightPx: height, splittable: false };
