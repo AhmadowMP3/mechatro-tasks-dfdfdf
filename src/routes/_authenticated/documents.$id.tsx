@@ -43,6 +43,8 @@ function DocumentEditorPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [pageCount, setPageCount] = useState(1);
+  const [pageModel, setPageModel] = useState<DocPageModel | null>(null);
+
 
   const [doc, setDoc] = useState<BusinessDoc | null>(null);
   const [tpl, setTpl] = useState<DocTemplate | null>(null);
