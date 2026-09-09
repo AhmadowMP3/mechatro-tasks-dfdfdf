@@ -10,7 +10,7 @@
 // margins, header/footer gaps, chrome) — change any of those and the snapshot
 // moves. It does not pretend to lock the browser's own font rendering.
 
-import type { DocBlock, DocRun } from "../doc-model";
+import { makeCell, type DocBlock, type DocRun } from "../doc-model";
 import type { Measured } from "../measure";
 
 export const HATTIN_BODY_WIDTH_PX = 698;
@@ -97,7 +97,7 @@ export function hattinMeasured(): Measured[] {
         type: "table",
         headerRow: true,
         columns: b.columns,
-        rows: b.rowChars.map(() => Array.from({ length: b.columns }, () => run("c"))),
+        rows: b.rowChars.map(() => Array.from({ length: b.columns }, () => makeCell(run("c")))),
       };
       return { block, heightPx: rows.reduce((a, c) => a + c, 0), splittable: false, rows };
     }

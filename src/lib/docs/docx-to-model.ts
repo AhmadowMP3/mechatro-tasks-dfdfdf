@@ -16,6 +16,7 @@ import {
   type DocRun,
   type DocumentModel,
 } from "./doc-model";
+import { readHtmlTable } from "./html-table";
 
 /** Usable body width of the Mechatro A4 sheet, in CSS pixels. */
 export const TEMPLATE_BODY_WIDTH = 698;
@@ -138,18 +139,7 @@ function looksLikeHeaderCell(cell: Element): boolean {
 }
 
 function tableBlock(el: Element): DocBlock | null {
-  const rowEls = Array.from(el.querySelectorAll("tr"));
-  if (rowEls.length === 0) return null;
-  const rows = rowEls.map((tr) => Array.from(tr.children).map((cell) => runsOf(cell)));
-  const columns = Math.max(1, ...rows.map((r) => r.length));
-  const firstCells = Array.from(rowEls[0].children);
-  const headerRow = firstCells.length > 0 && firstCells.every(looksLikeHeaderCell);
-  return {
-    type: "table",
-    headerRow,
-    columns,
-    rows: rows.map((r) => Array.from({ length: columns }, (_, i) => r[i] ?? [])),
-  };
+  return readHtmlTable(el, runsOf, (cells) => cells.length > 0 && cells.every(looksLikeHeaderCell));
 }
 
 type Ctx = { blocks: DocBlock[]; images: number; dropped: Set<DroppedKind>; emptyParas: number };

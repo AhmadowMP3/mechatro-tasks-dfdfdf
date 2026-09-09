@@ -114,7 +114,9 @@ export async function measureBlocks(blocks: DocBlock[], box?: BodyBox): Promise<
 
     if (block.type === "table") {
       const rows = Array.from(node.querySelectorAll("tr")).map((r) => r.getBoundingClientRect().height);
-      return { block, heightPx, splittable: rows.length > 1, rows };
+      // Vertically merged cells make the whole table one unit.
+      const merged = block.rows.some((row) => row.some((c) => c.rowSpan > 1));
+      return { block, heightPx, splittable: !merged && rows.length > 1, rows };
     }
 
     if (block.type === "list") {

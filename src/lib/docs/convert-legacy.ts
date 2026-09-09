@@ -25,6 +25,7 @@ import {
   type DocRun,
   type DocumentModel,
 } from "./doc-model";
+import { readHtmlTable } from "./html-table";
 
 /* ------------------------------------------- hop 1: legacy blocks → HTML */
 
@@ -173,17 +174,7 @@ function imageBlock(el: Element): DocBlock | null {
 }
 
 function tableBlock(el: Element): DocBlock | null {
-  const rowEls = Array.from(el.querySelectorAll("tr"));
-  if (rowEls.length === 0) return null;
-  const rows = rowEls.map((tr) => Array.from(tr.children).map((cell) => runsOf(cell)));
-  const columns = Math.max(1, ...rows.map((r) => r.length));
-  const headerRow = Array.from(rowEls[0].children).some((c) => c.tagName === "TH");
-  return {
-    type: "table",
-    headerRow,
-    columns,
-    rows: rows.map((r) => Array.from({ length: columns }, (_, i) => r[i] ?? [])),
-  };
+  return readHtmlTable(el, runsOf, (cells) => cells.some((c) => c.tagName === "TH"));
 }
 
 function walkBlocks(parent: Element, out: DocBlock[]): void {

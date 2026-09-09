@@ -49,7 +49,10 @@ export function paginate(measured: Measured[], availHeightPx: number): PageModel
     }
 
     // Atomic blocks -------------------------------------------------------
-    if (!m.splittable || (!m.rows?.length && !m.lines?.length)) {
+    // A table with a vertical merge is never split: a page break inside a
+    // rowSpan would tear the merged cell in half.
+    const merged = block.type === "table" && block.rows.some((row) => row.some((c) => c.rowSpan > 1));
+    if (!m.splittable || merged || (!m.rows?.length && !m.lines?.length)) {
       if (m.heightPx > avail) {
         if (block.type === "image") {
           const scale = avail / m.heightPx;
