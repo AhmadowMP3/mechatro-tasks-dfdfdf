@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Upload, Loader2, Check, X, ListChecks, FileText, AlertTriangle, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 import { convertDocx, guessLang, isDocxFile, isLegacyDoc, type DocxImport } from "@/lib/docs/import-docx";
+import type { DocBlock } from "@/lib/docs/doc-model";
+import type { DroppedKind } from "@/lib/docs/docx-to-model";
 
 import { extractDocxFields, type DocxExtraction, type DocxItem } from "@/lib/docs/extract-docx-fields";
 
@@ -13,7 +15,7 @@ import { docTemplates } from "@/lib/docs/api";
 import { businessDocs, type BusinessDoc } from "@/lib/docs/docs-api";
 import { emptyClient, defaultModel, uid, type DocClient } from "@/lib/docs/model";
 import { emptyItemsData, writeItemsAttr } from "@/lib/docs/rich";
-import { DOC_TYPES, docTypeLabel, type DocLang, type DocSection, type DocTemplate, type DocType } from "@/lib/docs/types";
+import { DOC_TYPES, docTypeLabel, type DocLang, type DocTemplate, type DocType } from "@/lib/docs/types";
 import { PaginatedDoc } from "./PaginatedDoc";
 import { CURRENCIES, currencyLabel } from "@/lib/currency";
 
@@ -49,8 +51,8 @@ export type DocxApplyPayload = {
   validUntil: string;
   client: DocClient;
   showClientBox: boolean;
-  /** Real Word page setup read from the imported file. */
-  section?: DocSection;
+  /** Canonical blocks produced from the Word file (omitted when item rows are appended). */
+  blocks?: DocBlock[];
 };
 
 export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onApply }: {
@@ -72,8 +74,6 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
   const [aiFields, setAiFields] = useState<Set<string>>(new Set());
   const [items, setItems] = useState<DocxItem[]>([]);
   const [insertItems, setInsertItems] = useState(false);
-  const [keepFormat, setKeepFormat] = useState(true);
-  const [reconverting, setReconverting] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fileRef = useRef<File | null>(null);
 
@@ -108,7 +108,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     setStage("working");
     try {
       setStep(ar ? "جارٍ قراءة ملف Word…" : "Reading the Word file…");
-      const res = await convertDocx(file, { keepFormatting: keepFormat });
+      const res = await convertDocx(file);
 
       setImported(res);
 
@@ -163,23 +163,6 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     }
   };
 
-  // Re-run the conversion when the admin flips the formatting switch.
-  const toggleFormatting = async (next: boolean) => {
-    setKeepFormat(next);
-    const file = fileRef.current;
-    if (!file) return;
-    try {
-      setReconverting(true);
-      const res = await convertDocx(file, { keepFormatting: next });
-
-      setImported(res);
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setReconverting(false);
-    }
-  };
-
   const hasClient = useMemo(() => {
     if (!draft) return false;
     return Object.values(draft.client).some((v) => (v ?? "").trim().length > 0);
@@ -222,7 +205,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         validUntil: draft.validUntil,
         client: draft.client,
         showClientBox: hasClient,
-        ...(imported.section ? { section: imported.section as DocSection } : {}),
+        ...(insertItems ? {} : { blocks: imported.model.blocks }),
       });
       return;
     }
@@ -241,7 +224,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           ...defaultModel(),
           showClientBox: hasClient,
           html: bodyHtml(),
-          ...(imported.section ? { section: imported.section } : {}),
+          ...(insertItems ? {} : { blocks: imported.model.blocks }),
         },
       });
       toast.success(ar ? `تم إنشاء ${saved.number} من الملف المستورد` : `Created ${saved.number} from the imported file`);
@@ -260,7 +243,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           ...defaultModel(),
           showClientBox: hasClient,
           html: bodyHtml(),
-          ...(imported.section ? { section: imported.section } : {}),
+          ...(insertItems ? {} : { blocks: imported.model.blocks }),
         },
         client: draft.client,
         lang: draft.lang,
@@ -334,17 +317,11 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
               </div>
               <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted-foreground)" }}>
                 {ar
-                  ? "النصوص والجداول والصور تُستورد بتنسيقها — الهيدر والفوتر والشعار تبقى دائماً من القالب. الحد 20 ميغابايت."
-                  : "Text, tables and images come across with their formatting — header, footer and logo always stay from the template. 20 MB max."}
+                  ? "يُنقل المحتوى فقط: العناوين والفقرات والقوائم والجداول والصور. الهوامش والخطوط والألوان والهيدر والفوتر تبقى دائماً من قالب ميكاترو. الحد 20 ميغابايت."
+                  : "Only the content comes across: headings, paragraphs, lists, tables and images. Margins, fonts, colours, header and footer always stay from the Mechatro template. 20 MB max."}
               </div>
             </div>
-            <label
-              onClick={(e) => e.stopPropagation()}
-              style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
-            >
-              <input type="checkbox" checked={keepFormat} onChange={(e) => setKeepFormat(e.target.checked)} />
-              {ar ? "حافظ على التنسيق الأصلي (الألوان والخطوط والجداول)" : "Keep the original formatting (colours, fonts, tables)"}
-            </label>
+
             <input
               ref={inputRef}
               type="file"
@@ -370,16 +347,6 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
             <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14, maxHeight: "72vh", overflowY: "auto" }}>
               <Summary ar={ar} ai={ai} imported={imported} />
 
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={keepFormat}
-                  disabled={reconverting}
-                  onChange={(e) => void toggleFormatting(e.target.checked)}
-                />
-                {ar ? "حافظ على التنسيق الأصلي" : "Keep the original formatting"}
-                {reconverting && <Loader2 size={13} className="spin" />}
-              </label>
 
               <FieldGroup title={ar ? "المستند" : "Document"}>
                 <Field label={ar ? "نوع المستند" : "Document type"} aiFilled={aiFields.has("docType")} ar={ar}>
@@ -492,8 +459,30 @@ const inputStyle: React.CSSProperties = {
   color: "var(--foreground)", fontSize: 13,
 };
 
+const DROPPED_LABELS: Record<DroppedKind, { ar: string; en: string }> = {
+  pageSetup: { ar: "إعداد الصفحة والهوامش", en: "page setup and margins" },
+  headersFooters: { ar: "ترويسة وتذييل الملف الأصلي", en: "the file's own header and footer" },
+  fontsAndColours: { ar: "الخطوط والأحجام والألوان", en: "fonts, sizes and colours" },
+  spacing: { ar: "المسافات اليدوية", en: "manual spacing" },
+  emptyParagraphs: { ar: "الفقرات الفارغة", en: "empty paragraphs" },
+  shapes: { ar: "الأشكال ومربعات النص", en: "shapes and text boxes" },
+};
+
 function Summary({ ar, ai, imported }: { ar: boolean; ai: DocxExtraction | null; imported: DocxImport | null }) {
   const missing = ai?.missing ?? [];
+  const c = imported?.summary.counts;
+  const parts = c
+    ? [
+        [c.heading, ar ? "عنوان" : "heading(s)"],
+        [c.paragraph, ar ? "فقرة" : "paragraph(s)"],
+        [c.list, ar ? "قائمة" : "list(s)"],
+        [c.table, ar ? "جدول" : "table(s)"],
+        [c.image, ar ? "صورة" : "image(s)"],
+        [c.pageBreak, ar ? "فاصل صفحة" : "page break(s)"],
+      ].filter(([n]) => Number(n) > 0).map(([n, label]) => `${n} ${label}`)
+    : [];
+  const dropped = (imported?.summary.dropped ?? []).map((k) => (ar ? DROPPED_LABELS[k].ar : DROPPED_LABELS[k].en));
+
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 6, background: "color-mix(in oklab, var(--primary) 6%, transparent)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800 }}>
@@ -501,10 +490,13 @@ function Summary({ ar, ai, imported }: { ar: boolean; ai: DocxExtraction | null;
         {ar ? "ملخّص الاستيراد" : "Import summary"}
       </div>
       <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
-        {ar
-          ? `تم استيراد المحتوى: ${imported?.tables ?? 0} جدول، ${imported?.images ?? 0} صورة.`
-          : `Imported content: ${imported?.tables ?? 0} table(s), ${imported?.images ?? 0} image(s).`}
+        {(ar ? "المحتوى المنقول: " : "Content carried over: ") + (parts.length > 0 ? parts.join(ar ? "، " : ", ") : (ar ? "لا شيء" : "nothing"))}
       </div>
+      {dropped.length > 0 && (
+        <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+          {(ar ? "تم إسقاطه (القالب هو المرجع): " : "Dropped (the template owns these): ") + dropped.join(ar ? "، " : ", ")}
+        </div>
+      )}
       {missing.length > 0 && (
         <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
           {(ar ? "لم يتم العثور عليه في الملف: " : "Not found in the file: ") + missing.join("، ")}
@@ -513,6 +505,7 @@ function Summary({ ar, ai, imported }: { ar: boolean; ai: DocxExtraction | null;
     </div>
   );
 }
+
 
 
 function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
