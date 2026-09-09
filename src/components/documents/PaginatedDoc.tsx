@@ -41,7 +41,7 @@ function topLevelHtml(html: string): string[] {
 
 /** Slice the resolved body across the pages the model decided. */
 function splitByPages(nodes: string[], starts: number[], showClientBox: boolean): DocPage[] {
-  if (starts.length === 0) return [{ showClientBox, html: nodes.join("") }];
+  if (starts.length === 0) return [{ showClientBox, html: nodes.join(""), fitted: false }];
 
   // A page always opens on a whole node, and never before the previous one.
   const bounded: number[] = [];
