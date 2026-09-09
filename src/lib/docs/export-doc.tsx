@@ -4,6 +4,7 @@
 import { DocPages, paginateDocument, type PaginatedDocInput } from "@/components/documents/PaginatedDoc";
 import { printReactDocument } from "@/lib/pdf/print-document";
 import { PAPER, docTypeLabel, type DocFooter, type DocHeader, type DocLang, type DocTheme, type DocType } from "./types";
+import type { DocPageModel } from "./page-model-cache";
 import type { DocClient, DocModel } from "./model";
 
 export type DocRenderInput = {
@@ -16,9 +17,10 @@ export type DocRenderInput = {
   currency: string;
   meta: { number: string; date: string; validUntil?: string; client?: string };
   title: string;
-  /** Optional pre-computed page split (same one the PDF uses). */
-  pages?: { showClientBox: boolean; html?: string }[];
+  /** The page model the editor computed — the PDF uses it as-is. */
+  pageModel?: DocPageModel | null;
 };
+
 
 export type ExportDocInput = DocRenderInput & { docType: DocType; number: string; docId?: string };
 
@@ -44,7 +46,8 @@ function paginatedInput(input: ExportDocInput): PaginatedDocInput {
 export async function exportDocPdf(input: ExportDocInput): Promise<void> {
   const palette = PAPER[input.theme];
   const paged = paginatedInput(input);
-  const pages = await paginateDocument(paged);
+  const pages = await paginateDocument(paged, input.pageModel ?? null);
+
 
   await printReactDocument(
     <DocPages input={paged} pages={pages} bare />,

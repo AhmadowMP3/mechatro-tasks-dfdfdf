@@ -30,6 +30,8 @@ import type { DocClient, LogoVariant } from "@/lib/docs/model";
 import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocSection, type DocTheme } from "@/lib/docs/types";
 import { A4_SIZE, HEADER_GAP_PX, FOOTER_GAP_PX, type PageChrome } from "@/lib/docs/geometry";
 import { useDocPages } from "./useDocPages";
+import type { DocPageModel } from "@/lib/docs/page-model-cache";
+
 import { clampSpacer, pageSpacerKey, pageSpacerPlugin, type SpacerMap } from "./page-spacers";
 import { toast } from "sonner";
 import { editorIsReady, useStableEditor } from "./useStableEditor";
@@ -61,13 +63,16 @@ type Props = {
   terms?: { ar: string; en: string };
   /** Save / export / preview buttons pinned to the ribbon. */
   actions?: React.ReactNode;
+  /** The computed page model, published so preview and PDF reuse it. */
+  onPageModel?: (model: DocPageModel) => void;
 };
+
 
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
 export function DocEditor({
   html, onChange, lang, theme, currency, meta, showClientBox, client,
-  header, footer, section, logoVariant, onLogoVariant, onLang, onTheme, terms, actions,
+  header, footer, section, logoVariant, onLogoVariant, onLang, onTheme, terms, actions, onPageModel,
 }: Props) {
   const ar = lang === "ar";
   const paper = PAPER[theme];
@@ -282,12 +287,19 @@ export function DocEditor({
     return () => ro.disconnect();
   }, [showClientBox, client, lang, theme]);
 
-  const { pageModel, clampedImages, pageStartNodes } = useDocPages(
+  const docPages = useDocPages(
     editorIsReady(editor) ? editor : null,
     chrome,
     { reservePx, header, section },
   );
+  const { pageModel, clampedImages, pageStartNodes } = docPages;
   const pageCount = Math.max(1, pageModel.pages.length);
+
+  // Publish the model: the preview and the PDF render from this exact split.
+  const onPageModelRef = useRef(onPageModel);
+  onPageModelRef.current = onPageModel;
+  useEffect(() => { onPageModelRef.current?.(docPages); }, [docPages]);
+
 
   // One spacer decoration plugin, fed from a ref so heights can be tuned
   // without rebuilding the editor.

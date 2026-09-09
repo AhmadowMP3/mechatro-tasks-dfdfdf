@@ -16,6 +16,8 @@ import { EditorBoundary } from "@/components/documents/editor/EditorBoundary";
 import { ImportDocxDialog } from "@/components/documents/ImportDocxDialog";
 import { blocksToHtml, htmlToDocModel, needsConversion, needsModelConversion } from "@/lib/docs/convert-legacy";
 import { exportDocPdf } from "@/lib/docs/export-doc";
+import type { DocPageModel } from "@/lib/docs/page-model-cache";
+
 import { logActivity } from "@/lib/activity";
 
 export const Route = createFileRoute("/_authenticated/documents/$id")({
@@ -41,6 +43,8 @@ function DocumentEditorPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [pageCount, setPageCount] = useState(1);
+  const [pageModel, setPageModel] = useState<DocPageModel | null>(null);
+
 
   const [doc, setDoc] = useState<BusinessDoc | null>(null);
   const [tpl, setTpl] = useState<DocTemplate | null>(null);
@@ -161,6 +165,8 @@ function DocumentEditorPage() {
           client: meta?.client,
         },
         title: `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`,
+        pageModel,
+
       };
       await exportDocPdf(input);
       void logActivity(user?.id ?? null, "file_added", "business_doc", doc.id, {
@@ -333,6 +339,8 @@ function DocumentEditorPage() {
           onTheme={(v) => patch({ theme: v })}
           terms={{ ar: tpl.defaults.termsAr ?? "", en: tpl.defaults.termsEn ?? "" }}
           actions={ribbonActions}
+          onPageModel={setPageModel}
+
         />
       </EditorBoundary>
 
@@ -403,6 +411,8 @@ function DocumentEditorPage() {
               <PaginatedDoc
                 labels
                 onPages={setPageCount}
+                pageModel={pageModel}
+
                 input={{
                   header,
                   footer,

@@ -86,6 +86,11 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
     break-after: auto;
     page-break-after: auto;
   }
+  /* The body writes under the letterhead, never over it. */
+  .doc-page .doc-page-body { position: relative; z-index: 2; }
+  .doc-page [data-qr-slot],
+  .doc-page [data-doc-footer] { position: relative; z-index: 3; }
+
   /* On screen (only briefly visible during load), keep layout stable. */
   @media print {
     body { width: auto; }
