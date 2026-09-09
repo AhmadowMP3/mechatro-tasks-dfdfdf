@@ -14,7 +14,7 @@ import { PaginatedDoc } from "@/components/documents/PaginatedDoc";
 import { DocEditor } from "@/components/documents/editor/DocEditor";
 import { EditorBoundary } from "@/components/documents/editor/EditorBoundary";
 import { ImportDocxDialog } from "@/components/documents/ImportDocxDialog";
-import { blocksToHtml, needsConversion } from "@/lib/docs/convert-legacy";
+import { blocksToHtml, htmlToDocModel, needsConversion, needsModelConversion } from "@/lib/docs/convert-legacy";
 import { exportDocPdf } from "@/lib/docs/export-doc";
 import { logActivity } from "@/lib/activity";
 
@@ -57,16 +57,16 @@ function DocumentEditorPage() {
       .then(async (d) => {
         const t = await docTemplates.ensure(d.doc_type);
         if (!alive) return;
-        // Old block documents are converted once, on open, into the
-        // Word-style body. The original blocks stay on the row as a backup.
-        if (needsConversion(d.model)) {
-          const html = blocksToHtml(d.model, {
-            lang: d.lang,
-            theme: d.theme,
-            currency: d.currency,
-            meta: { number: d.number },
-          });
-          setDoc({ ...d, model: { ...d.model, version: 2, html } });
+        // Legacy documents are converted once, on open: old blocks become the
+        // Word-style body, and the body becomes the canonical doc model that
+        // lives on `model.blocks`. `model.html` stays populated so older
+        // readers and the share view keep working during the migration.
+        const html = needsConversion(d.model)
+          ? blocksToHtml(d.model, { lang: d.lang, theme: d.theme, currency: d.currency, meta: { number: d.number } })
+          : d.model.html;
+        if (needsModelConversion(d.model) || html !== d.model.html) {
+          const converted = htmlToDocModel(html);
+          setDoc({ ...d, model: { ...d.model, version: 2, html, blocks: converted.blocks } });
           setDirty(true);
         } else {
           setDoc(d);
