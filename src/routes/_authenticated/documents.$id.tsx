@@ -411,6 +411,8 @@ function DocumentEditorPage() {
               <PaginatedDoc
                 labels
                 onPages={setPageCount}
+                pageModel={pageModel}
+
                 input={{
                   header,
                   footer,
