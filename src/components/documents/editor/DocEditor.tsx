@@ -28,8 +28,15 @@ import { snippetHtml, type SnippetId } from "@/lib/docs/snippets";
 import { docBlocks, blockLabel, type DocBlock } from "@/lib/docs/blocks";
 import type { DocClient, LogoVariant } from "@/lib/docs/model";
 import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocSection, type DocTheme } from "@/lib/docs/types";
+import { A4_SIZE, HEADER_GAP_PX, FOOTER_GAP_PX, type PageChrome } from "@/lib/docs/geometry";
+import { useDocPages } from "./useDocPages";
+import { clampSpacer, pageSpacerKey, pageSpacerPlugin, type SpacerMap } from "./page-spacers";
 import { toast } from "sonner";
 import { editorIsReady, useStableEditor } from "./useStableEditor";
+
+/** Vertical gap between two sheets on screen. */
+const PAGE_GAP_PX = 24;
+
 
 type Props = {
   html: string;

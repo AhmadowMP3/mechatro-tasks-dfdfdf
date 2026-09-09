@@ -1415,15 +1415,33 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   font-size: 12px;
 }
 
-/* The single continuous sheet the body is written on. */
+/* Stacked A4 sheets with one continuous editable layer above them. */
 .doc-editor-pages {
   position: relative;
   width: 794px;
   margin: 0 auto;
 }
-.doc-editor-flow {
+.doc-editor-sheet {
+  position: absolute;
+  inset-inline-start: 0;
+  width: 794px;
+}
+.doc-editor-layer {
+  position: absolute;
   z-index: 2;
 }
+.doc-editor-notice {
+  margin: 6px auto 0;
+  width: 794px;
+  max-width: 100%;
+  font-size: 12px;
+  opacity: 0.75;
+}
+.doc-page-spacer {
+  width: 100%;
+  pointer-events: none;
+}
+
 .doc-editor-flow .ProseMirror {
   outline: none;
   min-height: 0;
