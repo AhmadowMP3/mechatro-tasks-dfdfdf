@@ -16,6 +16,8 @@ import { EditorBoundary } from "@/components/documents/editor/EditorBoundary";
 import { ImportDocxDialog } from "@/components/documents/ImportDocxDialog";
 import { blocksToHtml, htmlToDocModel, needsConversion, needsModelConversion } from "@/lib/docs/convert-legacy";
 import { exportDocPdf } from "@/lib/docs/export-doc";
+import type { DocPageModel } from "@/lib/docs/page-model-cache";
+
 import { logActivity } from "@/lib/activity";
 
 export const Route = createFileRoute("/_authenticated/documents/$id")({
