@@ -359,7 +359,7 @@ function DocumentEditorPage() {
                       version: 2,
                       html: p.html,
                       showClientBox: p.showClientBox,
-                      ...(p.section ? { section: p.section } : {}),
+                      ...(p.blocks ? { blocks: p.blocks } : {}),
                     },
                   }
                 : d,
