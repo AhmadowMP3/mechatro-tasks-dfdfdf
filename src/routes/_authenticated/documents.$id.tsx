@@ -165,6 +165,8 @@ function DocumentEditorPage() {
           client: meta?.client,
         },
         title: `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`,
+        pageModel,
+
       };
       await exportDocPdf(input);
       void logActivity(user?.id ?? null, "file_added", "business_doc", doc.id, {
