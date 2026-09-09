@@ -8,19 +8,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/core";
 
 import { fromTipTapJSON, type DocBlock } from "@/lib/docs/doc-model";
-import { measureBlocks, onFontsReady, type Measured } from "@/lib/docs/measure";
-import { paginate, type PageModel } from "@/lib/docs/paginate";
-import { bodyBox, pageWithMargins, type PageChrome } from "@/lib/docs/geometry";
+import { onFontsReady } from "@/lib/docs/measure";
+import { buildPageModel, type DocPageModel } from "@/lib/docs/page-model-cache";
+import type { PageChrome } from "@/lib/docs/geometry";
 import type { DocHeader, DocSection } from "@/lib/docs/types";
 
 export type ClampedImage = { blockIndex: number; scale: number };
 
-export type DocPages = {
-  pageModel: PageModel;
-  clampedImages: ClampedImage[];
-  /** Top-level TipTap node index that opens each page (-1 for an empty page). */
-  pageStartNodes: number[];
-};
+export type DocPages = DocPageModel;
 
 const EMPTY: DocPages = {
   pageModel: { pages: [{ parts: [], usedPx: 0 }], scaledImages: [] },
@@ -29,6 +24,7 @@ const EMPTY: DocPages = {
 };
 
 const DEBOUNCE_MS = 120;
+
 
 type JSONNode = { type?: string; content?: JSONNode[] };
 
