@@ -334,17 +334,11 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
               </div>
               <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted-foreground)" }}>
                 {ar
-                  ? "النصوص والجداول والصور تُستورد بتنسيقها — الهيدر والفوتر والشعار تبقى دائماً من القالب. الحد 20 ميغابايت."
-                  : "Text, tables and images come across with their formatting — header, footer and logo always stay from the template. 20 MB max."}
+                  ? "يُنقل المحتوى فقط: العناوين والفقرات والقوائم والجداول والصور. الهوامش والخطوط والألوان والهيدر والفوتر تبقى دائماً من قالب ميكاترو. الحد 20 ميغابايت."
+                  : "Only the content comes across: headings, paragraphs, lists, tables and images. Margins, fonts, colours, header and footer always stay from the Mechatro template. 20 MB max."}
               </div>
             </div>
-            <label
-              onClick={(e) => e.stopPropagation()}
-              style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
-            >
-              <input type="checkbox" checked={keepFormat} onChange={(e) => setKeepFormat(e.target.checked)} />
-              {ar ? "حافظ على التنسيق الأصلي (الألوان والخطوط والجداول)" : "Keep the original formatting (colours, fonts, tables)"}
-            </label>
+
             <input
               ref={inputRef}
               type="file"
