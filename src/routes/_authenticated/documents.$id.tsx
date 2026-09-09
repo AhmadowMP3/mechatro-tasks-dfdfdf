@@ -339,6 +339,8 @@ function DocumentEditorPage() {
           onTheme={(v) => patch({ theme: v })}
           terms={{ ar: tpl.defaults.termsAr ?? "", en: tpl.defaults.termsEn ?? "" }}
           actions={ribbonActions}
+          onPageModel={setPageModel}
+
         />
       </EditorBoundary>
 
