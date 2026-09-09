@@ -420,33 +420,42 @@ function cleanupStyled(rawHtml: string): { html: string; images: number; tables:
 
 }
 
+/** Coerce extracted Word HTML into the template's canonical model. */
+function toTemplate(extractedHtml: string, text: string, warnings: string[]): DocxImport {
+  const { doc, summary } = docxHtmlToDocModel(extractedHtml);
+  const html = sanitizeHtml(toHtml(doc));
+  return {
+    html,
+    model: doc,
+    summary,
+    text,
+    digest: buildDigest(extractedHtml) || text,
+    warnings: warnings.slice(0, 8),
+    images: summary.images,
+    tables: summary.counts.table,
+  };
+}
+
 export async function convertDocx(file: File, opts?: { keepFormatting?: boolean }): Promise<DocxImport> {
   const arrayBuffer = await file.arrayBuffer();
   const keep = opts?.keepFormatting !== false;
   const warnings: string[] = [];
 
-  // ── High-fidelity path: read the OOXML directly so colours, fonts,
-  // alignment, spacing, table borders and shading survive the import.
+  // ── Extraction layer: read the OOXML directly (styles chain, numbering,
+  // tables with merges, images). Page setup, headers/footers, fonts and
+  // colours are dropped by the model coercion right after.
   if (keep) {
     try {
       const { docxToStyledHtml } = await import("./docx-ooxml");
       const styled = await docxToStyledHtml(arrayBuffer, { shrink, maxImageWidth: RENDER_MAX_WIDTH });
       const cleaned = cleanupStyled(styled.html);
-      const html = sanitizeHtml(cleaned.html);
-      const text = htmlToText(html);
+      const extracted = sanitizeHtml(cleaned.html);
+      const text = htmlToText(extracted);
       if (styled.skippedImages > 0) {
         warnings.push(`تم تخطي ${styled.skippedImages} صورة بصيغة قديمة (EMF/WMF) لا يدعمها المتصفح.`);
       }
       if (text.trim().length > 0 || cleaned.images > 0) {
-        return {
-          html,
-          text,
-          digest: buildDigest(html) || text,
-          warnings,
-          images: cleaned.images,
-          tables: cleaned.tables,
-          ...(styled.section ? { section: styled.section } : {}),
-        };
+        return toTemplate(extracted, text, warnings);
       }
       warnings.push("Styled import produced no content — fell back to plain import.");
     } catch (e) {
@@ -454,7 +463,7 @@ export async function convertDocx(file: File, opts?: { keepFormatting?: boolean 
     }
   }
 
-  // ── Fallback: mammoth's clean semantic conversion.
+  // ── Fallback: mammoth's clean semantic conversion, same coercion after.
   const mammoth = await import("mammoth/mammoth.browser.js");
 
   const convertImage = mammoth.images.imgElement(async (image: {
@@ -470,21 +479,15 @@ export async function convertDocx(file: File, opts?: { keepFormatting?: boolean 
   const textResult = await mammoth.extractRawText({ arrayBuffer });
 
   const cleaned = cleanup(String(result.value ?? ""));
-  const html = sanitizeHtml(cleaned.html);
+  const extracted = sanitizeHtml(cleaned.html);
   const text = String(textResult.value ?? "").replace(/\n{3,}/g, "\n\n").trim();
 
-  return {
-    html,
-    text,
-    digest: buildDigest(html) || text,
-    warnings: [
-      ...warnings,
-      ...(result.messages ?? []).map((m: { message?: string }) => String(m.message ?? "")).filter(Boolean),
-    ].slice(0, 8),
-    images: cleaned.images,
-    tables: cleaned.tables,
-  };
+  return toTemplate(extracted, text, [
+    ...warnings,
+    ...(result.messages ?? []).map((m: { message?: string }) => String(m.message ?? "")).filter(Boolean),
+  ]);
 }
+
 
 /** Plain text of the converted HTML (used for AI extraction + language guess). */
 function htmlToText(html: string): string {
