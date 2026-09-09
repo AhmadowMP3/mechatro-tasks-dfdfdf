@@ -7,22 +7,26 @@
 
 import { sanitizeHtml } from "@/lib/security/sanitize";
 
-import type { DocSection } from "./types";
+import { toHtml, type DocumentModel } from "./doc-model";
+import { docxHtmlToDocModel, type ImportSummary } from "./docx-to-model";
 
 export type DocxImport = {
-  /** Sanitized rich HTML ready for the editor / model.html. */
+  /** Serialised canonical model — what goes on `model.html`. */
   html: string;
-  /** Plain text of the document (for AI extraction). */
+  /** The canonical document model produced from the Word file. */
+  model: DocumentModel;
+  /** Block counts, image count and the list of dropped presentation layers. */
+  summary: ImportSummary;
+  /** Plain text of the document (field extraction + language guess). */
   text: string;
-  /** Structured digest (headings, paragraphs, tables as rows) for the AI. */
+  /** Structured digest (headings, paragraphs, tables as rows). */
   digest: string;
   /** Non-fatal conversion notes from Word. */
   warnings: string[];
   images: number;
   tables: number;
-  /** Real Word page setup, when the file declares one. */
-  section?: DocSection;
 };
+
 
 /** Images wider than this are downscaled before they enter the document. */
 const MAX_IMAGE_WIDTH = 1400;
