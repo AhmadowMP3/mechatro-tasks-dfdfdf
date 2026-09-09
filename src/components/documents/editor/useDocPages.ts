@@ -66,7 +66,7 @@ export function useDocPages(
   const headerPx = chrome?.headerPx ?? 0;
   const footerPx = chrome?.footerPx ?? 0;
   const qrPx = chrome?.qrPx ?? 0;
-  const marginKey = `${header?.marginSide ?? ""}|${header?.marginTop ?? ""}|${header?.marginBottom ?? ""}|${section?.pageMargin?.top ?? ""}`;
+  const marginKey = `${header?.marginSide ?? ""}|${header?.marginTop ?? ""}|${header?.marginBottom ?? ""}|${section?.marginTopPx ?? ""}`;
 
   const compute = useCallback(async () => {
     if (!editor || editor.isDestroyed || !chrome) return;
