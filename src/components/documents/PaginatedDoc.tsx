@@ -127,7 +127,7 @@ export function DocPages({
             meta={input.meta}
             logoVariant={input.model.logoVariant}
             page={{ current: pageIndexOffset + i + 1, total }}
-            sizing="fixed"
+            sizing={p.fitted === false ? "grow" : "fixed"}
             bare={bare}
           >
             <DocRichBody
