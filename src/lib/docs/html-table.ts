@@ -17,7 +17,7 @@ function cellRuns(cell: Element, runsOf: RunsOf): DocRun[] {
   const out: DocRun[] = [];
   for (const child of blocks) {
     const runs = runsOf(child);
-    if (runs.length === 0) continue;
+    if (runs.map((r) => r.text).join("").replace(/\s/g, "") === "") continue;
     if (out.length > 0) out.push({ text: "\n" });
     out.push(...runs);
   }
