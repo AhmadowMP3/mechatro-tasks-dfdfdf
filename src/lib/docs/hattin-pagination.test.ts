@@ -35,8 +35,16 @@ describe("Hattin quotation pagination", () => {
 
   test("page count and opening block of every page are locked", () => {
     const { model, startBlocks } = paginateHattin();
-    expect(model.pages.length).toMatchInlineSnapshot();
-    expect(startBlocks).toMatchInlineSnapshot();
+    expect(model.pages.length).toMatchInlineSnapshot(`5`);
+    expect(startBlocks).toMatchInlineSnapshot(`
+      [
+        -1,
+        9,
+        14,
+        40,
+        43,
+      ]
+    `);
   });
 
   test("no page overflows its body box", () => {
