@@ -370,16 +370,6 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
             <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14, maxHeight: "72vh", overflowY: "auto" }}>
               <Summary ar={ar} ai={ai} imported={imported} />
 
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={keepFormat}
-                  disabled={reconverting}
-                  onChange={(e) => void toggleFormatting(e.target.checked)}
-                />
-                {ar ? "حافظ على التنسيق الأصلي" : "Keep the original formatting"}
-                {reconverting && <Loader2 size={13} className="spin" />}
-              </label>
 
               <FieldGroup title={ar ? "المستند" : "Document"}>
                 <Field label={ar ? "نوع المستند" : "Document type"} aiFilled={aiFields.has("docType")} ar={ar}>
