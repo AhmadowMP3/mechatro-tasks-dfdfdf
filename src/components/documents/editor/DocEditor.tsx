@@ -72,7 +72,7 @@ const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
 export function DocEditor({
   html, onChange, lang, theme, currency, meta, showClientBox, client,
-  header, footer, section, logoVariant, onLogoVariant, onLang, onTheme, terms, actions,
+  header, footer, section, logoVariant, onLogoVariant, onLang, onTheme, terms, actions, onPageModel,
 }: Props) {
   const ar = lang === "ar";
   const paper = PAPER[theme];
