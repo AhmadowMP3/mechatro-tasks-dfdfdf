@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Upload, Loader2, Check, X, ListChecks, FileText, AlertTriangle, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 import { convertDocx, guessLang, isDocxFile, isLegacyDoc, type DocxImport } from "@/lib/docs/import-docx";
+import type { DocBlock } from "@/lib/docs/doc-model";
+import type { DroppedKind } from "@/lib/docs/docx-to-model";
 
 import { extractDocxFields, type DocxExtraction, type DocxItem } from "@/lib/docs/extract-docx-fields";
 
@@ -13,7 +15,7 @@ import { docTemplates } from "@/lib/docs/api";
 import { businessDocs, type BusinessDoc } from "@/lib/docs/docs-api";
 import { emptyClient, defaultModel, uid, type DocClient } from "@/lib/docs/model";
 import { emptyItemsData, writeItemsAttr } from "@/lib/docs/rich";
-import { DOC_TYPES, docTypeLabel, type DocLang, type DocSection, type DocTemplate, type DocType } from "@/lib/docs/types";
+import { DOC_TYPES, docTypeLabel, type DocLang, type DocTemplate, type DocType } from "@/lib/docs/types";
 import { PaginatedDoc } from "./PaginatedDoc";
 import { CURRENCIES, currencyLabel } from "@/lib/currency";
 
@@ -49,8 +51,8 @@ export type DocxApplyPayload = {
   validUntil: string;
   client: DocClient;
   showClientBox: boolean;
-  /** Real Word page setup read from the imported file. */
-  section?: DocSection;
+  /** Canonical blocks produced from the Word file. */
+  blocks: DocBlock[];
 };
 
 export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onApply }: {
@@ -72,8 +74,6 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
   const [aiFields, setAiFields] = useState<Set<string>>(new Set());
   const [items, setItems] = useState<DocxItem[]>([]);
   const [insertItems, setInsertItems] = useState(false);
-  const [keepFormat, setKeepFormat] = useState(true);
-  const [reconverting, setReconverting] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fileRef = useRef<File | null>(null);
 
@@ -108,7 +108,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     setStage("working");
     try {
       setStep(ar ? "جارٍ قراءة ملف Word…" : "Reading the Word file…");
-      const res = await convertDocx(file, { keepFormatting: keepFormat });
+      const res = await convertDocx(file);
 
       setImported(res);
 
@@ -163,23 +163,6 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     }
   };
 
-  // Re-run the conversion when the admin flips the formatting switch.
-  const toggleFormatting = async (next: boolean) => {
-    setKeepFormat(next);
-    const file = fileRef.current;
-    if (!file) return;
-    try {
-      setReconverting(true);
-      const res = await convertDocx(file, { keepFormatting: next });
-
-      setImported(res);
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setReconverting(false);
-    }
-  };
-
   const hasClient = useMemo(() => {
     if (!draft) return false;
     return Object.values(draft.client).some((v) => (v ?? "").trim().length > 0);
@@ -222,7 +205,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         validUntil: draft.validUntil,
         client: draft.client,
         showClientBox: hasClient,
-        ...(imported.section ? { section: imported.section as DocSection } : {}),
+        blocks: imported.model.blocks,
       });
       return;
     }
@@ -241,7 +224,6 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           ...defaultModel(),
           showClientBox: hasClient,
           html: bodyHtml(),
-          ...(imported.section ? { section: imported.section } : {}),
         },
       });
       toast.success(ar ? `تم إنشاء ${saved.number} من الملف المستورد` : `Created ${saved.number} from the imported file`);
@@ -260,7 +242,6 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           ...defaultModel(),
           showClientBox: hasClient,
           html: bodyHtml(),
-          ...(imported.section ? { section: imported.section } : {}),
         },
         client: draft.client,
         lang: draft.lang,
