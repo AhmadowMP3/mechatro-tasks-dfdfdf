@@ -1415,20 +1415,11 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   font-size: 12px;
 }
 
-/* Stacked A4 sheets with the continuous editable body layered on top. */
+/* The single continuous sheet the body is written on. */
 .doc-editor-pages {
   position: relative;
   width: 794px;
   margin: 0 auto;
-}
-.doc-editor-sheets {
-  pointer-events: none;
-  user-select: none;
-}
-.doc-editor-sheet-slot {
-  border-radius: 6px;
-  box-shadow: 0 18px 44px rgb(0 0 0 / 0.3);
-  overflow: hidden;
 }
 .doc-editor-flow {
   z-index: 2;
@@ -1445,21 +1436,6 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   height: 0;
   pointer-events: none;
   opacity: 0.45;
-}
-/* Page break inside a table: a transparent gap under the last row that fits,
-   drawn as a border so the cell background never bleeds into the gap.
-   The table must still look closed: an inset line is painted at the end of
-   the cell content (above the gap), and the first row on the next page gets
-   a matching line on top. */
-.doc-editor-flow tr.doc-row-break > td,
-.doc-editor-flow tr.doc-row-break > th {
-  border-bottom: var(--doc-row-gap, 0px) solid transparent !important;
-  background-clip: padding-box;
-  box-shadow: inset 0 -1px 0 var(--doc-table-line, color-mix(in srgb, currentColor 22%, transparent));
-}
-.doc-editor-flow tr.doc-row-break + tr > td,
-.doc-editor-flow tr.doc-row-break + tr > th {
-  box-shadow: inset 0 1px 0 var(--doc-table-line, color-mix(in srgb, currentColor 22%, transparent));
 }
 
 /* Nothing inside the writing area may reach past the sheet margins. */
@@ -1478,102 +1454,6 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 .doc-editor-flow .ProseMirror pre {
   max-width: 100%;
 }
-/* Repeated table header painted over a continuation page. */
-.doc-row-head-repeat {
-  position: absolute;
-  inset-inline-start: 0;
-  pointer-events: none;
-  user-select: none;
-  z-index: 3;
-}
-.doc-row-head-repeat table {
-  border-collapse: collapse;
-  max-width: 100%;
-}
-.doc-pagination-measure {
-  position: fixed;
-  top: 0;
-  left: -10000px;
-  height: auto;
-  padding: 0;
-  visibility: hidden;
-  pointer-events: none;
-  contain: layout style;
-  overflow-wrap: anywhere;
-}
-.doc-pagination-measure table {
-  width: 100%;
-  max-width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
-}
-.doc-pagination-measure td,
-.doc-pagination-measure th {
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-.doc-pagination-measure img,
-.doc-pagination-measure pre {
-  max-width: 100%;
-}
-.doc-page-spacer {
-  width: 100%;
-  pointer-events: none;
-  user-select: none;
-}
-.doc-page-spacer + *,
-.doc-page-spacer + * > :first-child,
-.doc-page-spacer + * > :first-child > :first-child,
-.doc-page-spacer + * > :first-child > :first-child > :first-child,
-.doc-page-spacer + * > :first-child > :first-child > :first-child > :first-child {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-  margin-block-start: 0 !important;
-  padding-block-start: 0 !important;
-}
-/* Empty Word spacer paragraphs that would open a page: kept in the document,
-   drawn with no height so the page starts right under the header. */
-.doc-rich-editable .doc-blank-collapsed {
-  display: none !important;
-  height: 0 !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  line-height: 0 !important;
-  overflow: hidden;
-}
-/* First real block of every page hugs the top margin, like the preview. */
-.doc-rich-editable .doc-page-first-block,
-.doc-rich-editable .doc-page-first-block > :first-child,
-.doc-rich-editable .doc-page-first-block > :first-child > :first-child,
-.doc-rich-editable .doc-page-first-block > :first-child > :first-child > :first-child,
-.doc-rich-editable .doc-page-first-block > :first-child > :first-child > :first-child > :first-child,
-.doc-rich-editable .doc-page-first-block > :first-child > :first-child > :first-child > :first-child > :first-child {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-  margin-block-start: 0 !important;
-  padding-block-start: 0 !important;
-}
-/* Imported Word wrappers can be deeper than a fixed selector chain. Keep the
-   full leading branch visually identical to the DOM used for measurement. */
-.doc-rich-editable .doc-page-first-block :first-child {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-  margin-block-start: 0 !important;
-  padding-block-start: 0 !important;
-}
-.doc-rich-editable .doc-page-first-block {
-  margin-top: calc(-1 * var(--doc-page-start-lift, 0px)) !important;
-  justify-content: flex-start !important;
-  align-content: flex-start !important;
-}
-/* Only section-like wrappers on the leading branch lose Word's fixed page
-   height. Real content (tables, rows, images and headings) keeps its size. */
-.doc-rich-editable .doc-page-first-block:is(div, section, article, main),
-.doc-rich-editable .doc-page-first-block :is(div, section, article, main):first-child {
-  height: auto !important;
-  min-height: 0 !important;
-}
 
 
 
@@ -1582,44 +1462,6 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   padding: clamp(6px, 2vw, 18px);
   border-radius: 16px;
   background: color-mix(in srgb, var(--muted) 22%, transparent);
-}
-/* The WYSIWYG sheet: real A4 width with the branded chrome around the body. */
-.doc-editor-paper {
-  width: 794px;
-  margin: 0 auto;
-  box-shadow: 0 18px 44px rgb(0 0 0 / 0.3);
-  border-radius: 6px;
-}
-.doc-editor-paper .ProseMirror {
-  outline: none;
-  min-height: 420px;
-}
-.doc-editor-paper .ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: inline-start;
-  height: 0;
-  pointer-events: none;
-  opacity: 0.45;
-}
-.doc-editor-sheet {
-  width: 794px;
-  max-width: 100%;
-  min-height: 620px;
-  margin: 0 auto;
-  padding: 40px;
-  border-radius: 6px;
-  box-shadow: 0 18px 44px rgb(0 0 0 / 0.3);
-}
-.doc-editor-sheet .ProseMirror {
-  outline: none;
-  min-height: 480px;
-}
-.doc-editor-sheet .ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: inline-start;
-  height: 0;
-  pointer-events: none;
-  opacity: 0.45;
 }
 
 
@@ -1634,26 +1476,6 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 }
 .doc-rich > * + * {
   margin-top: 8px;
-}
-/* A page always starts flush with the official top margin: imported Word/PDF
-   "space before" on the first block must never add to it. */
-.doc-rich > :first-child,
-.doc-rich > :first-child > :first-child,
-.doc-rich > :first-child > :first-child > :first-child,
-.doc-rich > :first-child > :first-child > :first-child > :first-child,
-.doc-rich > :first-child > :first-child > :first-child > :first-child > :first-child,
-.doc-editor-sheet .ProseMirror > :first-child {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-  margin-block-start: 0 !important;
-  padding-block-start: 0 !important;
-}
-.doc-rich > :first-child:is(div, section, article, main),
-.doc-rich > :first-child :is(div, section, article, main):first-child {
-  height: auto !important;
-  min-height: 0 !important;
-  justify-content: flex-start !important;
-  align-content: flex-start !important;
 }
 .doc-rich > :last-child {
   margin-bottom: 0 !important;
