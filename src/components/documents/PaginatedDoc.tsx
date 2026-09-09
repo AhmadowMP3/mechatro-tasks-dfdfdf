@@ -94,7 +94,7 @@ export async function paginateDocument(
     }
   }
 
-  if (!model) return [{ showClientBox, html }];
+  if (!model) return [{ showClientBox, html, fitted: false }];
   return splitByPages(nodes, model.pageStartNodes, showClientBox);
 }
 
