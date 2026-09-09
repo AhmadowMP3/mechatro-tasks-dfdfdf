@@ -35,8 +35,13 @@ export function pageSpacerPlugin(read: () => SpacerMap) {
         const decorations: Decoration[] = [];
         let index = 0;
         state.doc.forEach((_node, offset) => {
-          const height = map.get(index);
+          const raw = map.get(index);
+          if (raw !== undefined && raw < 0 && import.meta.env.DEV) {
+            console.warn(`[docs] spacer decoration for block ${index} is negative (${raw}px) — rendering 0`);
+          }
+          const height = raw === undefined ? undefined : Math.max(0, raw);
           if (height && height > 0) {
+
             decorations.push(
               Decoration.widget(
                 offset,
