@@ -15,7 +15,7 @@ export const PAGE = {
 } as const;
 
 /** Breathing room under the letterhead rule. */
-export const HEADER_GAP_PX = 16;
+export const HEADER_GAP_PX = 400;
 /** Breathing room above the footer band. */
 export const FOOTER_GAP_PX = 16;
 
