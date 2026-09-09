@@ -15,14 +15,15 @@ export const pageSpacerKey = new PluginKey("docPageSpacers");
 export type SpacerMap = Map<number, number>;
 
 export function clampSpacer(value: number, nodeIndex: number): number {
-  if (value < -0.5) {
+  if (value < 0) {
     if (import.meta.env.DEV) {
-      console.warn(`[docs] negative page spacer (${Math.round(value)}px) before node ${nodeIndex} — clamped to 0`);
+      console.warn(`[docs] negative page spacer (${Math.round(value)}px) before block ${nodeIndex} — clamped to 0`);
     }
     return 0;
   }
   return Math.max(0, Math.round(value));
 }
+
 
 export function pageSpacerPlugin(read: () => SpacerMap) {
   return new Plugin({
