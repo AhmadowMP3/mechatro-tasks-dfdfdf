@@ -147,10 +147,17 @@ export function paginate(measured: Measured[], availHeightPx: number): PageModel
   if (isDev()) {
     for (const [i, p] of pages.entries()) {
       if (p.usedPx > avail + 0.5) {
-        throw new Error(`paginate: page ${i + 1} overflows (${p.usedPx}px > ${avail}px)`);
+        const last = p.parts.at(-1);
+        const bi = last?.blockIndex ?? -1;
+        const type = bi >= 0 ? (measured[bi]?.block.type ?? "unknown") : "none";
+        const all = p.parts.map((part) => `${part.blockIndex}:${measured[part.blockIndex]?.block.type ?? "?"}`).join(", ");
+        throw new Error(
+          `paginate: page ${i + 1} overflows (${p.usedPx}px > ${avail}px) — offending block ${bi} (${type}); page holds [${all}]`,
+        );
       }
     }
   }
+
 
   return { pages, scaledImages };
 }
