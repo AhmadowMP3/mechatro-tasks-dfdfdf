@@ -21,7 +21,7 @@ const CLIENT_CARD_PX = 132;
 
 function paginateHattin() {
   const box = bodyBox(CHROME, pageWithMargins(null, null));
-  const spacer = { block: { type: "paragraph", align: "left", runs: [] } as const, heightPx: CLIENT_CARD_PX, splittable: false };
+  const spacer: Measured = { block: { type: "paragraph", align: "left", runs: [] }, heightPx: CLIENT_CARD_PX, splittable: false };
   const model = paginate([spacer, ...hattinMeasured()], box.heightPx);
   // Block indexes reported to the document, i.e. without the client-card spacer.
   const startBlocks = model.pages.map((p) => (p.parts[0] ? p.parts[0].blockIndex - 1 : -1));
