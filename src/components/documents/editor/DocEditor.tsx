@@ -287,12 +287,19 @@ export function DocEditor({
     return () => ro.disconnect();
   }, [showClientBox, client, lang, theme]);
 
-  const { pageModel, clampedImages, pageStartNodes } = useDocPages(
+  const docPages = useDocPages(
     editorIsReady(editor) ? editor : null,
     chrome,
     { reservePx, header, section },
   );
+  const { pageModel, clampedImages, pageStartNodes } = docPages;
   const pageCount = Math.max(1, pageModel.pages.length);
+
+  // Publish the model: the preview and the PDF render from this exact split.
+  const onPageModelRef = useRef(onPageModel);
+  onPageModelRef.current = onPageModel;
+  useEffect(() => { onPageModelRef.current?.(docPages); }, [docPages]);
+
 
   // One spacer decoration plugin, fed from a ref so heights can be tuned
   // without rebuilding the editor.
