@@ -69,52 +69,22 @@ export function useDocPages(
     const id = ++runRef.current;
 
     const { blocks, nodeOfBlock } = blocksByNode(editor);
-    const geometry = pageWithMargins(header, section);
-    const box = bodyBox({ headerPx, footerPx, qrPx }, geometry);
 
-    let measured: Measured[];
+    let next: DocPages;
     try {
-      measured = await measureBlocks(blocks, box);
-    } catch {
-      return;
-    }
-    if (id !== runRef.current || editor.isDestroyed) return;
-
-    // In the live editor a page always starts on a whole top-level node: the
-    // spacer that creates the page break sits before a node, so a block may
-    // never be sliced here. Slicing belongs to the preview / PDF pipeline.
-    const atomic: Measured[] = measured.map((m) => ({
-      block: m.block,
-      heightPx: m.heightPx,
-      splittable: false,
-    }));
-
-    const offset = reservePx > 0 ? 1 : 0;
-    const input: Measured[] = offset
-      ? [{ block: { type: "paragraph", align: "left", runs: [] }, heightPx: reservePx, splittable: false }, ...atomic]
-      : atomic;
-
-    let model: PageModel;
-    try {
-      model = paginate(input, box.heightPx);
+      next = await buildPageModel({
+        blocks,
+        nodeOfBlock,
+        chrome: { headerPx, footerPx, qrPx },
+        header,
+        section,
+        reservePx,
+      });
     } catch (err) {
       if (import.meta.env.DEV) console.warn("[docs] pagination failed", err);
       return;
     }
-
-    const pageStartNodes = model.pages.map((page) => {
-      const first = page.parts[0];
-      if (!first) return -1;
-      const blockIndex = first.blockIndex - offset;
-      if (blockIndex < 0) return -1;
-      return nodeOfBlock[blockIndex] ?? -1;
-    });
-
-    const next: DocPages = {
-      pageModel: model,
-      clampedImages: model.scaledImages.map((s) => ({ blockIndex: s.blockIndex - offset, scale: s.scale })),
-      pageStartNodes,
-    };
+    if (id !== runRef.current || editor.isDestroyed) return;
 
     const prev = lastRef.current;
     const same =
@@ -126,6 +96,7 @@ export function useDocPages(
     lastRef.current = next;
     setPages(next);
   }, [editor, chrome, headerPx, footerPx, qrPx, reservePx, header, section, marginKey]);
+
 
   // Debounced recompute on every document change.
   useEffect(() => {
