@@ -6,7 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { DocPaper } from "./DocPaper";
 import { DocRichBody } from "./DocRichBody";
 import { resolveDocHtml } from "@/lib/docs/rich";
-import { A4_SIZE, waitForPaperAssets, type DocPage } from "@/lib/docs/paginate";
+import { A4_SIZE, type DocPage } from "@/lib/docs/geometry";
+import { waitForPaperAssets } from "@/lib/docs/measure";
 import type { DocClient, DocModel } from "@/lib/docs/model";
 import type { DocFooter, DocHeader, DocLang, DocTheme } from "@/lib/docs/types";
 
