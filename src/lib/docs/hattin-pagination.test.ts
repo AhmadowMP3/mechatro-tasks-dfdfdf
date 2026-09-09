@@ -13,6 +13,8 @@ import { describe, expect, test } from "vitest";
 import { hattinMeasured } from "./__fixtures__/hattin-quotation";
 import { bodyBox, pageWithMargins, type PageChrome } from "./geometry";
 import { paginate } from "./paginate";
+import type { Measured } from "./measure";
+
 
 /** The measured letterhead of the standard Mechatro sheet. */
 const CHROME: PageChrome = { headerPx: 168, footerPx: 148, qrPx: 0 };
