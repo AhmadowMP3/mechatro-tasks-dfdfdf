@@ -61,7 +61,10 @@ type Props = {
   terms?: { ar: string; en: string };
   /** Save / export / preview buttons pinned to the ribbon. */
   actions?: React.ReactNode;
+  /** The computed page model, published so preview and PDF reuse it. */
+  onPageModel?: (model: DocPageModel) => void;
 };
+
 
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
