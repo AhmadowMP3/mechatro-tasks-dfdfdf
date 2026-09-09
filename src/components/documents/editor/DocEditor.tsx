@@ -27,12 +27,9 @@ import { fieldValue, termsBlockHtml, type RichCtx } from "@/lib/docs/rich";
 import { snippetHtml, type SnippetId } from "@/lib/docs/snippets";
 import { docBlocks, blockLabel, type DocBlock } from "@/lib/docs/blocks";
 import type { DocClient, LogoVariant } from "@/lib/docs/model";
-import { PAPER, resolveMargins, type DocFooter, type DocHeader, type DocLang, type DocSection, type DocTheme } from "@/lib/docs/types";
+import { PAPER, type DocFooter, type DocHeader, type DocLang, type DocSection, type DocTheme } from "@/lib/docs/types";
 import { toast } from "sonner";
 import { editorIsReady, useStableEditor } from "./useStableEditor";
-import { PageLayout, SHEET_GAP } from "./pagination";
-import { usePageLayout } from "./usePageLayout";
-import { A4 } from "../DocPaper";
 
 type Props = {
   html: string;
@@ -125,7 +122,6 @@ export function DocEditor({
         placeholder: () => (langRef.current === "ar" ? "ابدأ الكتابة داخل المستند…" : "Start typing inside the document…"),
       }),
       PageBreak,
-      PageLayout,
       DocField.configure({
         lang: langRef.current,
         values: {},
@@ -213,17 +209,6 @@ export function DocEditor({
 
   const insertSnippet = (id: SnippetId) => insert(snippetHtml(id, lang, templateTerms) ?? "");
 
-  // Live A4 pagination: how many sheets to paint and where the body sits.
-  const pagesRef = useRef<HTMLDivElement | null>(null);
-  const { pages, geo, repeats, clampedImages } = usePageLayout(editor, pagesRef);
-  const fallbackWidth = A4.width - 2 * resolveMargins(header, section).side;
-
-  // The writing layer is never clipped: content must always stay readable.
-  // Anything that would land past the body band is pushed to the next sheet by
-  // usePageLayout instead of being masked away (masking made text vanish).
-
-
-
   return (
     <div className="doc-editor">
       <Ribbon
@@ -241,89 +226,42 @@ export function DocEditor({
         actions={actions}
         onInsertTerms={templateTerms.trim() ? () => insert(termsBlockHtml(lang, templateTerms) ?? "") : undefined}
       />
-      {clampedImages > 0 && (
-        <div
-          role="status"
-          style={{
-            margin: "8px 12px 0",
-            padding: "6px 10px",
-            borderRadius: 8,
-            fontSize: 12.5,
-            background: "rgba(234,179,8,.14)",
-            color: "#b45309",
-            direction: ar ? "rtl" : "ltr",
-          }}
-        >
-          {ar
-            ? `تم تصغير ${clampedImages} صورة لتتسع داخل الصفحة.`
-            : `${clampedImages} image${clampedImages > 1 ? "s were" : " was"} scaled down to fit the page.`}
-        </div>
-      )}
       <div className="doc-editor-canvas">
-        <div className="doc-editor-pages" ref={pagesRef}>
-          {/* Stacked A4 sheets painted behind the editable layer */}
-          <div className="doc-editor-sheets" aria-hidden>
-            {Array.from({ length: pages }, (_, i) => (
-              <div key={i} className="doc-editor-sheet-slot" style={{ marginBottom: i === pages - 1 ? 0 : SHEET_GAP }}>
-                <DocPaper
-                  header={header}
-                  section={section}
-                  footer={footer}
-                  lang={lang}
-                  theme={theme}
-                  meta={meta}
-                  logoVariant={logoVariant}
-                  page={{ current: i + 1, total: pages }}
-                  sizing="fixed"
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* The single continuous editable body, laid over the sheets */}
-          <div
-            className="doc-editor-flow doc-paper-body"
-            style={{
-              position: "absolute",
-              top: geo?.top ?? 0,
-              left: geo?.left ?? 0,
-              width: geo?.width ?? fallbackWidth,
-              maxWidth: geo?.width ?? fallbackWidth,
-              fontSize: 12.5,
-              lineHeight: 1.7,
-              overflowWrap: "anywhere",
-              // Same ink, font and direction as the printed sheet body.
-              color: paper.ink,
-              caretColor: paper.ink,
-              direction: ar ? "rtl" : "ltr",
-              textAlign: ar ? "right" : "left",
-              fontFamily: "'Montserrat Arabic', 'Almarai', 'Montserrat', system-ui, sans-serif",
-              zIndex: 2,
-              visibility: geo ? "visible" : "hidden",
-            }}
+        <div className="doc-editor-pages">
+          <DocPaper
+            header={header}
+            section={section}
+            footer={footer}
+            lang={lang}
+            theme={theme}
+            meta={meta}
+            logoVariant={logoVariant}
+            page={{ current: 1, total: 1 }}
+            sizing="grow"
           >
-
-            {showClientBox && (
-              <div style={{ marginBottom: 14 }}>
-                <DocClientCard client={client} lang={lang} theme={theme} />
-              </div>
-            )}
-            <DocEditorCtxProvider value={{ lang, currency }}>
-              <EditorContent editor={editor} />
-            </DocEditorCtxProvider>
-
-            {/* Table headers repainted at the top of continuation sheets */}
-            {repeats.map((r) => (
-              <div
-                key={r.id}
-                className="doc-row-head-repeat doc-rich"
-                aria-hidden
-                style={{ top: r.top, width: r.width }}
-                dangerouslySetInnerHTML={{ __html: r.html }}
-              />
-            ))}
-          </div>
-
+            <div
+              className="doc-editor-flow doc-paper-body"
+              style={{
+                fontSize: 12.5,
+                lineHeight: 1.7,
+                overflowWrap: "anywhere",
+                color: paper.ink,
+                caretColor: paper.ink,
+                direction: ar ? "rtl" : "ltr",
+                textAlign: ar ? "right" : "left",
+                fontFamily: "'Montserrat Arabic', 'Almarai', 'Montserrat', system-ui, sans-serif",
+              }}
+            >
+              {showClientBox && (
+                <div style={{ marginBottom: 14 }}>
+                  <DocClientCard client={client} lang={lang} theme={theme} />
+                </div>
+              )}
+              <DocEditorCtxProvider value={{ lang, currency }}>
+                <EditorContent editor={editor} />
+              </DocEditorCtxProvider>
+            </div>
+          </DocPaper>
         </div>
       </div>
     </div>

@@ -6,7 +6,7 @@
 // and no upload of the raw file anywhere.
 
 import { sanitizeHtml } from "@/lib/security/sanitize";
-import { isWordBlankBlock } from "./page-start";
+
 import type { DocSection } from "./types";
 
 export type DocxImport = {
@@ -86,8 +86,11 @@ const MAX_TOP_SPACE_PT = 10;
 /** Word uses bidi/zero-width control characters in otherwise empty Arabic
  * paragraphs. They have no visible ink, but textContent.trim() treats several
  * of them as content and leaves a full blank line on every imported page. */
+const INVISIBLE = /[\u00A0\u200B-\u200F\u2028\u2029\u202A-\u202E\u2060-\u2064\u206A-\u206F\uFEFF]/g;
+
 function isBlankBlock(el: Element): boolean {
-  return isWordBlankBlock(el);
+  if (el.querySelector("img, table, svg, canvas, video, hr")) return false;
+  return (el.textContent ?? "").replace(INVISIBLE, "").trim() === "";
 }
 
 function zeroTopSpace(el: Element): void {

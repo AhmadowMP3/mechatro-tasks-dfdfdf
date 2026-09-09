@@ -7,7 +7,8 @@ import { useRef, useState } from "react";
 import { logoFor } from "@/lib/brand/logo";
 import { PAPER, resolveMargins, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocSection, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
-import { BODY_TOP_GAP } from "@/lib/docs/page-metrics";
+/** The letterhead's own breathing room under the header rule. */
+export const BODY_TOP_GAP = 16;
 import type { LogoVariant } from "@/lib/docs/model";
 
 /** CSS filter that renders the brand logo light or dark on any paper. */

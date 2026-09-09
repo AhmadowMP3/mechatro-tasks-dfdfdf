@@ -1,6 +1,6 @@
-// A4 page model + shared helpers for document pagination. The body itself is
-// Word-style HTML and gets split by `paginate-html.ts`; this module only keeps
-// the page type, the paper size and the asset-readiness helper.
+// A4 page model + shared helpers. Pagination itself has been removed; this
+// module only keeps the page type, the paper size and the asset-readiness
+// helper used before rendering or printing.
 
 export type DocPage = {
   showClientBox: boolean;
