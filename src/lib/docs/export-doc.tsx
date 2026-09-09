@@ -46,7 +46,8 @@ function paginatedInput(input: ExportDocInput): PaginatedDocInput {
 export async function exportDocPdf(input: ExportDocInput): Promise<void> {
   const palette = PAPER[input.theme];
   const paged = paginatedInput(input);
-  const pages = await paginateDocument(paged);
+  const pages = await paginateDocument(paged, input.pageModel ?? null);
+
 
   await printReactDocument(
     <DocPages input={paged} pages={pages} bare />,
