@@ -367,6 +367,39 @@ const paraJSON = (runs: DocRun[], align: DocAlign = "left"): JSONNode => ({
   content: runsToJSON(runs),
 });
 
+/**
+ * Grid column where each emitted cell of row `ri` starts, accounting for the
+ * cells carried down by a rowSpan in the rows above it.
+ */
+function columnIndexes(rows: DocCell[][], ri: number): number[] {
+  const occupied: number[] = [];
+  for (let r = 0; r < ri; r++) {
+    let col = 0;
+    for (const cell of rows[r]) {
+      while (occupied.includes(-1)) break;
+      col = nextFree(occupied, col, r, ri);
+      if (cell.rowSpan > 1 && r + cell.rowSpan - 1 >= ri) {
+        for (let k = 0; k < cell.colSpan; k++) occupied.push(col + k);
+      }
+      col += cell.colSpan;
+    }
+  }
+  const taken = new Set(occupied);
+  const out: number[] = [];
+  let col = 0;
+  for (const cell of rows[ri] ?? []) {
+    while (taken.has(col)) col += 1;
+    out.push(col);
+    col += cell.colSpan;
+  }
+  return out;
+}
+
+/** Helper kept trivial: rowSpan bookkeeping only needs a running column. */
+function nextFree(_occupied: number[], col: number, _r: number, _ri: number): number {
+  return col;
+}
+
 /** Model → TipTap document JSON. */
 export function toTipTapJSON(doc: DocumentModel): JSONNode {
   const content: JSONNode[] = doc.blocks.map((b): JSONNode => {
