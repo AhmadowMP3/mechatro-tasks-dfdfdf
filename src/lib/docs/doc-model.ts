@@ -50,7 +50,86 @@ export type DocCell = {
 };
 
 
-export type DocTable = { type: "table"; headerRow: boolean; columns: number; rows: DocCell[][] };
+export type TableAlign = "left" | "center" | "right";
+
+/**
+ * Tables carry their grid geometry, because a Word table that is 56% of the
+ * body width with a 93/7 column split is structure, not styling: without it
+ * every imported table collapses to full width with equal columns.
+ */
+export type DocTable = {
+  type: "table";
+  headerRow: boolean;
+  columns: number;
+  rows: DocCell[][];
+  /** One per grid column, each > 0, summing to 100. */
+  colWidthsPct: number[];
+  /** Table width as a percentage of the body width. */
+  widthPct: number;
+  align: TableAlign;
+  /** Word bidiVisual — mirror the column order. */
+  rtl: boolean;
+};
+
+/** Body width of the Mechatro A4 sheet in CSS px (page width minus margins). */
+export const BODY_WIDTH_PX = 794 - 2 * 48;
+
+const TABLE_ALIGNS: readonly TableAlign[] = ["left", "center", "right"];
+
+const equalWidths = (columns: number): number[] => {
+  const n = Math.max(1, Math.round(columns));
+  return new Array(n).fill(Math.round((100 / n) * 100) / 100);
+};
+
+export function isColWidths(value: unknown, columns: number): value is number[] {
+  if (!Array.isArray(value) || value.length !== columns) return false;
+  if (!value.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)) return false;
+  const sum = value.reduce((a, b) => a + b, 0);
+  return Math.abs(sum - 100) <= 0.5;
+}
+
+/** Geometry of a table, falling back to the legacy full-width equal grid. */
+export function tableGeometry(t: DocTable): { colWidthsPct: number[]; widthPct: number; align: TableAlign; rtl: boolean } {
+  const cols = isColWidths(t.colWidthsPct, t.columns) ? t.colWidthsPct : equalWidths(t.columns);
+  const w = typeof t.widthPct === "number" && Number.isFinite(t.widthPct) && t.widthPct > 0
+    ? Math.min(100, t.widthPct)
+    : 100;
+  const align = (TABLE_ALIGNS as readonly string[]).includes(t.align as string) ? (t.align as TableAlign) : "left";
+  return { colWidthsPct: cols, widthPct: w, align, rtl: t.rtl === true };
+}
+
+/** Normalise any width list to `columns` positive entries summing to 100. */
+export function normaliseColWidths(raw: number[] | null | undefined, columns: number): number[] {
+  const n = Math.max(1, Math.round(columns));
+  const src = (raw ?? []).filter((v) => typeof v === "number" && Number.isFinite(v) && v > 0);
+  if (src.length !== n) return equalWidths(n);
+  const total = src.reduce((a, b) => a + b, 0);
+  if (total <= 0) return equalWidths(n);
+  const pct = src.map((v) => Math.round((v / total) * 10000) / 100);
+  // Absorb rounding drift into the last column so the sum is exactly 100.
+  const drift = Math.round((100 - pct.reduce((a, b) => a + b, 0)) * 100) / 100;
+  pct[pct.length - 1] = Math.round((pct[pct.length - 1] + drift) * 100) / 100;
+  return pct;
+}
+
+/** Build a table block with validated geometry. */
+export function makeTable(
+  base: { headerRow: boolean; columns: number; rows: DocCell[][] },
+  geo: { colWidthsPct?: number[] | null; widthPct?: number | null; align?: string | null; rtl?: boolean } = {},
+): DocTable {
+  const columns = Math.max(1, Math.round(base.columns));
+  const widthRaw = typeof geo.widthPct === "number" && Number.isFinite(geo.widthPct) && geo.widthPct > 0 ? geo.widthPct : 100;
+  return {
+    type: "table",
+    headerRow: base.headerRow,
+    columns,
+    rows: base.rows,
+    colWidthsPct: normaliseColWidths(geo.colWidthsPct, columns),
+    widthPct: Math.min(100, Math.round(widthRaw * 100) / 100),
+    align: (TABLE_ALIGNS as readonly string[]).includes(geo.align ?? "") ? (geo.align as TableAlign) : "left",
+    rtl: geo.rtl === true,
+  };
+}
 export type DocImage = { type: "image"; src: string; widthPx: number | null; align: DocAlign };
 export type DocPageBreak = { type: "pageBreak" };
 
