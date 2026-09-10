@@ -373,7 +373,6 @@ const paraJSON = (runs: DocRun[], align: DocAlign = "left"): JSONNode => ({
  */
 function columnIndexes(rows: DocCell[][], ri: number): number[] {
   // Walk the grid from the top, marking the columns each rowSpan reaches.
-  const carried = new Set<number>();
   const spans: { col: number; lastRow: number }[] = [];
   for (let r = 0; r <= ri; r++) {
     const busy = new Set(spans.filter((s) => s.lastRow >= r).map((s) => s.col));
@@ -387,10 +386,7 @@ function columnIndexes(rows: DocCell[][], ri: number): number[] {
       }
       col += cell.colSpan;
     }
-    if (r === ri) {
-      carried.clear();
-      return starts;
-    }
+    if (r === ri) return starts;
   }
   return [];
 }
