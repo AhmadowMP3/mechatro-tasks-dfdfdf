@@ -13,9 +13,8 @@ import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import { ResizableImage, IMAGE_MAX_WIDTH } from "./ResizableImage";
 import Placeholder from "@tiptap/extension-placeholder";
-import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
-import { ShadedTableCell, ShadedTableHeader } from "./table-cells";
+import { GeometryTable, ShadedTableCell, ShadedTableHeader } from "./table-cells";
 
 import { Ribbon } from "./Ribbon";
 import { PageBreak, DocField, ItemsTable, DivBlock, DocEditorCtxProvider } from "./extensions";
@@ -125,7 +124,7 @@ export function DocEditor({
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer nofollow" } }),
       ResizableImage.configure({ inline: false, allowBase64: true }),
-      Table.configure({ resizable: true }),
+      GeometryTable.configure({ resizable: true }),
       TableRow,
       ShadedTableHeader,
       ShadedTableCell,

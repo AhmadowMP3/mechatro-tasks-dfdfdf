@@ -50,7 +50,86 @@ export type DocCell = {
 };
 
 
-export type DocTable = { type: "table"; headerRow: boolean; columns: number; rows: DocCell[][] };
+export type TableAlign = "left" | "center" | "right";
+
+/**
+ * Tables carry their grid geometry, because a Word table that is 56% of the
+ * body width with a 93/7 column split is structure, not styling: without it
+ * every imported table collapses to full width with equal columns.
+ */
+export type DocTable = {
+  type: "table";
+  headerRow: boolean;
+  columns: number;
+  rows: DocCell[][];
+  /** One per grid column, each > 0, summing to 100. */
+  colWidthsPct: number[];
+  /** Table width as a percentage of the body width. */
+  widthPct: number;
+  align: TableAlign;
+  /** Word bidiVisual — mirror the column order. */
+  rtl: boolean;
+};
+
+/** Body width of the Mechatro A4 sheet in CSS px (page width minus margins). */
+export const BODY_WIDTH_PX = 794 - 2 * 48;
+
+const TABLE_ALIGNS: readonly TableAlign[] = ["left", "center", "right"];
+
+const equalWidths = (columns: number): number[] => {
+  const n = Math.max(1, Math.round(columns));
+  return new Array(n).fill(Math.round((100 / n) * 100) / 100);
+};
+
+export function isColWidths(value: unknown, columns: number): value is number[] {
+  if (!Array.isArray(value) || value.length !== columns) return false;
+  if (!value.every((n) => typeof n === "number" && Number.isFinite(n) && n > 0)) return false;
+  const sum = value.reduce((a, b) => a + b, 0);
+  return Math.abs(sum - 100) <= 0.5;
+}
+
+/** Geometry of a table, falling back to the legacy full-width equal grid. */
+export function tableGeometry(t: DocTable): { colWidthsPct: number[]; widthPct: number; align: TableAlign; rtl: boolean } {
+  const cols = isColWidths(t.colWidthsPct, t.columns) ? t.colWidthsPct : equalWidths(t.columns);
+  const w = typeof t.widthPct === "number" && Number.isFinite(t.widthPct) && t.widthPct > 0
+    ? Math.min(100, t.widthPct)
+    : 100;
+  const align = (TABLE_ALIGNS as readonly string[]).includes(t.align as string) ? (t.align as TableAlign) : "left";
+  return { colWidthsPct: cols, widthPct: w, align, rtl: t.rtl === true };
+}
+
+/** Normalise any width list to `columns` positive entries summing to 100. */
+export function normaliseColWidths(raw: number[] | null | undefined, columns: number): number[] {
+  const n = Math.max(1, Math.round(columns));
+  const src = (raw ?? []).filter((v) => typeof v === "number" && Number.isFinite(v) && v > 0);
+  if (src.length !== n) return equalWidths(n);
+  const total = src.reduce((a, b) => a + b, 0);
+  if (total <= 0) return equalWidths(n);
+  const pct = src.map((v) => Math.round((v / total) * 10000) / 100);
+  // Absorb rounding drift into the last column so the sum is exactly 100.
+  const drift = Math.round((100 - pct.reduce((a, b) => a + b, 0)) * 100) / 100;
+  pct[pct.length - 1] = Math.round((pct[pct.length - 1] + drift) * 100) / 100;
+  return pct;
+}
+
+/** Build a table block with validated geometry. */
+export function makeTable(
+  base: { headerRow: boolean; columns: number; rows: DocCell[][] },
+  geo: { colWidthsPct?: number[] | null; widthPct?: number | null; align?: string | null; rtl?: boolean } = {},
+): DocTable {
+  const columns = Math.max(1, Math.round(base.columns));
+  const widthRaw = typeof geo.widthPct === "number" && Number.isFinite(geo.widthPct) && geo.widthPct > 0 ? geo.widthPct : 100;
+  return {
+    type: "table",
+    headerRow: base.headerRow,
+    columns,
+    rows: base.rows,
+    colWidthsPct: normaliseColWidths(geo.colWidthsPct, columns),
+    widthPct: Math.min(100, Math.round(widthRaw * 100) / 100),
+    align: (TABLE_ALIGNS as readonly string[]).includes(geo.align ?? "") ? (geo.align as TableAlign) : "left",
+    rtl: geo.rtl === true,
+  };
+}
 export type DocImage = { type: "image"; src: string; widthPx: number | null; align: DocAlign };
 export type DocPageBreak = { type: "pageBreak" };
 
@@ -166,15 +245,24 @@ export function isDocBlock(value: unknown): value is DocBlock {
       return (b.level === 1 || b.level === 2 || b.level === 3) && isAlign(b.align) && isRunArray(b.runs);
     case "list":
       return typeof b.ordered === "boolean" && Array.isArray(b.items) && b.items.every(isRunArray);
-    case "table":
-      return (
+    case "table": {
+      const base =
         typeof b.headerRow === "boolean" &&
         typeof b.columns === "number" &&
         Number.isInteger(b.columns) &&
         b.columns > 0 &&
         Array.isArray(b.rows) &&
-        b.rows.every((row) => Array.isArray(row) && row.every(isDocCell))
-      );
+        b.rows.every((row) => Array.isArray(row) && row.every(isDocCell));
+      if (!base) return false;
+      // Geometry is validated when present; legacy tables without any of it
+      // are accepted and fall back to a full-width equal grid.
+      const columns = b.columns as number;
+      if (b.colWidthsPct !== undefined && !isColWidths(b.colWidthsPct, columns)) return false;
+      if (b.widthPct !== undefined && !(typeof b.widthPct === "number" && b.widthPct > 0 && b.widthPct <= 100)) return false;
+      if (b.align !== undefined && !(TABLE_ALIGNS as readonly string[]).includes(b.align as string)) return false;
+      if (b.rtl !== undefined && typeof b.rtl !== "boolean") return false;
+      return true;
+    }
     case "image":
       return typeof b.src === "string" && b.src !== "" && isAlign(b.align) && (b.widthPx === null || typeof b.widthPx === "number");
     case "pageBreak":
@@ -279,6 +367,30 @@ const paraJSON = (runs: DocRun[], align: DocAlign = "left"): JSONNode => ({
   content: runsToJSON(runs),
 });
 
+/**
+ * Grid column where each emitted cell of row `ri` starts, accounting for the
+ * cells carried down by a rowSpan in the rows above it.
+ */
+function columnIndexes(rows: DocCell[][], ri: number): number[] {
+  // Walk the grid from the top, marking the columns each rowSpan reaches.
+  const spans: { col: number; lastRow: number }[] = [];
+  for (let r = 0; r <= ri; r++) {
+    const busy = new Set(spans.filter((s) => s.lastRow >= r).map((s) => s.col));
+    let col = 0;
+    const starts: number[] = [];
+    for (const cell of rows[r] ?? []) {
+      while (busy.has(col)) col += 1;
+      starts.push(col);
+      if (cell.rowSpan > 1) {
+        for (let k = 0; k < cell.colSpan; k++) spans.push({ col: col + k, lastRow: r + cell.rowSpan - 1 });
+      }
+      col += cell.colSpan;
+    }
+    if (r === ri) return starts;
+  }
+  return [];
+}
+
 /** Model → TipTap document JSON. */
 export function toTipTapJSON(doc: DocumentModel): JSONNode {
   const content: JSONNode[] = doc.blocks.map((b): JSONNode => {
@@ -292,23 +404,37 @@ export function toTipTapJSON(doc: DocumentModel): JSONNode {
           type: b.ordered ? "orderedList" : "bulletList",
           content: b.items.map((item) => ({ type: "listItem", content: [paraJSON(item)] })),
         };
-      case "table":
+      case "table": {
+        const geo = tableGeometry(b);
+        // TipTap stores PIXEL widths, so each column's share of the table's
+        // own width (a fraction of the body) becomes a concrete px value.
+        const tableWidthPx = (BODY_WIDTH_PX * geo.widthPct) / 100;
+        const colPx = geo.colWidthsPct.map((p) => Math.max(12, Math.round((tableWidthPx * p) / 100)));
         return {
           type: "table",
-          content: b.rows.map((row, ri) => ({
-            type: "tableRow",
-            content: row.map((cell) => ({
-              type: b.headerRow && ri === 0 ? "tableHeader" : "tableCell",
-              attrs: {
-                colspan: cell.colSpan,
-                rowspan: cell.rowSpan,
-                colwidth: null,
-                backgroundColor: cell.fill ?? null,
-              },
-              content: cell.paragraphs.map((p) => paraJSON(p)),
-            })),
-          })),
+          attrs: { tableAlign: geo.align, tableRtl: geo.rtl },
+          content: b.rows.map((row, ri) => {
+            const cols = columnIndexes(b.rows, ri);
+            return {
+              type: "tableRow",
+              content: row.map((cell, ci) => {
+                const start = cols[ci] ?? 0;
+                const widths = colPx.slice(start, start + cell.colSpan);
+                return {
+                  type: b.headerRow && ri === 0 ? "tableHeader" : "tableCell",
+                  attrs: {
+                    colspan: cell.colSpan,
+                    rowspan: cell.rowSpan,
+                    colwidth: widths.length === cell.colSpan ? widths : null,
+                    backgroundColor: cell.fill ?? null,
+                  },
+                  content: cell.paragraphs.map((p) => paraJSON(p)),
+                };
+              }),
+            };
+          }),
         };
+      }
       case "image":
         return { type: "image", attrs: { src: b.src, width: b.widthPx, align: b.align } };
       case "pageBreak":
@@ -362,7 +488,36 @@ export function fromTipTapJSON(json: unknown): DocumentModel {
 
         const columns = Math.max(1, ...rows.map((r) => r.reduce((sum, c) => sum + c.colSpan, 0)));
         const headerRow = (rowNodes[0]?.content ?? []).some((c) => c.type === "tableHeader");
-        blocks.push({ type: "table", headerRow, columns, rows });
+
+        // Read the pixel widths back out of `colwidth` so editing a table in
+        // the editor never silently resets it to a full-width equal grid.
+        const px: number[] = [];
+        for (const r of rowNodes) {
+          const widths: number[] = [];
+          for (const cell of r.content ?? []) {
+            const cw = cell.attrs?.colwidth;
+            const span = Math.max(1, Math.round(Number(cell.attrs?.colspan ?? 1)));
+            if (!Array.isArray(cw) || cw.length !== span) { widths.length = 0; break; }
+            for (const v of cw) {
+              const n = Number(v);
+              if (!Number.isFinite(n) || n <= 0) { widths.length = 0; break; }
+              widths.push(n);
+            }
+            if (widths.length === 0) break;
+          }
+          if (widths.length === columns) { px.push(...widths); break; }
+        }
+
+        const totalPx = px.reduce((a, b) => a + b, 0);
+        const geo = px.length === columns && totalPx > 0
+          ? { colWidthsPct: px, widthPct: Math.min(100, Math.round((totalPx / BODY_WIDTH_PX) * 10000) / 100) }
+          : {};
+        const prev = (n.attrs ?? {}) as Record<string, unknown>;
+        blocks.push(makeTable({ headerRow, columns, rows }, {
+          ...geo,
+          align: typeof prev.tableAlign === "string" ? prev.tableAlign : undefined,
+          rtl: prev.tableRtl === true,
+        }));
         return;
       }
       case "image": {
@@ -421,6 +576,13 @@ export function toHtml(doc: DocumentModel): string {
         return `<${tag}>${b.items.map((i) => `<li><p>${runsHtml(i)}</p></li>`).join("")}</${tag}>`;
       }
       case "table": {
+        const geo = tableGeometry(b);
+        const styles = [`width:${geo.widthPct}%`];
+        if (geo.align === "center") styles.push("margin-inline:auto");
+        else if (geo.align === "right") styles.push("margin-inline-start:auto", "margin-inline-end:0");
+        else styles.push("margin-inline-start:0", "margin-inline-end:auto");
+        const colgroup = `<colgroup>${geo.colWidthsPct.map((p) => `<col style="width:${p}%"/>`).join("")}</colgroup>`;
+        const dir = geo.rtl ? ` dir="rtl"` : "";
         const rows = b.rows.map((row, ri) => {
           const tag = b.headerRow && ri === 0 ? "th" : "td";
           const cells = row
@@ -435,7 +597,7 @@ export function toHtml(doc: DocumentModel): string {
             .join("");
           return `<tr>${cells}</tr>`;
         });
-        return `<table><tbody>${rows.join("")}</tbody></table>`;
+        return `<table style="${styles.join(";")}"${dir} data-width-pct="${geo.widthPct}" data-table-align="${geo.align}">${colgroup}<tbody>${rows.join("")}</tbody></table>`;
       }
       case "image": {
         const w = b.widthPx ? ` width="${Math.round(b.widthPx)}"` : "";
