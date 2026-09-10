@@ -245,15 +245,24 @@ export function isDocBlock(value: unknown): value is DocBlock {
       return (b.level === 1 || b.level === 2 || b.level === 3) && isAlign(b.align) && isRunArray(b.runs);
     case "list":
       return typeof b.ordered === "boolean" && Array.isArray(b.items) && b.items.every(isRunArray);
-    case "table":
-      return (
+    case "table": {
+      const base =
         typeof b.headerRow === "boolean" &&
         typeof b.columns === "number" &&
         Number.isInteger(b.columns) &&
         b.columns > 0 &&
         Array.isArray(b.rows) &&
-        b.rows.every((row) => Array.isArray(row) && row.every(isDocCell))
-      );
+        b.rows.every((row) => Array.isArray(row) && row.every(isDocCell));
+      if (!base) return false;
+      // Geometry is validated when present; legacy tables without any of it
+      // are accepted and fall back to a full-width equal grid.
+      const columns = b.columns as number;
+      if (b.colWidthsPct !== undefined && !isColWidths(b.colWidthsPct, columns)) return false;
+      if (b.widthPct !== undefined && !(typeof b.widthPct === "number" && b.widthPct > 0 && b.widthPct <= 100)) return false;
+      if (b.align !== undefined && !(TABLE_ALIGNS as readonly string[]).includes(b.align as string)) return false;
+      if (b.rtl !== undefined && typeof b.rtl !== "boolean") return false;
+      return true;
+    }
     case "image":
       return typeof b.src === "string" && b.src !== "" && isAlign(b.align) && (b.widthPx === null || typeof b.widthPx === "number");
     case "pageBreak":
