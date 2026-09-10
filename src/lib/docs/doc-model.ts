@@ -447,8 +447,14 @@ export function toTipTapJSON(doc: DocumentModel, bodyWidthPx: number): JSONNode 
   return { type: "doc", content: content.length > 0 ? content : [paraJSON([])] };
 }
 
-/** TipTap document JSON → model. Anything unknown is coerced to paragraphs. */
-export function fromTipTapJSON(json: unknown): DocumentModel {
+/**
+ * TipTap document JSON → model. Anything unknown is coerced to paragraphs.
+ *
+ * `bodyWidthPx` is this document's real body width (see `toTipTapJSON`); it is
+ * only used when a table has no explicit `tableWidthPct` and its width has to
+ * be recovered from the editor's pixel column widths.
+ */
+export function fromTipTapJSON(json: unknown, bodyWidthPx: number): DocumentModel {
   const root = (json ?? {}) as JSONNode;
   const blocks: DocBlock[] = [];
 
