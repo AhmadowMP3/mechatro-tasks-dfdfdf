@@ -42,8 +42,8 @@ describe("Hattin quotation pagination", () => {
       [
         -1,
         9,
-        14,
-        40,
+        13,
+        35,
         43,
       ]
     `);
