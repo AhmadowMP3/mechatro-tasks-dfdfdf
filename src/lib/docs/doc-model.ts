@@ -518,12 +518,19 @@ export function fromTipTapJSON(json: unknown, bodyWidthPx: number): DocumentMode
         }
 
         const totalPx = px.reduce((a, b) => a + b, 0);
-        const geo = px.length === columns && totalPx > 0
-          ? { colWidthsPct: px, widthPct: Math.min(100, Math.round((totalPx / BODY_WIDTH_PX) * 10000) / 100) }
-          : {};
         const prev = (n.attrs ?? {}) as Record<string, unknown>;
+        // The table's own width attribute is authoritative; the pixel sum is
+        // only a fallback for tables that never carried one.
+        const declared = Number(prev.tableWidthPct);
+        const widthPct = Number.isFinite(declared) && declared > 0
+          ? Math.min(100, declared)
+          : totalPx > 0 && bodyWidthPx > 0
+            ? Math.min(100, Math.round((totalPx / bodyWidthPx) * 10000) / 100)
+            : undefined;
+        const geo = px.length === columns && totalPx > 0 ? { colWidthsPct: px } : {};
         blocks.push(makeTable({ headerRow, columns, rows }, {
           ...geo,
+          widthPct,
           align: typeof prev.tableAlign === "string" ? prev.tableAlign : undefined,
           rtl: prev.tableRtl === true,
         }));
