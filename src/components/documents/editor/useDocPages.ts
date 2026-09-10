@@ -10,7 +10,7 @@ import type { Editor } from "@tiptap/core";
 import { fromTipTapJSON, type DocBlock } from "@/lib/docs/doc-model";
 import { onFontsReady } from "@/lib/docs/measure";
 import { buildPageModel, type DocPageModel } from "@/lib/docs/page-model-cache";
-import type { PageChrome } from "@/lib/docs/geometry";
+import { bodyBox, pageWithMargins, type PageChrome } from "@/lib/docs/geometry";
 import type { DocHeader, DocSection } from "@/lib/docs/types";
 
 export type ClampedImage = { blockIndex: number; scale: number };
@@ -31,12 +31,12 @@ const DEBOUNCE_MS = 120;
 type JSONNode = { type?: string; content?: JSONNode[] };
 
 /** Blocks of the document, each remembering the top-level node it came from. */
-function blocksByNode(editor: Editor): { blocks: DocBlock[]; nodeOfBlock: number[] } {
+function blocksByNode(editor: Editor, bodyWidthPx: number): { blocks: DocBlock[]; nodeOfBlock: number[] } {
   const json = editor.getJSON() as JSONNode;
   const blocks: DocBlock[] = [];
   const nodeOfBlock: number[] = [];
   (json.content ?? []).forEach((node, index) => {
-    const converted = fromTipTapJSON({ type: "doc", content: [node] }).blocks;
+    const converted = fromTipTapJSON({ type: "doc", content: [node] }, bodyWidthPx).blocks;
     for (const block of converted) {
       blocks.push(block);
       nodeOfBlock.push(index);
@@ -70,7 +70,8 @@ export function useDocPages(
     if (!editor || editor.isDestroyed || !chrome) return;
     const id = ++runRef.current;
 
-    const { blocks, nodeOfBlock } = blocksByNode(editor);
+    const bodyWidthPx = bodyBox({ headerPx, footerPx, qrPx }, pageWithMargins(header, section)).widthPx;
+    const { blocks, nodeOfBlock } = blocksByNode(editor, bodyWidthPx);
 
     let next: DocPages;
     try {

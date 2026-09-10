@@ -87,6 +87,20 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
     break-after: auto;
     page-break-after: auto;
   }
+  /* Table density MUST match .doc-rich in src/styles.css and the measure
+     host, or a printed row is taller than the one that was measured. */
+  .doc-rich table { border-collapse: collapse; table-layout: fixed; font-size: 11.5px; }
+  .doc-rich table:not([data-width-pct]) { width: 100%; }
+  .doc-rich th, .doc-rich td {
+    border: 1px solid rgba(128,128,128,.45);
+    padding: 5.33px 8px;
+    vertical-align: top;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+  .doc-rich th > p, .doc-rich td > p { margin: 0; line-height: 1.3; }
+  .doc-rich th > p + p, .doc-rich td > p + p { margin-top: 3px; }
+
   /* The body writes under the letterhead, never over it. */
   .doc-page .doc-page-body { position: relative; z-index: 2; }
   .doc-page [data-qr-slot],

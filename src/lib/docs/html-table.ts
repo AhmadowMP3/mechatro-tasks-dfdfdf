@@ -42,12 +42,15 @@ function fillOf(cell: Element): string | null {
   if (own) return own;
   // Word also shades the paragraph rather than the cell; when every block in
   // the cell carries the same shading it is, visually, the cell's fill.
-  const blocks = Array.from(cell.children).filter((c) => BLOCK_TAGS.has(c.tagName)) as HTMLElement[];
+  const shadeOf = (b: HTMLElement) => b.style?.backgroundColor || b.style?.background || b.getAttribute("data-bg") || "";
+  // Empty spacer paragraphs carry no shading in Word, so they must not veto a
+  // fill that every paragraph with text agrees on.
+  const blocks = (Array.from(cell.children).filter((c) => BLOCK_TAGS.has(c.tagName)) as HTMLElement[])
+    .filter((b) => (b.textContent ?? "").replace(/\s/g, "") !== "" || shadeOf(b) !== "");
   if (blocks.length === 0) return null;
-  const first = blocks[0].style?.backgroundColor || blocks[0].style?.background || blocks[0].getAttribute("data-bg");
+  const first = shadeOf(blocks[0]);
   if (!first) return null;
-  const same = blocks.every((b) => (b.style?.backgroundColor || b.style?.background || b.getAttribute("data-bg")) === first);
-  return same ? first : null;
+  return blocks.every((b) => shadeOf(b) === first) ? first : null;
 }
 
 

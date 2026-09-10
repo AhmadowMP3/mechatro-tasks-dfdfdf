@@ -71,9 +71,6 @@ export type DocTable = {
   rtl: boolean;
 };
 
-/** Body width of the Mechatro A4 sheet in CSS px (page width minus margins). */
-export const BODY_WIDTH_PX = 794 - 2 * 48;
-
 const TABLE_ALIGNS: readonly TableAlign[] = ["left", "center", "right"];
 
 const equalWidths = (columns: number): number[] => {
@@ -391,8 +388,14 @@ function columnIndexes(rows: DocCell[][], ri: number): number[] {
   return [];
 }
 
-/** Model → TipTap document JSON. */
-export function toTipTapJSON(doc: DocumentModel): JSONNode {
+/**
+ * Model → TipTap document JSON.
+ *
+ * `bodyWidthPx` is the real printed body width of THIS document, resolved by
+ * the caller from `bodyBox(chrome, pageWithMargins(header, section))` — the
+ * only source of page dimensions. Column pixel widths are a share of it.
+ */
+export function toTipTapJSON(doc: DocumentModel, bodyWidthPx: number): JSONNode {
   const content: JSONNode[] = doc.blocks.map((b): JSONNode => {
     switch (b.type) {
       case "paragraph":
@@ -408,11 +411,11 @@ export function toTipTapJSON(doc: DocumentModel): JSONNode {
         const geo = tableGeometry(b);
         // TipTap stores PIXEL widths, so each column's share of the table's
         // own width (a fraction of the body) becomes a concrete px value.
-        const tableWidthPx = (BODY_WIDTH_PX * geo.widthPct) / 100;
+        const tableWidthPx = (bodyWidthPx * geo.widthPct) / 100;
         const colPx = geo.colWidthsPct.map((p) => Math.max(12, Math.round((tableWidthPx * p) / 100)));
         return {
           type: "table",
-          attrs: { tableAlign: geo.align, tableRtl: geo.rtl },
+          attrs: { tableAlign: geo.align, tableRtl: geo.rtl, tableWidthPct: geo.widthPct },
           content: b.rows.map((row, ri) => {
             const cols = columnIndexes(b.rows, ri);
             return {
@@ -444,8 +447,14 @@ export function toTipTapJSON(doc: DocumentModel): JSONNode {
   return { type: "doc", content: content.length > 0 ? content : [paraJSON([])] };
 }
 
-/** TipTap document JSON → model. Anything unknown is coerced to paragraphs. */
-export function fromTipTapJSON(json: unknown): DocumentModel {
+/**
+ * TipTap document JSON → model. Anything unknown is coerced to paragraphs.
+ *
+ * `bodyWidthPx` is this document's real body width (see `toTipTapJSON`); it is
+ * only used when a table has no explicit `tableWidthPct` and its width has to
+ * be recovered from the editor's pixel column widths.
+ */
+export function fromTipTapJSON(json: unknown, bodyWidthPx: number): DocumentModel {
   const root = (json ?? {}) as JSONNode;
   const blocks: DocBlock[] = [];
 
@@ -509,12 +518,19 @@ export function fromTipTapJSON(json: unknown): DocumentModel {
         }
 
         const totalPx = px.reduce((a, b) => a + b, 0);
-        const geo = px.length === columns && totalPx > 0
-          ? { colWidthsPct: px, widthPct: Math.min(100, Math.round((totalPx / BODY_WIDTH_PX) * 10000) / 100) }
-          : {};
         const prev = (n.attrs ?? {}) as Record<string, unknown>;
+        // The table's own width attribute is authoritative; the pixel sum is
+        // only a fallback for tables that never carried one.
+        const declared = Number(prev.tableWidthPct);
+        const widthPct = Number.isFinite(declared) && declared > 0
+          ? Math.min(100, declared)
+          : totalPx > 0 && bodyWidthPx > 0
+            ? Math.min(100, Math.round((totalPx / bodyWidthPx) * 10000) / 100)
+            : undefined;
+        const geo = px.length === columns && totalPx > 0 ? { colWidthsPct: px } : {};
         blocks.push(makeTable({ headerRow, columns, rows }, {
           ...geo,
+          widthPct,
           align: typeof prev.tableAlign === "string" ? prev.tableAlign : undefined,
           rtl: prev.tableRtl === true,
         }));

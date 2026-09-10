@@ -54,6 +54,11 @@ export const ShadedTableHeader = TableHeader.extend({
  * The table node itself carries its width alignment and RTL flag, so editing a
  * cell never resets an imported table to a full-width left-aligned grid.
  */
+const pctOf = (raw: string | null | undefined): number | null => {
+  const n = parseFloat((raw ?? "").replace("%", ""));
+  return Number.isFinite(n) && n > 0 ? Math.min(100, n) : null;
+};
+
 export const GeometryTable = Table.extend({
   addAttributes() {
     return {
@@ -61,12 +66,36 @@ export const GeometryTable = Table.extend({
       tableAlign: {
         default: "left" as string,
         parseHTML: (el: HTMLElement) => el.getAttribute("data-table-align") ?? "left",
-        renderHTML: (attrs: Record<string, unknown>) => ({ "data-table-align": String(attrs.tableAlign ?? "left") }),
+        renderHTML: () => ({}),
       },
       tableRtl: {
         default: false,
         parseHTML: (el: HTMLElement) => (el.getAttribute("dir") ?? "").toLowerCase() === "rtl",
         renderHTML: (attrs: Record<string, unknown>) => (attrs.tableRtl ? { dir: "rtl" } : {}),
+      },
+      /**
+       * The table's own width, as a percentage of the body. Rendered inline so
+       * the editor shows exactly what `toHtml` prints.
+       */
+      tableWidthPct: {
+        default: 100,
+        parseHTML: (el: HTMLElement) =>
+          pctOf(el.getAttribute("data-width-pct")) ?? pctOf(el.style?.width) ?? 100,
+        renderHTML: (attrs: Record<string, unknown>) => {
+          const pct = pctOf(String(attrs.tableWidthPct ?? "")) ?? 100;
+          const align = String(attrs.tableAlign ?? "left");
+          const margin =
+            align === "center"
+              ? "margin-inline:auto"
+              : align === "right"
+                ? "margin-inline-start:auto;margin-inline-end:0"
+                : "margin-inline-start:0;margin-inline-end:auto";
+          return {
+            "data-width-pct": String(pct),
+            "data-table-align": align,
+            style: `width:${pct}%;${margin}`,
+          };
+        },
       },
     };
   },
