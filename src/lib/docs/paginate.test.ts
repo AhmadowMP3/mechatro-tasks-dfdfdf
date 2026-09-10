@@ -16,7 +16,7 @@ const table = (rows: number[], headerRow = true): Measured => ({
     type: "table",
     headerRow,
     columns: 1,
-    rows: rows.map(() => [{ runs: [{ text: "c" }], colSpan: 1, rowSpan: 1 }]),
+    rows: rows.map(() => [{ paragraphs: [[{ text: "c" }]], colSpan: 1, rowSpan: 1 }]),
   } as DocBlock,
   heightPx: rows.reduce((a, b) => a + b, 0),
   splittable: rows.length > 1,

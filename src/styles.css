@@ -1493,7 +1493,8 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
   display: flow-root;
 }
 .doc-rich > * + * {
-  margin-top: 8px;
+  /* Set from BLOCK_GAP_PX in src/lib/docs/geometry.ts. */
+  margin-top: var(--doc-block-gap, 8px);
 }
 .doc-rich > :last-child {
   margin-bottom: 0 !important;

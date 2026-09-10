@@ -7,6 +7,7 @@ import { useRef, useState } from "react";
 import { logoFor } from "@/lib/brand/logo";
 import { PAPER, resolveMargins, type DocFooter, type DocHeader, type DocLang, type DocLogoMode, type DocSection, type DocTheme } from "@/lib/docs/types";
 import { QR_ROW_H } from "@/lib/share/qr-stamp";
+import { A4_SIZE } from "@/lib/docs/geometry";
 /** The letterhead's own breathing room under the header rule. */
 export const BODY_TOP_GAP = 16;
 import type { LogoVariant } from "@/lib/docs/model";
@@ -26,7 +27,7 @@ function snap(v: number): number {
   return Math.round(clamped);
 }
 
-export const A4 = { width: 794, height: 1123 } as const;
+export const A4 = A4_SIZE;
 
 type Props = {
   header: DocHeader;

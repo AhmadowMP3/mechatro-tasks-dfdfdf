@@ -1,4 +1,5 @@
 import type { ReportData } from "./data";
+import { A4_SIZE } from "@/lib/docs/geometry";
 import { buildReportHtml, buildBilingualHtml } from "./report-html";
 import type { Lang } from "@/i18n/dict";
 import { supabase } from "@/lib/security/db";
@@ -41,7 +42,7 @@ const PDF_STYLE = `
   html,body{margin:0;padding:0;background:#081320;color:#E6EEF7;font-family:'Montserrat','Segoe UI',Tahoma,Arial,'Montserrat Arabic','Cairo',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
   *{box-sizing:border-box}
   :lang(ar),[dir="rtl"]{font-family:'Montserrat Arabic','Cairo',Tahoma,Arial,sans-serif;unicode-bidi:isolate}
-  .pdf-page{width:794px;min-height:1123px;box-sizing:border-box;overflow:hidden;display:block;background:#081320;position:relative}
+  .pdf-page{width:794px;min-height:${A4_SIZE.height}px;box-sizing:border-box;overflow:hidden;display:block;background:#081320;position:relative}
   .pdf-block{width:706px;box-sizing:border-box;background:transparent}
   .pdf-chrome{width:794px;box-sizing:border-box;background:#081320}
   table{border-collapse:collapse;font-family:inherit}
@@ -51,7 +52,7 @@ const PDF_STYLE = `
 
 // A4 pixel canvas dimensions at 96 DPI (matches CSS px in html2canvas).
 const A4_W = 794;
-const A4_H = 1123;
+const A4_H = A4_SIZE.height;
 // Page chrome sizes reserved at top and bottom of each content page.
 const HEADER_H = 104; // px, includes hairline
 const FOOTER_H = 42; // px, includes hairline

@@ -3,7 +3,7 @@
 // what gets printed. Never mounted inside the editor or the preview.
 
 import { toHtml, docFromBlocks, type DocBlock } from "./doc-model";
-import { bodyBox, type BodyBox } from "./geometry";
+import { bodyBox, pageWithMargins, type BodyBox } from "./geometry";
 
 export type Measured = {
   block: DocBlock;
@@ -97,7 +97,8 @@ export function onFontsReady(cb: () => void): () => void {
 
 /** Measure every block against the printed body width. */
 export async function measureBlocks(blocks: DocBlock[], box?: BodyBox): Promise<Measured[]> {
-  const width = (box ?? bodyBox({ headerPx: 0, footerPx: 0, qrPx: 0 })).widthPx;
+  const width = (box ?? bodyBox({ headerPx: 0, footerPx: 0, qrPx: 0 }, pageWithMargins())).widthPx;
+
   await waitForPaperAssets();
 
   const el = getHost(width);
@@ -114,10 +115,11 @@ export async function measureBlocks(blocks: DocBlock[], box?: BodyBox): Promise<
 
     if (block.type === "table") {
       const rows = Array.from(node.querySelectorAll("tr")).map((r) => r.getBoundingClientRect().height);
-      // Vertically merged cells make the whole table one unit.
-      const merged = block.rows.some((row) => row.some((c) => c.rowSpan > 1));
-      return { block, heightPx, splittable: !merged && rows.length > 1, rows };
+      // Merged cells no longer freeze the whole table: the paginator breaks
+      // it only at row-group boundaries.
+      return { block, heightPx, splittable: rows.length > 1, rows };
     }
+
 
     if (block.type === "list") {
       const lines = Array.from(node.children).map((li) => outerHeight(li as HTMLElement));

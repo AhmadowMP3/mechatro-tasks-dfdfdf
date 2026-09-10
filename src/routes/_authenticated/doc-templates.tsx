@@ -10,6 +10,7 @@ import { docTemplates } from "@/lib/docs/api";
 import { BASE_HEADER, defaultFooter, defaultHeader } from "@/lib/docs/defaults";
 import { DEFAULT_MARGINS, DOC_TYPES, docTypeLabel, type DocFooter, type DocHeader, type DocLang, type DocTemplate, type DocTheme, type DocType } from "@/lib/docs/types";
 import { DocPaper } from "@/components/documents/DocPaper";
+import { A4_SIZE } from "@/lib/docs/geometry";
 import { DocRichBody } from "@/components/documents/DocRichBody";
 import { TemplateContentSection } from "@/components/documents/TemplateContentSection";
 import { emptyClient } from "@/lib/docs/model";
@@ -452,7 +453,7 @@ function PaperPreview({ children }: { children: React.ReactNode }) {
     // direction: ltr — the transform origin is the left edge, so the wrapper
     // must resolve from the left too or the sheet gets clipped in RTL.
     <div ref={setEl} style={{ width: "100%", overflow: "hidden", direction: "ltr" }}>
-      <div style={{ height: 1123 * scale, position: "relative" }}>
+      <div style={{ height: A4_SIZE.height * scale, position: "relative" }}>
         <div style={{ position: "absolute", top: 0, left: 0, transform: `scale(${scale})`, transformOrigin: "top left", width: 794 }}>
           {children}
         </div>

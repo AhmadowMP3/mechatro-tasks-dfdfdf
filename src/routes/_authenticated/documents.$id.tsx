@@ -11,6 +11,7 @@ import { businessDocs, DOC_STATUS_LABELS, type BusinessDoc } from "@/lib/docs/do
 import { docTypeLabel, type DocLang, type DocStatus, type DocTemplate, type DocTheme } from "@/lib/docs/types";
 import type { DocClient, DocModel } from "@/lib/docs/model";
 import { PaginatedDoc } from "@/components/documents/PaginatedDoc";
+import { A4_SIZE } from "@/lib/docs/geometry";
 import { DocEditor } from "@/components/documents/editor/DocEditor";
 import { EditorBoundary } from "@/components/documents/editor/EditorBoundary";
 import { ImportDocxDialog } from "@/components/documents/ImportDocxDialog";
@@ -460,7 +461,7 @@ function Accordion({ title, children }: { title: string; children: React.ReactNo
 
 function PaperPreview({ children }: { children: React.ReactNode }) {
   const [width, setWidth] = useState(0);
-  const [paperHeight, setPaperHeight] = useState(1123);
+  const [paperHeight, setPaperHeight] = useState(A4_SIZE.height);
   const [el, setEl] = useState<HTMLDivElement | null>(null);
   const [inner, setInner] = useState<HTMLDivElement | null>(null);
 
@@ -476,9 +477,9 @@ function PaperPreview({ children }: { children: React.ReactNode }) {
   // height so the scaled wrapper never clips the bottom of the document.
   useEffect(() => {
     if (!inner) return;
-    const ro = new ResizeObserver(() => setPaperHeight(Math.max(1123, inner.scrollHeight)));
+    const ro = new ResizeObserver(() => setPaperHeight(Math.max(A4_SIZE.height, inner.scrollHeight)));
     ro.observe(inner);
-    setPaperHeight(Math.max(1123, inner.scrollHeight));
+    setPaperHeight(Math.max(A4_SIZE.height, inner.scrollHeight));
     return () => ro.disconnect();
   }, [inner]);
 

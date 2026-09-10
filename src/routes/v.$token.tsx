@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { fetchPublicShare, type PublicShareRow } from "@/lib/share/public-share";
 import { logoFor } from "@/lib/brand/logo";
+import { A4_SIZE } from "@/lib/docs/geometry";
 
 export const Route = createFileRoute("/v/$token")({
   ssr: false,
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/v/$token")({
 });
 
 const A4_W = 794;
-const A4_H = 1123;
+const A4_H = A4_SIZE.height;
 const PAGE_GAP = 18;
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 3;
