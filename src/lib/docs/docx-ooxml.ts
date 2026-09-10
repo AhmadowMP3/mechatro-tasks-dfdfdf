@@ -564,8 +564,27 @@ export async function docxToStyledHtml(
     return css.join(";");
   };
 
+  // Body width of the source page in twips; table widths are a share of it.
+  let bodyWidthTwips = 0;
+
   const renderTable = async (tbl: Element): Promise<string> => {
     tables += 1;
+    const tblPr = kid(tbl, "tblPr");
+    const jc = (attr(kid(tblPr, "jc"), "val") ?? "").toLowerCase();
+    const tableAlign = jc === "center" ? "center" : jc === "right" || jc === "end" ? "right" : "left";
+    const rtl = !!kid(tblPr, "bidiVisual");
+
+    const tblW = kid(tblPr, "tblW");
+    const wType = (attr(tblW, "type") ?? "auto").toLowerCase();
+    const wVal = Number(attr(tblW, "w") ?? 0);
+    let widthPct = 100;
+    if (wType === "pct" && Number.isFinite(wVal) && wVal > 0) {
+      // Word writes fiftieths of a percent unless the value ends in '%'.
+      widthPct = wVal > 100 ? wVal / 50 : wVal;
+    } else if (wType === "dxa" && Number.isFinite(wVal) && wVal > 0 && bodyWidthTwips > 0) {
+      widthPct = (wVal / bodyWidthTwips) * 100;
+    }
+    widthPct = Math.min(100, Math.max(1, Math.round(widthPct * 10) / 10));
     const grid = kids(kid(tbl, "tblGrid"), "gridCol").map((g) => Number(attr(g, "w") ?? 0));
     const total = grid.reduce((a, b) => a + b, 0);
     const colgroup = total > 0
@@ -633,12 +652,26 @@ export async function docxToStyledHtml(
         .join("")}</tr>`,
     ).join("");
 
-    return `<table style="width:100%;border-collapse:collapse;table-layout:fixed">${colgroup}<tbody>${body}</tbody></table>`;
+    const outerAlign =
+      tableAlign === "center" ? "margin-inline:auto"
+      : tableAlign === "right" ? "margin-inline-start:auto;margin-inline-end:0"
+      : "margin-inline-start:0;margin-inline-end:auto";
+    return `<table dir="${rtl ? "rtl" : "ltr"}" data-table-align="${tableAlign}" data-width-pct="${widthPct}" style="width:${widthPct}%;${outerAlign};border-collapse:collapse;table-layout:fixed">${colgroup}<tbody>${body}</tbody></table>`;
   };
 
   /* body walk with list grouping */
   const body = kid(docXml.documentElement, "body");
   if (!body) throw new Error("empty document body");
+
+  {
+    const sect = kids(body, "sectPr").slice(-1)[0];
+    const pgSz = kid(sect, "pgSz");
+    const pgMar = kid(sect, "pgMar");
+    const pw = Number(attr(pgSz, "w") ?? 0);
+    const ml = Math.abs(Number(attr(pgMar, "left") ?? 0));
+    const mr = Math.abs(Number(attr(pgMar, "right") ?? 0));
+    if (Number.isFinite(pw) && pw > 0) bodyWidthTwips = Math.max(1, pw - (ml || 0) - (mr || 0));
+  }
 
   const out: string[] = [];
   type ListState = { tag: "ul" | "ol"; numId: string; items: string[] } | null;
