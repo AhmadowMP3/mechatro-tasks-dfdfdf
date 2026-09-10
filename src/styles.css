@@ -1509,18 +1509,33 @@ main.app-main { padding-bottom: calc(14px + var(--bottom-space)) !important; }
 }
 .doc-rich li { margin: 2px 0; }
 .doc-rich table {
-  width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 11.5px;
+}
+/* Full width is only the fallback: a table that declares its own width wins. */
+.doc-rich table:not([data-width-pct]) {
+  width: 100%;
 }
 .doc-rich th,
 .doc-rich td {
   border: 1px solid currentColor;
   border-color: color-mix(in srgb, currentColor 22%, transparent);
-  padding: 6px 8px;
+  /* Word's cell padding: 4pt vertical, 6pt horizontal. */
+  padding: 5.33px 8px;
   vertical-align: top;
   word-break: break-word;
+  line-height: 1.3;
+}
+/* Body paragraph spacing must not double every row height inside a cell. */
+.doc-rich th > p,
+.doc-rich td > p {
+  margin: 0;
+  line-height: 1.3;
+}
+.doc-rich th > p + p,
+.doc-rich td > p + p {
+  margin-top: 3px;
 }
 .doc-rich img {
   max-width: 100%;
