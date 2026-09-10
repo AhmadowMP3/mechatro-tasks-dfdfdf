@@ -487,7 +487,36 @@ export function fromTipTapJSON(json: unknown): DocumentModel {
 
         const columns = Math.max(1, ...rows.map((r) => r.reduce((sum, c) => sum + c.colSpan, 0)));
         const headerRow = (rowNodes[0]?.content ?? []).some((c) => c.type === "tableHeader");
-        blocks.push({ type: "table", headerRow, columns, rows });
+
+        // Read the pixel widths back out of `colwidth` so editing a table in
+        // the editor never silently resets it to a full-width equal grid.
+        const px: number[] = [];
+        for (const r of rowNodes) {
+          const widths: number[] = [];
+          for (const cell of r.content ?? []) {
+            const cw = cell.attrs?.colwidth;
+            const span = Math.max(1, Math.round(Number(cell.attrs?.colspan ?? 1)));
+            if (!Array.isArray(cw) || cw.length !== span) { widths.length = 0; break; }
+            for (const v of cw) {
+              const n = Number(v);
+              if (!Number.isFinite(n) || n <= 0) { widths.length = 0; break; }
+              widths.push(n);
+            }
+            if (widths.length === 0) break;
+          }
+          if (widths.length === columns) { px.push(...widths); break; }
+        }
+
+        const totalPx = px.reduce((a, b) => a + b, 0);
+        const geo = px.length === columns && totalPx > 0
+          ? { colWidthsPct: px, widthPct: Math.min(100, Math.round((totalPx / BODY_WIDTH_PX) * 10000) / 100) }
+          : {};
+        const prev = (n.attrs ?? {}) as Record<string, unknown>;
+        blocks.push(makeTable({ headerRow, columns, rows }, {
+          ...geo,
+          align: typeof prev.tableAlign === "string" ? prev.tableAlign : undefined,
+          rtl: prev.tableRtl === true,
+        }));
         return;
       }
       case "image": {
@@ -546,6 +575,13 @@ export function toHtml(doc: DocumentModel): string {
         return `<${tag}>${b.items.map((i) => `<li><p>${runsHtml(i)}</p></li>`).join("")}</${tag}>`;
       }
       case "table": {
+        const geo = tableGeometry(b);
+        const styles = [`width:${geo.widthPct}%`];
+        if (geo.align === "center") styles.push("margin-inline:auto");
+        else if (geo.align === "right") styles.push("margin-inline-start:auto", "margin-inline-end:0");
+        else styles.push("margin-inline-start:0", "margin-inline-end:auto");
+        const colgroup = `<colgroup>${geo.colWidthsPct.map((p) => `<col style="width:${p}%"/>`).join("")}</colgroup>`;
+        const dir = geo.rtl ? ` dir="rtl"` : "";
         const rows = b.rows.map((row, ri) => {
           const tag = b.headerRow && ri === 0 ? "th" : "td";
           const cells = row
@@ -560,7 +596,7 @@ export function toHtml(doc: DocumentModel): string {
             .join("");
           return `<tr>${cells}</tr>`;
         });
-        return `<table><tbody>${rows.join("")}</tbody></table>`;
+        return `<table style="${styles.join(";")}"${dir} data-width-pct="${geo.widthPct}" data-table-align="${geo.align}">${colgroup}<tbody>${rows.join("")}</tbody></table>`;
       }
       case "image": {
         const w = b.widthPx ? ` width="${Math.round(b.widthPx)}"` : "";
