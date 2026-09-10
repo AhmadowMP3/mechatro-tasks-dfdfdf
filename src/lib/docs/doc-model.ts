@@ -412,6 +412,7 @@ export function toTipTapJSON(doc: DocumentModel): JSONNode {
         const colPx = geo.colWidthsPct.map((p) => Math.max(12, Math.round((tableWidthPx * p) / 100)));
         return {
           type: "table",
+          attrs: { tableAlign: geo.align, tableRtl: geo.rtl },
           content: b.rows.map((row, ri) => {
             const cols = columnIndexes(b.rows, ri);
             return {

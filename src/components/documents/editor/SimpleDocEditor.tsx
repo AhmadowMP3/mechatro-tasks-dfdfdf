@@ -12,9 +12,8 @@ import { TextStyle, Color, FontSize, FontFamily } from "@tiptap/extension-text-s
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
-import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
-import { ShadedTableCell, ShadedTableHeader } from "./table-cells";
+import { GeometryTable, ShadedTableCell, ShadedTableHeader } from "./table-cells";
 import {
   Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight,
   List, ListOrdered, Table as TableIcon, ImagePlus, Rows3, Columns3, Grid2x2X,
@@ -78,7 +77,7 @@ export function SimpleDocEditor({
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer nofollow" } }),
       ResizableImage.configure({ inline: false, allowBase64: true }),
-      Table.configure({ resizable: true }),
+      GeometryTable.configure({ resizable: true }),
       TableRow,
       ShadedTableHeader,
       ShadedTableCell,
