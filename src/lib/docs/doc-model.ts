@@ -71,9 +71,6 @@ export type DocTable = {
   rtl: boolean;
 };
 
-/** Body width of the Mechatro A4 sheet in CSS px (page width minus margins). */
-export const BODY_WIDTH_PX = 794 - 2 * 48;
-
 const TABLE_ALIGNS: readonly TableAlign[] = ["left", "center", "right"];
 
 const equalWidths = (columns: number): number[] => {
