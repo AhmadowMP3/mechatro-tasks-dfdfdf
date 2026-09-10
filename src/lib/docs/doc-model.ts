@@ -388,8 +388,14 @@ function columnIndexes(rows: DocCell[][], ri: number): number[] {
   return [];
 }
 
-/** Model → TipTap document JSON. */
-export function toTipTapJSON(doc: DocumentModel): JSONNode {
+/**
+ * Model → TipTap document JSON.
+ *
+ * `bodyWidthPx` is the real printed body width of THIS document, resolved by
+ * the caller from `bodyBox(chrome, pageWithMargins(header, section))` — the
+ * only source of page dimensions. Column pixel widths are a share of it.
+ */
+export function toTipTapJSON(doc: DocumentModel, bodyWidthPx: number): JSONNode {
   const content: JSONNode[] = doc.blocks.map((b): JSONNode => {
     switch (b.type) {
       case "paragraph":
