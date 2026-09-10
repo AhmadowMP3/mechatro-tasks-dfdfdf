@@ -3,6 +3,7 @@
 // These extended versions add a `backgroundColor` attribute. Register them
 // INSTEAD of the defaults — registering both means the default wins.
 
+import { Table } from "@tiptap/extension-table";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 
@@ -45,5 +46,28 @@ export const ShadedTableCell = TableCell.extend({
 export const ShadedTableHeader = TableHeader.extend({
   addAttributes() {
     return { ...this.parent?.(), ...backgroundColor };
+  },
+});
+
+
+/**
+ * The table node itself carries its width alignment and RTL flag, so editing a
+ * cell never resets an imported table to a full-width left-aligned grid.
+ */
+export const GeometryTable = Table.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      tableAlign: {
+        default: "left" as string,
+        parseHTML: (el: HTMLElement) => el.getAttribute("data-table-align") ?? "left",
+        renderHTML: (attrs: Record<string, unknown>) => ({ "data-table-align": String(attrs.tableAlign ?? "left") }),
+      },
+      tableRtl: {
+        default: false,
+        parseHTML: (el: HTMLElement) => (el.getAttribute("dir") ?? "").toLowerCase() === "rtl",
+        renderHTML: (attrs: Record<string, unknown>) => (attrs.tableRtl ? { dir: "rtl" } : {}),
+      },
+    };
   },
 });

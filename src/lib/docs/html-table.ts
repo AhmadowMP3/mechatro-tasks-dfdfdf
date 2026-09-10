@@ -3,7 +3,7 @@
 // Both the Word importer and the legacy-HTML converter go through here so a
 // merged or shaded cell survives exactly the same way on either path.
 
-import { makeCell, normaliseRuns, type DocCell, type DocRun, type DocTable } from "./doc-model";
+import { makeCell, makeTable, normaliseRuns, type DocCell, type DocRun, type DocTable } from "./doc-model";
 
 const BLOCK_TAGS = new Set(["P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "LI", "UL", "OL", "TABLE", "BLOCKQUOTE", "PRE"]);
 
@@ -90,5 +90,27 @@ export function readHtmlTable(
   });
 
   const firstCells = Array.from(rowEls[0].children).filter((c) => c.tagName === "TD" || c.tagName === "TH");
-  return { type: "table", headerRow: isHeaderRow(firstCells), columns, rows };
+  return makeTable({ headerRow: isHeaderRow(firstCells), columns, rows }, readTableGeometry(el, columns));
+}
+
+/** Column grid, table width, alignment and RTL as authored in the source. */
+function readTableGeometry(el: Element, columns: number) {
+  const cols = Array.from(el.querySelectorAll("colgroup > col"));
+  const parsed = cols
+    .map((c) => parseFloat(((c as HTMLElement).style?.width || c.getAttribute("width") || "").replace("%", "")))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const colWidthsPct = parsed.length === columns ? parsed : null;
+
+  const attrPct = parseFloat(el.getAttribute("data-width-pct") ?? "");
+  const stylePct = parseFloat(((el as HTMLElement).style?.width || "").replace("%", ""));
+  const widthPct = Number.isFinite(attrPct) && attrPct > 0
+    ? attrPct
+    : Number.isFinite(stylePct) && stylePct > 0
+      ? stylePct
+      : 100;
+
+  const rawAlign = (el.getAttribute("data-table-align") || el.getAttribute("align") || "").toLowerCase();
+  const align = rawAlign === "center" || rawAlign === "right" ? rawAlign : "left";
+  const rtl = (el.getAttribute("dir") || "").toLowerCase() === "rtl";
+  return { colWidthsPct, widthPct, align, rtl };
 }
