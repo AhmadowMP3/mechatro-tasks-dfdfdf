@@ -380,23 +380,36 @@ export function toTipTapJSON(doc: DocumentModel): JSONNode {
           type: b.ordered ? "orderedList" : "bulletList",
           content: b.items.map((item) => ({ type: "listItem", content: [paraJSON(item)] })),
         };
-      case "table":
+      case "table": {
+        const geo = tableGeometry(b);
+        // TipTap stores PIXEL widths, so each column's share of the table's
+        // own width (a fraction of the body) becomes a concrete px value.
+        const tableWidthPx = (BODY_WIDTH_PX * geo.widthPct) / 100;
+        const colPx = geo.colWidthsPct.map((p) => Math.max(12, Math.round((tableWidthPx * p) / 100)));
         return {
           type: "table",
-          content: b.rows.map((row, ri) => ({
-            type: "tableRow",
-            content: row.map((cell) => ({
-              type: b.headerRow && ri === 0 ? "tableHeader" : "tableCell",
-              attrs: {
-                colspan: cell.colSpan,
-                rowspan: cell.rowSpan,
-                colwidth: null,
-                backgroundColor: cell.fill ?? null,
-              },
-              content: cell.paragraphs.map((p) => paraJSON(p)),
-            })),
-          })),
+          content: b.rows.map((row, ri) => {
+            const cols = columnIndexes(b.rows, ri);
+            return {
+              type: "tableRow",
+              content: row.map((cell, ci) => {
+                const start = cols[ci] ?? 0;
+                const widths = colPx.slice(start, start + cell.colSpan);
+                return {
+                  type: b.headerRow && ri === 0 ? "tableHeader" : "tableCell",
+                  attrs: {
+                    colspan: cell.colSpan,
+                    rowspan: cell.rowSpan,
+                    colwidth: widths.length === cell.colSpan ? widths : null,
+                    backgroundColor: cell.fill ?? null,
+                  },
+                  content: cell.paragraphs.map((p) => paraJSON(p)),
+                };
+              }),
+            };
+          }),
         };
+      }
       case "image":
         return { type: "image", attrs: { src: b.src, width: b.widthPx, align: b.align } };
       case "pageBreak":
