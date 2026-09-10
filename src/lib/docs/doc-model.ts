@@ -411,11 +411,11 @@ export function toTipTapJSON(doc: DocumentModel, bodyWidthPx: number): JSONNode 
         const geo = tableGeometry(b);
         // TipTap stores PIXEL widths, so each column's share of the table's
         // own width (a fraction of the body) becomes a concrete px value.
-        const tableWidthPx = (BODY_WIDTH_PX * geo.widthPct) / 100;
+        const tableWidthPx = (bodyWidthPx * geo.widthPct) / 100;
         const colPx = geo.colWidthsPct.map((p) => Math.max(12, Math.round((tableWidthPx * p) / 100)));
         return {
           type: "table",
-          attrs: { tableAlign: geo.align, tableRtl: geo.rtl },
+          attrs: { tableAlign: geo.align, tableRtl: geo.rtl, tableWidthPct: geo.widthPct },
           content: b.rows.map((row, ri) => {
             const cols = columnIndexes(b.rows, ri);
             return {
