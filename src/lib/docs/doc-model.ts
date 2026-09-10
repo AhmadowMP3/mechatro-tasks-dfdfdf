@@ -372,32 +372,27 @@ const paraJSON = (runs: DocRun[], align: DocAlign = "left"): JSONNode => ({
  * cells carried down by a rowSpan in the rows above it.
  */
 function columnIndexes(rows: DocCell[][], ri: number): number[] {
-  const occupied: number[] = [];
-  for (let r = 0; r < ri; r++) {
+  // Walk the grid from the top, marking the columns each rowSpan reaches.
+  const carried = new Set<number>();
+  const spans: { col: number; lastRow: number }[] = [];
+  for (let r = 0; r <= ri; r++) {
+    const busy = new Set(spans.filter((s) => s.lastRow >= r).map((s) => s.col));
     let col = 0;
-    for (const cell of rows[r]) {
-      while (occupied.includes(-1)) break;
-      col = nextFree(occupied, col, r, ri);
-      if (cell.rowSpan > 1 && r + cell.rowSpan - 1 >= ri) {
-        for (let k = 0; k < cell.colSpan; k++) occupied.push(col + k);
+    const starts: number[] = [];
+    for (const cell of rows[r] ?? []) {
+      while (busy.has(col)) col += 1;
+      starts.push(col);
+      if (cell.rowSpan > 1) {
+        for (let k = 0; k < cell.colSpan; k++) spans.push({ col: col + k, lastRow: r + cell.rowSpan - 1 });
       }
       col += cell.colSpan;
     }
+    if (r === ri) {
+      carried.clear();
+      return starts;
+    }
   }
-  const taken = new Set(occupied);
-  const out: number[] = [];
-  let col = 0;
-  for (const cell of rows[ri] ?? []) {
-    while (taken.has(col)) col += 1;
-    out.push(col);
-    col += cell.colSpan;
-  }
-  return out;
-}
-
-/** Helper kept trivial: rowSpan bookkeeping only needs a running column. */
-function nextFree(_occupied: number[], col: number, _r: number, _ri: number): number {
-  return col;
+  return [];
 }
 
 /** Model → TipTap document JSON. */
