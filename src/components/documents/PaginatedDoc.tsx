@@ -58,6 +58,54 @@ function splitByPages(nodes: string[], starts: number[], showClientBox: boolean)
   });
 }
 
+/** Keep only rows `from`…`to` of the table inside this node (header kept). */
+function sliceTableNode(html: string, from: number, to: number): string {
+  if (typeof DOMParser === "undefined") return html;
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+  const root = doc.body.firstElementChild;
+  const table = root?.tagName === "TABLE" ? root : (root?.querySelector("table") ?? null);
+  if (!root || !table) return html;
+  const rows = Array.from(table.querySelectorAll("tr"));
+  const keepHeader = rows[0]?.querySelector("th") ? 0 : -1;
+  rows.forEach((tr, i) => {
+    if (i === keepHeader) return;
+    if (i < from || i > to) tr.remove();
+  });
+  return root.outerHTML;
+}
+
+/**
+ * Build one HTML chunk per page from the parts the paginator produced, so a
+ * table that breaks between rows really is split on paper.
+ */
+function pagesFromParts(nodes: string[], model: DocPageModel, showClientBox: boolean): DocPage[] | null {
+  const { nodeOfBlock, blockOffset } = model;
+  if (!nodeOfBlock || nodeOfBlock.length === 0) return null;
+
+  const out: DocPage[] = [];
+  for (const [pageIndex, page] of model.pageModel.pages.entries()) {
+    const chunks: string[] = [];
+    const emitted = new Set<number>();
+    for (const part of page.parts) {
+      const blockIndex = part.blockIndex - blockOffset;
+      if (blockIndex < 0) continue;
+      const nodeIndex = nodeOfBlock[blockIndex] ?? -1;
+      const html = nodes[nodeIndex];
+      if (html === undefined) continue;
+      if ("fromRow" in part) {
+        chunks.push(sliceTableNode(html, part.fromRow, part.toRow));
+        continue;
+      }
+      if (emitted.has(nodeIndex)) continue;
+      emitted.add(nodeIndex);
+      chunks.push(html);
+    }
+    out.push({ showClientBox: pageIndex === 0 && showClientBox, html: chunks.join("") });
+  }
+  return out.length > 0 ? out : null;
+}
+
+
 /** Resolve the body and lay it out on the pages of `pageModel`. */
 export async function paginateDocument(
   input: PaginatedDocInput,
@@ -95,8 +143,9 @@ export async function paginateDocument(
   }
 
   if (!model) return [{ showClientBox, html, fitted: false }];
-  return splitByPages(nodes, model.pageStartNodes, showClientBox);
+  return pagesFromParts(nodes, model, showClientBox) ?? splitByPages(nodes, model.pageStartNodes, showClientBox);
 }
+
 
 /** Render already-resolved body chunks (pure — safe for the print iframe). */
 export function DocPages({

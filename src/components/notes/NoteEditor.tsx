@@ -16,6 +16,7 @@ import { useApp } from "@/lib/app-context";
 import { NoteToolbar } from "./NoteToolbar";
 import { SlashMenu } from "./SlashMenu";
 import { sanitizeHtml } from "@/lib/security/sanitize";
+import { A4_SIZE } from "@/lib/docs/geometry";
 
 type Props = {
   noteId: string;
@@ -29,7 +30,7 @@ type Props = {
 // A4 at 96 DPI is ~1123px tall. Roughly the header + title + meta + divider
 // occupy ~245px at the top of the first PDF page; every subsequent page is a
 // full 1123px slice from the tall rendered document.
-const PDF_PAGE_HEIGHT = 1123;
+const PDF_PAGE_HEIGHT = A4_SIZE.height;
 const PDF_FIRST_PAGE_CONTENT = PDF_PAGE_HEIGHT - 245; // ~878px
 const PDF_MIRROR_WIDTH = 714; // 794 - 40*2 padding
 

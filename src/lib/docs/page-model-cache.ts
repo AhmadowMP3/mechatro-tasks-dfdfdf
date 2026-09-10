@@ -7,7 +7,7 @@
 
 import { htmlToDocModel } from "./convert-legacy";
 import type { DocBlock } from "./doc-model";
-import { bodyBox, pageWithMargins, type PageChrome } from "./geometry";
+import { BLOCK_GAP_PX, bodyBox, pageWithMargins, type PageChrome } from "./geometry";
 import { measureBlocks, type Measured } from "./measure";
 import { paginate, type PageModel } from "./paginate";
 import type { DocHeader, DocSection } from "./types";
@@ -17,7 +17,12 @@ export type DocPageModel = {
   /** Index of the top-level node that opens each page (-1 for an empty page). */
   pageStartNodes: number[];
   clampedImages: Array<{ blockIndex: number; scale: number }>;
+  /** Top-level node each block came from (same length as the block list). */
+  nodeOfBlock: number[];
+  /** 1 when a reserved slot (client card) precedes the blocks, else 0. */
+  blockOffset: number;
 };
+
 
 export type BuildPageModelArgs = {
   blocks: DocBlock[];
@@ -37,9 +42,9 @@ export const ESTIMATED_CHROME: PageChrome = { headerPx: 168, footerPx: 148, qrPx
 export const ESTIMATED_CLIENT_CARD_PX = 132;
 
 /**
- * The single break decision. Blocks are atomic: a page always starts on a
- * whole block, in the editor and on paper alike, so a long table gets a page
- * of its own instead of being split.
+ * The single break decision. Text blocks stay whole (a page opens on a whole
+ * node in the editor); tables may break between rows, never inside a merged
+ * row group.
  */
 export async function buildPageModel(args: BuildPageModelArgs): Promise<DocPageModel> {
   const { blocks, nodeOfBlock, chrome, header = null, section = null, reservePx = 0 } = args;
@@ -47,18 +52,19 @@ export async function buildPageModel(args: BuildPageModelArgs): Promise<DocPageM
   const box = bodyBox(chrome, geometry);
 
   const measured = await measureBlocks(blocks, box);
-  const atomic: Measured[] = measured.map((m) => ({
-    block: m.block,
-    heightPx: m.heightPx,
-    splittable: false,
-  }));
+  const prepared: Measured[] = measured.map((m) =>
+    m.block.type === "table"
+      ? m
+      : { block: m.block, heightPx: m.heightPx, splittable: false },
+  );
 
   const offset = reservePx > 0 ? 1 : 0;
   const input: Measured[] = offset
-    ? [{ block: { type: "paragraph", align: "left", runs: [] }, heightPx: reservePx, splittable: false }, ...atomic]
-    : atomic;
+    ? [{ block: { type: "paragraph", align: "left", runs: [] }, heightPx: reservePx, splittable: false }, ...prepared]
+    : prepared;
 
-  const model = paginate(input, box.heightPx);
+  const model = paginate(input, box.heightPx, BLOCK_GAP_PX);
+
 
   const pageStartNodes = model.pages.map((page) => {
     const first = page.parts[0];
@@ -72,8 +78,11 @@ export async function buildPageModel(args: BuildPageModelArgs): Promise<DocPageM
     pageModel: model,
     pageStartNodes,
     clampedImages: model.scaledImages.map((s) => ({ blockIndex: s.blockIndex - offset, scale: s.scale })),
+    nodeOfBlock,
+    blockOffset: offset,
   };
 }
+
 
 /** Split a document body into its top-level nodes and canonical blocks. */
 export function blocksFromHtml(html: string): { blocks: DocBlock[]; nodeOfBlock: number[]; nodeCount: number } {

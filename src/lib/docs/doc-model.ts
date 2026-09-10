@@ -39,7 +39,8 @@ export type DocList = { type: "list"; ordered: boolean; items: DocRun[][] };
  * structural information (it marks header and section rows), not styling.
  */
 export type DocCell = {
-  runs: DocRun[];
+  /** One entry per paragraph inside the cell, in order; never empty. */
+  paragraphs: DocRun[][];
   /** >= 1 */
   colSpan: number;
   /** >= 1 */
@@ -47,6 +48,7 @@ export type DocCell = {
   /** "#RRGGBB" from the source document, or absent. */
   fill?: string;
 };
+
 
 export type DocTable = { type: "table"; headerRow: boolean; columns: number; rows: DocCell[][] };
 export type DocImage = { type: "image"; src: string; widthPx: number | null; align: DocAlign };
@@ -103,12 +105,13 @@ export const FILL_RE = /^#[0-9A-Fa-f]{6}$/;
 export function isDocCell(value: unknown): value is DocCell {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const c = value as Record<string, unknown>;
-  if (!isRunArray(c.runs)) return false;
+  if (!Array.isArray(c.paragraphs) || c.paragraphs.length === 0 || !c.paragraphs.every(isRunArray)) return false;
   if (!Number.isInteger(c.colSpan) || (c.colSpan as number) < 1) return false;
   if (!Number.isInteger(c.rowSpan) || (c.rowSpan as number) < 1) return false;
   if ("fill" in c && c.fill !== undefined && !(typeof c.fill === "string" && FILL_RE.test(c.fill))) return false;
   return true;
 }
+
 
 /** Normalise a colour to "#RRGGBB", or undefined when it is not usable. */
 export function normaliseFill(raw: string | null | undefined): string | undefined {
@@ -129,9 +132,21 @@ export function normaliseFill(raw: string | null | undefined): string | undefine
   return undefined;
 }
 
-export function makeCell(runs: DocRun[], opts: { colSpan?: number; rowSpan?: number; fill?: string | null } = {}): DocCell {
+/**
+ * Build a cell. Accepts either the canonical nested paragraphs or a flat run
+ * list (legacy callers / stored documents), which becomes a single paragraph.
+ * A cell always carries at least one — possibly empty — paragraph.
+ */
+export function makeCell(
+  content: DocRun[] | DocRun[][],
+  opts: { colSpan?: number; rowSpan?: number; fill?: string | null } = {},
+): DocCell {
+  const nested: DocRun[][] = Array.isArray(content) && content.every((p) => Array.isArray(p))
+    ? (content as DocRun[][])
+    : [content as DocRun[]];
+  const paragraphs = nested.length > 0 ? nested : [[]];
   const cell: DocCell = {
-    runs,
+    paragraphs,
     colSpan: Math.max(1, Math.round(opts.colSpan ?? 1)),
     rowSpan: Math.max(1, Math.round(opts.rowSpan ?? 1)),
   };
@@ -139,6 +154,7 @@ export function makeCell(runs: DocRun[], opts: { colSpan?: number; rowSpan?: num
   if (fill) cell.fill = fill;
   return cell;
 }
+
 
 export function isDocBlock(value: unknown): value is DocBlock {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -289,7 +305,7 @@ export function toTipTapJSON(doc: DocumentModel): JSONNode {
                 colwidth: null,
                 backgroundColor: cell.fill ?? null,
               },
-              content: [paraJSON(cell.runs)],
+              content: cell.paragraphs.map((p) => paraJSON(p)),
             })),
           })),
         };
@@ -330,14 +346,20 @@ export function fromTipTapJSON(json: unknown): DocumentModel {
       case "table": {
         const rowNodes = n.content ?? [];
         const rows: DocCell[][] = rowNodes.map((r) =>
-          (r.content ?? []).map((cell) =>
-            makeCell(runsFromJSON(cell.content), {
+          (r.content ?? []).map((cell) => {
+            // Every paragraph inside the cell survives the round-trip.
+            const paras = (cell.content ?? []).filter((c) => c.type === "paragraph" || c.type === "heading");
+            const paragraphs = paras.length > 0
+              ? paras.map((p) => runsFromJSON(p.content))
+              : [runsFromJSON(cell.content)];
+            return makeCell(paragraphs, {
               colSpan: Number(cell.attrs?.colspan ?? 1),
               rowSpan: Number(cell.attrs?.rowspan ?? 1),
               fill: typeof cell.attrs?.backgroundColor === "string" ? cell.attrs.backgroundColor : null,
-            }),
-          ),
+            });
+          }),
         );
+
         const columns = Math.max(1, ...rows.map((r) => r.reduce((sum, c) => sum + c.colSpan, 0)));
         const headerRow = (rowNodes[0]?.content ?? []).some((c) => c.type === "tableHeader");
         blocks.push({ type: "table", headerRow, columns, rows });
@@ -406,7 +428,9 @@ export function toHtml(doc: DocumentModel): string {
               const cs = cell.colSpan > 1 ? ` colspan="${cell.colSpan}"` : "";
               const rs = cell.rowSpan > 1 ? ` rowspan="${cell.rowSpan}"` : "";
               const bg = cell.fill ? ` style="background-color:${cell.fill}"` : "";
-              return `<${tag}${cs}${rs}${bg}><p>${runsHtml(cell.runs)}</p></${tag}>`;
+              const body = cell.paragraphs.map((p) => `<p>${runsHtml(p)}</p>`).join("");
+              return `<${tag}${cs}${rs}${bg}>${body}</${tag}>`;
+
             })
             .join("");
           return `<tr>${cells}</tr>`;

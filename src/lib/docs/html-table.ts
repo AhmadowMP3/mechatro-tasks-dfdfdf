@@ -8,21 +8,21 @@ import { makeCell, normaliseRuns, type DocCell, type DocRun, type DocTable } fro
 const BLOCK_TAGS = new Set(["P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "LI", "UL", "OL", "TABLE", "BLOCKQUOTE", "PRE"]);
 
 /**
- * A cell can hold several paragraphs (Word merged cells often do). Keep them
- * as separate lines instead of gluing their text together.
+ * A cell can hold several paragraphs (Word merged cells often do). Each one is
+ * kept as its own paragraph so the lines never glue together.
  */
-function cellRuns(cell: Element, runsOf: RunsOf): DocRun[] {
+function cellParagraphs(cell: Element, runsOf: RunsOf): DocRun[][] {
   const blocks = Array.from(cell.children).filter((c) => BLOCK_TAGS.has(c.tagName));
-  if (blocks.length < 2) return runsOf(cell);
-  const out: DocRun[] = [];
+  if (blocks.length < 2) return [normaliseRuns(runsOf(cell))];
+  const out: DocRun[][] = [];
   for (const child of blocks) {
-    const runs = runsOf(child);
+    const runs = normaliseRuns(runsOf(child));
     if (runs.map((r) => r.text).join("").replace(/\s/g, "") === "") continue;
-    if (out.length > 0) out.push({ text: "\n" });
-    out.push(...runs);
+    out.push(runs);
   }
-  return normaliseRuns(out);
+  return out.length > 0 ? out : [[]];
 }
+
 
 type RunsOf = (el: Element) => DocRun[];
 
@@ -33,14 +33,23 @@ const intAttr = (el: Element, name: string): number => {
 
 function fillOf(cell: Element): string | null {
   const style = (cell as HTMLElement).style;
-  return (
+  const own =
     style?.backgroundColor ||
     style?.background ||
     cell.getAttribute("data-bg") ||
     cell.getAttribute("bgcolor") ||
-    null
-  );
+    null;
+  if (own) return own;
+  // Word also shades the paragraph rather than the cell; when every block in
+  // the cell carries the same shading it is, visually, the cell's fill.
+  const blocks = Array.from(cell.children).filter((c) => BLOCK_TAGS.has(c.tagName)) as HTMLElement[];
+  if (blocks.length === 0) return null;
+  const first = blocks[0].style?.backgroundColor || blocks[0].style?.background || blocks[0].getAttribute("data-bg");
+  if (!first) return null;
+  const same = blocks.every((b) => (b.style?.backgroundColor || b.style?.background || b.getAttribute("data-bg")) === first);
+  return same ? first : null;
 }
+
 
 /**
  * Read a table element into canonical rows. Cells absorbed by a rowSpan above
@@ -58,7 +67,7 @@ export function readHtmlTable(
     Array.from(tr.children)
       .filter((c) => c.tagName === "TD" || c.tagName === "TH")
       .map((cell) =>
-        makeCell(cellRuns(cell, runsOf), {
+        makeCell(cellParagraphs(cell, runsOf), {
           colSpan: intAttr(cell, "colspan"),
           rowSpan: intAttr(cell, "rowspan"),
           fill: fillOf(cell),

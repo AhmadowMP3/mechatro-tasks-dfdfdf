@@ -21,6 +21,8 @@ const EMPTY: DocPages = {
   pageModel: { pages: [{ parts: [], usedPx: 0 }], scaledImages: [] },
   clampedImages: [],
   pageStartNodes: [-1],
+  nodeOfBlock: [],
+  blockOffset: 0,
 };
 
 const DEBOUNCE_MS = 120;

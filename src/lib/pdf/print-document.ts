@@ -9,6 +9,7 @@
 import { createRoot, type Root } from "react-dom/client";
 import type { ReactNode } from "react";
 import { arabicFontUrl } from "./assets";
+import { A4_SIZE } from "@/lib/docs/geometry";
 import { prepareShare, saveSharePayload, type ShareTarget } from "@/lib/share/public-share";
 import { stampQrOnLastPage } from "@/lib/share/qr-stamp";
 
@@ -74,7 +75,7 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
   /* Pre-paginated documents: one .doc-page element == exactly one sheet. */
   .doc-page {
     width: ${A4_WIDTH_PX}px;
-    height: 1122.5px;
+    height: ${A4_SIZE.height}px;
     overflow: hidden;
     break-inside: avoid;
     page-break-inside: avoid;
