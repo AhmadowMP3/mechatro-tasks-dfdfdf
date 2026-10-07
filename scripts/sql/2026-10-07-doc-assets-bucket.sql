@@ -7,7 +7,8 @@
 --   - Images inserted in the document editor (they silently fell back to
 --     inline data URLs without it)
 --
--- Read: any signed-in user. Write/delete: master admin only.
+-- Read: signed-in users (original Word files: master admin only).
+-- Write/delete: master admin only.
 -- Idempotent: safe to run more than once.
 --
 -- The master-admin check reads public.profiles directly instead of calling
@@ -17,9 +18,18 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit)
 VALUES ('doc-assets', 'doc-assets', false, 10485760)
 ON CONFLICT (id) DO NOTHING;
 
+-- Original Word files (word-imports/…) are client documents: master admin only.
+-- Everything else in the bucket stays readable by signed-in users. Shared
+-- links use signed URLs, which do not go through these policies.
 DROP POLICY IF EXISTS "doc assets read" ON storage.objects;
 CREATE POLICY "doc assets read" ON storage.objects FOR SELECT TO authenticated
-  USING (bucket_id = 'doc-assets');
+  USING (
+    bucket_id = 'doc-assets'
+    AND (
+      name NOT LIKE 'word-imports/%'
+      OR EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.is_master_admin)
+    )
+  );
 
 DROP POLICY IF EXISTS "doc assets master write" ON storage.objects;
 CREATE POLICY "doc assets master write" ON storage.objects FOR INSERT TO authenticated
