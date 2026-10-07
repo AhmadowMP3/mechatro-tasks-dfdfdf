@@ -9,6 +9,9 @@
 --
 -- Read: any signed-in user. Write/delete: master admin only.
 -- Idempotent: safe to run more than once.
+--
+-- The master-admin check reads public.profiles directly instead of calling
+-- private.is_master_admin(): the self-hosted instance has no `private` schema.
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit)
 VALUES ('doc-assets', 'doc-assets', false, 10485760)
@@ -20,11 +23,17 @@ CREATE POLICY "doc assets read" ON storage.objects FOR SELECT TO authenticated
 
 DROP POLICY IF EXISTS "doc assets master write" ON storage.objects;
 CREATE POLICY "doc assets master write" ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'doc-assets' AND private.is_master_admin(auth.uid()));
+  WITH CHECK (
+    bucket_id = 'doc-assets'
+    AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.is_master_admin)
+  );
 
 DROP POLICY IF EXISTS "doc assets master delete" ON storage.objects;
 CREATE POLICY "doc assets master delete" ON storage.objects FOR DELETE TO authenticated
-  USING (bucket_id = 'doc-assets' AND private.is_master_admin(auth.uid()));
+  USING (
+    bucket_id = 'doc-assets'
+    AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.is_master_admin)
+  );
 
 -- Verification: must return one row, public = false.
 SELECT id, public, file_size_limit FROM storage.buckets WHERE id = 'doc-assets';
