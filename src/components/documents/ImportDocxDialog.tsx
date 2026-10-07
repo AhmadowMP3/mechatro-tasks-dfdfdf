@@ -1,9 +1,10 @@
 // Import a Word (.docx) file, extract every field programmatically from the
-// file itself, review everything on the branded A4 sheet, then approve.
+// file itself, preview the exact Word render on the Mechatro letterhead, then
+// approve. The original file is stored so the PDF is always rendered from it.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Loader2, Check, X, ListChecks, FileText, AlertTriangle, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { Upload, Loader2, Check, X, ListChecks, FileText, AlertTriangle, ZoomIn, ZoomOut, Maximize2, RefreshCw } from "lucide-react";
 
 import { convertDocx, guessLang, isDocxFile, isLegacyDoc, type DocxImport } from "@/lib/docs/import-docx";
 import type { DocBlock } from "@/lib/docs/doc-model";
@@ -13,20 +14,38 @@ import { extractDocxFields, type DocxExtraction, type DocxItem } from "@/lib/doc
 
 import { docTemplates } from "@/lib/docs/api";
 import { businessDocs, type BusinessDoc } from "@/lib/docs/docs-api";
-import { emptyClient, defaultModel, uid, type DocClient } from "@/lib/docs/model";
+import { emptyClient, defaultModel, uid, type DocClient, type WordImport } from "@/lib/docs/model";
 import { emptyItemsData, writeItemsAttr } from "@/lib/docs/rich";
 import { DOC_TYPES, docTypeLabel, type DocLang, type DocTemplate, type DocType } from "@/lib/docs/types";
+import {
+  buildExactPdf,
+  exactErrorMessage,
+  MAX_SOURCE_BYTES,
+  uploadWordSource,
+  type ExactPdfCache,
+} from "@/lib/docs/word-exact/exact-pdf";
+import { assertNoActiveContent } from "@/lib/docs/word-exact/prepare-docx";
 import { PaginatedDoc } from "./PaginatedDoc";
 import { CURRENCIES, currencyLabel } from "@/lib/currency";
 
-const MAX_BYTES = 20 * 1024 * 1024;
+const MAX_BYTES = MAX_SOURCE_BYTES;
+
+type ExactState = {
+  busy: boolean;
+  step: "layout" | "word" | "letterhead" | null;
+  url: string | null;
+  pages: number;
+  warnings: string[];
+  error: string | null;
+};
+
+const EXACT_IDLE: ExactState = { busy: false, step: null, url: null, pages: 0, warnings: [], error: null };
 
 type Stage = "pick" | "working" | "review" | "saving";
 
 type Draft = {
   docType: DocType;
   title: string;
-  number: string;
   issueDate: string;
   validUntil: string;
   currency: string;
@@ -53,15 +72,19 @@ export type DocxApplyPayload = {
   showClientBox: boolean;
   /** Canonical blocks produced from the Word file (omitted when item rows are appended). */
   blocks?: DocBlock[];
+  /** The stored original file; active when the exact Word render succeeded. */
+  wordImport: WordImport;
 };
 
-export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onApply }: {
+export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onApply, number }: {
   ar: boolean;
   onClose: () => void;
   onCreated?: (doc: BusinessDoc) => void;
   /** "create" makes a new document; "apply" replaces the open document body. */
   mode?: "create" | "apply";
   onApply?: (payload: DocxApplyPayload) => void;
+  /** Number of the open document (apply mode); new documents get one on approve. */
+  number?: string;
 }) {
   const [stage, setStage] = useState<Stage>("pick");
   const [step, setStep] = useState("");
@@ -76,6 +99,9 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
   const [insertItems, setInsertItems] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fileRef = useRef<File | null>(null);
+  const [exact, setExact] = useState<ExactState>(EXACT_IDLE);
+  const exactCache = useRef<ExactPdfCache>({});
+  const [exactRun, setExactRun] = useState(0);
 
   // Reload the template whenever the admin changes the detected type.
   useEffect(() => {
@@ -99,15 +125,18 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
       return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error(ar ? "الحد الأقصى 20 ميغابايت" : "Maximum size is 20 MB");
+      toast.error(ar ? "الحد الأقصى 10 ميغابايت" : "Maximum size is 10 MB");
       return;
     }
 
     fileRef.current = file;
+    exactCache.current = {};
+    setExact(EXACT_IDLE);
     setFileName(file.name);
     setStage("working");
     try {
       setStep(ar ? "جارٍ قراءة ملف Word…" : "Reading the Word file…");
+      await assertNoActiveContent(file);
       const res = await convertDocx(file);
 
       setImported(res);
@@ -137,7 +166,6 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
       setDraft({
         docType: type,
         title: (mark("title", extraction?.title) as string) || "",
-        number: (mark("number", extraction?.number) as string) || "",
         issueDate: (mark("issueDate", isoOrEmpty(extraction?.issueDate)) as string) || today(),
         validUntil: (mark("validUntil", isoOrEmpty(extraction?.validUntil)) as string) || "",
         currency: (mark("currency", extraction?.currency) as string) || template.defaults.currency,
@@ -158,7 +186,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
       setAiFields(marked);
       setStage("review");
     } catch (e) {
-      toast.error((e as Error).message || (ar ? "تعذّر قراءة الملف" : "Could not read the file"));
+      toast.error(exactErrorMessage(e, ar) || (ar ? "تعذّر قراءة الملف" : "Could not read the file"));
       setStage("pick");
     }
   };
@@ -167,6 +195,63 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
     if (!draft) return false;
     return Object.values(draft.client).some((v) => (v ?? "").trim().length > 0);
   }, [draft]);
+
+  const fmtDate = (s: string) => (s ? new Date(s).toLocaleDateString("en-GB") : undefined);
+  const autoNumber = draft?.lang === "ar" ? "يُولَّد تلقائياً" : "Auto";
+  const meta = draft
+    ? {
+        number: number || autoNumber,
+        date: fmtDate(draft.issueDate) ?? "—",
+        validUntil: fmtDate(draft.validUntil),
+        client: (draft.lang === "ar" ? draft.client.nameAr || draft.client.nameEn : draft.client.nameEn || draft.client.nameAr) || undefined,
+      }
+    : null;
+  const metaKey = JSON.stringify([meta, draft?.lang, tpl?.id, tpl?.updated_at, tpl?.header, tpl?.footer]);
+
+  // Exact preview: the Word engine renders the file, the letterhead goes on
+  // top. Re-run (debounced) whenever a letterhead field changes; the Word
+  // render itself is reused while the header/footer bands keep their height.
+  useEffect(() => {
+    const file = fileRef.current;
+    if (stage !== "review" || !draft || !tpl || !meta || !file) return;
+    let alive = true;
+    const t = setTimeout(() => {
+      setExact((s) => ({ ...s, busy: true, error: null }));
+      file.arrayBuffer()
+        .then((source) => buildExactPdf(
+          source,
+          { header: tpl.header, footer: tpl.footer, lang: draft.lang, meta },
+          { cache: exactCache.current, onStep: (step) => { if (alive) setExact((s) => ({ ...s, step })); } },
+        ))
+        .then(async (res) => {
+          if (!alive) return;
+          const url = URL.createObjectURL(new Blob([new Uint8Array(res.pdf)], { type: "application/pdf" }));
+          const warnings: string[] = [];
+          if (res.landscapeSections > 0) {
+            warnings.push(ar ? "الصفحات الأفقية تظهر بدون هيدر وفوتر ميكاترو." : "Landscape pages are shown without the Mechatro header and footer.");
+          }
+          if (res.pageAnchoredShapes > 0) {
+            warnings.push(ar ? "في الملف أشكال مثبّتة على الصفحة — تأكّد أنها لا تختفي تحت الهيدر أو الفوتر." : "The file has shapes pinned to the page — check none are hidden under the header or footer.");
+          }
+          setExact((s) => {
+            if (s.url) URL.revokeObjectURL(s.url);
+            return { busy: false, step: null, url, pages: res.pages, warnings, error: null };
+          });
+        })
+        .catch((e) => {
+          if (alive) setExact((s) => ({ ...s, busy: false, step: null, error: exactErrorMessage(e, ar) }));
+        });
+    }, 700);
+    return () => { alive = false; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, metaKey, exactRun]);
+
+  // Free the preview blob when the dialog goes away.
+  const exactUrlRef = useRef<string | null>(null);
+  exactUrlRef.current = exact.url;
+  useEffect(() => () => { if (exactUrlRef.current) URL.revokeObjectURL(exactUrlRef.current); }, []);
+
+  const exactReady = !!exact.url && !exact.busy && !exact.error;
 
   const itemsHtml = () => {
     const rows = items
@@ -192,31 +277,44 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
   };
 
   const approve = async () => {
-    if (!draft || !imported) return;
-    // Apply mode: hand the imported body and confirmed fields back to the
-    // open document — nothing is written until the admin saves there.
-    if (mode === "apply") {
-      onApply?.({
-        html: bodyHtml(),
-        title: draft.title,
-        lang: draft.lang,
-        currency: draft.currency,
-        issueDate: draft.issueDate,
-        validUntil: draft.validUntil,
-        client: draft.client,
-        showClientBox: hasClient,
-        ...(insertItems ? {} : { blocks: imported.model.blocks }),
-      });
-      return;
-    }
+    const file = fileRef.current;
+    if (!draft || !imported || !file) return;
     try {
       setStage("saving");
+      // The original file is always kept: the exact PDF is rendered from it,
+      // and a document saved while the engine was down can switch later.
+      const wordImport: WordImport = {
+        sourcePath: await uploadWordSource(file),
+        fileName: file.name,
+        active: exactReady,
+      };
+
+      // Apply mode: hand the imported body and confirmed fields back to the
+      // open document — nothing is written until the admin saves there.
+      if (mode === "apply") {
+        onApply?.({
+          html: bodyHtml(),
+          title: draft.title,
+          lang: draft.lang,
+          currency: draft.currency,
+          issueDate: draft.issueDate,
+          validUntil: draft.validUntil,
+          client: draft.client,
+          showClientBox: hasClient,
+          ...(insertItems ? {} : { blocks: imported.model.blocks }),
+          wordImport,
+        });
+        return;
+      }
+
       const created = await businessDocs.create(draft.docType);
       const saved = await businessDocs.save({
         ...created,
         title: draft.title || created.title,
         client: draft.client,
         lang: draft.lang,
+        // The Word page is white paper, so the letterhead stays light too.
+        theme: wordImport.active ? "light" : created.theme,
         currency: draft.currency,
         issue_date: draft.issueDate || created.issue_date,
         valid_until: draft.validUntil || null,
@@ -225,17 +323,18 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           showClientBox: hasClient,
           html: bodyHtml(),
           ...(insertItems ? {} : { blocks: imported.model.blocks }),
+          wordImport,
         },
       });
       toast.success(ar ? `تم إنشاء ${saved.number} من الملف المستورد` : `Created ${saved.number} from the imported file`);
       onCreated?.(saved);
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(exactErrorMessage(e, ar));
       setStage("review");
     }
   };
 
-  const previewInput = draft && tpl && imported
+  const previewInput = draft && tpl && imported && meta
     ? {
         header: tpl.header,
         footer: tpl.footer,
@@ -249,12 +348,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
         lang: draft.lang,
         theme: tpl.defaults.theme,
         currency: draft.currency,
-        meta: {
-          number: draft.number || "—",
-          date: draft.issueDate ? new Date(draft.issueDate).toLocaleDateString("en-GB") : "—",
-          validUntil: draft.validUntil ? new Date(draft.validUntil).toLocaleDateString("en-GB") : undefined,
-          client: draft.lang === "ar" ? draft.client.nameAr || draft.client.nameEn : draft.client.nameEn || draft.client.nameAr,
-        },
+        meta,
       }
     : null;
 
@@ -317,8 +411,8 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
               </div>
               <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted-foreground)" }}>
                 {ar
-                  ? "يُنقل المحتوى فقط: العناوين والفقرات والقوائم والجداول والصور. الهوامش والخطوط والألوان والهيدر والفوتر تبقى دائماً من قالب ميكاترو. الحد 20 ميغابايت."
-                  : "Only the content comes across: headings, paragraphs, lists, tables and images. Margins, fonts, colours, header and footer always stay from the Mechatro template. 20 MB max."}
+                  ? "يبقى ملف Word كما هو تماماً: النصوص والجداول والألوان والخطوط والصور. يُضاف فقط هيدر وفوتر ميكاترو ورقم المستند. الحد 10 ميغابايت."
+                  : "The Word file stays exactly as it is: text, tables, colours, fonts and images. Only the Mechatro header, footer and document number are added. 10 MB max."}
               </div>
             </div>
 
@@ -345,7 +439,7 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))", gap: 0, alignItems: "stretch" }}>
             {/* Fields */}
             <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14, maxHeight: "72vh", overflowY: "auto" }}>
-              <Summary ar={ar} ai={ai} imported={imported} />
+              <Summary ar={ar} ai={ai} imported={imported} exact={exactReady} />
 
 
               <FieldGroup title={ar ? "المستند" : "Document"}>
@@ -363,8 +457,8 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
                 <Field label={ar ? "العنوان" : "Title"} aiFilled={aiFields.has("title")} ar={ar}>
                   <input value={draft.title} onChange={(e) => set({ title: e.target.value })} style={inputStyle} />
                 </Field>
-                <Field label={ar ? "رقم المرجع في الملف" : "Reference number in the file"} aiFilled={aiFields.has("number")} ar={ar}>
-                  <input value={draft.number} onChange={(e) => set({ number: e.target.value })} style={inputStyle} dir="ltr" />
+                <Field label={ar ? "رقم المستند" : "Document number"} ar={ar}>
+                  <input value={number || (ar ? "يُولَّد تلقائياً عند الاعتماد" : "Assigned automatically on approve")} readOnly disabled style={{ ...inputStyle, opacity: 0.7 }} dir={number ? "ltr" : undefined} />
                 </Field>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <Field label={ar ? "تاريخ الإصدار" : "Issue date"} aiFilled={aiFields.has("issueDate")} ar={ar}>
@@ -418,17 +512,29 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
               </FieldGroup>
             </div>
 
-            {/* Preview */}
-            <ZoomablePreview ar={ar}>
-              <PaginatedDoc input={previewInput} gap={14} />
-            </ZoomablePreview>
+            {/* Preview: the exact Word render; the editable copy only as a fallback */}
+            {exact.error ? (
+              <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                <ExactNotice ar={ar} tone="error" onRetry={() => setExactRun((n) => n + 1)}>
+                  {exact.error}{" "}
+                  {ar
+                    ? "المعاينة أدناه هي النسخة القابلة للتعديل (أقل دقة). يمكنك الاعتماد الآن، والملف الأصلي يُحفظ لتفعيل التنسيق الدقيق لاحقاً."
+                    : "Below is the editable copy (less accurate). You can approve now; the original file is kept so the exact layout can be switched on later."}
+                </ExactNotice>
+                <ZoomablePreview ar={ar}>
+                  <PaginatedDoc input={previewInput} gap={14} />
+                </ZoomablePreview>
+              </div>
+            ) : (
+              <ExactPreview ar={ar} exact={exact} onRefresh={() => setExactRun((n) => n + 1)} />
+            )}
           </div>
         )}
 
         {/* Footer actions */}
         {stage === "review" && (
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: 14, borderTop: "1px solid var(--border)", flexWrap: "wrap" }}>
-            <button className="btn-ghost" onClick={() => { setStage("pick"); setDraft(null); setImported(null); setAi(null); }}>
+            <button className="btn-ghost" onClick={() => { setStage("pick"); setDraft(null); setImported(null); setAi(null); setExact((s) => { if (s.url) URL.revokeObjectURL(s.url); return EXACT_IDLE; }); }}>
               {ar ? "ملف آخر" : "Another file"}
             </button>
             <button className="btn-ghost" onClick={onClose}>{ar ? "إلغاء" : "Cancel"}</button>
@@ -438,8 +544,8 @@ export function ImportDocxDialog({ ar, onClose, onCreated, mode = "create", onAp
                 {ar ? "سيُستبدل محتوى الورقة الحالي" : "The current sheet content will be replaced"}
               </span>
             )}
-            <button className="btn-primary" onClick={approve}>
-              <Check size={15} />{" "}
+            <button className="btn-primary" onClick={approve} disabled={exact.busy}>
+              {exact.busy ? <Loader2 size={15} className="spin" /> : <Check size={15} />}{" "}
               {mode === "apply"
                 ? (ar ? "تطبيق على هذا المستند" : "Apply to this document")
                 : (ar ? "اعتماد وإنشاء المستند" : "Approve & create document")}
@@ -468,7 +574,7 @@ const DROPPED_LABELS: Record<DroppedKind, { ar: string; en: string }> = {
   shapes: { ar: "الأشكال ومربعات النص", en: "shapes and text boxes" },
 };
 
-function Summary({ ar, ai, imported }: { ar: boolean; ai: DocxExtraction | null; imported: DocxImport | null }) {
+function Summary({ ar, ai, imported, exact }: { ar: boolean; ai: DocxExtraction | null; imported: DocxImport | null; exact: boolean }) {
   const missing = ai?.missing ?? [];
   const c = imported?.summary.counts;
   const parts = c
@@ -481,7 +587,8 @@ function Summary({ ar, ai, imported }: { ar: boolean; ai: DocxExtraction | null;
         [c.pageBreak, ar ? "فاصل صفحة" : "page break(s)"],
       ].filter(([n]) => Number(n) > 0).map(([n, label]) => `${n} ${label}`)
     : [];
-  const dropped = (imported?.summary.dropped ?? []).map((k) => (ar ? DROPPED_LABELS[k].ar : DROPPED_LABELS[k].en));
+  // In exact mode nothing is dropped: the Word engine renders the file as-is.
+  const dropped = exact ? [] : (imported?.summary.dropped ?? []).map((k) => (ar ? DROPPED_LABELS[k].ar : DROPPED_LABELS[k].en));
 
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 6, background: "color-mix(in oklab, var(--primary) 6%, transparent)" }}>
@@ -530,6 +637,63 @@ function Field({ label, children, aiFilled, ar }: { label: string; children: Rea
       </span>
       {children}
     </label>
+  );
+}
+
+/* ── Exact preview pane ───────────────────────────────────────── */
+
+const STEP_LABELS: Record<NonNullable<ExactState["step"]>, { ar: string; en: string }> = {
+  layout: { ar: "جارٍ تجهيز الهيدر والفوتر…", en: "Preparing the header and footer…" },
+  word: { ar: "محرّك Word يرسم الملف كما هو…", en: "The Word engine is laying out the file…" },
+  letterhead: { ar: "جارٍ إضافة الهيدر والفوتر والرقم…", en: "Adding the header, footer and number…" },
+};
+
+function ExactNotice({ ar, tone, children, onRetry }: { ar: boolean; tone: "error" | "warn"; children: React.ReactNode; onRetry?: () => void }) {
+  const color = tone === "error" ? "#F0676A" : "#F5B301";
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 14px", fontSize: 12, borderBottom: "1px solid var(--border)", background: `${color}14`, color: "var(--foreground)" }}>
+      <AlertTriangle size={14} style={{ color, flexShrink: 0, marginTop: 2 }} />
+      <span style={{ flex: 1, minWidth: 0 }}>{children}</span>
+      {onRetry && (
+        <button type="button" className="btn-ghost" onClick={onRetry} style={{ minHeight: 30, padding: "4px 10px", flexShrink: 0 }}>
+          <RefreshCw size={13} /> {ar ? "إعادة المحاولة" : "Retry"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ExactPreview({ ar, exact, onRefresh }: { ar: boolean; exact: ExactState; onRefresh: () => void }) {
+  return (
+    <div style={{ borderInlineStart: "1px solid var(--border)", background: "var(--surface-2, var(--background))", display: "flex", flexDirection: "column", height: "72vh", minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted-foreground)", marginInlineEnd: "auto" }}>
+          {ar ? "المعاينة الدقيقة — كما سيظهر ملف PDF" : "Exact preview — as the PDF will look"}
+          {exact.pages > 0 && ` · ${ar ? `${exact.pages} صفحة` : `${exact.pages} page${exact.pages === 1 ? "" : "s"}`}`}
+        </div>
+        <button type="button" className="btn-ghost" onClick={onRefresh} disabled={exact.busy} style={{ minHeight: 30, padding: "4px 10px" }}>
+          {exact.busy ? <Loader2 size={13} className="spin" /> : <RefreshCw size={13} />} {ar ? "تحديث" : "Refresh"}
+        </button>
+      </div>
+      {exact.warnings.map((w) => <ExactNotice key={w} ar={ar} tone="warn">{w}</ExactNotice>)}
+      <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+        {exact.url && (
+          <iframe
+            title={ar ? "معاينة PDF" : "PDF preview"}
+            src={`${exact.url}#view=FitH`}
+            style={{ width: "100%", height: "100%", border: 0, display: "block", opacity: exact.busy ? 0.4 : 1 }}
+          />
+        )}
+        {exact.busy && (
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: "var(--muted-foreground)" }}>
+            <Loader2 size={24} className="spin" style={{ color: "var(--primary)" }} />
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--foreground)" }}>
+              {exact.step ? (ar ? STEP_LABELS[exact.step].ar : STEP_LABELS[exact.step].en) : (ar ? "جارٍ التحضير…" : "Preparing…")}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -30,6 +30,15 @@ export type ItemRow = {
 /** Which rendering of the brand logo the letterhead uses. */
 export type LogoVariant = "auto" | "light" | "dark";
 
+/** A Word file imported in exact-layout mode (rendered by the Word engine). */
+export type WordImport = {
+  /** Original .docx in the `doc-assets` bucket. */
+  sourcePath: string;
+  fileName: string;
+  /** true — the PDF is the Word render; false — the editable copy is used. */
+  active: boolean;
+};
+
 export type DocModel = {
   /** Always 2 — Word-style rich HTML body. */
   version: 2;
@@ -40,6 +49,8 @@ export type DocModel = {
   logoVariant?: LogoVariant;
   /** Page setup imported from the original Word file (wins over template margins). */
   section?: DocSection;
+  /** Exact-layout Word import; while active it replaces the editor body. */
+  wordImport?: WordImport;
   /** Legacy blocks of pre-Word documents, kept only as a backup. */
   blocks?: unknown[];
 };
@@ -82,12 +93,18 @@ export function mergeModel(raw: unknown): DocModel {
           footerOffsetPx: Number.isFinite(s.footerOffsetPx) ? (s.footerOffsetPx as number) : 0,
         }
       : undefined;
+  const w = r.wordImport as Partial<WordImport> | undefined;
+  const wordImport: WordImport | undefined =
+    w && typeof w.sourcePath === "string" && w.sourcePath
+      ? { sourcePath: w.sourcePath, fileName: typeof w.fileName === "string" ? w.fileName : "", active: w.active !== false }
+      : undefined;
   return {
     version: 2,
     showClientBox: r.showClientBox !== false,
     html,
     logoVariant: variant,
     ...(section ? { section } : {}),
+    ...(wordImport ? { wordImport } : {}),
     ...(blocks && blocks.length > 0 ? { blocks } : {}),
   };
 }

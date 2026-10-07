@@ -6,6 +6,9 @@ import logoArUrl from "@/assets/mechatro-logo-ar.png";
 import fontAsset from "@/assets/MontserratArabic-Regular.ttf.asset.json";
 
 const fontUrl: string = fontAsset.url;
+/** Copy served by the app itself: Lovable's asset path doesn't exist on the
+ *  self-hosted deployment, where the URL above answers 404. */
+export const arabicFontFallbackUrl = "/fonts/MontserratArabic-Regular.ttf";
 
 type LogoAsset = { dataUrl: string; widthPx: number; heightPx: number } | null;
 const logoPromises: { ar: Promise<LogoAsset> | null; en: Promise<LogoAsset> | null } = { ar: null, en: null };
@@ -53,13 +56,16 @@ function arrayBufferToBase64(buf: ArrayBuffer): string {
 export function loadArabicFontB64(): Promise<string | null> {
   if (!fontPromise) {
     fontPromise = (async () => {
-      try {
-        const res = await fetch(fontUrl);
-        const buf = await res.arrayBuffer();
-        return arrayBufferToBase64(buf);
-      } catch {
-        return null;
+      for (const url of [fontUrl, arabicFontFallbackUrl]) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          return arrayBufferToBase64(await res.arrayBuffer());
+        } catch {
+          // try the next source
+        }
       }
+      return null;
     })();
   }
   return fontPromise;

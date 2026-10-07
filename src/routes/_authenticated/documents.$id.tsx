@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2, Sun, Moon, GitBranch, FileDown, Eye, X, ChevronDown, FileUp } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sun, Moon, GitBranch, FileDown, Eye, X, ChevronDown, FileUp, FileCheck2 } from "lucide-react";
 
 import { useApp } from "@/lib/app-context";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -15,6 +15,8 @@ import { A4_SIZE } from "@/lib/docs/geometry";
 import { DocEditor } from "@/components/documents/editor/DocEditor";
 import { EditorBoundary } from "@/components/documents/editor/EditorBoundary";
 import { ImportDocxDialog } from "@/components/documents/ImportDocxDialog";
+import { ExactDocView } from "@/components/documents/ExactDocView";
+import { downloadExactPdf, exactErrorMessage } from "@/lib/docs/word-exact/exact-pdf";
 import { blocksToHtml, htmlToDocModel, needsConversion, needsModelConversion } from "@/lib/docs/convert-legacy";
 import { exportDocPdf } from "@/lib/docs/export-doc";
 import type { DocPageModel } from "@/lib/docs/page-model-cache";
@@ -144,10 +146,20 @@ function DocumentEditorPage() {
     return { number: doc.number, date: fmt(doc.issue_date) ?? "—", validUntil: fmt(doc.valid_until), client: client || undefined };
   }, [doc]);
 
+  const logPdf = (d: BusinessDoc) =>
+    void logActivity(user?.id ?? null, "file_added", "business_doc", d.id, {
+      number: d.number, doc_type: d.doc_type, format: "pdf", theme: d.theme, lang: d.lang,
+    });
+
   const exportAs = async (kind: "pdf") => {
     if (!doc || !tpl) return;
     try {
       setExporting(kind);
+      if (doc.model.wordImport?.active) {
+        await downloadExactPdf(doc, doc.header_override ?? tpl.header, doc.footer_override ?? tpl.footer);
+        logPdf(doc);
+        return;
+      }
       const input = {
         docId: doc.id,
         docType: doc.doc_type,
@@ -170,10 +182,8 @@ function DocumentEditorPage() {
 
       };
       await exportDocPdf(input);
-      void logActivity(user?.id ?? null, "file_added", "business_doc", doc.id, {
-        number: doc.number, doc_type: doc.doc_type, format: kind, theme: doc.theme, lang: doc.lang,
-      });
-    } catch (e) { toast.error((e as Error).message); }
+      logPdf(doc);
+    } catch (e) { toast.error(exactErrorMessage(e, ar)); }
     finally { setExporting(null); }
   };
 
@@ -187,21 +197,45 @@ function DocumentEditorPage() {
   const header = doc.header_override ?? tpl.header;
   const footer = doc.footer_override ?? tpl.footer;
 
+  const wordImport = doc.model.wordImport;
+  const exactMode = !!wordImport?.active;
+
+  const statusPill = (
+    <span
+      style={{
+        fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, whiteSpace: "nowrap",
+        color: dirty ? "#F5B301" : "var(--muted-foreground)",
+        border: `1px solid ${dirty ? "#F5B30155" : "var(--border)"}`,
+        background: dirty ? "#F5B30118" : "transparent",
+      }}
+    >
+      {saving ? (ar ? "جارٍ الحفظ…" : "Saving…") : dirty ? (ar ? "تغييرات غير محفوظة" : "Unsaved changes") : (ar ? "محفوظ" : "Saved")}
+    </span>
+  );
+  const importButton = (
+    <button className="btn-ghost" onClick={() => setImporting(true)}>
+      <FileUp size={15} /> {ar ? "استيراد من Word" : "Import from Word"}
+    </button>
+  );
+  const saveButton = (
+    <button className="btn-primary" onClick={save} disabled={saving || !dirty}>
+      {saving ? <Loader2 size={15} className="spin" /> : <Save size={15} />} {ar ? "حفظ" : "Save"}
+    </button>
+  );
+
   const ribbonActions = (
     <>
-      <span
-        style={{
-          fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, whiteSpace: "nowrap",
-          color: dirty ? "#F5B301" : "var(--muted-foreground)",
-          border: `1px solid ${dirty ? "#F5B30155" : "var(--border)"}`,
-          background: dirty ? "#F5B30118" : "transparent",
-        }}
-      >
-        {saving ? (ar ? "جارٍ الحفظ…" : "Saving…") : dirty ? (ar ? "تغييرات غير محفوظة" : "Unsaved changes") : (ar ? "محفوظ" : "Saved")}
-      </span>
-      <button className="btn-ghost" onClick={() => setImporting(true)}>
-        <FileUp size={15} /> {ar ? "استيراد من Word" : "Import from Word"}
-      </button>
+      {statusPill}
+      {importButton}
+      {wordImport && !exactMode && (
+        <button
+          className="btn-ghost"
+          title={wordImport.fileName}
+          onClick={() => patch({ theme: "light", model: { ...doc.model, wordImport: { ...wordImport, active: true } } })}
+        >
+          <FileCheck2 size={15} /> {ar ? "تنسيق Word الدقيق" : "Exact Word layout"}
+        </button>
+      )}
       <button className="btn-ghost" onClick={() => setPreviewOpen(true)}>
         <Eye size={15} /> {ar ? "معاينة" : "Preview"}
       </button>
@@ -209,9 +243,7 @@ function DocumentEditorPage() {
       <button className="btn-ghost" onClick={() => exportAs("pdf")} disabled={!!exporting}>
         {exporting === "pdf" ? <Loader2 size={15} className="spin" /> : <FileDown size={15} />} PDF
       </button>
-      <button className="btn-primary" onClick={save} disabled={saving || !dirty}>
-        {saving ? <Loader2 size={15} className="spin" /> : <Save size={15} />} {ar ? "حفظ" : "Save"}
-      </button>
+      {saveButton}
     </>
   );
 
@@ -320,8 +352,21 @@ function DocumentEditorPage() {
         </Row>
       </Accordion>
 
+      {/* ── Exact Word layout: the Word engine's render, letterhead on top ── */}
+      {exactMode && wordImport && (
+        <ExactDocView
+          ar={ar}
+          doc={doc}
+          header={header}
+          footer={footer}
+          actions={<>{statusPill}{importButton}{saveButton}</>}
+          onOpenEditor={() => patchModel({ wordImport: { ...wordImport, active: false } })}
+          onDownloaded={() => logPdf(doc)}
+        />
+      )}
+
       {/* ── The sheet: type straight inside the letterhead ──────── */}
-      <EditorBoundary ar={ar}>
+      {!exactMode && <EditorBoundary ar={ar}>
         <DocEditor
           html={doc.model.html ?? ""}
           onChange={(html) => patchModel({ html, version: 2 })}
@@ -343,13 +388,14 @@ function DocumentEditorPage() {
           onPageModel={setPageModel}
 
         />
-      </EditorBoundary>
+      </EditorBoundary>}
 
       {/* ── Import a Word file into this document ──────────────── */}
       {importing && (
         <ImportDocxDialog
           ar={ar}
           mode="apply"
+          number={doc.number}
           onClose={() => setImporting(false)}
           onApply={(p) => {
             setImporting(false);
@@ -359,6 +405,7 @@ function DocumentEditorPage() {
                     ...d,
                     title: p.title || d.title,
                     lang: p.lang,
+                    theme: p.wordImport.active ? "light" : d.theme,
                     currency: p.currency || d.currency,
                     issue_date: p.issueDate || d.issue_date,
                     valid_until: p.validUntil || d.valid_until,
@@ -369,6 +416,7 @@ function DocumentEditorPage() {
                       html: p.html,
                       showClientBox: p.showClientBox,
                       ...(p.blocks ? { blocks: p.blocks } : {}),
+                      wordImport: p.wordImport,
                     },
                   }
                 : d,

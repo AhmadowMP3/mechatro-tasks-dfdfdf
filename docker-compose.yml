@@ -21,10 +21,31 @@ services:
       # point this deployment at a different backend.
       PORT: "3000"
       HOST: 0.0.0.0
+      # Word engine for exact Word imports (server functions call it).
+      GOTENBERG_URL: http://gotenberg:3000
+    depends_on:
+      - gotenberg
     expose:
       - "3000"
     # Coolify/Traefik routes to this container on port 3000 via the domain set
     # in the resource settings. Do not add host `ports:` here.
+    restart: unless-stopped
+
+  # Word engine (LibreOffice + Chromium) for "Import from Word" exact layout.
+  # Internal only: no domain, no host ports — only the app talks to it.
+  gotenberg:
+    build:
+      context: ./deploy/gotenberg
+    command:
+      - gotenberg
+      - --api-timeout=120s
+      - --libreoffice-restart-after=20
+      # The letterhead HTML is self-contained: no scripts, no network.
+      - --chromium-disable-javascript=true
+      - --chromium-allow-list=^(file:///tmp/|data:|about:)
+      - --log-level=warn
+    expose:
+      - "3000"
     restart: unless-stopped
 
   # Only used for standalone `docker compose --profile standalone up -d --build`

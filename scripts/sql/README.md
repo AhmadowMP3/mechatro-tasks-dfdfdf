@@ -10,6 +10,7 @@ All scripts are idempotent: re-running them is safe.
 | 3 | `2026-08-23-drive-tables-fix.sql` | Drive tables / schema-cache fix |
 | 4 | `2026-08-24-business-docs.sql` | Business documents (also included in #5) |
 | 5 | **`2026-08-24-selfhost-sync.sql`** | **Latest — run this one** |
+| 6 | `2026-10-07-doc-assets-bucket.sql` | `doc-assets` storage bucket (Import from Word, editor images) |
 
 ## `2026-08-24-selfhost-sync.sql`
 

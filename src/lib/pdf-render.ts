@@ -6,7 +6,7 @@
 import { createRoot } from "react-dom/client";
 import type { ReactNode } from "react";
 import { htmlToPdf } from "./pdf-export";
-import { arabicFontUrl } from "./pdf/assets";
+import { arabicFontFallbackUrl, arabicFontUrl } from "./pdf/assets";
 import type { ChromeOptions } from "./pdf/chrome";
 
 // The A4 content zone is 297mm − 24mm top − 16mm bottom = 257mm at 96dpi.
@@ -27,7 +27,7 @@ function ensureArabicFontFace() {
       font-style: normal;
       font-weight: 400 700;
       font-display: block;
-      src: url(${arabicFontUrl}) format('truetype');
+      src: url(${arabicFontUrl}) format('truetype'), url(${arabicFontFallbackUrl}) format('truetype');
     }
   `;
   document.head.appendChild(style);

@@ -11,6 +11,7 @@ import { exportDocPdf } from "@/lib/docs/export-doc";
 import { businessDocs, DOC_STATUS_LABELS, type BusinessDoc } from "@/lib/docs/docs-api";
 import { DOC_TYPES, docTypeLabel, type DocType } from "@/lib/docs/types";
 import { ImportDocxDialog } from "@/components/documents/ImportDocxDialog";
+import { downloadExactPdf, exactErrorMessage } from "@/lib/docs/word-exact/exact-pdf";
 
 export const Route = createFileRoute("/_authenticated/documents/")({
   ssr: false,
@@ -92,6 +93,10 @@ function DocumentsListPage() {
     try {
       setBusy(true);
       const tpl = await docTemplates.ensure(doc.doc_type);
+      if (doc.model.wordImport?.active) {
+        await downloadExactPdf(doc, doc.header_override ?? tpl.header, doc.footer_override ?? tpl.footer);
+        return;
+      }
       const fmt = (v?: string | null) => (v ? new Date(v).toLocaleDateString("en-GB") : undefined);
       const clientName = doc.lang === "ar" ? doc.client.nameAr || doc.client.nameEn : doc.client.nameEn || doc.client.nameAr;
       const input = {
@@ -110,7 +115,7 @@ function DocumentsListPage() {
       };
       await exportDocPdf(input);
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(exactErrorMessage(e, ar));
     } finally {
       setBusy(false);
     }

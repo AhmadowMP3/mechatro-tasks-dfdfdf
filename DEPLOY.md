@@ -179,3 +179,27 @@ Checklist when a Coolify deploy fails to start the container:
    `SUPABASE_*` copies are runtime variables.
 5. Read the real cause with `docker logs <container-id>` on the server — the
    Coolify summary truncates the container's own startup error.
+
+---
+
+## Word engine (exact "Import from Word")
+
+Business Documents → **Import from Word** renders the uploaded `.docx` with a real
+Word engine so the content stays exactly as in Word; the app then lays the
+Mechatro header, footer and document number on every page.
+
+The engine is the `gotenberg` service in `docker-compose.yml` (LibreOffice +
+Chromium, built from `deploy/gotenberg/Dockerfile` with the common Office fonts).
+It has no domain and no host ports; the app reaches it at `http://gotenberg:3000`
+(`GOTENBERG_URL`, set in the compose file). A normal Coolify redeploy starts it.
+
+- **Memory:** give the server ~1 GB of headroom for LibreOffice during conversions.
+- **Fonts:** Word files only keep their exact line breaks when the fonts they use
+  are installed. Arial, Times New Roman, Calibri-compatible (Carlito) and Noto are
+  included; drop any other licensed fonts into `deploy/gotenberg/fonts/` and redeploy.
+- **Lovable preview / Option B (static SPA):** there is no engine there, so the
+  import falls back to the editable copy and shows a notice. The original Word file
+  is still stored, so the exact layout can be switched on from the document later.
+- **Engine elsewhere:** set `GOTENBERG_URL` on the app, and if the engine is
+  reachable from the internet protect it with basic auth (`GOTENBERG_USERNAME`,
+  `GOTENBERG_PASSWORD` on the app; `--api-enable-basic-auth` on Gotenberg).

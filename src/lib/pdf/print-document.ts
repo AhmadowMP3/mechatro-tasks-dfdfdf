@@ -8,7 +8,7 @@
 
 import { createRoot, type Root } from "react-dom/client";
 import type { ReactNode } from "react";
-import { arabicFontUrl } from "./assets";
+import { arabicFontFallbackUrl, arabicFontUrl } from "./assets";
 import { A4_SIZE } from "@/lib/docs/geometry";
 import { prepareShare, saveSharePayload, type ShareTarget } from "@/lib/share/public-share";
 import { stampQrOnLastPage } from "@/lib/share/qr-stamp";
@@ -49,7 +49,7 @@ function buildIframeHtml(lang: "ar" | "en", title: string, background: string, c
     font-style: normal;
     font-weight: 400 700;
     font-display: block;
-    src: url("${arabicFontUrl}") format('truetype');
+    src: url("${arabicFontUrl}") format('truetype'), url("${arabicFontFallbackUrl}") format('truetype');
   }
   @page {
     size: A4;

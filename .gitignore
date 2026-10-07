@@ -30,3 +30,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Macro-enabled Word files are never part of the app (and one infected this machine)
+*.docm
