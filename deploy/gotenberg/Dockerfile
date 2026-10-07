@@ -33,3 +33,8 @@ COPY fonts/ /usr/local/share/fonts/mechatro/
 RUN fc-cache -f
 
 USER gotenberg
+
+# Same flags however the image is run (docker compose or a Coolify Dockerfile
+# resource). Basic auth switches on when GOTENBERG_API_BASIC_AUTH_USERNAME and
+# GOTENBERG_API_BASIC_AUTH_PASSWORD are set — required if it gets a public domain.
+CMD ["sh", "-c", "exec gotenberg --api-timeout=120s --libreoffice-restart-after=20 --chromium-disable-javascript=true '--chromium-allow-list=^(file:///tmp/|data:|about:)' --log-level=warn ${GOTENBERG_API_BASIC_AUTH_USERNAME:+--api-enable-basic-auth}"]

@@ -36,14 +36,7 @@ services:
   gotenberg:
     build:
       context: ./deploy/gotenberg
-    command:
-      - gotenberg
-      - --api-timeout=120s
-      - --libreoffice-restart-after=20
-      # The letterhead HTML is self-contained: no scripts, no network.
-      - --chromium-disable-javascript=true
-      - --chromium-allow-list=^(file:///tmp/|data:|about:)
-      - --log-level=warn
+    # Flags (JS off, network allow-list, timeouts) live in the Dockerfile CMD.
     expose:
       - "3000"
     restart: unless-stopped
