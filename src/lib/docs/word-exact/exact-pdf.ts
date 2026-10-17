@@ -228,6 +228,11 @@ export function exactErrorMessage(e: unknown, ar: boolean): string {
   const engineFailure = /word_engine_failed_(\d+)(?:\s*\[(\w+)\])?\s*(.*)/.exec(msg);
   if (engineFailure) {
     const [, status, step, detail] = engineFailure;
+    if (status === "401")
+      return pick(
+        "محرّك المستندات رفض الاتصال (HTTP 401): اسم المستخدم/كلمة المرور على التطبيق (GOTENBERG_USERNAME / GOTENBERG_PASSWORD) لا تطابق المحرّك.",
+        "The document engine refused the app (HTTP 401): the app's GOTENBERG_USERNAME / GOTENBERG_PASSWORD don't match the engine's.",
+      );
     const code = `HTTP ${status}${step ? ` · ${step}` : ""}${detail ? ` · ${detail.slice(0, 160)}` : ""}`;
     return pick(
       `فشل محرّك المستندات في تحويل الملف (${code}).`,

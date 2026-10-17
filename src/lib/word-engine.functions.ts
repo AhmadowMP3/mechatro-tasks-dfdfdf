@@ -55,8 +55,10 @@ async function callEngine(route: string, form: FormData): Promise<Uint8Array> {
   if (!base) throw new Error("word_engine_not_configured");
 
   const headers: Record<string, string> = {};
-  const user = process.env["GOTENBERG_USERNAME"];
-  const pass = process.env["GOTENBERG_PASSWORD"];
+  // The engine's own variable names work too, so one shared pair of env vars
+  // configures both sides.
+  const user = process.env["GOTENBERG_USERNAME"] || process.env["GOTENBERG_API_BASIC_AUTH_USERNAME"];
+  const pass = process.env["GOTENBERG_PASSWORD"] || process.env["GOTENBERG_API_BASIC_AUTH_PASSWORD"];
   if (user && pass) headers.Authorization = `Basic ${btoa(`${user}:${pass}`)}`;
 
   for (let attempt = 1; ; attempt++) {
