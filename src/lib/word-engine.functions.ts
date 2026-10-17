@@ -46,6 +46,10 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(bin);
 }
 
+/** Gotenberg answers these while LibreOffice/Chromium restart or its queue is full. */
+const BUSY_STATUSES = new Set([429, 502, 503, 504]);
+const BUSY_RETRY_DELAY_MS = 2_000;
+
 async function callEngine(route: string, form: FormData): Promise<Uint8Array> {
   const base = (process.env["GOTENBERG_URL"] ?? "").replace(/\/+$/, "");
   if (!base) throw new Error("word_engine_not_configured");
@@ -55,24 +59,32 @@ async function callEngine(route: string, form: FormData): Promise<Uint8Array> {
   const pass = process.env["GOTENBERG_PASSWORD"];
   if (user && pass) headers.Authorization = `Basic ${btoa(`${user}:${pass}`)}`;
 
-  let res: Response;
-  try {
-    res = await fetch(`${base}${route}`, {
-      method: "POST",
-      body: form,
-      headers,
-      signal: AbortSignal.timeout(ENGINE_TIMEOUT_MS),
-    });
-  } catch (e) {
-    console.error("[word-engine] unreachable", e);
-    throw new Error("word_engine_unreachable");
+  for (let attempt = 1; ; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(`${base}${route}`, {
+        method: "POST",
+        body: form,
+        headers,
+        signal: AbortSignal.timeout(ENGINE_TIMEOUT_MS),
+      });
+    } catch (e) {
+      console.error("[word-engine] unreachable", e);
+      throw new Error("word_engine_unreachable");
+    }
+    if (res.ok) return new Uint8Array(await res.arrayBuffer());
+
+    const detail = (await res.text().catch(() => "")).replace(/\s+/g, " ").trim().slice(0, 300);
+    console.error(`[word-engine] ${route} failed ${res.status} (attempt ${attempt}): ${detail}`);
+    if (attempt === 1 && BUSY_STATUSES.has(res.status)) {
+      await new Promise((r) => setTimeout(r, BUSY_RETRY_DELAY_MS));
+      continue;
+    }
+    // The status and the engine's own words reach the dialog, so a failure can
+    // be diagnosed without server logs.
+    const step = route.includes("libreoffice") ? "word" : "letterhead";
+    throw new Error(`word_engine_failed_${res.status} [${step}] ${detail}`);
   }
-  if (!res.ok) {
-    const detail = (await res.text().catch(() => "")).slice(0, 300);
-    console.error(`[word-engine] ${route} failed ${res.status}: ${detail}`);
-    throw new Error(`word_engine_failed_${res.status}`);
-  }
-  return new Uint8Array(await res.arrayBuffer());
 }
 
 /** Render a prepared .docx with LibreOffice, exactly as Word lays it out. */

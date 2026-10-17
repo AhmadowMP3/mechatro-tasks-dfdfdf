@@ -225,8 +225,15 @@ export function exactErrorMessage(e: unknown, ar: boolean): string {
     return pick("محرّك المستندات غير مُعدّ على السيرفر بعد (GOTENBERG_URL).", "The document engine isn't set up on the server yet (GOTENBERG_URL).");
   if (/word_engine_unreachable/.test(msg))
     return pick("تعذّر الوصول إلى محرّك المستندات على السيرفر. تأكّد أن خدمة gotenberg تعمل.", "The document engine on the server can't be reached. Check that the gotenberg service is running.");
-  if (/word_engine_failed/.test(msg))
-    return pick("فشل محرّك المستندات في تحويل الملف. تأكّد أن الملف يفتح بشكل سليم.", "The document engine couldn't convert this file. Check that it opens correctly.");
+  const engineFailure = /word_engine_failed_(\d+)(?:\s*\[(\w+)\])?\s*(.*)/.exec(msg);
+  if (engineFailure) {
+    const [, status, step, detail] = engineFailure;
+    const code = `HTTP ${status}${step ? ` · ${step}` : ""}${detail ? ` · ${detail.slice(0, 160)}` : ""}`;
+    return pick(
+      `فشل محرّك المستندات في تحويل الملف (${code}).`,
+      `The document engine couldn't convert this file (${code}).`,
+    );
+  }
   if (/word_source_too_large/.test(msg)) return pick("الملف أكبر من 10 ميغابايت.", "The file is larger than 10 MB.");
   if (/word_source_missing/.test(msg)) return pick("الملف الأصلي غير موجود في التخزين.", "The original file is missing from storage.");
   if (/bucket not found/i.test(msg))
