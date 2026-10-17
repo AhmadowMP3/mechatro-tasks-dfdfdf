@@ -182,11 +182,39 @@ Checklist when a Coolify deploy fails to start the container:
 
 ---
 
-## Word engine (exact "Import from Word")
+## Import Word / PDF (and the document engine)
 
-Business Documents → **Import from Word** renders the uploaded `.docx` with a real
-Word engine so the content stays exactly as in Word; the app then lays the
-Mechatro header, footer and document number on every page.
+Business Documents → **Import Word / PDF** takes a `.docx` or a `.pdf` (scanned
+pages included) and offers two results:
+
+- **Exact layout** — the file looks exactly like the original, with its own
+  header/footer replaced by the Mechatro letterhead and document number.
+  - Word: rendered by the Word engine (LibreOffice) with page margins widened to
+    the letterhead bands.
+  - PDF: each page, its original letterhead cut away (detected automatically,
+    adjustable in the dialog), is fitted between the bands in the browser.
+    Copy-protected PDFs are placed as ~200 dpi page images.
+- **Editable** — text, lists and tables become an editable document. Scanned
+  PDFs are read with OCR (Arabic + English) in the browser.
+
+The original file is always kept in the private `doc-assets` bucket
+(`word-imports/`, master admin only — see
+`scripts/sql/2026-10-07-doc-assets-bucket.sql`), so a document can switch modes
+later. OCR runs from files served by the app itself (`public/ocr`, refreshed with
+`node scripts/sync-ocr-assets.mjs` after a tesseract.js upgrade) — no CDN, nothing
+to configure.
+
+**Local development without Docker:** `node scripts/dev-word-engine.mjs` starts a
+stand-in engine on `http://127.0.0.1:3999` that uses a local LibreOffice and
+Chrome/Edge. Start the app with `GOTENBERG_URL=http://127.0.0.1:3999`. The
+engine-backed end-to-end tests run against it:
+`WORD_ENGINE_URL=http://127.0.0.1:3999 SAMPLE_DOCX=… bunx vitest run exact.e2e`
+(see the header of each `*.e2e.test.ts`).
+
+### The document engine (Gotenberg)
+
+Every exact layout needs the engine: Word files are laid out by it, and the
+Mechatro letterhead (for Word and PDF alike) is printed by its Chromium.
 
 The engine is the `gotenberg` service in `docker-compose.yml` (LibreOffice +
 Chromium, built from `deploy/gotenberg/Dockerfile` with the common Office fonts).

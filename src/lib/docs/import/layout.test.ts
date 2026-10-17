@@ -12,6 +12,14 @@ describe("lines", () => {
     expect(line!.text).toBe("عرض سعر");
   });
 
+  test("OCR words always get a space, even when their boxes touch", () => {
+    const [line] = groupLines([
+      { text: "حطين", x: 300, y: 100, w: 25, h: 11, word: true },
+      { text: "لمجمع", x: 326, y: 100, w: 30, h: 11, word: true },
+    ]);
+    expect(line!.text).toBe("لمجمع حطين");
+  });
+
   test("a wide gap splits a line into cells", () => {
     const [line] = groupLines([w("C1", 500, 100, 12), w("مكاتب", 300, 100, 30), w("تحت البناء", 100, 100, 50)]);
     expect(line!.segments.map((s) => s.text)).toEqual(["C1", "مكاتب", "تحت البناء"]);
@@ -58,6 +66,25 @@ describe("tables", () => {
     const layout = linesToLayout(groupLines([...boxes, w("التكلفة الإجمالية ألف ريال سعودي", 250, 160, 260)]));
     expect(layout.tables[0]).toHaveLength(3);
     expect(layout.blocks[layout.blocks.length - 1]).toMatchObject({ type: "paragraph", align: "right" });
+  });
+});
+
+describe("side-by-side blocks", () => {
+  test("two columns of lines become one row with stacked cells, read line by line", () => {
+    const layout = linesToLayout(groupLines([
+      w("Bill To: Mechatro Engineering Solutions", 50, 100, 190), w("Invoice No.: INV-2026-0042", 380, 100, 130),
+      w("Attn: Eng. Ahmad", 50, 113, 80), w("Date: 12/10/2026", 380, 113, 80),
+      w("Tel: +963 933 945 346", 50, 126, 100), w("Payment: 30 days", 380, 126, 80),
+    ]));
+    expect(layout.blocks).toHaveLength(1);
+    const t = layout.blocks[0]!;
+    expect(t.type).toBe("table");
+    if (t.type === "table") {
+      expect(t.rows).toHaveLength(1);
+      expect(t.rows[0]![0]!.paragraphs.map((p) => p[0]!.text)).toEqual(["Bill To: Mechatro Engineering Solutions", "Attn: Eng. Ahmad", "Tel: +963 933 945 346"]);
+    }
+    expect(layout.lines).toContain("Invoice No.: INV-2026-0042");
+    expect(layout.tables).toHaveLength(0);
   });
 });
 

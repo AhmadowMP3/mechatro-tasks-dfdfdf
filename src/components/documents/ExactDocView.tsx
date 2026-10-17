@@ -1,5 +1,5 @@
-// A document imported from Word in exact-layout mode: the page shows the PDF
-// the Word engine renders (with the Mechatro letterhead on top) instead of the
+// A document imported (Word or PDF) in exact-layout mode: the page shows the
+// exact PDF render (with the Mechatro letterhead on top) instead of the
 // editor. Letterhead fields (number, dates, client, language) still come from
 // the document settings above, and the PDF follows them.
 
@@ -10,8 +10,9 @@ import { toast } from "sonner";
 import type { BusinessDoc } from "@/lib/docs/docs-api";
 import type { DocFooter, DocHeader } from "@/lib/docs/types";
 import { docTypeLabel } from "@/lib/docs/types";
+import { importKind } from "@/lib/docs/model";
 import {
-  buildExactPdf,
+  buildExactForImport,
   downloadWordSource,
   exactErrorMessage,
   exactPdfFilename,
@@ -34,7 +35,8 @@ type Props = {
 export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, onDownloaded }: Props) {
   const source = doc.model.wordImport;
   const letterhead = useMemo(() => letterheadFor(doc, header, footer), [doc, header, footer]);
-  const key = JSON.stringify([source?.sourcePath, letterhead]);
+  const key = JSON.stringify([source?.sourcePath, source?.crop, letterhead]);
+  const isPdf = importKind(source) === "pdf";
 
   const [pdf, setPdf] = useState<Uint8Array | null>(null);
   const [url, setUrl] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, o
     setError(null);
     const t = setTimeout(() => {
       downloadWordSource(source.sourcePath)
-        .then((buf) => buildExactPdf(buf, letterhead, {
+        .then((buf) => buildExactForImport(buf, source, letterhead, {
           cache: cache.current,
           title: `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`,
         }))
@@ -87,8 +89,8 @@ export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, o
   const openEditor = () => {
     const ok = window.confirm(
       ar
-        ? "سيتم فتح نسخة قابلة للتعديل من الملف. هذه النسخة أقل دقة من ملف Word الأصلي، وسيُستخدم المحرر بدل التنسيق الدقيق. متابعة؟"
-        : "This opens an editable copy of the file. It is less accurate than the original Word file, and the editor will replace the exact layout. Continue?",
+        ? "سيتم فتح نسخة قابلة للتعديل من الملف. هذه النسخة أقل دقة من الملف الأصلي، وسيُستخدم المحرر بدل التنسيق الدقيق (يمكنك الرجوع إليه لاحقاً). متابعة؟"
+        : "This opens an editable copy of the file. It is less accurate than the original, and the editor replaces the exact layout (you can switch back later). Continue?",
     );
     if (ok) {
       onOpenEditor();
@@ -101,13 +103,13 @@ export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, o
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "10px 14px", borderBottom: "1px solid var(--border)" }}>
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0, marginInlineEnd: "auto" }}>
           <span style={{ fontSize: 13, fontWeight: 800 }}>
-            {ar ? "تنسيق Word الدقيق" : "Exact Word layout"}
+            {ar ? "التنسيق الدقيق" : "Exact layout"}
             {pages > 0 && <span style={{ fontWeight: 600, color: "var(--muted-foreground)" }}> · {ar ? `${pages} صفحة` : `${pages} page${pages === 1 ? "" : "s"}`}</span>}
           </span>
           <span style={{ fontSize: 11.5, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {source?.fileName || (ar ? "ملف Word" : "Word file")}
+            {source?.fileName || (isPdf ? "PDF" : ar ? "ملف Word" : "Word file")}
             {" — "}
-            {ar ? "لتعديل المحتوى عدّل ملف Word واستورده من جديد." : "To change the content, edit the Word file and import it again."}
+            {ar ? "لتعديل المحتوى عدّل الملف الأصلي واستورده من جديد، أو افتحه في المحرر." : "To change the content, edit the original file and import it again, or open it in the editor."}
           </span>
         </div>
         {actions}
@@ -140,7 +142,7 @@ export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, o
         {busy && (
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 13, fontWeight: 700 }}>
             <Loader2 size={20} className="spin" style={{ color: "var(--primary)" }} />
-            {ar ? "محرّك Word يجهّز المستند…" : "The Word engine is preparing the document…"}
+            {ar ? "جارٍ تجهيز المستند بالتنسيق الدقيق…" : "Preparing the document in the exact layout…"}
           </div>
         )}
       </div>

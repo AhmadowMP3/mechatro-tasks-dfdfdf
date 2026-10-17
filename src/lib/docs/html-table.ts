@@ -65,7 +65,7 @@ function inkOf(cell: Element): string | null {
   const colours = new Set<string>();
   const walker = cell.ownerDocument.createTreeWalker(cell, 4 /* NodeFilter.SHOW_TEXT */);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    if (!(node.nodeValue ?? "").replace(/[\s ​-‏‪-‮]/g, "")) continue;
+    if (!(node.nodeValue ?? "").replace(/[\s\u00A0\u200B-\u200F\u202A-\u202E]/g, "")) continue;
     let colour = "";
     for (let el = node.parentElement; el && el !== cell; el = el.parentElement) {
       colour = el.style?.color ?? "";

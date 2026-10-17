@@ -9,8 +9,12 @@
 
 import { makeCell, makeRun, makeTable, type DocAlign, type DocBlock, type DocCell } from "../doc-model";
 
-/** One piece of text on a page. Coordinates in PDF points, y measured from the top. */
-export type TextBox = { text: string; x: number; y: number; w: number; h: number };
+/**
+ * One piece of text on a page. Coordinates in PDF points, y measured from the
+ * top. `word` marks a box that is a whole word (OCR): neighbours always get a
+ * space between them, however tight the gap.
+ */
+export type TextBox = { text: string; x: number; y: number; w: number; h: number; word?: true };
 
 export type PageText = {
   width: number;
@@ -43,9 +47,9 @@ export type PageLayout = {
   tables: string[][][];
 };
 
-const ARABIC = /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/g;
+const ARABIC = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/g;
 const LATIN = /[A-Za-z]/g;
-const INVISIBLE = /[​-‏‪-‮⁦-⁩﻿]/g;
+const INVISIBLE = /[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
 
 /** Right-to-left as soon as Arabic is a real part of the line ("AutoCAD + PDF ملفات"). */
 export function isRtlText(s: string): boolean {
@@ -54,7 +58,7 @@ export function isRtlText(s: string): boolean {
   return ar > 0 && ar >= la * 0.3;
 }
 
-const clean = (s: string) => s.replace(INVISIBLE, "").replace(/ /g, " ").replace(/\s+/g, " ").trim();
+const clean = (s: string) => s.replace(INVISIBLE, "").replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim();
 
 const median = (xs: number[]): number => {
   if (xs.length === 0) return 0;
@@ -109,10 +113,11 @@ function buildLine(boxes: TextBox[]): Line {
   const segments: Segment[] = [];
   let cur: { x0: number; x1: number; parts: string[] } | null = null;
   let prevEdge = 0;
+  let prevWord = false;
   for (const b of ordered) {
     const gap = rtl ? prevEdge - (b.x + b.w) : b.x - prevEdge;
     if (cur && gap <= colGap) {
-      cur.parts.push(gap > wordGap ? " " : "", b.text);
+      cur.parts.push(gap > wordGap || (prevWord && b.word) ? " " : "", b.text);
       cur.x0 = Math.min(cur.x0, b.x);
       cur.x1 = Math.max(cur.x1, b.x + b.w);
     } else {
@@ -120,6 +125,7 @@ function buildLine(boxes: TextBox[]): Line {
       cur = { x0: b.x, x1: b.x + b.w, parts: [b.text] };
     }
     prevEdge = rtl ? b.x : b.x + b.w;
+    prevWord = b.word === true;
   }
   if (cur) segments.push({ x0: cur.x0, x1: cur.x1, text: clean(cur.parts.join("")) });
   const kept = mergeMarkers(segments.filter((s) => s.text));
@@ -238,7 +244,10 @@ export function findTableRegions(lines: Line[]): Region[] {
     }
     const slice = lines.slice(start, end + 1);
     const rows = groupRows(slice);
-    if (rows.length >= 2 && columnsOf(slice).length >= 2) {
+    // Two side-by-side blocks of lines ("Bill To…" | "Invoice No.…") form one
+    // row: still a table, its cells stacked line by line.
+    const sideBySide = rows.length === 1 && slice.filter((l) => l.segments.length >= 2).length >= 2;
+    if ((rows.length >= 2 || sideBySide) && columnsOf(slice).length >= 2) {
       regions.push({ start, end });
       i = end + 1;
     } else {
@@ -278,16 +287,38 @@ function groupRows(lines: Line[]): Line[][] {
   return rows;
 }
 
-function buildTable(lines: Line[], rtl: boolean, body: { x0: number; x1: number }): { block: DocBlock; grid: string[][] } {
+function buildTable(
+  lines: Line[],
+  rtl: boolean,
+  body: { x0: number; x1: number },
+): { block: DocBlock; grid: string[][]; stacked: string[][] | null } {
   const cols = columnsOf(lines);
   const n = cols.length;
   // Logical order: right-to-left tables are read from the rightmost column.
   const order = cols.map((_, i) => i).sort((a, b) => (rtl ? cols[b]!.x1 - cols[a]!.x1 : cols[a]!.x0 - cols[b]!.x0));
   const logicalOf = new Map(order.map((col, k) => [col, k]));
+  const rowGroups = groupRows(lines);
+
+  // One row of side-by-side blocks: every line stays its own paragraph.
+  if (rowGroups.length === 1) {
+    const stacked: string[][] = Array.from({ length: n }, () => []);
+    for (const line of [...lines].sort((a, b) => a.y - b.y)) {
+      for (const s of line.segments) {
+        const covered = coveredColumns(s, cols).map((ci) => logicalOf.get(ci)!).sort((a, b) => a - b);
+        if (covered.length > 0) stacked[covered[0]!]!.push(s.text);
+      }
+    }
+    const cells = stacked.map((paras) => makeCell(paras.length ? paras.map((t) => [makeRun(t)]) : [[]]));
+    const block = makeTable(
+      { headerRow: false, columns: n, rows: [cells] },
+      { widthPct: 100, align: rtl ? "right" : "left", rtl },
+    );
+    return { block, grid: [stacked.map((p) => p.join(" "))], stacked };
+  }
 
   const grid: string[][] = [];
   const rows: DocCell[][] = [];
-  for (const rowLines of groupRows(lines)) {
+  for (const rowLines of rowGroups) {
     // Collect each segment's text into the (logical) columns it covers.
     const texts: string[][] = Array.from({ length: n }, () => []);
     const spans = new Map<number, number>(); // first logical column → span
@@ -330,13 +361,13 @@ function buildTable(lines: Line[], rtl: boolean, body: { x0: number; x1: number 
       rtl,
     },
   );
-  return { block, grid };
+  return { block, grid, stacked: null };
 }
 
 /* ── paragraphs & lists ────────────────────────────────────────── */
 
 const BULLET = /^[●•▪■◦○‣∙·\-–*]\s*/;
-const NUMBERED = /^(?:\(?[0-9٠-٩]{1,3}[.)\-]|[a-zA-Z][.)])\s+/;
+const NUMBERED = /^(?:\(?[0-9٠-٩]{1,3}[.)-]|[a-zA-Z][.)])\s+/;
 
 function alignOf(line: Line, bodyX0: number, bodyX1: number): DocAlign {
   const bodyW = bodyX1 - bodyX0 || 1;
@@ -395,10 +426,15 @@ export function linesToLayout(lines: Line[], opts: { rtl?: boolean } = {}): Page
     const region = regions.find((r) => r.start === i);
     if (region) {
       flush();
-      const { block, grid } = buildTable(lines.slice(region.start, region.end + 1), pageRtl, { x0: bodyX0, x1: bodyX1 });
+      const { block, grid, stacked } = buildTable(lines.slice(region.start, region.end + 1), pageRtl, { x0: bodyX0, x1: bodyX1 });
       blocks.push(block);
-      tables.push(grid);
-      grid.forEach((r) => text.push(r.filter(Boolean).join(" | ")));
+      if (stacked) {
+        // Side-by-side blocks read as their own lines ("Bill To: …", "Attn: …").
+        stacked.forEach((paras) => text.push(...paras));
+      } else {
+        tables.push(grid);
+        grid.forEach((r) => text.push(r.filter(Boolean).join(" | ")));
+      }
       i = region.end;
       continue;
     }
@@ -454,7 +490,7 @@ export function mapLayoutText(layout: PageLayout, fix: (s: string) => string): P
       case "list":
         return { ...b, items: b.items.map(runs) };
       case "table":
-        return { ...b, rows: b.rows.map((row) => row.map((cell) => ({ ...cell, paragraphs: cell.paragraphs.map(runs) }))) };
+        return { ...b, rows: b.rows.map((row) => row.map((cell): DocCell => ({ ...cell, paragraphs: cell.paragraphs.map(runs) }))) };
       default:
         return b;
     }

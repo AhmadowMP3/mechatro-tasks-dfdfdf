@@ -14,7 +14,7 @@ import { PaginatedDoc } from "@/components/documents/PaginatedDoc";
 import { A4_SIZE } from "@/lib/docs/geometry";
 import { DocEditor } from "@/components/documents/editor/DocEditor";
 import { EditorBoundary } from "@/components/documents/editor/EditorBoundary";
-import { ImportDocxDialog } from "@/components/documents/ImportDocxDialog";
+import { ImportDialog } from "@/components/documents/ImportDialog";
 import { ExactDocView } from "@/components/documents/ExactDocView";
 import { downloadExactPdf, exactErrorMessage } from "@/lib/docs/word-exact/exact-pdf";
 import { blocksToHtml, htmlToDocModel, needsConversion, needsModelConversion } from "@/lib/docs/convert-legacy";
@@ -214,7 +214,7 @@ function DocumentEditorPage() {
   );
   const importButton = (
     <button className="btn-ghost" onClick={() => setImporting(true)}>
-      <FileUp size={15} /> {ar ? "استيراد من Word" : "Import from Word"}
+      <FileUp size={15} /> {ar ? "استيراد Word / PDF" : "Import Word / PDF"}
     </button>
   );
   const saveButton = (
@@ -233,7 +233,7 @@ function DocumentEditorPage() {
           title={wordImport.fileName}
           onClick={() => patch({ theme: "light", model: { ...doc.model, wordImport: { ...wordImport, active: true } } })}
         >
-          <FileCheck2 size={15} /> {ar ? "تنسيق Word الدقيق" : "Exact Word layout"}
+          <FileCheck2 size={15} /> {ar ? "التنسيق الدقيق" : "Exact layout"}
         </button>
       )}
       <button className="btn-ghost" onClick={() => setPreviewOpen(true)}>
@@ -390,9 +390,9 @@ function DocumentEditorPage() {
         />
       </EditorBoundary>}
 
-      {/* ── Import a Word file into this document ──────────────── */}
+      {/* ── Import a Word or PDF file into this document ───────── */}
       {importing && (
-        <ImportDocxDialog
+        <ImportDialog
           ar={ar}
           mode="apply"
           number={doc.number}

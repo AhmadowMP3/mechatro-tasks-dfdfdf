@@ -10,7 +10,7 @@ import { docTemplates } from "@/lib/docs/api";
 import { exportDocPdf } from "@/lib/docs/export-doc";
 import { businessDocs, DOC_STATUS_LABELS, type BusinessDoc } from "@/lib/docs/docs-api";
 import { DOC_TYPES, docTypeLabel, type DocType } from "@/lib/docs/types";
-import { ImportDocxDialog } from "@/components/documents/ImportDocxDialog";
+import { ImportDialog } from "@/components/documents/ImportDialog";
 import { downloadExactPdf, exactErrorMessage } from "@/lib/docs/word-exact/exact-pdf";
 
 export const Route = createFileRoute("/_authenticated/documents/")({
@@ -163,7 +163,7 @@ function DocumentsListPage() {
           <div style={{ fontSize: 13, fontWeight: 700 }}>{ar ? "إنشاء مستند جديد" : "Create a new document"}</div>
           <button className="btn-primary" disabled={busy} onClick={() => setImporting(true)} style={{ marginInlineStart: "auto", minHeight: 40 }}>
             <FileUp size={15} />
-            {ar ? "استيراد من Word" : "Import from Word"}
+            {ar ? "استيراد Word / PDF" : "Import Word / PDF"}
           </button>
         </div>
         <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 190px), 1fr))" }}>
@@ -180,7 +180,7 @@ function DocumentsListPage() {
       </div>
 
       {importing && (
-        <ImportDocxDialog
+        <ImportDialog
           ar={ar}
           onClose={() => setImporting(false)}
           onCreated={(doc) => {

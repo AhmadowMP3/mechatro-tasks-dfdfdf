@@ -30,14 +30,31 @@ export type ItemRow = {
 /** Which rendering of the brand logo the letterhead uses. */
 export type LogoVariant = "auto" | "light" | "dark";
 
-/** A Word file imported in exact-layout mode (rendered by the Word engine). */
+/** Kind of original file behind an imported document. */
+export type ImportKind = "docx" | "pdf";
+
+/** Bands of an imported PDF's pages cut away (its own letterhead), in points. */
+export type ImportCrop = { topPt: number; bottomPt: number };
+
+/**
+ * An imported file kept for the exact layout. The name is historical — it
+ * also holds imported PDFs (`kind: "pdf"`).
+ */
 export type WordImport = {
-  /** Original .docx in the `doc-assets` bucket. */
+  /** Original file in the `doc-assets` bucket. */
   sourcePath: string;
   fileName: string;
-  /** true — the PDF is the Word render; false — the editable copy is used. */
+  /** true — the PDF is the exact render; false — the editable copy is used. */
   active: boolean;
+  /** Absent on documents imported before PDF support: Word. */
+  kind?: ImportKind;
+  /** PDF only: the original letterhead bands removed from every page. */
+  crop?: ImportCrop;
 };
+
+export function importKind(w: Pick<WordImport, "kind"> | undefined | null): ImportKind {
+  return w?.kind === "pdf" ? "pdf" : "docx";
+}
 
 export type DocModel = {
   /** Always 2 — Word-style rich HTML body. */
@@ -94,9 +111,17 @@ export function mergeModel(raw: unknown): DocModel {
         }
       : undefined;
   const w = r.wordImport as Partial<WordImport> | undefined;
+  const cropPt = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 2000 ? v : 0);
   const wordImport: WordImport | undefined =
     w && typeof w.sourcePath === "string" && w.sourcePath
-      ? { sourcePath: w.sourcePath, fileName: typeof w.fileName === "string" ? w.fileName : "", active: w.active !== false }
+      ? {
+          sourcePath: w.sourcePath,
+          fileName: typeof w.fileName === "string" ? w.fileName : "",
+          active: w.active !== false,
+          ...(w.kind === "pdf"
+            ? { kind: "pdf" as const, crop: { topPt: cropPt(w.crop?.topPt), bottomPt: cropPt(w.crop?.bottomPt) } }
+            : {}),
+        }
       : undefined;
   return {
     version: 2,

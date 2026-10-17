@@ -6,13 +6,16 @@
 //
 //   node scripts/sync-ocr-assets.mjs
 //
-// The language models (public/ocr/lang/*.traineddata.gz) come from the
-// official @tesseract.js-data packages (4.0.0_best_int) and change rarely;
-// pass a folder containing them as the first argument to refresh those too.
+// The language models (public/ocr/lang/*.traineddata) come from the official
+// @tesseract.js-data packages (4.0.0_best_int) and change rarely; pass a folder
+// containing their .traineddata.gz files as the first argument to refresh them.
+// They are stored uncompressed: servers send ".gz" with Content-Encoding: gzip,
+// which the browser unpacks before the OCR engine tries to unpack it again.
 
-import { copyFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { gunzipSync } from "node:zlib";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "public", "ocr");
@@ -33,13 +36,14 @@ const dataDir = process.argv[2];
 if (dataDir) {
   for (const file of readdirSync(dataDir, { recursive: true })) {
     const name = String(file);
-    if (/(ara|eng)\.traineddata\.gz$/.test(name) && name.includes("best_int")) {
-      copyFileSync(join(dataDir, name), join(out, "lang", name.split(/[\\/]/).pop()));
+    const m = /(ara|eng)\.traineddata\.gz$/.exec(name);
+    if (m && name.includes("best_int")) {
+      writeFileSync(join(out, "lang", `${m[1]}.traineddata`), gunzipSync(readFileSync(join(dataDir, name))));
     }
   }
 }
 
 for (const lang of ["ara", "eng"]) {
-  if (!existsSync(join(out, "lang", `${lang}.traineddata.gz`))) console.warn(`missing public/ocr/lang/${lang}.traineddata.gz`);
+  if (!existsSync(join(out, "lang", `${lang}.traineddata`))) console.warn(`missing public/ocr/lang/${lang}.traineddata`);
 }
 console.log("OCR assets synced to public/ocr");
