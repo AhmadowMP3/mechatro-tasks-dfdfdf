@@ -1,0 +1,7 @@
+# Vendored OCR engine, language models and fonts: byte-for-byte, never
+# line-ending converted (they are loaded as-is by the browser).
+public/ocr/** -text -diff
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.traineddata.gz binary

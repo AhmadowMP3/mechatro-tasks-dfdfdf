@@ -137,7 +137,7 @@ export function DocPaper({ header, footer, section, lang, theme, meta, page, sca
       }}
     >
       {/* ── Header band (identical on every template) ───────────── */}
-      <div ref={headerRef} style={{ padding: `${headerTop}px ${chromeSide}px 0`, flexShrink: 0, position: "relative", zIndex: 3, background: c.bg }}>
+      <div ref={headerRef} data-doc-header style={{ padding: `${headerTop}px ${chromeSide}px 0`, flexShrink: 0, position: "relative", zIndex: 3, background: c.bg }}>
         {/* Logo band — full width so a tall logo never squeezes the title */}
         {header.showLogo && mode === "band" && (
           <div style={{ display: "flex", justifyContent: header.logoAlign === "center" ? "center" : header.logoAlign === "end" ? (ar ? "flex-start" : "flex-end") : (ar ? "flex-end" : "flex-start"), marginBottom: 10 }}>

@@ -55,6 +55,30 @@ function fillOf(cell: Element): string | null {
 
 
 /**
+ * The text colour of a cell, when every piece of text in it has the same
+ * explicit colour (Word writes white on its coloured header rows). Text with
+ * no colour of its own makes the answer "none" — the ink is then derived.
+ */
+function inkOf(cell: Element): string | null {
+  const own = cell.getAttribute("data-ink") || (cell as HTMLElement).style?.color || "";
+  if (own) return own;
+  const colours = new Set<string>();
+  const walker = cell.ownerDocument.createTreeWalker(cell, 4 /* NodeFilter.SHOW_TEXT */);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!(node.nodeValue ?? "").replace(/[\s ​-‏‪-‮]/g, "")) continue;
+    let colour = "";
+    for (let el = node.parentElement; el && el !== cell; el = el.parentElement) {
+      colour = el.style?.color ?? "";
+      if (colour) break;
+    }
+    if (!colour) return null;
+    colours.add(colour.replace(/\s+/g, "").toLowerCase());
+    if (colours.size > 1) return null;
+  }
+  return colours.size === 1 ? [...colours][0]! : null;
+}
+
+/**
  * Read a table element into canonical rows. Cells absorbed by a rowSpan above
  * them are not emitted; `columns` stays the full grid width.
  */
@@ -74,6 +98,7 @@ export function readHtmlTable(
           colSpan: intAttr(cell, "colspan"),
           rowSpan: intAttr(cell, "rowspan"),
           fill: fillOf(cell),
+          ink: inkOf(cell),
         }),
       ),
   );

@@ -47,6 +47,12 @@ export type DocCell = {
   rowSpan: number;
   /** "#RRGGBB" from the source document, or absent. */
   fill?: string;
+  /**
+   * "#RRGGBB" text colour of a shaded cell, when the source wrote one for all
+   * of its text (white on Word's coloured header rows). Only kept with a fill;
+   * without it the ink is derived from the fill (`inkForFill`).
+   */
+  ink?: string;
 };
 
 
@@ -185,6 +191,7 @@ export function isDocCell(value: unknown): value is DocCell {
   if (!Number.isInteger(c.colSpan) || (c.colSpan as number) < 1) return false;
   if (!Number.isInteger(c.rowSpan) || (c.rowSpan as number) < 1) return false;
   if ("fill" in c && c.fill !== undefined && !(typeof c.fill === "string" && FILL_RE.test(c.fill))) return false;
+  if ("ink" in c && c.ink !== undefined && !(typeof c.ink === "string" && FILL_RE.test(c.ink))) return false;
   return true;
 }
 
@@ -208,6 +215,58 @@ export function normaliseFill(raw: string | null | undefined): string | undefine
   return undefined;
 }
 
+/** Ink on light fills and on dark fills — the paper's own ink colours. */
+export const INK_ON_LIGHT = "#0B1A2A";
+export const INK_ON_DARK = "#FFFFFF";
+
+/**
+ * Readable text colour for a shaded cell. The model carries no text colour,
+ * so the ink is derived from the fill: Word's white-on-blue section rows stay
+ * white-on-blue, and a pale fill keeps dark text — on either paper theme.
+ */
+export function inkForFill(fill: string | null | undefined): string | undefined {
+  const hex = normaliseFill(fill);
+  if (!hex) return undefined;
+  // White reads better than its ratio suggests on mid-tone fills (teal,
+  // orange), which is also what Word documents put there — so white wins as
+  // soon as it clears 3:1, and the higher ratio decides below that.
+  const white = contrastRatio(INK_ON_DARK, hex);
+  if (white >= 3) return INK_ON_DARK;
+  return white >= contrastRatio(INK_ON_LIGHT, hex) ? INK_ON_DARK : INK_ON_LIGHT;
+}
+
+/**
+ * Inline style for a shaded cell: its fill plus its ink — the source's own
+ * text colour when it has one that is readable, otherwise the derived one.
+ */
+export function cellFillStyle(fill: string | null | undefined, ink?: string | null): string {
+  const hex = normaliseFill(fill);
+  if (!hex) return "";
+  return `background-color:${hex};color:${cellInk(hex, ink)}`;
+}
+
+/** WCAG contrast ratio between two "#RRGGBB" colours. */
+export function contrastRatio(a: string, b: string): number {
+  const lum = (hex: string) => {
+    const ch = (i: number) => {
+      const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * ch(1) + 0.7152 * ch(3) + 0.0722 * ch(5);
+  };
+  const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+  return (x + 0.05) / (y + 0.05);
+}
+
+/** Ink for a shaded cell; a source colour that would be unreadable is replaced. */
+export function cellInk(fill: string, ink?: string | null): string {
+  const own = normaliseFill(ink);
+  // 2.5:1 keeps Word's white-on-orange header rows, and still rejects the
+  // dark-on-dark text that made imported section rows unreadable.
+  if (own && contrastRatio(own, fill) >= 2.5) return own;
+  return inkForFill(fill) ?? INK_ON_LIGHT;
+}
+
 /**
  * Build a cell. Accepts either the canonical nested paragraphs or a flat run
  * list (legacy callers / stored documents), which becomes a single paragraph.
@@ -215,7 +274,7 @@ export function normaliseFill(raw: string | null | undefined): string | undefine
  */
 export function makeCell(
   content: DocRun[] | DocRun[][],
-  opts: { colSpan?: number; rowSpan?: number; fill?: string | null } = {},
+  opts: { colSpan?: number; rowSpan?: number; fill?: string | null; ink?: string | null } = {},
 ): DocCell {
   const nested: DocRun[][] = Array.isArray(content) && content.every((p) => Array.isArray(p))
     ? (content as DocRun[][])
@@ -227,7 +286,11 @@ export function makeCell(
     rowSpan: Math.max(1, Math.round(opts.rowSpan ?? 1)),
   };
   const fill = normaliseFill(opts.fill);
-  if (fill) cell.fill = fill;
+  if (fill) {
+    cell.fill = fill;
+    const ink = normaliseFill(opts.ink);
+    if (ink) cell.ink = ink;
+  }
   return cell;
 }
 
@@ -430,6 +493,7 @@ export function toTipTapJSON(doc: DocumentModel, bodyWidthPx: number): JSONNode 
                     rowspan: cell.rowSpan,
                     colwidth: widths.length === cell.colSpan ? widths : null,
                     backgroundColor: cell.fill ?? null,
+                    ink: cell.ink ?? null,
                   },
                   content: cell.paragraphs.map((p) => paraJSON(p)),
                 };
@@ -491,6 +555,7 @@ export function fromTipTapJSON(json: unknown, bodyWidthPx: number): DocumentMode
               colSpan: Number(cell.attrs?.colspan ?? 1),
               rowSpan: Number(cell.attrs?.rowspan ?? 1),
               fill: typeof cell.attrs?.backgroundColor === "string" ? cell.attrs.backgroundColor : null,
+              ink: typeof cell.attrs?.ink === "string" ? cell.attrs.ink : null,
             });
           }),
         );
@@ -605,7 +670,9 @@ export function toHtml(doc: DocumentModel): string {
             .map((cell) => {
               const cs = cell.colSpan > 1 ? ` colspan="${cell.colSpan}"` : "";
               const rs = cell.rowSpan > 1 ? ` rowspan="${cell.rowSpan}"` : "";
-              const bg = cell.fill ? ` style="background-color:${cell.fill}"` : "";
+              const bg = cell.fill
+                ? ` style="${cellFillStyle(cell.fill, cell.ink)}"${cell.ink ? ` data-ink="${cell.ink}"` : ""}`
+                : "";
               const body = cell.paragraphs.map((p) => `<p>${runsHtml(p)}</p>`).join("");
               return `<${tag}${cs}${rs}${bg}>${body}</${tag}>`;
 

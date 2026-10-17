@@ -82,6 +82,8 @@ const HTML_CONFIG: Record<string, unknown> = {
     "data-items", "data-doc-field", "data-page-break", "data-continued", "data-align",
     "data-colwidth", "data-color", "data-background-color",
     "data-width-pct", "data-table-align",
+    // Shaded table cells: fill and the text colour that goes with it.
+    "data-bg", "data-ink",
   ],
   // Allowed schemes, plus DOMPurify's own "not a URI at all" tail so plain
   // attribute values (colspan="2", dir="rtl", style="…") are not rejected.

@@ -68,7 +68,7 @@ export async function buildExactPdf(
 
   opts.onStep?.("letterhead");
   const pages = await pdfPageCount(content);
-  const html = await letterheadHtml(letterhead, pages);
+  const html = await letterheadHtml(letterhead, pages, bands.lock);
   const { pdfBase64: sheets } = await renderLetterheadPdf({ data: { html } });
   const pdf = await overlayLetterhead(content, base64ToBytes(sheets), { title: opts.title });
   return { pdf, pages, ...info };

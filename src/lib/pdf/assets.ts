@@ -73,3 +73,25 @@ export function loadArabicFontB64(): Promise<string | null> {
 
 /** URL to Montserrat Arabic asset — reusable as a @font-face src. */
 export const arabicFontUrl = fontUrl;
+
+/** Montserrat (Latin, variable weight 100–900), served by the app itself. */
+export const latinFontUrl = "/fonts/Montserrat-Variable.ttf";
+
+let latinPromise: Promise<string | null> | null = null;
+
+export function loadLatinFontB64(): Promise<string | null> {
+  if (!latinPromise) {
+    latinPromise = (async () => {
+      try {
+        const res = await fetch(latinFontUrl);
+        if (!res.ok) return null;
+        return arrayBufferToBase64(await res.arrayBuffer());
+      } catch {
+        return null;
+      }
+    })();
+    // A failed load must not stick for the whole session.
+    latinPromise.then((v) => { if (v === null) latinPromise = null; });
+  }
+  return latinPromise;
+}

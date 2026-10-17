@@ -7,6 +7,8 @@ import { Table } from "@tiptap/extension-table";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 
+import { cellFillStyle } from "@/lib/docs/doc-model";
+
 const FILL_RE = /^#[0-9A-Fa-f]{6}$/;
 
 const toHex = (raw: string | null | undefined): string | null => {
@@ -32,8 +34,16 @@ const backgroundColor = {
     renderHTML: (attrs: Record<string, unknown>) => {
       const color = toHex(typeof attrs.backgroundColor === "string" ? attrs.backgroundColor : null);
       if (!color) return {};
-      return { "data-bg": color, style: `background-color:${color}` };
+      // The ink follows the fill, so a dark Word section row stays readable.
+      const ink = toHex(typeof attrs.ink === "string" ? attrs.ink : null);
+      return { "data-bg": color, ...(ink ? { "data-ink": ink } : {}), style: cellFillStyle(color, ink) };
     },
+  },
+  /** Source text colour of a shaded cell (rendered by `backgroundColor`). */
+  ink: {
+    default: null as string | null,
+    parseHTML: (el: HTMLElement) => toHex(el.getAttribute("data-ink")),
+    renderHTML: () => ({}),
   },
 };
 
