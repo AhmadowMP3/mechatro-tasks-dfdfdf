@@ -50,6 +50,16 @@ function bytesToBase64(bytes: Uint8Array): string {
 const BUSY_STATUSES = new Set([429, 502, 503, 504]);
 const BUSY_RETRY_DELAY_MS = 2_000;
 
+/** Which engine the app is configured to call — shown in errors, never secrets. */
+function engineHost(base: string): string {
+  try {
+    const url = new URL(base);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return "invalid GOTENBERG_URL";
+  }
+}
+
 async function callEngine(route: string, form: FormData): Promise<Uint8Array> {
   const base = (process.env["GOTENBERG_URL"] ?? "").replace(/\/+$/, "");
   if (!base) throw new Error("word_engine_not_configured");
@@ -71,8 +81,8 @@ async function callEngine(route: string, form: FormData): Promise<Uint8Array> {
         signal: AbortSignal.timeout(ENGINE_TIMEOUT_MS),
       });
     } catch (e) {
-      console.error("[word-engine] unreachable", e);
-      throw new Error("word_engine_unreachable");
+      console.error(`[word-engine] unreachable at ${engineHost(base)}`, e);
+      throw new Error(`word_engine_unreachable @${engineHost(base)}`);
     }
     if (res.ok) return new Uint8Array(await res.arrayBuffer());
 
@@ -85,7 +95,7 @@ async function callEngine(route: string, form: FormData): Promise<Uint8Array> {
     // The status and the engine's own words reach the dialog, so a failure can
     // be diagnosed without server logs.
     const step = route.includes("libreoffice") ? "word" : "letterhead";
-    throw new Error(`word_engine_failed_${res.status} [${step}] ${detail}`);
+    throw new Error(`word_engine_failed_${res.status} [${step}] ${detail} @${engineHost(base)}`);
   }
 }
 

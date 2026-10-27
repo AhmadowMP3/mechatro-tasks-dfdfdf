@@ -223,17 +223,25 @@ export function exactErrorMessage(e: unknown, ar: boolean): string {
   const pick = (a: string, en: string) => (ar ? a : en);
   if (/word_engine_not_configured/.test(msg))
     return pick("محرّك المستندات غير مُعدّ على السيرفر بعد (GOTENBERG_URL).", "The document engine isn't set up on the server yet (GOTENBERG_URL).");
-  if (/word_engine_unreachable/.test(msg))
-    return pick("تعذّر الوصول إلى محرّك المستندات على السيرفر. تأكّد أن خدمة gotenberg تعمل.", "The document engine on the server can't be reached. Check that the gotenberg service is running.");
+  const unreachable = /word_engine_unreachable(?:\s*@(\S+))?/.exec(msg);
+  if (unreachable) {
+    const at = unreachable[1] ? ` (${unreachable[1]})` : "";
+    return pick(
+      `تعذّر الوصول إلى محرّك المستندات على السيرفر${at}. تأكّد أن خدمة gotenberg تعمل.`,
+      `The document engine on the server can't be reached${at}. Check that the gotenberg service is running.`,
+    );
+  }
   const engineFailure = /word_engine_failed_(\d+)(?:\s*\[(\w+)\])?\s*(.*)/.exec(msg);
   if (engineFailure) {
-    const [, status, step, detail] = engineFailure;
+    const [, status, step, rest] = engineFailure;
+    const at = /\s*@(\S+)$/.exec(rest);
+    const detail = (at ? `${rest.slice(0, at.index).slice(0, 120)} · ${at[1]}` : rest).trim();
     if (status === "401")
       return pick(
         "محرّك المستندات رفض الاتصال (HTTP 401): اسم المستخدم/كلمة المرور على التطبيق (GOTENBERG_USERNAME / GOTENBERG_PASSWORD) لا تطابق المحرّك.",
         "The document engine refused the app (HTTP 401): the app's GOTENBERG_USERNAME / GOTENBERG_PASSWORD don't match the engine's.",
       );
-    const code = `HTTP ${status}${step ? ` · ${step}` : ""}${detail ? ` · ${detail.slice(0, 160)}` : ""}`;
+    const code = `HTTP ${status}${step ? ` · ${step}` : ""}${detail ? ` · ${detail}` : ""}`;
     return pick(
       `فشل محرّك المستندات في تحويل الملف (${code}).`,
       `The document engine couldn't convert this file (${code}).`,
