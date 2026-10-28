@@ -74,7 +74,7 @@ export async function measureInChrome(input: LetterheadInput): Promise<MeasuredL
           headerPx: q('[data-doc-header]').height,
           footerPx: q('[data-doc-footer]').height,
           bodyTop: q('[data-doc-body-content]').top - top,
-          footerTop: q('[data-doc-footer]').top - top,
+          footerTop: q('[data-qr-slot]').top - top,
         }));
       });
     </script></body>`,

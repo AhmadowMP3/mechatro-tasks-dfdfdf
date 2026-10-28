@@ -18,7 +18,16 @@ import type { DocFooter, DocHeader } from "@/lib/docs/types";
 import { docTypeLabel } from "@/lib/docs/types";
 
 import { overlayLetterhead, pdfPageCount, trimTrailingBlankPages } from "./compose";
-import { letterheadHtml, measureLetterhead, type LetterheadInput, type MeasuredLetterhead } from "./letterhead";
+import { prepareShare, saveSharePayload } from "@/lib/share/public-share";
+
+import {
+  A4_HEIGHT_PX,
+  A4_WIDTH_PX,
+  letterheadHtml,
+  measureLetterhead,
+  type LetterheadInput,
+  type MeasuredLetterhead,
+} from "./letterhead";
 import { assertNoActiveContent, prepareDocxForLetterhead } from "./prepare-docx";
 
 const BUCKET = "doc-assets";
@@ -41,7 +50,13 @@ export type ExactPdf = {
 /** Reuses the content render while the letterhead bands (and crop) stay the same. */
 export type ExactPdfCache = { key?: string; content?: Uint8Array; info?: Omit<ExactPdf, "pdf" | "pages"> };
 
-type BuildOpts = { title?: string; cache?: ExactPdfCache; onStep?: (step: ExactStep) => void };
+type BuildOpts = {
+  title?: string;
+  cache?: ExactPdfCache;
+  onStep?: (step: ExactStep) => void;
+  /** QR of the read-only copy, printed in the strip above the footer of the last page. */
+  qrDataUrl?: string;
+};
 
 function bytesToBase64(bytes: Uint8Array): string {
   let bin = "";
@@ -63,7 +78,7 @@ const toBytes = (source: ArrayBuffer | Uint8Array) => (source instanceof Uint8Ar
 async function withLetterhead(content: Uint8Array, letterhead: LetterheadInput, bands: MeasuredLetterhead, opts: BuildOpts) {
   opts.onStep?.("letterhead");
   const pages = await pdfPageCount(content);
-  const html = await letterheadHtml(letterhead, pages, bands.lock);
+  const html = await letterheadHtml(letterhead, pages, bands.lock, opts.qrDataUrl);
   const { pdfBase64: sheets } = await renderLetterheadPdf({ data: { html } });
   const pdf = await overlayLetterhead(content, base64ToBytes(sheets), { title: opts.title });
   return { pdf, pages };
@@ -210,11 +225,51 @@ export function savePdf(pdf: Uint8Array, filename: string): void {
 export async function downloadExactPdf(doc: BusinessDoc, header: DocHeader, footer: DocFooter): Promise<void> {
   const imported = doc.model.wordImport;
   if (!imported?.sourcePath) throw new Error("word_source_missing");
-  const source = await downloadWordSource(imported.sourcePath);
+  const title = `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`;
+  // Same link as the editor's own export of this document; never blocks the download.
+  const [source, share] = await Promise.all([
+    downloadWordSource(imported.sourcePath),
+    prepareShare({ kind: "business_doc", refId: doc.id, title, lang: doc.lang }),
+  ]);
   const res = await buildExactForImport(source, imported, letterheadFor(doc, header, footer), {
-    title: `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`,
+    title,
+    qrDataUrl: share?.qrDataUrl,
   });
   savePdf(res.pdf, exactPdfFilename(doc));
+  if (share) void publishReadOnlyCopy(share.token, res.pdf, title);
+}
+
+/** Page images of the read-only copy: sharp on phones, light enough for many pages. */
+const COPY_RENDER_SCALE = 1.6;
+const COPY_JPEG_QUALITY = 0.8;
+
+/**
+ * Store the finished PDF as page images for /v/{token}: the web copy is the
+ * exact same pages, with nothing selectable or downloadable as a file.
+ */
+async function publishReadOnlyCopy(token: string, pdf: Uint8Array, title: string): Promise<void> {
+  try {
+    const { openPdf, closePdf, renderPage } = await import("@/lib/docs/import/pdf-read");
+    const doc = await openPdf(pdf);
+    const width = Math.round(A4_WIDTH_PX);
+    const height = Math.round(A4_HEIGHT_PX);
+    const pages: string[] = [];
+    try {
+      for (let i = 1; i <= doc.numPages; i++) {
+        const canvas = await renderPage(doc, i, COPY_RENDER_SCALE);
+        const src = canvas.toDataURL("image/jpeg", COPY_JPEG_QUALITY);
+        pages.push(
+          `<div class="doc-page" style="width:${width}px;height:${height}px;background:#fff;overflow:hidden">` +
+            `<img src="${src}" alt="" draggable="false" style="width:100%;height:100%;display:block"/></div>`,
+        );
+      }
+    } finally {
+      await closePdf(doc);
+    }
+    await saveSharePayload(token, { html: pages.join(""), width, pageHeight: height, background: "#081320", title });
+  } catch (e) {
+    console.warn("read-only copy not stored:", e);
+  }
 }
 
 /** Human message for every error the import and exact pipelines throw. */

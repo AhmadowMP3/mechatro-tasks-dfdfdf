@@ -9,15 +9,22 @@ export const QR_ROW_H = 92;
 const CAPTION_AR = "امسح للاطلاع على نسخة للقراءة فقط";
 const CAPTION_EN = "Scan for a read-only copy";
 
+/** Caption colours: "dark" for the dark document themes, "light" for white paper. */
+const TONES = {
+  dark: { second: "#94A3B8", caption: "#CBD5E1", qrBorder: "transparent" },
+  light: { second: "#64748B", caption: "#334155", qrBorder: "#E2E8F0" },
+} as const;
+
 /** Markup for the stamp (used inside the print iframe / stored snapshot). */
-export function qrStampHtml(qrDataUrl: string, lang: "ar" | "en" = "ar"): string {
+export function qrStampHtml(qrDataUrl: string, lang: "ar" | "en" = "ar", tone: keyof typeof TONES = "dark"): string {
   const caption = lang === "ar" ? CAPTION_AR : CAPTION_EN;
   const second = lang === "ar" ? CAPTION_EN : CAPTION_AR;
+  const c = TONES[tone];
   return `<div class="mx-qr-stamp" dir="ltr" style="position:relative;display:flex;align-items:center;gap:9px;break-inside:avoid;page-break-inside:avoid">
-    <img src="${qrDataUrl}" alt="QR" style="width:${QR_SIZE}px;height:${QR_SIZE}px;display:block;background:#fff;border-radius:8px;padding:4px;box-sizing:border-box;flex:0 0 auto"/>
+    <img src="${qrDataUrl}" alt="QR" style="width:${QR_SIZE}px;height:${QR_SIZE}px;display:block;background:#fff;border:1px solid ${c.qrBorder};border-radius:8px;padding:4px;box-sizing:border-box;flex:0 0 auto"/>
     <div style="width:158px;line-height:1.35">
-      <div style="font-size:8.5px;color:#94A3B8;letter-spacing:.2px">${second}</div>
-      <div dir="rtl" style="font-size:9px;color:#CBD5E1;font-family:'Montserrat Arabic','Cairo',sans-serif;margin-top:2px">${caption}</div>
+      <div style="font-size:8.5px;color:${c.second};letter-spacing:.2px">${second}</div>
+      <div dir="rtl" style="font-size:9px;color:${c.caption};font-family:'Montserrat Arabic','Cairo',sans-serif;margin-top:2px">${caption}</div>
     </div>
   </div>`;
 }

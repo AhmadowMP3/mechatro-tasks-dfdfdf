@@ -4,6 +4,7 @@ import {
   A4_HEIGHT_PX,
   BAND_GAP_PX,
   bandsFrom,
+  fillQrSlot,
   letterheadFontFaces,
   letterheadFontStack,
   letterheadLockCss,
@@ -22,6 +23,20 @@ describe("bandsFrom", () => {
     const b = bandsFrom({ headerPx: 200.9, footerPx: 99.1, bodyTop: 200.2, footerTop: A4_HEIGHT_PX - 99.1 });
     expect(b.topPx).toBeGreaterThanOrEqual(b.lock.headerPx);
     expect(A4_HEIGHT_PX - b.bottomPx).toBeLessThanOrEqual(A4_HEIGHT_PX - b.lock.footerPx);
+  });
+});
+
+describe("QR strip", () => {
+  test("the stamp goes inside the QR strip, as rendered by React", () => {
+    const sheet = `<div><div data-doc-body-content="true"></div><div data-qr-slot="true" style="height:92px"></div><div data-doc-footer="true">f</div></div>`;
+    const out = fillQrSlot(sheet, `<i>QR</i>`);
+    expect(out).toContain(`<div data-qr-slot="true" style="height:92px"><i>QR</i></div>`);
+    expect(out).toContain(`<div data-doc-footer="true">f</div>`);
+  });
+
+  test("a sheet without a QR strip is left as it is", () => {
+    const sheet = `<div><div data-doc-footer="true">f</div></div>`;
+    expect(fillQrSlot(sheet, `<i>QR</i>`)).toBe(sheet);
   });
 });
 

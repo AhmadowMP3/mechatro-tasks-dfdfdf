@@ -7,7 +7,7 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Maximize2, Minus, Plus } from "lucide-react";
+import { Lock, Maximize2, Minus, Plus, ShieldCheck } from "lucide-react";
 import { fetchPublicShare, type PublicShareRow } from "@/lib/share/public-share";
 import { logoFor } from "@/lib/brand/logo";
 import { A4_SIZE } from "@/lib/docs/geometry";
@@ -35,24 +35,35 @@ const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 3;
 const MAX_HEIGHT = 60000; // hard stop so a runaway measurement can never scroll forever
 
-/** Repeated diagonal "not for printing" watermark, drawn as an inline SVG tile
- *  so it works inside the sandboxed iframe with no external fonts. */
-function watermarkTile(lang: "ar" | "en"): string {
+function escapeXml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/** Who/when stamp of this viewing: a leaked screenshot shows where it came from. */
+type ViewStamp = { title: string; viewedAt: string; ref: string };
+
+/** Repeated diagonal watermark, drawn as an inline SVG tile so it works inside
+ *  the sandboxed iframe with no external fonts: "not for printing" plus the
+ *  document, the time of this viewing and the link reference. */
+function watermarkTile(lang: "ar" | "en", stamp: ViewStamp): string {
   const ar = "غير مخصص للطباعة";
   const en = "NOT FOR PRINTING";
   const primary = lang === "ar" ? ar : en;
   const secondary = lang === "ar" ? en : ar;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="430" height="270" viewBox="0 0 430 270">
-  <g transform="rotate(-30 215 135)" text-anchor="middle" font-family="'Cairo','Montserrat Arabic','Segoe UI',sans-serif" font-weight="700">
-    <text x="215" y="128" font-size="34" fill="rgba(212,160,23,0.16)">${primary}</text>
-    <text x="215" y="160" font-size="17" letter-spacing="3" fill="rgba(148,163,184,0.16)">${secondary}</text>
+  const viewed = lang === "ar" ? `عُرض ${stamp.viewedAt}` : `Viewed ${stamp.viewedAt}`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="460" height="300" viewBox="0 0 460 300">
+  <g transform="rotate(-30 230 150)" text-anchor="middle" font-family="'Cairo','Montserrat Arabic','Segoe UI',sans-serif" font-weight="700">
+    <text x="230" y="118" font-size="32" fill="rgba(212,160,23,0.17)">${primary}</text>
+    <text x="230" y="146" font-size="15" letter-spacing="3" fill="rgba(148,163,184,0.17)">${secondary}</text>
+    <text x="230" y="172" font-size="12" fill="rgba(100,116,139,0.2)">MECHATRO · ${escapeXml(stamp.title)}</text>
+    <text x="230" y="190" font-size="11" fill="rgba(100,116,139,0.2)">${escapeXml(viewed)} · #${escapeXml(stamp.ref)}</text>
   </g>
 </svg>`;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
-function sheetCss(lang: "ar" | "en", width: number): string {
-  const tile = watermarkTile(lang);
+function sheetCss(lang: "ar" | "en", width: number, stamp: ViewStamp): string {
+  const tile = watermarkTile(lang, stamp);
   return `
   html, body {
     user-select: none !important; -webkit-user-select: none !important;
@@ -67,9 +78,13 @@ function sheetCss(lang: "ar" | "en", width: number): string {
     pointer-events: none; background-image: ${tile}; background-repeat: repeat;
   }
   #print-root:not(:has(.doc-page)) { position: relative; }
+  img { -webkit-user-drag: none; user-drag: none; -webkit-touch-callout: none; }
   @media print { html, body { display: none !important; } }
 `;
 }
+
+/** Shortcuts that print, save, copy, select all or view the source. */
+const BLOCKED_KEYS = new Set(["p", "s", "c", "x", "a", "u"]);
 
 function PublicDocView() {
   const { token } = Route.useParams();
@@ -90,21 +105,53 @@ function PublicDocView() {
     return () => { alive = false; };
   }, [token]);
 
-  // Block the browser print shortcut / context menu on this page.
+  // Block print / save / copy shortcuts, the context menu, copying and dragging.
+  // Screenshots can't be blocked by any web page: the page blurs whenever it
+  // loses focus (snipping tools, screen recorders, app switching) or Print
+  // Screen is pressed, and every page carries the personal watermark.
+  const [shielded, setShielded] = useState(false);
   useEffect(() => {
+    const block = (e: Event) => e.preventDefault();
+    const shield = () => setShielded(true);
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && ["p", "s"].includes(e.key.toLowerCase())) {
+      const key = e.key.toLowerCase();
+      if (key === "printscreen" || e.code === "PrintScreen") {
+        shield();
+        // Best effort: replace what Print Screen just put on the clipboard.
+        void navigator.clipboard?.writeText("").catch(() => undefined);
+        return;
+      }
+      // macOS screenshot shortcuts (⌘⇧3 / ⌘⇧4 / ⌘⇧5) start with ⌘⇧.
+      if (e.metaKey && e.shiftKey) shield();
+      if ((e.ctrlKey || e.metaKey) && BLOCKED_KEYS.has(key)) {
         e.preventDefault(); e.stopPropagation();
       }
     };
-    const onCtx = (e: MouseEvent) => e.preventDefault();
+    const onVisibility = () => { if (document.visibilityState === "hidden") shield(); };
+    const onFocus = () => setShielded(false);
+
     window.addEventListener("keydown", onKey, true);
-    window.addEventListener("contextmenu", onCtx);
+    window.addEventListener("keyup", onKey, true);
+    window.addEventListener("contextmenu", block);
+    for (const ev of ["copy", "cut", "dragstart", "selectstart"]) document.addEventListener(ev, block);
+    window.addEventListener("blur", shield);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.removeEventListener("keydown", onKey, true);
-      window.removeEventListener("contextmenu", onCtx);
+      window.removeEventListener("keyup", onKey, true);
+      window.removeEventListener("contextmenu", block);
+      for (const ev of ["copy", "cut", "dragstart", "selectstart"]) document.removeEventListener(ev, block);
+      window.removeEventListener("blur", shield);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
+
+  // Fixed for this viewing, so the watermark doesn't change while reading.
+  const [viewedAt] = useState(() =>
+    new Date().toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+  );
 
   const doc = row !== "loading" && row ? row : null;
   const lang = (doc?.lang === "en" ? "en" : "ar") as "ar" | "en";
@@ -116,11 +163,18 @@ function PublicDocView() {
   const srcDoc = useMemo(() => {
     if (!doc?.payload?.html) return null;
     const dir = lang === "ar" ? "rtl" : "ltr";
+    const stamp: ViewStamp = {
+      title: doc.title ?? doc.payload.title ?? "",
+      viewedAt,
+      ref: token.slice(-6).toUpperCase(),
+    };
     return `<!doctype html><html lang="${lang}" dir="${dir}"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<style>${doc.payload.css ?? ""}</style><style>${sheetCss(lang, pageW)}</style></head>
+<style>${doc.payload.css ?? ""}</style><style>${sheetCss(lang, pageW, stamp)}</style></head>
 <body><div id="print-root">${doc.payload.html}</div></body></html>`;
-  }, [doc, lang, pageW]);
+  }, [doc, lang, pageW, viewedAt, token]);
+
+  const issuedOn = doc?.created_at ? new Date(doc.created_at).toLocaleDateString("en-GB") : null;
 
   useEffect(() => {
     renderWidthRef.current = pageW;
@@ -303,7 +357,19 @@ function PublicDocView() {
           </div>
         )}
 
-        <div style={{ gridColumn: "1 / -1" }}>
+        <div style={{ gridColumn: "1 / -1", display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {doc && (
+            <span
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, padding: "5px 11px", borderRadius: 999,
+                background: "rgba(16,185,129,.12)", color: "#34D399", border: "1px solid rgba(16,185,129,.4)",
+              }}
+            >
+              <ShieldCheck size={13} />
+              {ar ? "مستند موثّق صادر عن ميكاترو" : "Verified document issued by Mechatro"}
+              {issuedOn && <span style={{ fontWeight: 500, opacity: 0.85 }}>· {issuedOn}</span>}
+            </span>
+          )}
           <span
             style={{
               display: "inline-block", fontSize: 11, fontWeight: 700, padding: "5px 11px", borderRadius: 999,
@@ -340,10 +406,30 @@ function PublicDocView() {
             </div>
           )}
 
+          {srcDoc && shielded && (
+            <button
+              type="button"
+              onClick={() => setShielded(false)}
+              style={{
+                position: "fixed", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                gap: 10, padding: 24, background: "rgba(5,12,21,.55)", color: "#E6EEF7", border: 0, cursor: "pointer", textAlign: "center",
+              }}
+            >
+              <Lock size={30} color="#F0C24B" />
+              <span style={{ fontSize: 15, fontWeight: 800 }}>{ar ? "المستند محمي" : "Protected document"}</span>
+              <span style={{ fontSize: 12, color: "#94A3B8", maxWidth: 320, lineHeight: 1.7 }}>
+                {ar ? "يُخفى المحتوى عند مغادرة الصفحة أو محاولة التقاط الشاشة. اضغط للمتابعة." : "The content is hidden when you leave the page or try to capture the screen. Tap to continue."}
+              </span>
+            </button>
+          )}
+
           {srcDoc && (
             <div
               ref={viewportRef}
-              style={{ width: "100%", maxWidth: "100%", overflowX: zoom === null ? "hidden" : "auto", direction: "ltr", WebkitOverflowScrolling: "touch" }}
+              style={{
+                width: "100%", maxWidth: "100%", overflowX: zoom === null ? "hidden" : "auto", direction: "ltr", WebkitOverflowScrolling: "touch",
+                filter: shielded ? "blur(28px)" : undefined, transition: "filter .12s",
+              }}
             >
               <div style={{ width: renderWidth * scale, height: frameHeight * scale, overflow: "hidden", margin: "0 auto", maxWidth: zoom === null ? "100%" : undefined }}>
                 <iframe

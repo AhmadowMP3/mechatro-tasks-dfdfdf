@@ -14,6 +14,7 @@
 import { DocPaper } from "@/components/documents/DocPaper";
 import { logoFor } from "@/lib/brand/logo";
 import { loadArabicFontB64, loadLatinFontB64 } from "@/lib/pdf/assets";
+import { qrStampHtml } from "@/lib/share/qr-stamp";
 import type { DocFooter, DocHeader, DocLang } from "@/lib/docs/types";
 import type { LogoVariant } from "@/lib/docs/model";
 
@@ -91,8 +92,19 @@ export function letterheadLockCss(lock: LetterheadLock | undefined): string {
   .lh-page [data-doc-footer] { height: ${f}px !important; min-height: ${f}px !important; max-height: ${f}px !important; overflow: hidden !important; box-sizing: border-box; }`;
 }
 
-/** Full HTML document with `total` letterhead sheets. */
-export async function letterheadHtml(input: LetterheadInput, total: number, lock?: LetterheadLock): Promise<string> {
+const EMPTY_QR_SLOT = /(<div data-qr-slot(?:="[^"]*")?[^>]*>)(<\/div>)/;
+
+/** Put the QR stamp into a sheet's (empty) QR strip. Pure, so it is unit-tested. */
+export function fillQrSlot(sheetMarkup: string, stampHtml: string): string {
+  return sheetMarkup.replace(EMPTY_QR_SLOT, (_m, open: string, close: string) => `${open}${stampHtml}${close}`);
+}
+
+/**
+ * Full HTML document with `total` letterhead sheets. The QR strip above the
+ * footer is part of the bottom band on every sheet; with `qrDataUrl` the last
+ * sheet carries the read-only-copy QR in it.
+ */
+export async function letterheadHtml(input: LetterheadInput, total: number, lock?: LetterheadLock, qrDataUrl?: string): Promise<string> {
   const { renderToStaticMarkup } = await import("react-dom/server");
   const ar = input.lang === "ar";
   const logoSrc = logoFor(input.lang);
@@ -114,6 +126,7 @@ export async function letterheadHtml(input: LetterheadInput, total: number, lock
       />,
     );
     if (logo) markup = markup.split(`src="${escapeAttr(logoSrc)}"`).join(`src="${logo}"`);
+    if (qrDataUrl && i === Math.max(1, total)) markup = fillQrSlot(markup, qrStampHtml(qrDataUrl, input.lang, "light"));
     sheets.push(`<div class="lh-page">${markup}</div>`);
   }
 
@@ -137,10 +150,10 @@ export async function letterheadHtml(input: LetterheadInput, total: number, lock
   .lh-page, .lh-page * { font-family: ${stack} !important; }
   .lh-page { width: 210mm; height: 297mm; overflow: hidden; break-after: page; page-break-after: always; }
   .lh-page:last-child { break-after: auto; page-break-after: auto; }
-  /* The sheet itself, the body and the QR row are see-through: the imported
-     page shows there. The header and footer bands keep their white paper. */
-  .lh-page > div, .lh-page .doc-page-body, .lh-page [data-doc-body-content], .lh-page [data-qr-slot] { background: transparent !important; }
-  .lh-page [data-doc-header], .lh-page [data-doc-footer] { background: #FFFFFF !important; }
+  /* The sheet itself and the body are see-through: the imported page shows
+     there. The header, the QR strip and the footer keep their white paper. */
+  .lh-page > div, .lh-page .doc-page-body, .lh-page [data-doc-body-content] { background: transparent !important; }
+  .lh-page [data-doc-header], .lh-page [data-qr-slot], .lh-page [data-doc-footer] { background: #FFFFFF !important; }
   ${letterheadLockCss(lock)}
 </style>
 </head>
@@ -189,12 +202,14 @@ export async function measureLetterhead(input: LetterheadInput): Promise<Measure
     const body = sheet?.querySelector("[data-doc-body-content]");
     const footer = sheet?.querySelector("[data-doc-footer]");
     if (!sheet || !header || !body || !footer) throw new Error("letterhead_measure_failed");
+    // The bottom band starts at the QR strip, so the imported content never runs under the QR.
+    const bottomBand = sheet.querySelector("[data-qr-slot]") ?? footer;
 
     const top = sheet.getBoundingClientRect().top;
     const headerPx = header.getBoundingClientRect().height;
     const footerPx = footer.getBoundingClientRect().height;
     const bodyTop = body.getBoundingClientRect().top - top;
-    const footerTop = footer.getBoundingClientRect().top - top;
+    const footerTop = bottomBand.getBoundingClientRect().top - top;
     return bandsFrom({ headerPx, footerPx, bodyTop, footerTop });
   } finally {
     iframe.remove();
