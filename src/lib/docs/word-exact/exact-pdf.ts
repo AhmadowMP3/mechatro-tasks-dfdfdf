@@ -18,7 +18,7 @@ import type { DocFooter, DocHeader } from "@/lib/docs/types";
 import { docTypeLabel } from "@/lib/docs/types";
 
 import { overlayLetterhead, pdfPageCount, trimTrailingBlankPages } from "./compose";
-import { prepareShare, saveSharePayload } from "@/lib/share/public-share";
+import { prepareShare, saveSharePayload, type PreparedShare } from "@/lib/share/public-share";
 
 import {
   A4_HEIGHT_PX,
@@ -225,18 +225,26 @@ export function savePdf(pdf: Uint8Array, filename: string): void {
 export async function downloadExactPdf(doc: BusinessDoc, header: DocHeader, footer: DocFooter): Promise<void> {
   const imported = doc.model.wordImport;
   if (!imported?.sourcePath) throw new Error("word_source_missing");
-  const title = `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`;
-  // Same link as the editor's own export of this document; never blocks the download.
-  const [source, share] = await Promise.all([
-    downloadWordSource(imported.sourcePath),
-    prepareShare({ kind: "business_doc", refId: doc.id, title, lang: doc.lang }),
-  ]);
+  const title = exactTitle(doc);
+  const [source, share] = await Promise.all([downloadWordSource(imported.sourcePath), exactShareFor(doc)]);
   const res = await buildExactForImport(source, imported, letterheadFor(doc, header, footer), {
     title,
     qrDataUrl: share?.qrDataUrl,
   });
   savePdf(res.pdf, exactPdfFilename(doc));
   if (share) void publishReadOnlyCopy(share.token, res.pdf, title);
+}
+
+export function exactTitle(doc: BusinessDoc): string {
+  return `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`;
+}
+
+/**
+ * The document's public read-only link and QR — the same link as the editor's
+ * own export of this document. Null when it can't be created; never throws.
+ */
+export function exactShareFor(doc: BusinessDoc): Promise<PreparedShare | null> {
+  return prepareShare({ kind: "business_doc", refId: doc.id, title: exactTitle(doc), lang: doc.lang });
 }
 
 /** Page images of the read-only copy: sharp on phones, light enough for many pages. */
@@ -247,7 +255,7 @@ const COPY_JPEG_QUALITY = 0.8;
  * Store the finished PDF as page images for /v/{token}: the web copy is the
  * exact same pages, with nothing selectable or downloadable as a file.
  */
-async function publishReadOnlyCopy(token: string, pdf: Uint8Array, title: string): Promise<void> {
+export async function publishReadOnlyCopy(token: string, pdf: Uint8Array, title: string): Promise<void> {
   try {
     const { openPdf, closePdf, renderPage } = await import("@/lib/docs/import/pdf-read");
     const doc = await openPdf(pdf);

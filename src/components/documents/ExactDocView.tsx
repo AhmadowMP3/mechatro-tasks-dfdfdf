@@ -9,14 +9,17 @@ import { toast } from "sonner";
 
 import type { BusinessDoc } from "@/lib/docs/docs-api";
 import type { DocFooter, DocHeader } from "@/lib/docs/types";
-import { docTypeLabel } from "@/lib/docs/types";
 import { importKind } from "@/lib/docs/model";
+import type { PreparedShare } from "@/lib/share/public-share";
 import {
   buildExactForImport,
   downloadWordSource,
   exactErrorMessage,
   exactPdfFilename,
+  exactShareFor,
+  exactTitle,
   letterheadFor,
+  publishReadOnlyCopy,
   savePdf,
   type ExactPdfCache,
 } from "@/lib/docs/word-exact/exact-pdf";
@@ -45,23 +48,36 @@ export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, o
   const [error, setError] = useState<string | null>(null);
   const [run, setRun] = useState(0);
   const cache = useRef<ExactPdfCache>({});
+  // The read-only link's QR goes on the last page; undefined while it is being reserved.
+  const [share, setShare] = useState<PreparedShare | null | undefined>(undefined);
 
   // A different source file means a different Word render.
   useEffect(() => { cache.current = {}; }, [source?.sourcePath]);
 
   useEffect(() => {
-    if (!source) return;
+    let alive = true;
+    void exactShareFor(doc).then((s) => { if (alive) setShare(s); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc.id]);
+
+  useEffect(() => {
+    if (!source || share === undefined) return;
     let alive = true;
     setBusy(true);
     setError(null);
+    const title = exactTitle(doc);
     const t = setTimeout(() => {
       downloadWordSource(source.sourcePath)
         .then((buf) => buildExactForImport(buf, source, letterhead, {
           cache: cache.current,
-          title: `${docTypeLabel(doc.doc_type, doc.lang)} ${doc.number}`,
+          title,
+          qrDataUrl: share?.qrDataUrl,
         }))
         .then((res) => {
           if (!alive) return;
+          // The QR opens exactly these pages.
+          if (share) void publishReadOnlyCopy(share.token, res.pdf, title);
           setPdf(res.pdf);
           setPages(res.pages);
           setUrl((old) => {
@@ -74,7 +90,7 @@ export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, o
     }, 600);
     return () => { alive = false; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, run]);
+  }, [key, run, share]);
 
   const urlRef = useRef<string | null>(null);
   urlRef.current = url;
@@ -128,6 +144,17 @@ export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, o
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 14px", fontSize: 12.5, background: "#F0676A14", borderBottom: "1px solid var(--border)" }}>
           <AlertTriangle size={15} style={{ color: "#F0676A", flexShrink: 0, marginTop: 2 }} />
           <span>{error}</span>
+        </div>
+      )}
+
+      {share === null && !error && (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 14px", fontSize: 12, color: "var(--muted-foreground)", borderBottom: "1px solid var(--border)" }}>
+          <AlertTriangle size={14} style={{ color: "#F0C24B", flexShrink: 0, marginTop: 2 }} />
+          <span>
+            {ar
+              ? "تعذّر إنشاء رابط القراءة (QR) لهذا المستند، لذلك لا يظهر الرمز في الـ PDF. أعد تحميل الصفحة وحاول مجدداً."
+              : "The read-only link (QR) couldn't be created for this document, so the PDF has no QR. Reload the page and try again."}
+          </span>
         </div>
       )}
 
