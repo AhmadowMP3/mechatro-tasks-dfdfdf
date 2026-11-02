@@ -1,15 +1,14 @@
-// A document imported (Word or PDF) in exact-layout mode: the page shows the
-// exact PDF render (with the Mechatro letterhead on top) instead of the
-// editor. Letterhead fields (number, dates, client, language) still come from
-// the document settings above, and the PDF follows them.
+// A document imported (Word or PDF): the page shows the PDF render, the file's
+// own pages with the Mechatro letterhead on top. Letterhead fields (number,
+// dates, client, language) come from the document settings above, and the PDF
+// follows them.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, FileDown, Loader2, PencilLine, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { AlertTriangle, FileDown, Loader2, RefreshCw } from "lucide-react";
 
 import type { BusinessDoc } from "@/lib/docs/docs-api";
 import type { DocFooter, DocHeader } from "@/lib/docs/types";
-import { importKind } from "@/lib/docs/model";
+import { fitsToBands, importKind } from "@/lib/docs/model";
 import type { PreparedShare } from "@/lib/share/public-share";
 import {
   buildExactForImport,
@@ -18,6 +17,7 @@ import {
   exactPdfFilename,
   exactShareFor,
   exactTitle,
+  coveredPagesText,
   letterheadFor,
   publishReadOnlyCopy,
   savePdf,
@@ -31,19 +31,21 @@ type Props = {
   footer: DocFooter;
   /** Status pill, import and save buttons from the page. */
   actions: React.ReactNode;
-  onOpenEditor: () => void;
+  onFitChange: (fit: boolean) => void;
   onDownloaded?: () => void;
 };
 
-export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, onDownloaded }: Props) {
+export function ExactDocView({ ar, doc, header, footer, actions, onFitChange, onDownloaded }: Props) {
   const source = doc.model.wordImport;
   const letterhead = useMemo(() => letterheadFor(doc, header, footer), [doc, header, footer]);
-  const key = JSON.stringify([source?.sourcePath, source?.crop, letterhead]);
+  const fit = fitsToBands(source);
+  const key = JSON.stringify([source?.sourcePath, source?.crop, fit, letterhead]);
   const isPdf = importKind(source) === "pdf";
 
   const [pdf, setPdf] = useState<Uint8Array | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [pages, setPages] = useState(0);
+  const [covered, setCovered] = useState<number[]>([]);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [run, setRun] = useState(0);
@@ -80,6 +82,7 @@ export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, o
           if (share) void publishReadOnlyCopy(share.token, res.pdf, title);
           setPdf(res.pdf);
           setPages(res.pages);
+          setCovered(res.coveredPages ?? []);
           setUrl((old) => {
             if (old) URL.revokeObjectURL(old);
             return URL.createObjectURL(new Blob([new Uint8Array(res.pdf)], { type: "application/pdf" }));
@@ -102,38 +105,23 @@ export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, o
     onDownloaded?.();
   };
 
-  const openEditor = () => {
-    const ok = window.confirm(
-      ar
-        ? "سيتم فتح نسخة قابلة للتعديل من الملف. هذه النسخة أقل دقة من الملف الأصلي، وسيُستخدم المحرر بدل التنسيق الدقيق (يمكنك الرجوع إليه لاحقاً). متابعة؟"
-        : "This opens an editable copy of the file. It is less accurate than the original, and the editor replaces the exact layout (you can switch back later). Continue?",
-    );
-    if (ok) {
-      onOpenEditor();
-      toast.message(ar ? "تم فتح النسخة القابلة للتعديل — لا تنسَ الحفظ" : "Editable copy opened — remember to save");
-    }
-  };
-
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: 16, background: "var(--card)", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "10px 14px", borderBottom: "1px solid var(--border)" }}>
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0, marginInlineEnd: "auto" }}>
           <span style={{ fontSize: 13, fontWeight: 800 }}>
-            {ar ? "التنسيق الدقيق" : "Exact layout"}
+            {ar ? "الملف الأصلي مع هيدر وفوتر ميكاترو" : "Original file with the Mechatro letterhead"}
             {pages > 0 && <span style={{ fontWeight: 600, color: "var(--muted-foreground)" }}> · {ar ? `${pages} صفحة` : `${pages} page${pages === 1 ? "" : "s"}`}</span>}
           </span>
           <span style={{ fontSize: 11.5, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {source?.fileName || (isPdf ? "PDF" : ar ? "ملف Word" : "Word file")}
             {" — "}
-            {ar ? "لتعديل المحتوى عدّل الملف الأصلي واستورده من جديد، أو افتحه في المحرر." : "To change the content, edit the original file and import it again, or open it in the editor."}
+            {ar ? "لتعديل المحتوى عدّل الملف الأصلي واستورده من جديد." : "To change the content, edit the original file and import it again."}
           </span>
         </div>
         {actions}
         <button className="btn-ghost" onClick={() => setRun((n) => n + 1)} disabled={busy}>
           <RefreshCw size={15} /> {ar ? "تحديث" : "Refresh"}
-        </button>
-        <button className="btn-ghost" onClick={openEditor}>
-          <PencilLine size={15} /> {ar ? "فتح في المحرر" : "Open in editor"}
         </button>
         <button className="btn-primary" onClick={download} disabled={!pdf || busy}>
           {busy ? <Loader2 size={15} className="spin" /> : <FileDown size={15} />} PDF
@@ -144,6 +132,18 @@ export function ExactDocView({ ar, doc, header, footer, actions, onOpenEditor, o
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 14px", fontSize: 12.5, background: "#F0676A14", borderBottom: "1px solid var(--border)" }}>
           <AlertTriangle size={15} style={{ color: "#F0676A", flexShrink: 0, marginTop: 2 }} />
           <span>{error}</span>
+        </div>
+      )}
+
+      <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", borderBottom: "1px solid var(--border)" }}>
+        <input type="checkbox" checked={fit} onChange={(e) => onFitChange(e.target.checked)} />
+        {ar ? "تصغير المحتوى ليتّسع بين الهيدر والفوتر (يغيّر هوامش الملف)" : "Shrink the content to fit between the header and footer (changes the file's margins)"}
+      </label>
+
+      {covered.length > 0 && !error && (
+        <div role="alert" style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 14px", fontSize: 12, borderBottom: "1px solid var(--border)", background: "#F5B30114" }}>
+          <AlertTriangle size={14} style={{ color: "#F5B301", flexShrink: 0, marginTop: 2 }} />
+          <span>{coveredPagesText(covered, ar)}</span>
         </div>
       )}
 

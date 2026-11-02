@@ -1,23 +1,27 @@
 // Exact-layout import: the original file (Word or PDF) is kept in storage and,
 // every time a PDF is needed, rendered with the Mechatro letterhead laid on
-// top. The letterhead (number, dates, page X / Y) is always current; the
+// top. The letterhead (number, dates, client, page X / Y) is always current; the
 // content itself is never re-interpreted.
 //
-//   Word: the Word engine (LibreOffice) lays the file out with page margins
-//         widened to the letterhead bands.
-//   PDF:  each original page, its own letterhead cut away, is fitted between
-//         the bands (in the browser); only the letterhead goes to the engine.
+// By default the pages stay exactly as they are: same size, same margins.
+//   Word: the Word engine (LibreOffice) lays out the file as it is.
+//   PDF:  the original pages are copied; only the letterhead goes to the engine.
+//
+// With `fitToBands` (opt-in, and every document imported before it existed):
+//   Word: page margins are widened to the letterhead bands.
+//   PDF:  each page, its own letterhead cut away, is fitted between the bands.
 
 import { saveAs } from "file-saver";
 
 import { supabase } from "@/integrations/supabase/client";
 import { convertDocxToPdf, renderLetterheadPdf } from "@/lib/word-engine.functions";
 import type { BusinessDoc } from "@/lib/docs/docs-api";
-import { importKind, type ImportCrop, type ImportKind, type WordImport } from "@/lib/docs/model";
+import { fitsToBands, importKind, type ImportCrop, type ImportKind, type WordImport } from "@/lib/docs/model";
 import type { DocFooter, DocHeader } from "@/lib/docs/types";
 import { docTypeLabel } from "@/lib/docs/types";
 
-import { overlayLetterhead, pdfPageCount, trimTrailingBlankPages } from "./compose";
+import { coveredRects, hasInk } from "./cover";
+import { landscapePageCount, overlayLetterhead, pdfPageCount, trimTrailingBlankPages } from "./compose";
 import { prepareShare, saveSharePayload, type PreparedShare } from "@/lib/share/public-share";
 
 import {
@@ -25,6 +29,7 @@ import {
   A4_WIDTH_PX,
   letterheadHtml,
   measureLetterhead,
+  type LetterheadCover,
   type LetterheadInput,
   type MeasuredLetterhead,
 } from "./letterhead";
@@ -45,10 +50,18 @@ export type ExactPdf = {
   pageAnchoredShapes: number;
   /** PDF only: the source is protected, so its pages were placed as images. */
   rasterised?: boolean;
+  /** Pages kept as they are: 1-based pages with content under the letterhead. */
+  coveredPages?: number[];
 };
 
 /** Reuses the content render while the letterhead bands (and crop) stay the same. */
-export type ExactPdfCache = { key?: string; content?: Uint8Array; info?: Omit<ExactPdf, "pdf" | "pages"> };
+export type ExactPdfCache = {
+  key?: string;
+  content?: Uint8Array;
+  info?: Omit<ExactPdf, "pdf" | "pages" | "coveredPages">;
+  coverKey?: string;
+  covered?: number[];
+};
 
 type BuildOpts = {
   title?: string;
@@ -84,7 +97,88 @@ async function withLetterhead(content: Uint8Array, letterhead: LetterheadInput, 
   return { pdf, pages };
 }
 
-/** Word file → exact PDF. */
+/** Word file → exact PDF, nothing about its layout changed. */
+async function buildKeepingWordLayout(source: ArrayBuffer | Uint8Array, letterhead: LetterheadInput, opts: BuildOpts): Promise<ExactPdf> {
+  opts.onStep?.("layout");
+  const bands = await measureLetterhead(letterhead);
+  const cache = opts.cache;
+  let content = cache?.key === "docx" ? cache.content : undefined;
+  let info = cache?.key === "docx" ? cache.info : undefined;
+  if (!content || !info) {
+    opts.onStep?.("word");
+    const bytes = toBytes(source);
+    await assertNoActiveContent(bytes);
+    const { pdfBase64 } = await convertDocxToPdf({ data: { docxBase64: bytesToBase64(bytes) } });
+    content = await trimTrailingBlankPages(base64ToBytes(pdfBase64));
+    info = { landscapeSections: await landscapePageCount(content), pageAnchoredShapes: 0 };
+    if (cache) Object.assign(cache, { key: "docx", content, info });
+  }
+  const { pdf, pages } = await withLetterhead(content, letterhead, bands, opts);
+  return { pdf, pages, ...info, coveredPages: await pagesUnderLetterhead(content, bands.cover, cache) };
+}
+
+/** PDF file → exact PDF, its pages copied as they are. */
+async function buildKeepingPdfPages(source: ArrayBuffer | Uint8Array, letterhead: LetterheadInput, opts: BuildOpts): Promise<ExactPdf> {
+  opts.onStep?.("layout");
+  const bands = await measureLetterhead(letterhead);
+  const cache = opts.cache;
+  let content = cache?.key === "pdf" ? cache.content : undefined;
+  let info = cache?.key === "pdf" ? cache.info : undefined;
+  if (!content || !info) {
+    opts.onStep?.("pages");
+    const bytes = toBytes(source);
+    try {
+      info = { landscapeSections: await landscapePageCount(bytes), pageAnchoredShapes: 0 };
+      content = bytes;
+    } catch (e) {
+      // Protected PDFs can be shown but not copied: use images of the same pages.
+      if (!/encrypt/i.test(String((e as Error)?.message ?? e))) throw e;
+      const { rasterKeepingPages } = await import("@/lib/docs/import/pdf-raster");
+      content = await rasterKeepingPages(bytes);
+      info = { landscapeSections: await landscapePageCount(content), pageAnchoredShapes: 0, rasterised: true };
+    }
+    if (cache) Object.assign(cache, { key: "pdf", content, info });
+  }
+  const { pdf, pages } = await withLetterhead(content, letterhead, bands, opts);
+  return { pdf, pages, ...info, coveredPages: await pagesUnderLetterhead(content, bands.cover, cache) };
+}
+
+/** Page images for the covered-content check: 54 dpi is plenty to see ink. */
+const INK_RENDER_SCALE = 0.75;
+/**
+ * Pages whose own content sits under the letterhead. Only looks, never changes
+ * anything, and never fails the build: the admin gets a warning at most.
+ */
+async function pagesUnderLetterhead(content: Uint8Array, cover: LetterheadCover, cache?: ExactPdfCache): Promise<number[]> {
+  const key = JSON.stringify(cover);
+  if (cache?.coverKey === key && cache.covered) return cache.covered;
+  const covered: number[] = [];
+  try {
+    const { openPdf, closePdf, renderPage } = await import("@/lib/docs/import/pdf-read");
+    const doc = await openPdf(content);
+    try {
+      for (let index = 1; index <= doc.numPages; index++) {
+        const canvas = await renderPage(doc, index, INK_RENDER_SCALE);
+        const { width, height } = canvas;
+        if (height >= width) {
+          const data = canvas.getContext("2d", { willReadFrequently: true })!.getImageData(0, 0, width, height).data;
+          const rects = coveredRects({ index, total: doc.numPages, width, height }, cover);
+          if (rects.some((r) => hasInk(data, width, r))) covered.push(index);
+        }
+        canvas.width = canvas.height = 0;
+      }
+    } finally {
+      await closePdf(doc);
+    }
+  } catch (e) {
+    console.warn("covered-content check skipped:", e);
+    return [];
+  }
+  if (cache) Object.assign(cache, { coverKey: key, covered });
+  return covered;
+}
+
+/** Word file → exact PDF, re-flowed between the letterhead bands. */
 export async function buildExactPdf(source: ArrayBuffer | Uint8Array, letterhead: LetterheadInput, opts: BuildOpts = {}): Promise<ExactPdf> {
   opts.onStep?.("layout");
   const bands = await measureLetterhead(letterhead);
@@ -143,13 +237,18 @@ export async function buildExactPdfFromPdf(
   return { pdf, pages, ...info };
 }
 
-/** Exact PDF of an imported file, whichever kind it is. */
+/** Exact PDF of an imported file, whichever kind and layout choice it is. */
 export function buildExactForImport(
   source: ArrayBuffer | Uint8Array,
-  wordImport: Pick<WordImport, "kind" | "crop">,
+  wordImport: Pick<WordImport, "kind" | "crop" | "fitToBands">,
   letterhead: LetterheadInput,
   opts: BuildOpts = {},
 ): Promise<ExactPdf> {
+  if (!fitsToBands(wordImport)) {
+    return importKind(wordImport) === "pdf"
+      ? buildKeepingPdfPages(source, letterhead, opts)
+      : buildKeepingWordLayout(source, letterhead, opts);
+  }
   return importKind(wordImport) === "pdf"
     ? buildExactPdfFromPdf(source, wordImport.crop ?? { topPt: 0, bottomPt: 0 }, letterhead, opts)
     : buildExactPdf(source, letterhead, opts);
@@ -202,12 +301,15 @@ const fmtDate = (s?: string | null) => (s ? new Date(s).toLocaleDateString("en-G
 /** Letterhead fields of a saved document, as the editor shows them. */
 export function letterheadFor(doc: BusinessDoc, header: DocHeader, footer: DocFooter): LetterheadInput {
   const client = doc.lang === "ar" ? doc.client.nameAr || doc.client.nameEn : doc.client.nameEn || doc.client.nameAr;
+  const box = doc.model.showClientBox;
   return {
     header,
     footer,
     lang: doc.lang,
     logoVariant: doc.model.logoVariant,
-    meta: { number: doc.number, date: fmtDate(doc.issue_date) ?? "—", validUntil: fmtDate(doc.valid_until), client: client || undefined },
+    // The client box already names the client; the meta box doesn't repeat it.
+    meta: { number: doc.number, date: fmtDate(doc.issue_date) ?? "—", validUntil: fmtDate(doc.valid_until), client: box ? undefined : client || undefined },
+    ...(box ? { client: doc.client } : {}),
   };
 }
 
@@ -280,10 +382,20 @@ export async function publishReadOnlyCopy(token: string, pdf: Uint8Array, title:
   }
 }
 
+/** Warning for pages whose own content sits under the letterhead. */
+export function coveredPagesText(pages: number[], ar: boolean): string {
+  const list = pages.join(ar ? "، " : ", ");
+  return ar
+    ? `الصفحات ${list}: جزء من محتوى الملف يقع تحت الهيدر أو الفوتر أو الختم فيُخفى. إن كان هو هيدر الملف القديم فهذا طبيعي؛ وإلا فعّل «تصغير المحتوى» أو وسّع هوامش الملف الأصلي.`
+    : `Pages ${list}: part of the file's content sits under the header, footer or stamp and is hidden. If that is the file's old letterhead, this is fine; otherwise tick "Shrink the content" or widen the original file's margins.`;
+}
+
 /** Human message for every error the import and exact pipelines throw. */
 export function exactErrorMessage(e: unknown, ar: boolean): string {
-  const msg = e instanceof Error ? e.message : String(e ?? "");
+  const msg = (e as { message?: unknown })?.message ? String((e as { message: unknown }).message) : String(e ?? "");
   const pick = (a: string, en: string) => (ar ? a : en);
+  if (/doc_number_required/.test(msg)) return pick("أدخل رقم المستند.", "Enter the document number.");
+  if (/business_docs_number_rev_key/.test(msg)) return pick("رقم المستند مستخدم من قبل. أدخل رقماً آخر.", "This document number is already used. Enter another one.");
   if (/word_engine_not_configured/.test(msg))
     return pick("محرّك المستندات غير مُعدّ على السيرفر بعد (GOTENBERG_URL).", "The document engine isn't set up on the server yet (GOTENBERG_URL).");
   const unreachable = /word_engine_unreachable(?:\s*@(\S+))?/.exec(msg);

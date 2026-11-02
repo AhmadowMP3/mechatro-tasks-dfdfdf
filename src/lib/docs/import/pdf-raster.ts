@@ -3,6 +3,8 @@
 // only the part kept after cutting the original letterhead — and the images
 // are fitted between the Mechatro bands.
 
+import { PDFDocument } from "pdf-lib";
+
 import type { LetterheadBands } from "../word-exact/prepare-docx";
 import type { ImportCrop } from "../model";
 
@@ -42,6 +44,25 @@ export async function composeRasterIntoBands(bytes: Uint8Array, crop: ImportCrop
       full.width = full.height = kept.width = kept.height = 0;
     }
     return await composeImagesIntoBands(images, bands);
+  } finally {
+    await closePdf(doc);
+  }
+}
+
+/** Protected PDF → image pages of the same size, nothing cut or moved. */
+export async function rasterKeepingPages(bytes: Uint8Array): Promise<Uint8Array> {
+  const doc = await openPdf(bytes);
+  try {
+    const out = await PDFDocument.create();
+    for (let i = 1; i <= doc.numPages; i++) {
+      const full = await renderPage(doc, i, RASTER_SCALE);
+      const width = full.width / RASTER_SCALE;
+      const height = full.height / RASTER_SCALE;
+      const img = await out.embedJpg(await canvasBytes(full, "jpeg", 0.9));
+      out.addPage([width, height]).drawImage(img, { x: 0, y: 0, width, height });
+      full.width = full.height = 0;
+    }
+    return await out.save();
   } finally {
     await closePdf(doc);
   }

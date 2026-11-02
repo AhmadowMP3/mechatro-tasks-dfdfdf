@@ -1,6 +1,7 @@
 // The Mechatro letterhead as a stand-alone HTML document: one A4 sheet per
 // page of the imported file, each carrying the header (logo, title, number,
-// dates) and the footer (contacts, page X / Y). The body area is transparent,
+// dates) and the footer (contacts, page X / Y). The first sheet adds the client
+// box, the last one the QR and the signature. Everything else is transparent,
 // so the sheet can be laid over the imported page.
 //
 // The same HTML is laid out twice: once here in a hidden iframe (to measure
@@ -11,12 +12,13 @@
 //   2. The measured header/footer heights are written back into the printed
 //      HTML as fixed heights, so a band can never grow into the content.
 
+import { DocClientCard } from "@/components/documents/DocBody";
 import { DocPaper } from "@/components/documents/DocPaper";
 import { logoFor } from "@/lib/brand/logo";
 import { loadArabicFontB64, loadLatinFontB64 } from "@/lib/pdf/assets";
-import { qrStampHtml } from "@/lib/share/qr-stamp";
+import { QR_ROW_H, qrStampHtml } from "@/lib/share/qr-stamp";
 import type { DocFooter, DocHeader, DocLang } from "@/lib/docs/types";
-import type { LogoVariant } from "@/lib/docs/model";
+import type { DocClient, LogoVariant } from "@/lib/docs/model";
 
 import type { LetterheadBands } from "./prepare-docx";
 
@@ -26,6 +28,8 @@ export type LetterheadInput = {
   lang: DocLang;
   meta: { number?: string; date?: string; validUntil?: string; client?: string };
   logoVariant?: LogoVariant;
+  /** Printed as the client box on the first sheet. */
+  client?: DocClient;
 };
 
 /** Measured band heights, written back as fixed heights when printing. */
@@ -33,6 +37,16 @@ export type LetterheadLock = { headerPx: number; footerPx: number };
 
 /** Bands for the imported content plus the lock for the printed sheets. */
 export type MeasuredLetterhead = LetterheadBands & { lock: LetterheadLock };
+
+/** What the opaque parts of a sheet cover, in CSS px from the sheet's edges. */
+export type LetterheadCover = {
+  /** Header, plus the client box on the first sheet. */
+  firstTopPx: number;
+  topPx: number;
+  bottomPx: number;
+  /** Height of the QR / signature strip above the footer, last sheet only. */
+  stripPx: number;
+};
 
 /** 297 mm in CSS px — the real sheet height Chromium prints. */
 export const A4_HEIGHT_PX = (297 * 96) / 25.4;
@@ -94,28 +108,52 @@ export function letterheadLockCss(lock: LetterheadLock | undefined): string {
 
 const EMPTY_QR_SLOT = /(<div data-qr-slot(?:="[^"]*")?[^>]*>)(<\/div>)/;
 
+/** Width kept for each of the QR and signature cards, for the covered-content check. */
+export const STRIP_CARD_PX = 270;
+
+/**
+ * The strip above the footer on the last sheet: QR on the reading-start side,
+ * signature on the far side, each on its own small white card. Pure, so it is
+ * unit-tested.
+ */
+export function signatureStripHtml(qrStamp: string | null, signature: string): string {
+  const card = "background:#FFFFFF;border:1px solid #DCE5EE;border-radius:10px;padding:6px 10px;box-sizing:border-box";
+  const qr = qrStamp ? `<div data-qr-card style="${card}">${qrStamp}</div>` : "";
+  const sign = signature
+    ? `<div data-signature-card style="${card};margin-inline-start:auto;width:190px;text-align:center">` +
+      `<div style="height:40px;border-bottom:1px solid #94A3B8;margin-bottom:5px"></div>` +
+      `<div style="font-size:10.5px;font-weight:700;color:#0B1A2A;overflow-wrap:anywhere">${escapeAttr(signature)}</div>` +
+      `</div>`
+    : "";
+  return `<div style="display:flex;align-items:flex-end;width:100%;gap:16px;padding-bottom:6px;box-sizing:border-box">${qr}${sign}</div>`;
+}
+
 /** Put the QR stamp into a sheet's (empty) QR strip. Pure, so it is unit-tested. */
 export function fillQrSlot(sheetMarkup: string, stampHtml: string): string {
   return sheetMarkup.replace(EMPTY_QR_SLOT, (_m, open: string, close: string) => `${open}${stampHtml}${close}`);
 }
 
 /**
- * Full HTML document with `total` letterhead sheets. The QR strip above the
- * footer is part of the bottom band on every sheet; with `qrDataUrl` the last
- * sheet carries the read-only-copy QR in it.
+ * Full HTML document with `total` letterhead sheets. The first sheet carries the
+ * client box; the strip above the footer of the last one carries the
+ * read-only-copy QR (with `qrDataUrl`) and the signature.
  */
 export async function letterheadHtml(input: LetterheadInput, total: number, lock?: LetterheadLock, qrDataUrl?: string): Promise<string> {
   const { renderToStaticMarkup } = await import("react-dom/server");
   const ar = input.lang === "ar";
   const logoSrc = logoFor(input.lang);
   const [logo, arabic, latin] = await Promise.all([logoDataUrl(logoSrc), loadArabicFontB64(), loadLatinFontB64()]);
+  const signature = ((ar ? input.footer.signatureAr : input.footer.signatureEn) ?? "").trim();
+  // The signature moves from the footer of every page to the strip of the last one.
+  const footer = { ...input.footer, signatureAr: "", signatureEn: "" };
+  const last = Math.max(1, total);
 
   const sheets: string[] = [];
-  for (let i = 1; i <= Math.max(1, total); i++) {
+  for (let i = 1; i <= last; i++) {
     let markup = renderToStaticMarkup(
       <DocPaper
         header={input.header}
-        footer={input.footer}
+        footer={footer}
         lang={input.lang}
         theme="light"
         meta={input.meta}
@@ -123,10 +161,14 @@ export async function letterheadHtml(input: LetterheadInput, total: number, lock
         sizing="fixed"
         logoVariant={input.logoVariant}
         bare
-      />,
+      >
+        {i === 1 && input.client ? <DocClientCard client={input.client} lang={input.lang} theme="light" /> : null}
+      </DocPaper>,
     );
     if (logo) markup = markup.split(`src="${escapeAttr(logoSrc)}"`).join(`src="${logo}"`);
-    if (qrDataUrl && i === Math.max(1, total)) markup = fillQrSlot(markup, qrStampHtml(qrDataUrl, input.lang, "light"));
+    if (i === last && (qrDataUrl || signature)) {
+      markup = fillQrSlot(markup, signatureStripHtml(qrDataUrl ? qrStampHtml(qrDataUrl, input.lang, "light") : null, signature));
+    }
     sheets.push(`<div class="lh-page">${markup}</div>`);
   }
 
@@ -150,10 +192,11 @@ export async function letterheadHtml(input: LetterheadInput, total: number, lock
   .lh-page, .lh-page * { font-family: ${stack} !important; }
   .lh-page { width: 210mm; height: 297mm; overflow: hidden; break-after: page; page-break-after: always; }
   .lh-page:last-child { break-after: auto; page-break-after: auto; }
-  /* The sheet itself and the body are see-through: the imported page shows
-     there. The header, the QR strip and the footer keep their white paper. */
-  .lh-page > div, .lh-page .doc-page-body, .lh-page [data-doc-body-content] { background: transparent !important; }
-  .lh-page [data-doc-header], .lh-page [data-qr-slot], .lh-page [data-doc-footer] { background: #FFFFFF !important; }
+  /* The sheet, the body and the strip above the footer are see-through: the
+     imported page shows there. Only the header, the footer and the small cards
+     (client, QR, signature) cover it. */
+  .lh-page > div, .lh-page .doc-page-body, .lh-page [data-doc-body-content], .lh-page [data-qr-slot] { background: transparent !important; }
+  .lh-page [data-doc-header], .lh-page [data-doc-footer] { background: #FFFFFF !important; }
   ${letterheadLockCss(lock)}
 </style>
 </head>
@@ -183,7 +226,7 @@ async function waitForAssets(doc: Document): Promise<void> {
  * Lay out one letterhead sheet in a hidden iframe and read where the imported
  * body may start and end, plus the band heights to lock for printing.
  */
-export async function measureLetterhead(input: LetterheadInput): Promise<MeasuredLetterhead> {
+export async function measureLetterhead(input: LetterheadInput): Promise<MeasuredLetterhead & { cover: LetterheadCover }> {
   const html = await letterheadHtml(input, 1);
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
@@ -208,9 +251,20 @@ export async function measureLetterhead(input: LetterheadInput): Promise<Measure
     const top = sheet.getBoundingClientRect().top;
     const headerPx = header.getBoundingClientRect().height;
     const footerPx = footer.getBoundingClientRect().height;
-    const bodyTop = body.getBoundingClientRect().top - top;
+    // Content fitted between the bands also clears the client box, on every page.
+    const clientBottom = sheet.querySelector(".pdf-card")?.getBoundingClientRect().bottom;
+    const bodyTop = (clientBottom ?? body.getBoundingClientRect().top) - top;
     const footerTop = bottomBand.getBoundingClientRect().top - top;
-    return bandsFrom({ headerPx, footerPx, bodyTop, footerTop });
+    const bands = bandsFrom({ headerPx, footerPx, bodyTop, footerTop });
+    return {
+      ...bands,
+      cover: {
+        firstTopPx: clientBottom === undefined ? bands.lock.headerPx : Math.ceil(clientBottom - top),
+        topPx: bands.lock.headerPx,
+        bottomPx: bands.lock.footerPx,
+        stripPx: QR_ROW_H,
+      },
+    };
   } finally {
     iframe.remove();
   }

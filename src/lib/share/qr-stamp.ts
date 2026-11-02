@@ -1,30 +1,39 @@
-// The QR stamp that sits at the bottom-left of the LAST page of every PDF,
-// ALWAYS in the normal flow directly ABOVE the footer band — never absolutely
+// The QR stamp that sits at the bottom of the LAST page of every PDF, on the
+// side the document's language starts from, ALWAYS in the normal flow directly
+// ABOVE the footer band — never absolutely
 // positioned, so it can't overlap the signature / contact / page-number lines.
 
 export const QR_SIZE = 68;
 /** Height reserved for the QR row on every A4 page (stamp + breathing room). */
 export const QR_ROW_H = 92;
 
-const CAPTION_AR = "امسح للاطلاع على نسخة للقراءة فقط";
-const CAPTION_EN = "Scan for a read-only copy";
+const CAPTION = {
+  ar: { title: "نسخة للقراءة فقط", body: "امسح الرمز للاطلاع على المستند" },
+  en: { title: "Read-only copy", body: "Scan the code to view this document" },
+} as const;
 
 /** Caption colours: "dark" for the dark document themes, "light" for white paper. */
 const TONES = {
-  dark: { second: "#94A3B8", caption: "#CBD5E1", qrBorder: "transparent" },
-  light: { second: "#64748B", caption: "#334155", qrBorder: "#E2E8F0" },
+  dark: { title: "#E6EEF7", body: "#94A3B8", qrBorder: "transparent" },
+  light: { title: "#0B1A2A", body: "#5A6B7D", qrBorder: "#DCE5EE" },
 } as const;
 
-/** Markup for the stamp (used inside the print iframe / stored snapshot). */
+/**
+ * Markup for the stamp (used inside the print iframe / stored snapshot). The
+ * caption is in the document's language only, never both, and the stamp reads
+ * in that language's direction.
+ */
 export function qrStampHtml(qrDataUrl: string, lang: "ar" | "en" = "ar", tone: keyof typeof TONES = "dark"): string {
-  const caption = lang === "ar" ? CAPTION_AR : CAPTION_EN;
-  const second = lang === "ar" ? CAPTION_EN : CAPTION_AR;
+  const caption = CAPTION[lang];
   const c = TONES[tone];
-  return `<div class="mx-qr-stamp" dir="ltr" style="position:relative;display:flex;align-items:center;gap:9px;break-inside:avoid;page-break-inside:avoid">
+  const dir = lang === "ar" ? "rtl" : "ltr";
+  const align = lang === "ar" ? "right" : "left";
+  const font = lang === "ar" ? "font-family:'Montserrat Arabic','Cairo',sans-serif;" : "";
+  return `<div class="mx-qr-stamp" dir="${dir}" style="position:relative;display:flex;align-items:center;gap:9px;break-inside:avoid;page-break-inside:avoid">
     <img src="${qrDataUrl}" alt="QR" style="width:${QR_SIZE}px;height:${QR_SIZE}px;display:block;background:#fff;border:1px solid ${c.qrBorder};border-radius:8px;padding:4px;box-sizing:border-box;flex:0 0 auto"/>
-    <div style="width:158px;line-height:1.35">
-      <div style="font-size:8.5px;color:${c.second};letter-spacing:.2px">${second}</div>
-      <div dir="rtl" style="font-size:9px;color:${c.caption};font-family:'Montserrat Arabic','Cairo',sans-serif;margin-top:2px">${caption}</div>
+    <div style="width:138px;line-height:1.4;text-align:${align};${font}">
+      <div style="font-size:10px;font-weight:700;color:${c.title}">${caption.title}</div>
+      <div style="font-size:8.5px;color:${c.body};margin-top:2px">${caption.body}</div>
     </div>
   </div>`;
 }

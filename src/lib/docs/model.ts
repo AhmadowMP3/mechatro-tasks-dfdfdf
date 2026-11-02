@@ -50,10 +50,20 @@ export type WordImport = {
   kind?: ImportKind;
   /** PDF only: the original letterhead bands removed from every page. */
   crop?: ImportCrop;
+  /**
+   * false — the file's pages stay exactly as they are, the letterhead is laid on
+   * top. true (or absent, on documents imported before this choice existed) —
+   * the content is shrunk or re-flowed to fit between the letterhead bands.
+   */
+  fitToBands?: boolean;
 };
 
 export function importKind(w: Pick<WordImport, "kind"> | undefined | null): ImportKind {
   return w?.kind === "pdf" ? "pdf" : "docx";
+}
+
+export function fitsToBands(w: Pick<WordImport, "fitToBands"> | undefined | null): boolean {
+  return w?.fitToBands !== false;
 }
 
 export type DocModel = {
@@ -121,6 +131,7 @@ export function mergeModel(raw: unknown): DocModel {
           ...(w.kind === "pdf"
             ? { kind: "pdf" as const, crop: { topPt: cropPt(w.crop?.topPt), bottomPt: cropPt(w.crop?.bottomPt) } }
             : {}),
+          ...(typeof w.fitToBands === "boolean" ? { fitToBands: w.fitToBands } : {}),
         }
       : undefined;
   return {

@@ -76,6 +76,30 @@ export async function sniffKind(file: File): Promise<ImportKind> {
   throw new Error("unsupported_file");
 }
 
+/**
+ * Accept a file without looking at its content: what it is, that it opens, and
+ * that nothing active is inside. The bytes are used as they are.
+ */
+export async function readImportFile(file: File): Promise<{ kind: ImportKind; fileName: string; bytes: Uint8Array }> {
+  const kind = await sniffKind(file);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (kind === "docx") {
+    await assertNoActiveContent(bytes).catch((e) => {
+      throw /word_has_macros/.test(String((e as Error)?.message)) ? e : new Error("not_a_word_document");
+    });
+    return { kind, fileName: file.name, bytes };
+  }
+  const { openPdf, closePdf } = await import("./pdf-read");
+  const doc = await openPdf(bytes);
+  try {
+    if (doc.numPages === 0) throw new Error("pdf_no_pages");
+    if (doc.numPages > MAX_PDF_PAGES) throw new Error("pdf_too_many_pages");
+  } finally {
+    await closePdf(doc);
+  }
+  return { kind, fileName: file.name, bytes };
+}
+
 /* ── text helpers ──────────────────────────────────────────────── */
 
 /** Plain lines and table grids of canonical blocks (Word path). */

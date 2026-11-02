@@ -1,15 +1,18 @@
-// Lays the letterhead PDF over the Word engine's PDF, page by page. The Word
-// pages are copied as they are (text stays selectable, links stay clickable);
-// each letterhead sheet is drawn on top as a vector form XObject.
+// Lays the letterhead PDF over the content PDF, page by page. The content pages
+// are copied as they are (size, margins, selectable text, clickable links); each
+// letterhead sheet is drawn on top as a vector form XObject.
 
 import {
   decodePDFRawStream,
+  degrees,
   PDFArray,
   PDFDocument,
   PDFRawStream,
   type PDFEmbeddedPage,
   type PDFPage,
 } from "pdf-lib";
+
+import { displayedSize } from "../import/pdf-exact";
 
 export async function pdfPageCount(bytes: Uint8Array): Promise<number> {
   const doc = await PDFDocument.load(bytes, { updateMetadata: false });
@@ -57,18 +60,61 @@ export async function trimTrailingBlankPages(bytes: Uint8Array): Promise<Uint8Ar
   return removed > 0 ? doc.save() : bytes;
 }
 
-async function embedSheet(out: PDFDocument, sheets: PDFDocument, index: number): Promise<PDFEmbeddedPage | null> {
-  if (index >= sheets.getPageCount()) return null;
-  const page = sheets.getPage(index);
+/** Where a point of the page as displayed sits in the page's own coordinates (crop box, /Rotate). */
+export function displayedToPage(page: PDFPage, x: number, y: number): { x: number; y: number; rotate: number } {
+  const box = page.getCropBox();
+  const { rotation } = displayedSize(page);
+  switch (rotation) {
+    case 0: return { x: box.x + x, y: box.y + y, rotate: 0 };
+    case 90: return { x: box.x + box.width - y, y: box.y + x, rotate: 90 };
+    case 180: return { x: box.x + box.width - x, y: box.y + box.height - y, rotate: 180 };
+    case 270: return { x: box.x + y, y: box.y + box.height - x, rotate: 270 };
+  }
+}
+
+function drawAt(page: PDFPage, sheet: PDFEmbeddedPage, x: number, y: number, scale: number) {
+  const at = displayedToPage(page, x, y);
+  page.drawPage(sheet, { x: at.x, y: at.y, xScale: scale, yScale: scale, rotate: degrees(at.rotate) });
+}
+
+/** A page whose height differs from the scaled sheet by more than this is another shape. */
+const SAME_SHAPE_PT = 1;
+
+/**
+ * Draw one letterhead sheet on a page as displayed. The sheet is scaled to the
+ * page width without distortion; on a page of another shape (US Letter, say)
+ * its top half stays on the top edge and its bottom half on the bottom edge.
+ */
+async function stampSheet(out: PDFDocument, page: PDFPage, sheet: PDFPage) {
   // A sheet with nothing drawn on it has no content stream to embed.
-  if (!page.node.Contents()) return null;
-  return out.embedPage(page);
+  if (!sheet.node.Contents()) return;
+  const shown = displayedSize(page);
+  const { width: sheetW, height: sheetH } = sheet.getSize();
+  const scale = shown.width / sheetW;
+  if (Math.abs(sheetH * scale - shown.height) <= SAME_SHAPE_PT) {
+    drawAt(page, await out.embedPage(sheet), 0, 0, scale);
+    return;
+  }
+  const middle = sheetH / 2;
+  const top = await out.embedPage(sheet, { left: 0, right: sheetW, bottom: middle, top: sheetH });
+  const bottom = await out.embedPage(sheet, { left: 0, right: sheetW, bottom: 0, top: middle });
+  drawAt(page, top, 0, shown.height - middle * scale, scale);
+  drawAt(page, bottom, 0, 0, scale);
+}
+
+/** Landscape pages of a PDF: they keep their content but get no portrait letterhead. */
+export async function landscapePageCount(bytes: Uint8Array): Promise<number> {
+  const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+  return doc.getPages().filter((p) => {
+    const { width, height } = displayedSize(p);
+    return width > height;
+  }).length;
 }
 
 /**
- * Word page underneath, letterhead on top (its body area is transparent and its
- * header/footer bands are opaque, so nothing strays over the letterhead).
- * Landscape Word pages keep their content but get no portrait letterhead.
+ * Content page underneath, letterhead on top (its body area is transparent and
+ * its header/footer bands are opaque, so nothing strays over the letterhead).
+ * Landscape pages keep their content but get no portrait letterhead.
  */
 export async function overlayLetterhead(
   content: Uint8Array,
@@ -82,10 +128,9 @@ export async function overlayLetterhead(
   const pages = await out.copyPages(source, source.getPageIndices());
   for (const [i, page] of pages.entries()) {
     out.addPage(page);
-    const { width, height } = page.getSize();
-    if (width > height) continue;
-    const sheet = await embedSheet(out, sheets, i);
-    if (sheet) page.drawPage(sheet, { x: 0, y: 0, width, height });
+    const { width, height } = displayedSize(page);
+    if (width > height || i >= sheets.getPageCount()) continue;
+    await stampSheet(out, page, sheets.getPage(i));
   }
 
   if (opts.title) out.setTitle(opts.title);

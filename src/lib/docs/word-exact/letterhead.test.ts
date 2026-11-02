@@ -8,6 +8,7 @@ import {
   letterheadFontFaces,
   letterheadFontStack,
   letterheadLockCss,
+  signatureStripHtml,
 } from "./letterhead";
 
 describe("bandsFrom", () => {
@@ -37,6 +38,24 @@ describe("QR strip", () => {
   test("a sheet without a QR strip is left as it is", () => {
     const sheet = `<div><div data-doc-footer="true">f</div></div>`;
     expect(fillQrSlot(sheet, `<i>QR</i>`)).toBe(sheet);
+  });
+});
+
+describe("signature strip", () => {
+  test("holds the QR and the signature on separate cards", () => {
+    const out = signatureStripHtml("<i>QR</i>", "التوقيع المعتمد");
+    expect(out).toMatch(/data-qr-card[^>]*><i>QR<\/i><\/div>/);
+    expect(out).toMatch(/data-signature-card[^>]*margin-inline-start:auto/);
+    expect(out).toContain("التوقيع المعتمد");
+  });
+
+  test("leaves out whichever is missing", () => {
+    expect(signatureStripHtml(null, "Sign")).not.toContain("data-qr-card");
+    expect(signatureStripHtml("<i>QR</i>", "")).not.toContain("data-signature-card");
+  });
+
+  test("escapes the signature text", () => {
+    expect(signatureStripHtml(null, "<b>x</b>")).not.toContain("<b>");
   });
 });
 

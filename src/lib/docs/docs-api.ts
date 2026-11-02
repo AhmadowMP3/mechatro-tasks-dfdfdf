@@ -80,23 +80,23 @@ export const businessDocs = {
     return hydrate(data);
   },
 
-  /** Create a document seeded from its type template (number from the DB). */
-  async create(type: DocType): Promise<BusinessDoc> {
+  /** Create a document seeded from its type template, under the number the admin entered. */
+  async create(type: DocType, enteredNumber: string): Promise<BusinessDoc> {
+    const number = enteredNumber.trim();
+    if (!number) throw new Error("doc_number_required");
     const tpl = await docTemplates.ensure(type);
-    const { data: number, error: numErr } = await supabase.rpc("next_doc_number", { _type: type });
-    if (numErr) throw numErr;
 
     const validity = tpl.defaults.validityDays;
     const payload = {
       doc_type: type,
-      number: number as unknown as string,
+      number,
       revision: 1,
       title: tpl.header.titleAr || tpl.header.titleEn || type,
       client: emptyClient() as unknown as Json,
       lang: tpl.defaults.lang,
       theme: tpl.defaults.theme,
       currency: tpl.defaults.currency,
-      model: { ...defaultModel(), showClientBox: false, html: (tpl.body?.html?.trim() ? tpl.body.html : starterBodyHtml()) } as unknown as Json,
+      model: { ...defaultModel(), html: (tpl.body?.html?.trim() ? tpl.body.html : starterBodyHtml()) } as unknown as Json,
       status: "draft" as DocStatus,
       issue_date: today(),
       valid_until: validity > 0 ? addDays(validity) : null,
@@ -107,9 +107,12 @@ export const businessDocs = {
   },
 
   async save(doc: BusinessDoc): Promise<BusinessDoc> {
+    const number = doc.number.trim();
+    if (!number) throw new Error("doc_number_required");
     const { data, error } = await supabase
       .from("business_docs")
       .update({
+        number,
         title: doc.title,
         client: doc.client as unknown as Json,
         lang: doc.lang,

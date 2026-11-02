@@ -39,6 +39,7 @@ function DocumentsListPage() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [naming, setNaming] = useState<DocType | null>(null);
 
   const reload = () => {
     setLoading(true);
@@ -63,14 +64,14 @@ function DocumentsListPage() {
     );
   }, [rows, q]);
 
-  const create = async (t: DocType) => {
+  const create = async (t: DocType, number: string) => {
     try {
       setBusy(true);
-      const doc = await businessDocs.create(t);
+      const doc = await businessDocs.create(t, number);
       toast.success(ar ? `تم إنشاء ${doc.number}` : `Created ${doc.number}`);
       navigate({ to: "/documents/$id", params: { id: doc.id } });
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(exactErrorMessage(e, ar));
     } finally {
       setBusy(false);
     }
@@ -168,7 +169,7 @@ function DocumentsListPage() {
         </div>
         <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 190px), 1fr))" }}>
           {DOC_TYPES.map((d) => (
-            <button key={d.type} className="btn-ghost" disabled={busy} onClick={() => create(d.type)} style={{ justifyContent: "flex-start", minHeight: 44 }}>
+            <button key={d.type} className="btn-ghost" disabled={busy} onClick={() => setNaming(d.type)} style={{ justifyContent: "flex-start", minHeight: 44 }}>
               {busy ? <Loader2 size={15} className="spin" /> : <Plus size={15} />}
               <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {docTypeLabel(d.type, ar ? "ar" : "en")}
@@ -178,6 +179,16 @@ function DocumentsListPage() {
           ))}
         </div>
       </div>
+
+      {naming && (
+        <NumberPrompt
+          ar={ar}
+          type={naming}
+          busy={busy}
+          onClose={() => setNaming(null)}
+          onSubmit={(number) => void create(naming, number)}
+        />
+      )}
 
       {importing && (
         <ImportDialog
@@ -297,5 +308,44 @@ function Chip({ active, onClick, label }: { active: boolean; onClick: () => void
     >
       {label}
     </button>
+  );
+}
+
+/* ── The number of a new document, entered by the admin ──────── */
+
+function NumberPrompt({ ar, type, busy, onClose, onSubmit }: { ar: boolean; type: DocType; busy: boolean; onClose: () => void; onSubmit: (number: string) => void }) {
+  const [number, setNumber] = useState("");
+  const ready = number.trim().length > 0 && !busy;
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={ar ? "رقم المستند" : "Document number"}
+      onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}
+      style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(4,10,18,.62)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+    >
+      <form
+        onSubmit={(e) => { e.preventDefault(); if (ready) onSubmit(number); }}
+        style={{ width: "min(420px, 100%)", background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}
+      >
+        <div style={{ fontSize: 14, fontWeight: 800 }}>{docTypeLabel(type, ar ? "ar" : "en")}</div>
+        <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--muted-foreground)" }}>{ar ? "رقم المستند" : "Document number"}</span>
+          <input
+            autoFocus
+            dir="ltr"
+            value={number}
+            onChange={(e) => setNumber(e.target.value)}
+            style={{ width: "100%", minHeight: 40, padding: "8px 10px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--background)", color: "var(--foreground)", fontSize: 13 }}
+          />
+        </label>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button type="button" className="btn-ghost" onClick={onClose} disabled={busy}>{ar ? "إلغاء" : "Cancel"}</button>
+          <button type="submit" className="btn-primary" disabled={!ready}>
+            {busy ? <Loader2 size={15} className="spin" /> : <Plus size={15} />} {ar ? "إنشاء" : "Create"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

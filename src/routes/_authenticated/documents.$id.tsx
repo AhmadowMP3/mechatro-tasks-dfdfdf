@@ -68,10 +68,12 @@ function DocumentEditorPage() {
         // Word-style body, and the body becomes the canonical doc model that
         // lives on `model.blocks`. `model.html` stays populated so older
         // readers and the share view keep working during the migration.
-        const html = needsConversion(d.model)
+        // Imported files have no body to convert: the original file is the content.
+        const imported = !!d.model.wordImport?.active;
+        const html = !imported && needsConversion(d.model)
           ? blocksToHtml(d.model, { lang: d.lang, theme: d.theme, currency: d.currency, meta: { number: d.number } })
           : d.model.html;
-        if (needsModelConversion(d.model) || html !== d.model.html) {
+        if (!imported && (needsModelConversion(d.model) || html !== d.model.html)) {
           const converted = htmlToDocModel(html);
           setDoc({ ...d, model: { ...d.model, version: 2, html, blocks: converted.blocks } });
           setDirty(true);
@@ -87,7 +89,15 @@ function DocumentEditorPage() {
   }, [id, isMasterAdmin]);
 
   const patch = (p: Partial<BusinessDoc>) => { setDoc((d) => (d ? { ...d, ...p } : d)); setDirty(true); };
-  const patchClient = (p: Partial<DocClient>) => { setDoc((d) => (d ? { ...d, client: { ...d.client, ...p } } : d)); setDirty(true); };
+  const patchClient = (p: Partial<DocClient>) => {
+    setDoc((d) => {
+      if (!d) return d;
+      // The first detail typed into an empty client ticks the box, so it reaches the PDF.
+      const wasEmpty = !Object.values(d.client).some((v) => (v ?? "").trim());
+      return { ...d, client: { ...d.client, ...p }, model: wasEmpty ? { ...d.model, showClientBox: true } : d.model };
+    });
+    setDirty(true);
+  };
   const patchModel = (p: Partial<DocModel>) => { setDoc((d) => (d ? { ...d, model: { ...d.model, ...p } } : d)); setDirty(true); };
 
   const save = async () => {
@@ -99,7 +109,7 @@ function DocumentEditorPage() {
       setDirty(false);
       void logActivity(user?.id ?? null, "updated", "business_doc", saved.id, { number: saved.number, doc_type: saved.doc_type });
       toast.success(ar ? "تم الحفظ" : "Saved");
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { toast.error(exactErrorMessage(e, ar)); }
     finally { setSaving(false); }
   };
 
@@ -133,7 +143,7 @@ function DocumentEditorPage() {
       setDoc(bumped);
       setDirty(false);
       toast.success(ar ? `نسخة جديدة: ${bumped.number}` : `New revision: ${bumped.number}`);
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) { toast.error(exactErrorMessage(e, ar)); }
     finally { setSaving(false); }
   };
 
@@ -258,7 +268,11 @@ function DocumentEditorPage() {
             <span style={{ fontSize: 13, color: "var(--muted-foreground)", direction: "ltr" }}>{doc.number}</span>
           </span>
         }
-        subtitle={ar ? "اكتب داخل الورقة نفسها — الهيدر والفوتر مطبوعان كما سيظهران في PDF." : "Type inside the sheet itself — the letterhead and footer print exactly as shown."}
+        subtitle={
+          exactMode
+            ? (ar ? "الملف الأصلي كما هو، مع هيدر وفوتر ميكاترو والرمز والتوقيع." : "The original file as it is, with the Mechatro header, footer, QR and signature.")
+            : (ar ? "اكتب داخل الورقة نفسها — الهيدر والفوتر مطبوعان كما سيظهران في PDF." : "Type inside the sheet itself — the letterhead and footer print exactly as shown.")
+        }
         actions={
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Link to="/documents" className="btn-ghost" style={{ textDecoration: "none" }}>
@@ -274,6 +288,7 @@ function DocumentEditorPage() {
       {/* ── Collapsible settings strips above the sheet ─────────── */}
       <Accordion title={ar ? "بيانات المستند" : "Document settings"}>
         <Row>
+          <Text label={ar ? "رقم المستند" : "Document number"} value={doc.number} onChange={(v) => patch({ number: v })} />
           <Text
             label={ar ? "عنوان داخلي (للقائمة فقط)" : "Internal title (list only)"}
             value={doc.title}
@@ -360,7 +375,7 @@ function DocumentEditorPage() {
           header={header}
           footer={footer}
           actions={<>{statusPill}{importButton}{saveButton}</>}
-          onOpenEditor={() => patchModel({ wordImport: { ...wordImport, active: false } })}
+          onFitChange={(fit) => patchModel({ wordImport: { ...wordImport, fitToBands: fit } })}
           onDownloaded={() => logPdf(doc)}
         />
       )}
@@ -395,7 +410,10 @@ function DocumentEditorPage() {
         <ImportDialog
           ar={ar}
           mode="apply"
-          number={doc.number}
+          initial={{
+            docType: doc.doc_type, number: doc.number, title: doc.title, issueDate: doc.issue_date, validUntil: doc.valid_until ?? "",
+            currency: doc.currency, lang: doc.lang, client: doc.client, showClientBox: doc.model.showClientBox, header, footer,
+          }}
           onClose={() => setImporting(false)}
           onApply={(p) => {
             setImporting(false);
@@ -403,19 +421,19 @@ function DocumentEditorPage() {
               d
                 ? {
                     ...d,
+                    number: p.number,
                     title: p.title || d.title,
                     lang: p.lang,
                     theme: p.wordImport.active ? "light" : d.theme,
                     currency: p.currency || d.currency,
                     issue_date: p.issueDate || d.issue_date,
-                    valid_until: p.validUntil || d.valid_until,
+                    valid_until: p.validUntil || null,
                     client: p.client,
                     model: {
                       ...d.model,
                       version: 2,
                       html: p.html,
                       showClientBox: p.showClientBox,
-                      ...(p.blocks ? { blocks: p.blocks } : {}),
                       wordImport: p.wordImport,
                     },
                   }
